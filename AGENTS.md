@@ -1,5 +1,9 @@
 # Projeto Galápago — o contrato
 
+> **O REPOSITÓRIO É PÚBLICO** (desde a v0.3.1, decisão do operador). Tudo que
+> se commita fica visível para sempre, inclusive no histórico: segredo nenhum
+> em arquivo, nunca — token, chave do PixelLab, keystore, senha.
+
 Jogo indie mobile de criaturas com evolução por vivência, em **Godot 4.7.2**,
 arte via **PixelLab** (MCP). O conceito está em
 [`docs/CONCEITO.md`](docs/CONCEITO.md). Este arquivo é o que se decide antes de
@@ -74,12 +78,12 @@ testes/               run.gd (executor), caso.gd (base), test_*.gd
 tools/                estado.sh · testes.sh · quadros.sh · godot-api.sh ·
                       ci-log.mjs · baixar-apk.mjs · pixellab-catalogo.mjs ·
                       pixellab-tileset.mjs · pixellab-imagem.mjs ·
-                      android/ (exportar.sh, publicar-canal.sh, keystore de DEV)
+                      android/ (exportar.sh — o keystore vem dos secrets)
 arte/                 fonte/ (bruto da IA, .gdignore) · criaturas/ ·
                       cenarios/ (tilesets/ PNG+JSON, objetos/)
 docs/                 CONCEITO · ARQUITETURA · ORACULO · ARTE · PIXELLAB ·
                       pixellab/ (CATALOGO, ferramentas.json, recursos/) ·
                       GODOT · BUILD · AMBIENTE · PEDIDOS-EM-ESPERA ·
                       HISTORICO · RESIDUOS · gdd/ (mapa)
-.github/workflows/    ci.yml (testes + quadros → APK + Release `dev` + canal de versão)
+.github/workflows/    ci.yml (testes + quadros → APK + versao.json na Release `dev`)
 ```

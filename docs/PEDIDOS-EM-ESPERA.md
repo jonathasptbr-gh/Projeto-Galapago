@@ -14,7 +14,7 @@
 | P6 | Âncora de arte: paleta-mestra, câmera, base canina | P1 | na fila |
 | P7 | Fatia vertical: arena + cão + gestos + 1 evolução | P2–P6 | na fila |
 | P8 | GDD do loop diário no laboratório/ilha | — | na fila (design, conversa) |
-| P9 | Atualização automática do app (canal de versão) | P2 | **feito (v0.3.0)** — falta o operador confirmar no aparelho |
+| P9 | Atualização automática do app (método do IASD, repo público) | P2 | **feito (v0.3.1)** — falta o operador reinstalar uma vez e confirmar |
 | P10 | Mapa básico de cima com profundidade + tela em alta resolução | P1 | **feito (v0.3.0)** — altura/colisão ficam para P3/P4 |
 
 ---

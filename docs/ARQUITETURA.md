@@ -57,5 +57,5 @@ Design: [`gdd/mapa.md`](gdd/mapa.md).
 
 ## Atualização do app
 
-`sim/atualizacao.gd` (pura: lê o canal e decide) + `jogo/atualizador.gd` (HTTP
-e aviso). Canal e CI: [`BUILD.md`](BUILD.md#atualização-automática-do-app).
+`sim/atualizacao.gd` (pura: manifesto, host travado, decisão, tamanho) +
+`jogo/atualizador.gd` (HTTP, download, instalador). O método do IASD: [`BUILD.md`](BUILD.md#atualização-automática-do-app).

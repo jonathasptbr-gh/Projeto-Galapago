@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Baixa o APK de uma Release do repositório (privado) para o celular do
-// operador. Uso: node tools/baixar-apk.mjs [tag=dev] [destino=/sdcard/Download/DSH-Go]
+// Baixa o APK de uma Release para o celular do operador — só para a 1ª
+// instalação; depois o próprio app se atualiza (jogo/atualizador.gd). Uso: node tools/baixar-apk.mjs [tag=dev] [destino=/sdcard/Download/DSH-Go]
 // A Release `dev` é refeita a cada push em main pelo job `apk` do CI.
 // Credencial: cofre do harness (refs.GITHUB_TOKEN), fallback ~/.dsh-github/token.
 import fs from 'node:fs';

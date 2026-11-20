@@ -91,11 +91,19 @@ jobs:
           ls -la "$d"
           test -s "$d/android_release.apk" && test -s "$d/android_debug.apk"
 
+      # O keystore vem SÓ dos secrets (o repositório é público): é ele que faz
+      # o Android aceitar a atualização por cima — e recusar qualquer outra.
       - name: Exportar APK
         id: exp
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_SENHA }}
         run: |
           echo "SDK: ${ANDROID_HOME:-?} · build-tools: $(ls "$ANDROID_HOME/build-tools" | tr '\n' ' ')"
+          export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$RUNNER_TEMP/galapago.keystore"
+          printf '%s' "$KS_B64" | base64 -d > "$GODOT_ANDROID_KEYSTORE_RELEASE_PATH"
           tools/android/exportar.sh "${{ github.run_number }}"
+          rm -f "$GODOT_ANDROID_KEYSTORE_RELEASE_PATH"
 
       - name: APK como artefato
         uses: actions/upload-artifact@v4
@@ -104,31 +112,29 @@ jobs:
           path: exportar/projeto-galapago.apk
           retention-days: 14
 
-      - name: Publicar Release
+      # A Release leva o APK e o MANIFESTO versao.json (o mesmo método do Áudio
+      # Visual IASD): o app lê releases/download/dev/versao.json — sem API, sem
+      # limite, sem login —, baixa o APK que ele aponta e abre o instalador.
+      - name: Publicar Release (APK + versao.json)
         if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
           VERSAO: ${{ steps.exp.outputs.versao }}
-        run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            cp exportar/projeto-galapago.apk "projeto-galapago-${GITHUB_REF_NAME}.apk"
-            gh release create "$GITHUB_REF_NAME" "projeto-galapago-${GITHUB_REF_NAME}.apk" \
-              --title "Projeto Galápago ${GITHUB_REF_NAME}" \
-              --notes "APK ${VERSAO}, commit ${GITHUB_SHA}. Assinado com a chave de DESENVOLVIMENTO."
-          elif [[ "$GITHUB_REF" == refs/heads/main ]]; then
-            gh release delete dev --yes --cleanup-tag || true
-            cp exportar/projeto-galapago.apk projeto-galapago-dev.apk
-            gh release create dev projeto-galapago-dev.apk --prerelease --target "$GITHUB_SHA" \
-              --title "Dev — ${VERSAO}" \
-              --notes "Build automático de main (${GITHUB_SHA}). Assinado com a chave de DESENVOLVIMENTO: instala por cima do build anterior."
-          fi
-
-      # O app consulta este canal ao abrir (jogo/atualizador.gd). Público: SÓ
-      # o número da versão; o APK segue no repositório privado.
-      - name: Publicar canal de atualização
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          CANAL_KEY: ${{ secrets.CANAL_DEPLOY_KEY }}
           BUILD: ${{ github.run_number }}
-          VERSAO: ${{ steps.exp.outputs.versao }}
-        run: tools/android/publicar-canal.sh
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then TAG="$GITHUB_REF_NAME"; NOME="projeto-galapago-${GITHUB_REF_NAME}.apk"
+          elif [[ "$GITHUB_REF" == refs/heads/main ]]; then TAG=dev; NOME="projeto-galapago-dev.apk"
+          else exit 0; fi
+          cp exportar/projeto-galapago.apk "$NOME"
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${NOME}"
+          printf '{\n "versao_codigo": %s,\n "versao_nome": "%s",\n "apk": "%s",\n "bytes": %s,\n "sha256": "%s",\n "commit": "%s",\n "publicado_em": "%s"\n}\n' \
+            "$BUILD" "$VERSAO" "$URL" "$(stat -c %s "$NOME")" "$(sha256sum "$NOME" | cut -d' ' -f1)" \
+            "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > versao.json
+          cat versao.json
+          if [[ "$TAG" == dev ]]; then
+            gh release delete dev --yes --cleanup-tag || true
+            gh release create dev "$NOME" versao.json --prerelease --target "$GITHUB_SHA" \
+              --title "Dev — ${VERSAO}" --notes "Build automático de main (${GITHUB_SHA}). O app se atualiza sozinho a partir desta Release."
+          else
+            gh release create "$TAG" "$NOME" versao.json --title "Projeto Galápago ${TAG}" --notes "APK ${VERSAO}, commit ${GITHUB_SHA}."
+          fi

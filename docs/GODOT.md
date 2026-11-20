@@ -121,7 +121,8 @@ O job `apk` do `ci.yml`, via `tools/android/exportar.sh`:
 3. **Caminhos do JDK e do SDK vão no `editor_settings-4.7.tres`** — no 4.7 não
    há variável de ambiente para isso (o padrão gravado é `/root/Android/Sdk`).
 4. Keystore pelas variáveis `GODOT_ANDROID_KEYSTORE_RELEASE_PATH/_USER/_PASSWORD`
-   (a doc oficial lista também as `_DEBUG_*`).
+   (a doc oficial lista também as `_DEBUG_*`); no CI o arquivo vem do secret
+   `ANDROID_KEYSTORE_B64` — o `exportar.sh` recusa rodar sem elas.
 5. Preset temporário com `version/code` = nº do run (cresce sempre: o Android
    só aceita atualizar para código maior) e `version/name` = `<versão do
    HISTORICO>-b<run>`.
@@ -132,8 +133,8 @@ O job `apk` do `ci.yml`, via `tools/android/exportar.sh`:
    O preset tem `permissions/internet=true` (o atualizador usa a rede) e
    `include_filter="*.json"` (mapas e metadados de tileset são lidos com
    `FileAccess`, não como recurso importado).
-7. Push em main → Release **`dev`** (pré-release, refeita a cada push);
-   tag `v*` → Release da tag.
+7. Push em main → Release **`dev`** (pré-release, refeita a cada push) com o
+   APK e o `versao.json` (o manifesto do atualizador); tag `v*` → Release da tag.
 
 Fatos do 1º APK (CI #6): `com.projetogalapago.jogo`, `0.2.0-b6`, minSdk 24
 (Android 7), targetSdk 36, 26 MB, assinatura conferida localmente
@@ -148,8 +149,6 @@ Armadilhas medidas:
 | "A valid Java SDK path is required" / "Missing platform-tools" | editor settings | `exportar.sh` grava os caminhos |
 | "cannot connect to daemon at tcp:5037" | o export tenta o `adb` | inofensivo |
 
-**Keystore:** `tools/android/galapago-dev.keystore` é de DESENVOLVIMENTO
-(versionado, senha no script) — serve para o APK de teste instalar por cima do
-anterior. A chave da **loja** será outra, gerada fora, guardada em *secret* do
-GitHub, nunca no repositório. Trocar de chave obriga o operador a desinstalar.
-O pacote `com.projetogalapago.jogo` é provisório — mudar depois também.
+**Keystore:** só nos secrets do CI e no cofre do operador — ver
+[`BUILD.md`](BUILD.md#o-keystore-assinatura). Trocar de chave obriga o
+operador a desinstalar. O pacote `com.projetogalapago.jogo` é provisório — mudar depois também.

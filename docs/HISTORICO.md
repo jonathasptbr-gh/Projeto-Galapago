@@ -3,6 +3,25 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.3.1 — atualização pelo método do IASD; repositório público (2026-11-20)
+
+- O operador recusou o canal separado (link para o navegador, login no GitHub)
+  e pediu o método do Áudio Visual IASD com o repositório público. Feito:
+  `ShellUpdater.kt` do IASD lido e replicado em Godot — manifesto
+  `versao.json` como asset da Release `dev`, download DENTRO do app com barra,
+  tamanho conferido, instalador do sistema via `OS.shell_open(arquivo)`
+  (conferido no `GodotIO.java` 4.7.2: `FileProvider` `<pacote>.fileprovider`).
+  Permissão `REQUEST_INSTALL_PACKAGES` por `custom_permissions` (não está na
+  lista do Godot). `sim/atualizacao.gd`: host travado, teto de 300 MB,
+  `download_completo` (6 testes).
+- **Antes de abrir o repositório:** histórico inteiro auditado (10 commits) —
+  sem token/chave; a única coisa sensível era o keystore de dev + senha.
+  Keystore NOVO (RSA 3072, senha aleatória) só em secrets
+  (`ANDROID_KEYSTORE_B64`/`_SENHA`) e no cofre do operador; o antigo saiu da
+  árvore (fica no histórico, revogado). Reinstalação única do operador.
+- Canal da v0.3.0 desmontado: repositório `Projeto-Galapago-canal` apagado,
+  secret `CANAL_DEPLOY_KEY` apagado, `publicar-canal.sh` removido.
+
 ## v0.3.0 — atualização automática + ilha vista de cima em alta resolução (2026-11-20)
 
 - **Atualização (P9):** canal PÚBLICO só de versão (`jonathasptbr-gh/Projeto-Galapago-canal`,

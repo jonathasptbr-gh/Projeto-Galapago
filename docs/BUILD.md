@@ -12,9 +12,10 @@
 6. `git add <caminhos>` (nunca `-A`) → `git commit -m "vX.Y.Z: …"` →
    `git push origin main`.
 7. CI: `tools/estado.sh --ci` até `completed`; vermelho → `node tools/ci-log.mjs`.
-8. Verde → o APK novo está na Release `dev`:
-   `node tools/baixar-apk.mjs` o põe em `/sdcard/Download/DSH-Go/` (avisando o
-   operador).
+8. Verde → o APK novo e o `versao.json` estão na Release `dev`: o app do
+   operador oferece a atualização ao abrir. Primeira instalação (ou chave
+   trocada): `node tools/baixar-apk.mjs` põe o APK em `/sdcard/Download/DSH-Go/`
+   (avisando o operador).
 
 ## Versão
 
@@ -31,37 +32,48 @@ armadilhas: [`GODOT.md`](GODOT.md#8-exportar-para-android-p2--como-funciona-e-o-
 
 ## Atualização automática do app
 
-Decisão do operador (2026-11-20): **tudo privado** — público só o número da
-versão.
+**O método do Áudio Visual IASD** (decisão do operador, 2026-11-20, v0.3.1 —
+substituiu o canal separado da v0.3.0). O repositório é PÚBLICO.
 
 ```
-push em main → CI: APK → Release `dev` (privada)
-             → tools/android/publicar-canal.sh grava canal.json no repositório
-               PÚBLICO jonathasptbr-gh/Projeto-Galapago-canal
-app abre → jogo/atualizador.gd lê canal.json pela API do GitHub
-           (reserva: raw.githubusercontent.com, com cache de até 5 min)
-         → sim/atualizacao.gd: versao_codigo do canal > galapago/build local?
-         → aviso "Nova versão X disponível · Atualizar · Depois"
-         → Atualizar = OS.shell_open(link do APK da Release `dev`)
-         → o navegador baixa (precisa estar LOGADO no GitHub: repo privado)
-         → o Android pede a confirmação da instalação (sempre; ninguém contorna)
+push em main → CI: APK assinado (keystore dos secrets)
+             → Release `dev` com DOIS assets: projeto-galapago-dev.apk + versao.json
+app abre → jogo/atualizador.gd lê
+           github.com/jonathasptbr-gh/Projeto-Galapago/releases/download/dev/versao.json
+         → sim/atualizacao.gd: versao_codigo > galapago/build deste APK?
+         → "Nova versão X disponível (25,3 MB)  [Atualizar] [Depois]"
+         → Atualizar: baixa DENTRO do app, com barra, para user://atualizacao/
+         → confere o tamanho (bytes do manifesto) → OS.shell_open(arquivo)
+         → o Godot entrega por content:// (FileProvider) ao instalador do Android
+         → o operador confirma; na 1ª vez o Android pede "permitir instalar apps"
 ```
 
-- `canal.json`: `canal`, `versao_codigo` (= nº do run = versionCode),
-  `versao_nome`, `publicado_em`, `apk`. Nada além disso fica público.
-- O build local (fora do CI) tem `galapago/build=0` e nunca pergunta; o
-  `exportar.sh` grava o build real num `project.godot` temporário.
-- **Escrita no canal:** deploy key **só daquele repositório** (com escrita),
-  guardada como secret `CANAL_DEPLOY_KEY` no repositório privado. A chave
-  privada não existe em mais lugar nenhum. **Trocar:** gerar novo par ed25519
-  (Python `cryptography`, formato OpenSSH), registrar a pública como deploy key
-  do canal (`POST /repos/…/Projeto-Galapago-canal/keys`, `read_only:false`),
-  apagar a antiga, e regravar o secret (PyNaCl `SealedBox` com a
-  `actions/secrets/public-key` do repositório privado).
-- **Cache (medido, v0.3.0):** o `raw.githubusercontent.com` guarda o arquivo
-  até 5 min (`max-age=300`) e IGNORA query string (`x-cache: HIT` com parâmetro
-  aleatório) — o `?t=` não fura. Por isso o app consulta primeiro a API
-  (`api.github.com/repos/…/contents/canal.json` com
-  `Accept: application/vnd.github.raw+json`: fresca; sem login, 60/hora por IP)
-  e cai no `raw` se a API falhar. Testado com o `HTTPRequest` do próprio Godot.
-- **Tags `v*`** geram Release própria, mas o canal acompanha só a `dev`.
+- `versao.json`: `versao_codigo` (= nº do run = versionCode), `versao_nome`,
+  `apk` (link do asset), `bytes`, `sha256`, `commit`, `publicado_em`.
+- **Segurança (a mesma do IASD):** o Android só instala por cima um APK com a
+  MESMA assinatura — é isso que protege. Ao lado: `apk` só `https` em
+  `github.com` (host travado), teto de 300 MB, e o download só vai ao
+  instalador com o tamanho EXATO do manifesto (corpo truncado não passa).
+- `releases/download/...` não usa a API (sem limite, sem login) e não tem o
+  cache de 5 min do `raw.githubusercontent.com` (medido na v0.3.0).
+- O build local (fora do CI) tem `galapago/build=0` e nunca pergunta.
+- Permissão `android.permission.REQUEST_INSTALL_PACKAGES` em
+  `permissions/custom_permissions` do preset (não está na lista pronta do
+  Godot 4.7). `OS.shell_open` com caminho de arquivo: conferido no
+  `GodotIO.java` da tag 4.7.2-stable; o `FileProvider` (`<pacote>.fileprovider`,
+  `files-path "/"`) vem no manifesto da biblioteca do Godot.
+
+## O keystore (assinatura)
+
+- **Nunca no repositório** (ele é público). No CI: secrets
+  `ANDROID_KEYSTORE_B64` (o arquivo PKCS12 em base64) e
+  `ANDROID_KEYSTORE_SENHA`; o job grava em `$RUNNER_TEMP` e apaga depois.
+- **Cópia de segurança do operador:** cofre do DSH, refs
+  `GALAPAGO_KEYSTORE_B64` e `GALAPAGO_KEYSTORE_SENHA`. Perder a chave = o app
+  instalado não aceita mais atualização (é preciso desinstalar).
+- Alias `galapago`, RSA 3072, SHA-256 do certificado
+  `A0:D4:A9:90:B0:0E:2E:BF:3E:73:3E:4B:DE:DA:EB:C6:45:3C:63:90:7D:A8:ED:81:E5:01:79:53:89:1B:41:D0`.
+- A chave de desenvolvimento da v0.2.0 (`galapago-dev.keystore`, senha no
+  script) continua no HISTÓRICO do git, que ficou público: ela está REVOGADA na
+  prática — o aparelho do operador passa a confiar só na nova (reinstalação
+  única na v0.3.1). Nunca reutilizá-la.

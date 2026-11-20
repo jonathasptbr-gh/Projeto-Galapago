@@ -15,12 +15,12 @@ export GODOT_SILENCE_ROOT_WARNING=1
 : "${JAVA_HOME:?defina JAVA_HOME (JDK 17)}"
 ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
 : "${ANDROID_HOME:?defina ANDROID_HOME (SDK Android)}"
-# Keystore de DESENVOLVIMENTO (versionado de propósito: só assina builds de
-# teste, para cada APK instalar por cima do anterior). A chave da LOJA é outra
-# e nunca entra no repositório. O ambiente pode sobrepor as três.
-export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="${GODOT_ANDROID_KEYSTORE_RELEASE_PATH:-$PWD/tools/android/galapago-dev.keystore}"
+# Keystore: NUNCA no repositório (ele é público desde a v0.3.1). No CI vem dos
+# secrets ANDROID_KEYSTORE_B64/ANDROID_KEYSTORE_SENHA; a cópia de segurança do
+# operador está no cofre do DSH (refs GALAPAGO_KEYSTORE_B64/_SENHA). Ver BUILD.md.
+: "${GODOT_ANDROID_KEYSTORE_RELEASE_PATH:?defina o keystore (ver docs/BUILD.md)}"
+: "${GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD:?defina a senha do keystore}"
 export GODOT_ANDROID_KEYSTORE_RELEASE_USER="${GODOT_ANDROID_KEYSTORE_RELEASE_USER:-galapago}"
-export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD="${GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD:-galapago-dev}"
 
 # 1. import (cria também as editor settings na 1ª execução)
 "$G" --headless --path . --import >/dev/null 2>&1 || true
