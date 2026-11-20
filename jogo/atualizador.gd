@@ -6,30 +6,55 @@ extends Control
 ## A decisão em si é da sim/atualizacao.gd (testada); aqui só HTTP e tela.
 
 const A := preload("res://sim/atualizacao.gd")
-const URL_CANAL := "https://raw.githubusercontent.com/jonathasptbr-gh/Projeto-Galapago-canal/main/canal.json"
+# 1º a API (resposta fresca; sem login: 60 consultas/hora por IP — sobra para
+# uma por abertura). Reserva: o raw, que o CDN guarda até 5 min IGNORANDO
+# query string (medido: x-cache HIT com parâmetro aleatório).
+const FONTES := [
+	["https://api.github.com/repos/jonathasptbr-gh/Projeto-Galapago-canal/contents/canal.json",
+		["Accept: application/vnd.github.raw+json", "User-Agent: ProjetoGalapago"]],
+	["https://raw.githubusercontent.com/jonathasptbr-gh/Projeto-Galapago-canal/main/canal.json",
+		["User-Agent: ProjetoGalapago"]],
+]
 
 var canal: Dictionary = {}
 var _http: HTTPRequest
+var _build := 0
+var _fonte := 0
 
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var build := int(ProjectSettings.get_setting("galapago/build", 0))
-	if build <= 0 or "--demo" in OS.get_cmdline_user_args():
+	_build = int(ProjectSettings.get_setting("galapago/build", 0))
+	if _build <= 0 or "--demo" in OS.get_cmdline_user_args():
 		return
 	_http = HTTPRequest.new()
 	_http.timeout = 10.0
 	add_child(_http)
-	_http.request_completed.connect(_recebido.bind(build))
-	_http.request("%s?t=%d" % [URL_CANAL, int(Time.get_unix_time_from_system())])
+	_http.request_completed.connect(_recebido)
+	_pedir()
 
 
-func _recebido(resultado: int, codigo: int, _cab: PackedStringArray, corpo: PackedByteArray, build: int) -> void:
+func _pedir() -> void:
+	var f: Array = FONTES[_fonte]
+	if _http.request(f[0], PackedStringArray(f[1])) != OK:
+		_proxima()
+
+
+func _proxima() -> void:
+	_fonte += 1
+	if _fonte < FONTES.size():
+		_pedir.call_deferred()
+
+
+func _recebido(resultado: int, codigo: int, _cab: PackedStringArray, corpo: PackedByteArray) -> void:
 	if resultado != HTTPRequest.RESULT_SUCCESS or codigo != 200:
+		_proxima()
 		return
 	canal = A.ler_canal(corpo.get_string_from_utf8())
-	if A.deve_atualizar(build, canal):
+	if canal.is_empty():
+		_proxima()
+	elif A.deve_atualizar(_build, canal):
 		_mostrar_aviso()
 
 

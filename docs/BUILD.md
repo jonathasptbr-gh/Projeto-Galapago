@@ -38,8 +38,8 @@ versão.
 push em main → CI: APK → Release `dev` (privada)
              → tools/android/publicar-canal.sh grava canal.json no repositório
                PÚBLICO jonathasptbr-gh/Projeto-Galapago-canal
-app abre → jogo/atualizador.gd baixa
-           raw.githubusercontent.com/…/Projeto-Galapago-canal/main/canal.json
+app abre → jogo/atualizador.gd lê canal.json pela API do GitHub
+           (reserva: raw.githubusercontent.com, com cache de até 5 min)
          → sim/atualizacao.gd: versao_codigo do canal > galapago/build local?
          → aviso "Nova versão X disponível · Atualizar · Depois"
          → Atualizar = OS.shell_open(link do APK da Release `dev`)
@@ -58,6 +58,10 @@ app abre → jogo/atualizador.gd baixa
   do canal (`POST /repos/…/Projeto-Galapago-canal/keys`, `read_only:false`),
   apagar a antiga, e regravar o secret (PyNaCl `SealedBox` com a
   `actions/secrets/public-key` do repositório privado).
-- **Cache:** o raw do GitHub guarda o arquivo por alguns minutos; o app manda
-  `?t=<hora>` para furar o cache.
+- **Cache (medido, v0.3.0):** o `raw.githubusercontent.com` guarda o arquivo
+  até 5 min (`max-age=300`) e IGNORA query string (`x-cache: HIT` com parâmetro
+  aleatório) — o `?t=` não fura. Por isso o app consulta primeiro a API
+  (`api.github.com/repos/…/contents/canal.json` com
+  `Accept: application/vnd.github.raw+json`: fresca; sem login, 60/hora por IP)
+  e cai no `raw` se a API falhar. Testado com o `HTTPRequest` do próprio Godot.
 - **Tags `v*`** geram Release própria, mas o canal acompanha só a `dev`.

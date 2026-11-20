@@ -31,7 +31,9 @@
 - Conferido de fora após o CI #8: `canal.json` responde 200 SEM autenticação
   (`versao_codigo` 8, `0.3.0-b8`); o link do APK sem login responde 404 (privado,
   como decidido); o APK traz `assets/dados/mapas/*.json` e os metadados dos
-  tilesets. O b8 foi deixado em `Download/DSH-Go/` de propósito: o push seguinte
+  tilesets. Achado no b9: o `raw` serve cache de até 5 min ignorando o `?t=` →
+  o atualizador passa a ler pela API (fresca), com o `raw` de reserva (b10).
+  O b8 foi deixado em `Download/DSH-Go/` de propósito: o push seguinte
   (b9) faz o b8 oferecer a atualização — teste real do fluxo pelo operador.
 
 ## v0.2.0 — APK no CI (P2) + catálogo do PixelLab e guias (2026-11-20)
