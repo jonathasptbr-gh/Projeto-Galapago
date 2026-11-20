@@ -22,7 +22,7 @@ argumento — nunca o sorteio global.
 ## Dados de design
 
 Espécies-base, traços, gatilhos de vivência e ramos de evolução moram em
-**dados** (`dados/*.json` ou `Resource` `.tres`, decisão do pacote P4/P5), não
+**dados** (`dados/*.json` — o mapa já é assim; criaturas no P4/P5), não
 em código: mudar o design não exige mexer na lógica.
 
 ## Pipeline previsto da criatura (pacotes P3–P6)
@@ -42,5 +42,20 @@ separados.
 ## Renderização
 
 `gl_compatibility` (OpenGL 3.3 / GLES 3): roda em celular modesto e é o único
-que o oráculo de quadros renderiza sem GPU. Resolução interna 320×180,
-ampliação por inteiro, filtro *nearest*, *snap* de pixel ligado.
+que o oráculo de quadros renderiza sem GPU. **Tela em alta resolução**
+(1280×720, `canvas_items`, `expand`) com **arte pixelada** (filtro *nearest*,
+câmera com zoom inteiro 2): linhas, sombras, efeitos e texto são lisos.
+Detalhes em [`GODOT.md`](GODOT.md#6-pixel-art-no-godot).
+
+## Mundo e mapa
+
+O mapa vem de **dados**: `dados/mapas/<nome>.json` (cantos de terreno + objetos)
+→ `sim/mapa.gd` (pura: valida o desenho e escolhe a peça Wang de cada célula)
+→ `jogo/mapa.gd` (monta o `TileMapLayer` com os tilesets do PixelLab).
+Objetos e criatura ficam num `Node2D` com `y_sort_enabled`, origem nos pés.
+Design: [`gdd/mapa.md`](gdd/mapa.md).
+
+## Atualização do app
+
+`sim/atualizacao.gd` (pura: lê o canal e decide) + `jogo/atualizador.gd` (HTTP
+e aviso). Canal e CI: [`BUILD.md`](BUILD.md#atualização-automática-do-app).

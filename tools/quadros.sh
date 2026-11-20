@@ -15,7 +15,7 @@ rm -rf "${SAIDA:?}"; mkdir -p "$SAIDA"
 export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER="${GALLIUM_DRIVER:-softpipe}" GODOT_SILENCE_ROOT_WARNING=1
 "$G" --headless --path . --import >/dev/null 2>&1 || true
 xvfb-run -a -s "-screen 0 1280x720x24" "$G" --path . --rendering-driver opengl3 \
-  --audio-driver Dummy --resolution 640x360 --write-movie "$SAIDA/q.png" \
+  --audio-driver Dummy --resolution 1280x720 --write-movie "$SAIDA/q.png" \
   --fixed-fps 30 --quit-after "$N" -- --demo >"$SAIDA/log.txt" 2>&1 || true
 rm -f "$SAIDA"/q*.wav
 

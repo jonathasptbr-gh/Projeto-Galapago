@@ -1,26 +1,32 @@
 ; Projeto Galápago — configuração do Godot 4.7.
-; Resolução interna de pixel art (320x180), ampliada por inteiro: nada de
-; filtro, nada de meio pixel. Renderizador de compatibilidade (OpenGL/GLES 3):
-; é o que roda em celular modesto E o que o oráculo de quadros consegue
-; renderizar sem GPU (ver docs/ORACULO.md).
+; Tela em ALTA resolução (1280x720 base, `canvas_items`, aspecto `expand` para
+; preencher telas largas de celular); a ARTE é pixelada (filtro nearest, câmera
+; com zoom inteiro), mas linhas, sombras e efeitos são lisos (desenho
+; antialiasing na resolução da tela). Decisão do operador, 2026-11-20 (v0.3.0).
+; Renderizador de compatibilidade: roda em celular modesto e no oráculo.
 
 config_version=5
 
 [application]
 
 config/name="Projeto Galápago"
+config/version="local"
 run/main_scene="res://jogo/main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [display]
 
-window/size/viewport_width=320
-window/size/viewport_height=180
-window/size/window_width_override=1280
-window/size/window_height_override=720
-window/stretch/mode="viewport"
-window/stretch/scale_mode="integer"
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 window/handheld/orientation=0
+
+[galapago]
+
+; Número do build do CI (versionCode do APK). 0 = rodando fora de um APK do CI;
+; o tools/android/exportar.sh grava o número certo só durante o export.
+build=0
 
 [input_devices]
 
@@ -32,5 +38,3 @@ renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/canvas_textures/default_texture_filter=0
 textures/vram_compression/import_etc2_astc=true
-2d/snap/snap_2d_transforms_to_pixel=true
-2d/snap/snap_2d_vertices_to_pixel=true

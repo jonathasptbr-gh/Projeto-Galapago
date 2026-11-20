@@ -3,6 +3,32 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.3.0 — atualização automática + ilha vista de cima em alta resolução (2026-11-20)
+
+- **Atualização (P9):** canal PÚBLICO só de versão (`jonathasptbr-gh/Projeto-Galapago-canal`,
+  `canal.json`) — decisão do operador: tudo privado. CI → `tools/android/publicar-canal.sh`
+  via deploy key só do canal (secret `CANAL_DEPLOY_KEY`; a chave privada não
+  existe fora do secret). App → `jogo/atualizador.gd` (HTTP no `raw`, `?t=`) +
+  `sim/atualizacao.gd` (pura, 3 testes) → aviso com "Atualizar" (abre o APK da
+  Release `dev` no navegador; precisa de login no GitHub). `exportar.sh` grava
+  `config/version`/`galapago/build` num `project.godot` temporário;
+  `permissions/internet=true`; `include_filter="*.json"`.
+- **Tela (decisão do operador):** 1280×720, `canvas_items`, `expand`; arte
+  *nearest* com câmera zoom 2; linhas/sombras/anel/texto lisos (antialiasing);
+  snap 2D desligado (movimento em subpixel). Oráculo em 1280×720 (~40 s/60 quadros).
+- **Mapa (P10):** `sim/mapa.gd` (cantos Wang por níveis mar/areia/grama/planalto,
+  validador, 8 testes incl. o desenho real) + `jogo/mapa.gd` (TileMapLayer
+  montado em código dos metadados do PixelLab) + `dados/mapas/ilha_teste.json`
+  (41×22 pontos, 12 objetos) + y-sort de objetos/criatura pela base + sombras
+  lisas. Design em `docs/gdd/mapa.md`.
+- **Arte (PixelLab, 6 gerações; saldo 33/40):** tilesets standard 32 px
+  `mar_areia` (transição 0,25), `areia_grama` (encadeado na areia),
+  `grama_planalto` (transição 0,5 = paredes de penhasco ao sul) — cores dos
+  terrenos compartilhados conferidas iguais (`#ffebba`, `#37a129`); objetos
+  Pixen high top-down: `arvore` 64 (seed 3001), `rocha` 32 (3002), `estacao` 96
+  (3003). Duas gerações falharam no servidor (502 e timeout) e não foram cobradas.
+- Ferramentas: `tools/pixellab-tileset.mjs`, `tools/pixellab-imagem.mjs`.
+
 ## v0.2.0 — APK no CI (P2) + catálogo do PixelLab e guias (2026-11-20)
 
 - **P2:** job `apk` no `ci.yml` (depois de `testes`): JDK 17 (temurin), Godot

@@ -65,18 +65,21 @@ a arte fica) é do operador: o agente propõe com opções, não decide calado.
 ## Estrutura
 
 ```
-project.godot         configuração (320x180, gl_compatibility, paisagem, ETC2/ASTC)
+project.godot         configuração (1280x720 canvas_items, arte nearest, paisagem, ETC2/ASTC)
 export_presets.cfg    preset Android (arm64, sem Gradle)
-sim/                  lógica pura (trajetória, depois gestos, afinidade, evolução)
-jogo/                 cenas e apresentação
+sim/                  lógica pura: trajetoria · mapa (cantos Wang) · atualizacao
+jogo/                 main · mapa · objeto · criatura · trilha · atualizador
+dados/mapas/          design dos mapas em JSON (ilha_teste.json)
 testes/               run.gd (executor), caso.gd (base), test_*.gd
 tools/                estado.sh · testes.sh · quadros.sh · godot-api.sh ·
                       ci-log.mjs · baixar-apk.mjs · pixellab-catalogo.mjs ·
-                      android/ (exportar.sh, keystore de DEV)
-arte/                 fonte/ (bruto da IA, .gdignore) · criaturas/ · cenarios/
+                      pixellab-tileset.mjs · pixellab-imagem.mjs ·
+                      android/ (exportar.sh, publicar-canal.sh, keystore de DEV)
+arte/                 fonte/ (bruto da IA, .gdignore) · criaturas/ ·
+                      cenarios/ (tilesets/ PNG+JSON, objetos/)
 docs/                 CONCEITO · ARQUITETURA · ORACULO · ARTE · PIXELLAB ·
                       pixellab/ (CATALOGO, ferramentas.json, recursos/) ·
                       GODOT · BUILD · AMBIENTE · PEDIDOS-EM-ESPERA ·
-                      HISTORICO · RESIDUOS · gdd/
-.github/workflows/    ci.yml (testes + quadros → APK + Release `dev`)
+                      HISTORICO · RESIDUOS · gdd/ (mapa)
+.github/workflows/    ci.yml (testes + quadros → APK + Release `dev` + canal de versão)
 ```

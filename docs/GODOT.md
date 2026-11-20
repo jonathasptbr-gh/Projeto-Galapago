@@ -50,7 +50,7 @@ o binário local, `config/features` do `project.godot` e o nome
 
 | arquivo | regra |
 |---|---|
-| `project.godot` | texto INI; editar à mão é normal. Chaves que **decidimos**: 320×180, `stretch/mode="viewport"`, `scale_mode="integer"`, filtro `0` (nearest), snap 2D ligado, `gl_compatibility` (também no mobile), `emulate_touch_from_mouse`, `import_etc2_astc=true` (**o export Android recusa sem ele**) |
+| `project.godot` | texto INI; editar à mão é normal. Chaves que **decidimos** (v0.3.0): 1280×720, `stretch/mode="canvas_items"`, `aspect="expand"`, filtro `0` (nearest), snap 2D **desligado**, `config/version` + `galapago/build` (o export grava os reais), `gl_compatibility` (também no mobile), `emulate_touch_from_mouse`, `import_etc2_astc=true` (**o export Android recusa sem ele**) |
 | `*.tscn` / `*.tres` | cena/recurso em texto (`format=3`). Editar à mão: cada `[ext_resource]` com `id` único referenciado por `ExtResource("id")`; nós com `parent="."`/caminho. Cenas grandes: preferir montar em código (`_ready`) a escrever `.tscn` gigantes à mão |
 | `*.gd.uid` | id estável do script (Godot ≥ 4.4) — **versionar** |
 | `*.import` | configuração de import de cada asset — **versionar** |
@@ -74,11 +74,14 @@ o binário local, `config/features` do `project.godot` e o nome
 
 ## 6. Pixel art no Godot
 
-- **Nitidez:** filtro padrão *nearest* (projeto), `snap_2d_transforms_to_pixel`
-  e `snap_2d_vertices_to_pixel` ligados, ampliação **inteira** (320×180 ×4 =
-  1280×720; em telas que não dividem, sobra borda — é o preço da nitidez).
-- **Desenho por código:** `draw_polyline` de 1 px sai falhado nas diagonais com
-  o snap (resíduo v0.1.0) — para traços, desenhar por pixel ou largura 2.
+- **Arte pixelada, tela não** (decisão do operador, v0.3.0): a tela é 1280×720
+  (`canvas_items`, `expand`); a arte usa filtro *nearest* e a câmera tem **zoom
+  inteiro** (2 → cada pixel de arte vira 2×2), então os sprites ficam nítidos.
+  Linhas, sombras, efeitos e texto são desenhados na resolução da tela, lisos:
+  `draw_polyline(..., antialiased=true)`, `draw_circle(..., antialiased=true)`,
+  `draw_arc(..., antialiased=true)`. Snap 2D desligado: movimento em subpixel.
+- **Zoom não inteiro** (pinça, efeito) borra/deforma pixels de arte — se vier,
+  decidir com o operador.
 - **Import de PNG:** padrão do Godot 4 para texturas 2D é sem perda; manter
   mipmaps desligados para sprites. Conferir no `.import` gerado.
 - **Animação de sprite:** `AnimatedSprite2D` + `SpriteFrames` (um `SpriteFrames`
@@ -100,7 +103,8 @@ o binário local, `config/features` do `project.godot` e o nome
 
 - Ler em `_unhandled_input`: `InputEventScreenTouch` (`pressed`, `index` = dedo)
   e `InputEventScreenDrag` (`position`, `relative`, `velocity`). Com
-  `stretch/mode="viewport"` as posições já chegam em pixels de jogo (320×180).
+  câmera, converter para o mundo com `mundo.make_input_local(ev).position`
+  (`mundo` = o Node2D raiz do mundo) — é o que `jogo/main.gd` faz.
 - `emulate_touch_from_mouse=true`: no PC/oráculo o mouse vira toque.
 - Toque roteirizado (oráculo/testes de cena): `Input.parse_input_event(ev)`.
 - A classificação de gestos é da `sim/` (P3), testada com traços gravados.
@@ -123,6 +127,11 @@ O job `apk` do `ci.yml`, via `tools/android/exportar.sh`:
    HISTORICO>-b<run>`.
 6. `--export-release "Android"`; depois `aapt dump badging` confere pacote e
    versão.
+   O mesmo passo grava `config/version` e `galapago/build` num `project.godot`
+   temporário — é o que o jogo mostra no título e o que o atualizador compara.
+   O preset tem `permissions/internet=true` (o atualizador usa a rede) e
+   `include_filter="*.json"` (mapas e metadados de tileset são lidos com
+   `FileAccess`, não como recurso importado).
 7. Push em main → Release **`dev`** (pré-release, refeita a cada push);
    tag `v*` → Release da tag.
 

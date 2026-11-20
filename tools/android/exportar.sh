@@ -43,10 +43,15 @@ for k, v in (("export/android/java_sdk_path", java), ("export/android/android_sd
 open(p, "w", encoding="utf-8").write(s)
 EOF
 
-# 3. versão do build num preset temporário (o arquivo versionado não muda)
+# 3. versão do build em cópias temporárias (os arquivos versionados não mudam):
+#    o preset (versionCode/versionName do APK) e o project.godot
+#    (config/version e galapago/build, que o atualizador do jogo lê).
 cp export_presets.cfg export_presets.cfg.orig
-trap 'mv -f export_presets.cfg.orig export_presets.cfg' EXIT
+cp project.godot project.godot.orig
+trap 'mv -f export_presets.cfg.orig export_presets.cfg; mv -f project.godot.orig project.godot' EXIT
 sed -i -E "s/^version\/code=.*/version\/code=${BUILD}/; s/^version\/name=.*/version\/name=\"${NOME}\"/" export_presets.cfg
+sed -i -E "s/^config\/version=.*/config\/version=\"${NOME}\"/; s/^build=.*/build=${BUILD}/" project.godot
+grep -E '^(config/version|build)=' project.godot
 
 # 4. exportar
 mkdir -p exportar

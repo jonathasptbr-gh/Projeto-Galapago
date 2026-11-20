@@ -28,3 +28,36 @@ APK: `versionName` = `X.Y.Z-b<run>`, `versionCode` = número do run do CI
 `.github/workflows/ci.yml` — job `testes` (testes + oráculo, artefato
 `quadros`) → job `apk` (export Android + Release). Detalhes do export e das
 armadilhas: [`GODOT.md`](GODOT.md#8-exportar-para-android-p2--como-funciona-e-o-que-quebra).
+
+## Atualização automática do app
+
+Decisão do operador (2026-11-20): **tudo privado** — público só o número da
+versão.
+
+```
+push em main → CI: APK → Release `dev` (privada)
+             → tools/android/publicar-canal.sh grava canal.json no repositório
+               PÚBLICO jonathasptbr-gh/Projeto-Galapago-canal
+app abre → jogo/atualizador.gd baixa
+           raw.githubusercontent.com/…/Projeto-Galapago-canal/main/canal.json
+         → sim/atualizacao.gd: versao_codigo do canal > galapago/build local?
+         → aviso "Nova versão X disponível · Atualizar · Depois"
+         → Atualizar = OS.shell_open(link do APK da Release `dev`)
+         → o navegador baixa (precisa estar LOGADO no GitHub: repo privado)
+         → o Android pede a confirmação da instalação (sempre; ninguém contorna)
+```
+
+- `canal.json`: `canal`, `versao_codigo` (= nº do run = versionCode),
+  `versao_nome`, `publicado_em`, `apk`. Nada além disso fica público.
+- O build local (fora do CI) tem `galapago/build=0` e nunca pergunta; o
+  `exportar.sh` grava o build real num `project.godot` temporário.
+- **Escrita no canal:** deploy key **só daquele repositório** (com escrita),
+  guardada como secret `CANAL_DEPLOY_KEY` no repositório privado. A chave
+  privada não existe em mais lugar nenhum. **Trocar:** gerar novo par ed25519
+  (Python `cryptography`, formato OpenSSH), registrar a pública como deploy key
+  do canal (`POST /repos/…/Projeto-Galapago-canal/keys`, `read_only:false`),
+  apagar a antiga, e regravar o secret (PyNaCl `SealedBox` com a
+  `actions/secrets/public-key` do repositório privado).
+- **Cache:** o raw do GitHub guarda o arquivo por alguns minutos; o app manda
+  `?t=<hora>` para furar o cache.
+- **Tags `v*`** geram Release própria, mas o canal acompanha só a `dev`.

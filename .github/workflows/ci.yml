@@ -122,3 +122,13 @@ jobs:
               --title "Dev — ${VERSAO}" \
               --notes "Build automático de main (${GITHUB_SHA}). Assinado com a chave de DESENVOLVIMENTO: instala por cima do build anterior."
           fi
+
+      # O app consulta este canal ao abrir (jogo/atualizador.gd). Público: SÓ
+      # o número da versão; o APK segue no repositório privado.
+      - name: Publicar canal de atualização
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          CANAL_KEY: ${{ secrets.CANAL_DEPLOY_KEY }}
+          BUILD: ${{ github.run_number }}
+          VERSAO: ${{ steps.exp.outputs.versao }}
+        run: tools/android/publicar-canal.sh

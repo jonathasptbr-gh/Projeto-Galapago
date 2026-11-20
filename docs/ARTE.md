@@ -66,6 +66,19 @@ ferramentas `get_*_capabilities` cotam de graça antes de gastar.
 5. **O operador aprova a âncora** (prévia em `/sdcard/Download/DSH-Go/`),
    o agente produz as variações.
 
+## Gerado até agora
+
+| arquivo | ferramenta | custo | uso |
+|---|---|---|---|
+| `arte/fonte/p1-cao-base-pixen.png` | `create_image_pixen` 64, side, seed 20261120 | 1 | prova P1; cópia provisória em `arte/criaturas/cao_base_prova.png` |
+| `arte/cenarios/tilesets/mar_areia.*` | `create_topdown_tileset` standard 32 px, transição 0,25 | 1 | ilha de teste |
+| `arte/cenarios/tilesets/areia_grama.*` | idem, `lower_base_tile_id` = areia | 1 | ilha de teste |
+| `arte/cenarios/tilesets/grama_planalto.*` | idem, transição 0,5 (penhasco) | 1 | ilha de teste |
+| `arte/cenarios/objetos/arvore.png` · `rocha.png` · `estacao.png` | `create_image_pixen` high top-down, seeds 3001–3003 | 3 | ilha de teste |
+
+Os `.json` dos tilesets guardam o `pixellab_id` e os `base_tile_ids` (para
+encadear novos terrenos sem emenda).
+
 ## Pastas
 
 ```
