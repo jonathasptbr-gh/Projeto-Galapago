@@ -1,0 +1,7 @@
+# Godot: cache de importação (regenera com --import). Os *.import e *.uid
+# NÃO se ignoram: são parte do projeto desde o Godot 4.4.
+.godot/
+/android/
+/exportar/
+/quadros/
+*.tmp

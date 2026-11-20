@@ -1,0 +1,44 @@
+name: CI
+
+# Testes headless + oráculo de quadros. O APK é o pacote P2 da fila
+# (docs/PEDIDOS-EM-ESPERA.md): export templates, keystore e Android SDK.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.7.2"
+
+jobs:
+  testes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Godot ${{ env.GODOT_VERSION }}
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -fsSL -o g.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q g.zip -d "$HOME/godot" && rm g.zip
+          echo "GODOT=$HOME/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" >> "$GITHUB_ENV"
+
+      - name: Testes (headless)
+        run: tools/testes.sh
+
+      - name: Quadros (oráculo visual)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri
+          GALLIUM_DRIVER=llvmpipe tools/quadros.sh 60 quadros
+
+      - name: Publicar quadros
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quadros
+          path: quadros/
+          retention-days: 7
