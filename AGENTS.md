@@ -71,9 +71,11 @@ a arte fica) é do operador: o agente propõe com opções, não decide calado.
 ```
 project.godot         configuração (1280x720 canvas_items, arte nearest, paisagem, ETC2/ASTC)
 export_presets.cfg    preset Android (arm64, sem Gradle)
-sim/                  lógica pura: trajetoria · mapa (cantos Wang) · atualizacao
-jogo/                 main · mapa · objeto · criatura · trilha · atualizador
-dados/mapas/          design dos mapas em JSON (ilha_teste.json)
+sim/                  lógica pura: gestos · comandos · corpo · mundo · trajetoria ·
+                       visibilidade · atualizacao · mapa (Wang, parado)
+jogo/                 main · criatura · trilha · hud · demo · mock · atualizador ·
+                       camadas/ (chao, subsolo, copa, parallax, objeto_mock)
+dados/                gestos.json · acoes.json · terrenos.json · mapas/
 testes/               run.gd (executor), caso.gd (base), test_*.gd
 tools/                estado.sh · testes.sh · quadros.sh · godot-api.sh ·
                       ci-log.mjs · baixar-apk.mjs · pixellab-catalogo.mjs ·
@@ -82,6 +84,7 @@ tools/                estado.sh · testes.sh · quadros.sh · godot-api.sh ·
 arte/                 fonte/ (bruto da IA, .gdignore) · criaturas/ ·
                       cenarios/ (tilesets/ PNG+JSON, objetos/)
 docs/                 CONCEITO · ARQUITETURA · ORACULO · ARTE · PIXELLAB ·
+                      BUILD · GODOT · AMBIENTE ·
                       pixellab/ (CATALOGO, ferramentas.json, recursos/) ·
                       GODOT · BUILD · AMBIENTE · PEDIDOS-EM-ESPERA ·
                       HISTORICO · RESIDUOS · gdd/ (mapa)

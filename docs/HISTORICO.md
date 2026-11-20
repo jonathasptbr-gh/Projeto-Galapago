@@ -3,7 +3,42 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
-## v0.3.1 — atualização pelo método do IASD; repositório público (2026-11-20)
+## v0.4.0 — a fundação: gestos, ações e camadas (2026-11-20)
+
+- **Escala confirmada (captura do operador = análise):** criatura 64×64 px de
+  arte, célula 32 px, câmera 2×. A "impressão de grande" é a ampliação
+  (64 × 2 × ~1,64 da tela real), não a resolução.
+- **Gestos** (`sim/gestos.gd`, tempo simulado = determinístico): toque, toque
+  duplo, segurar, deslize, trajetória; limiares em `dados/gestos.json`.
+- **Gestos → comandos** (`sim/comandos.gd`): deslize por SETOR relativo ao
+  OLHAR da criatura (frente-esquerda → `ataque_x`, frente → `investida`,
+  frente-direita → `ataque_y`, trás → `esquiva`); tabela em `dados/gestos.json`
+  (a legenda da HUD e a demo seguem ela).
+- **Ações** (`sim/corpo.gd` + `dados/acoes.json`): máquina com
+  antecipação/ativa/recuperação, recarga, sustentada (defender), pulo e
+  deslocamento consultam o mundo (não atravessam parede, pulo pousa só onde
+  dá), escavar troca a camada.
+- **Mundo em camadas** (`sim/mundo.gd` + `dados/terrenos.json` +
+  `dados/mapas/fundacao.json`): superfície (terreno por célula, altura, andável,
+  escavável, rampa 1,5) e subsolo (túneis); andar vence 0,5 nível, pulo sobe 1,
+  escavação desce/sobe.
+- **Visibilidade** (`sim/visibilidade.gd`): copa opaca de longe, quase
+  transparente com a criatura por baixo (smoothstep) — baú escondido no bosque.
+- **Apresentação em MOCKUP de xadrez** (`jogo/mock.gd`, `jogo/camadas/`):
+  parallax fundo (0,35×) e frente (1,35×), chão com paredes e buracos, objetos
+  y-sort pela base, subsolo que escurece a cena, copas acima de tudo, HUD de
+  desenvolvimento com a legenda gerada da tabela.
+- **Demo roteirizada** (`jogo/demo.gd`): sintetiza DEDOS (não comandos) e passa
+  pelo fluxo real; cobre trajetória, os 3 deslizes, toque duplo (pulo sobre o
+  canal), segurar (defender), escavação (desce, anda no túnel, sobe) e bosque.
+- **Verificação:** 43 testes (gestos, comandos, corpo, mundo, visibilidade),
+  parser em 30 scripts; demo 450 quadros a 15 fps SEM erro de script; camadas
+  conferidas por amostragem de pixels (superfície verde/cinza/azul, subsolo
+  escuro). O modelo desta sessão não lê imagem → verificação visual programática.
+- GDDs novos: [`docs/gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md) e
+  [`docs/gdd/mapa.md`](gdd/mapa.md) reescrito para as camadas.
+
+## v0.3.1## v0.3.1 — atualização pelo método do IASD; repositório público (2026-11-20)
 
 - O operador recusou o canal separado (link para o navegador, login no GitHub)
   e pediu o método do Áudio Visual IASD com o repositório público. Feito:

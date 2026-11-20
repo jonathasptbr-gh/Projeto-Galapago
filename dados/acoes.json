@@ -1,0 +1,12 @@
+{
+ "_leia": "Ações da criatura. Tempos em segundos, distâncias em pixels de MUNDO (célula = 32). fases = [antecipação, ativo, recuperação]: o golpe só acerta, o pulo só voa e o deslocamento só acontece na fase ATIVA; um comando novo durante a RECUPERAÇÃO fica guardado e sai em seguida. sustentada = a fase ativa dura enquanto o dedo segura. vira = a criatura passa a olhar para a direção do gesto. Lido por sim/corpo.gd. Ver docs/gdd/gestos-e-acoes.md.",
+ "mover": {"tipo": "movimento", "velocidade": 110},
+ "olhar": {"tipo": "instantanea"},
+ "ataque_x": {"fases": [0.10, 0.14, 0.18], "deslocamento": 10, "alcance": 36, "arco": 110, "vira": true, "recarga": 0.15},
+ "ataque_y": {"fases": [0.22, 0.14, 0.26], "deslocamento": 4, "alcance": 46, "arco": 60, "vira": true, "recarga": 0.35},
+ "investida": {"fases": [0.08, 0.20, 0.12], "deslocamento": 64, "alcance": 24, "arco": 50, "vira": true, "recarga": 0.5},
+ "esquiva": {"fases": [0.02, 0.20, 0.10], "deslocamento": 56, "invulneravel": true, "vira": false, "recarga": 0.45},
+ "pular": {"fases": [0.08, 0.42, 0.08], "distancia": 84, "altura": 26, "vira": true, "recarga": 0.25},
+ "defender": {"fases": [0.06, 0.0, 0.10], "sustentada": true, "vira": false, "recarga": 0.2},
+ "escavar": {"fases": [0.15, 0.55, 0.15], "vira": false, "recarga": 0.4}
+}

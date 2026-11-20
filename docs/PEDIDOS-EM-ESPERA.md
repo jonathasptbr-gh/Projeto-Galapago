@@ -8,14 +8,14 @@
 |---|---|---|---|
 | P1 | Conectar o PixelLab (MCP) e gerar a 1ª prova | conta do operador | **feito (v0.1.1)** — falta o operador trocar a chave exposta no chat |
 | P2 | APK no CI (export Android + Release) | — | **feito (v0.2.0)** — falta o operador instalar e riscar |
-| P3 | Gestos: classificador de deslizes + trajetória na arena | — | na fila |
+| P3 | Gestos: classificador de deslizes + trajetória na arena | — | **feito (v0.4.0)** — fundação de gestos, ações e camadas |
 | P4 | Afinidade e personalidade (sim) | P3 | na fila |
 | P5 | Vivência → evolução (sim) + simulação em massa | P4 | na fila |
 | P6 | Âncora de arte: paleta-mestra, câmera, base canina | P1 | na fila |
 | P7 | Fatia vertical: arena + cão + gestos + 1 evolução | P2–P6 | na fila |
 | P8 | GDD do loop diário no laboratório/ilha | — | na fila (design, conversa) |
 | P9 | Atualização automática do app (método do IASD, repo público) | P2 | **feito (v0.3.1)** — falta o operador reinstalar uma vez e confirmar |
-| P10 | Mapa básico de cima com profundidade + tela em alta resolução | P1 | **feito (v0.3.0)** — altura/colisão ficam para P3/P4 |
+| P10 | Mapa básico de cima com profundidade + tela em alta resolução | P1 | **feito (v0.4.0)** — camadas lógicas + mockup |
 
 ---
 

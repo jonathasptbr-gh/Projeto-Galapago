@@ -1,0 +1,10 @@
+{
+ "_leia": "Legenda dos mapas por CÉLULA. altura em níveis (0 mar, 1 chão, 2 planalto; rampa 1.5 liga 1 e 2: andar só vence diferença de até 0.5). andavel/escavavel são regra de jogo (sim/mundo.gd); cores são só do MOCKUP em xadrez (jogo/), trocadas pela arte depois.",
+ "~": {"nome": "água", "altura": 0, "andavel": false, "escavavel": false, "cores": ["#2f6f9f", "#3b82b5"], "transparente": true},
+ ".": {"nome": "areia", "altura": 1, "andavel": true, "escavavel": true, "cores": ["#e8d9a8", "#f3e6bd"]},
+ ",": {"nome": "grama", "altura": 1, "andavel": true, "escavavel": false, "cores": ["#4f9a45", "#5cab51"]},
+ ":": {"nome": "terra fofa", "altura": 1, "andavel": true, "escavavel": true, "cores": ["#8a6040", "#9b6e4b"]},
+ "#": {"nome": "rocha", "altura": 1, "andavel": false, "escavavel": false, "cores": ["#5b5b62", "#6c6c74"]},
+ "/": {"nome": "rampa", "altura": 1.5, "andavel": true, "escavavel": false, "cores": ["#a58a62", "#b89c72"]},
+ "^": {"nome": "planalto", "altura": 2, "andavel": true, "escavavel": false, "cores": ["#9a9aa2", "#aeaeb6"]}
+}

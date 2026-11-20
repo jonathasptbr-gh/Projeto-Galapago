@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Oráculo visual: roda a cena principal em modo --demo e grava N quadros PNG,
 # sem GPU (Xvfb + Mesa por software). Ver docs/ORACULO.md.
-#   tools/quadros.sh [N=60] [saída=~/tmp/galapago-quadros]
+#   tools/quadros.sh [N=60] [saída=~/tmp/galapago-quadros]   (QUADROS_FPS=30 por padrão)
 # Neste celular (proot, aarch64) o driver tem de ser softpipe: o llvmpipe morre
 # com SIGILL no JIT. No CI (x86_64) o workflow passa GALLIUM_DRIVER=llvmpipe.
 set -euo pipefail
@@ -16,7 +16,7 @@ export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER="${GALLIUM_DRIVER:-softpipe}" GODO
 "$G" --headless --path . --import >/dev/null 2>&1 || true
 xvfb-run -a -s "-screen 0 1280x720x24" "$G" --path . --rendering-driver opengl3 \
   --audio-driver Dummy --resolution 1280x720 --write-movie "$SAIDA/q.png" \
-  --fixed-fps 30 --quit-after "$N" -- --demo >"$SAIDA/log.txt" 2>&1 || true
+  --fixed-fps "${QUADROS_FPS:-30}" --quit-after "$N" -- --demo >"$SAIDA/log.txt" 2>&1 || true
 rm -f "$SAIDA"/q*.wav
 
 n=$(find "$SAIDA" -name 'q*.png' | wc -l)
