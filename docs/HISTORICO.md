@@ -3,6 +3,28 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.2.0 — APK no CI (P2) + catálogo do PixelLab e guias (2026-11-20)
+
+- **P2:** job `apk` no `ci.yml` (depois de `testes`): JDK 17 (temurin), Godot
+  4.7.2, templates Android extraídos do `.tpz` de 1,2 GB e guardados em cache
+  (`android_debug.apk`, `android_release.apk`), `tools/android/exportar.sh`
+  (import → editor settings com `java_sdk_path`/`android_sdk_path` → preset
+  temporário com `version/code` = nº do run → `--export-release "Android"` →
+  `aapt`/`apksigner` conferem). Publica Release `dev` (pré-release refeita a
+  cada push em main) e Release por tag `v*`.
+- `export_presets.cfg`: Android, só arm64-v8a, sem Gradle,
+  `com.projetogalapago.jogo` (provisório), imersivo, paisagem (do projeto).
+  Validado localmente: o Godot lê o preset e só reclama do que falta aqui
+  (templates, JDK, SDK) — os mesmos três que o CI fornece.
+- Keystore de DESENVOLVIMENTO versionado (`tools/android/galapago-dev.keystore`,
+  PKCS12, alias `galapago`): assina builds de teste para que cada APK instale
+  por cima do anterior. A chave da loja será outra, em *secret*.
+- `tools/baixar-apk.mjs`: baixa o APK de uma Release (privada) para
+  `/sdcard/Download/DSH-Go/`.
+- Ambiente: JDK 17 no celular (para `keytool`); o `dpkg` só configura com
+  `/usr/share/man/man1` existente (imagem enxuta). `~/.local/bin` NÃO está no
+  PATH dos shells do agente: os scripts já caem para `$HOME/.local/bin/godot`.
+
 ## v0.1.1 — PixelLab conectado, P1 (2026-11-20)
 
 - Chave do operador (chegou pelo chat) → cofre `refs.PIXELLAB_TOKEN`; validada

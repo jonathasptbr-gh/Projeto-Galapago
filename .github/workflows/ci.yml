@@ -1,10 +1,14 @@
 name: CI
 
-# Testes headless + oráculo de quadros. O APK é o pacote P2 da fila
-# (docs/PEDIDOS-EM-ESPERA.md): export templates, keystore e Android SDK.
+# testes  → testes headless + oráculo de quadros (artefato `quadros`)
+# apk     → exporta o APK Android (P2) e publica:
+#           push em main  → Release `dev` (pré-release, refeita a cada push)
+#           tag v*        → Release da tag
+# Ver docs/GODOT.md ("Exportar para Android") e docs/BUILD.md.
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -42,3 +46,79 @@ jobs:
           name: quadros
           path: quadros/
           retention-days: 7
+
+  apk:
+    needs: testes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    concurrency:
+      group: apk-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Godot ${{ env.GODOT_VERSION }}
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -fsSL -o g.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q g.zip -d "$HOME/godot" && rm g.zip
+          echo "GODOT=$HOME/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" >> "$GITHUB_ENV"
+
+      # O .tpz tem 1,2 GB; só os dois templates Android ficam em cache.
+      - name: Templates Android (cache)
+        id: tpl
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable
+          key: godot-templates-android-${{ env.GODOT_VERSION }}
+
+      - name: Templates Android (download)
+        if: steps.tpl.outputs.cache-hit != 'true'
+        run: |
+          d="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$d"
+          curl -fsSL -o t.tpz "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -l t.tpz | grep -E 'android|version.txt' || true
+          unzip -j -o t.tpz 'templates/android_debug.apk' 'templates/android_release.apk' 'templates/version.txt' -d "$d" || [ $? -eq 11 ]
+          rm t.tpz
+          ls -la "$d"
+          test -s "$d/android_release.apk" && test -s "$d/android_debug.apk"
+
+      - name: Exportar APK
+        id: exp
+        run: |
+          echo "SDK: ${ANDROID_HOME:-?} · build-tools: $(ls "$ANDROID_HOME/build-tools" | tr '\n' ' ')"
+          tools/android/exportar.sh "${{ github.run_number }}"
+
+      - name: APK como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: exportar/projeto-galapago.apk
+          retention-days: 14
+
+      - name: Publicar Release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSAO: ${{ steps.exp.outputs.versao }}
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            cp exportar/projeto-galapago.apk "projeto-galapago-${GITHUB_REF_NAME}.apk"
+            gh release create "$GITHUB_REF_NAME" "projeto-galapago-${GITHUB_REF_NAME}.apk" \
+              --title "Projeto Galápago ${GITHUB_REF_NAME}" \
+              --notes "APK ${VERSAO}, commit ${GITHUB_SHA}. Assinado com a chave de DESENVOLVIMENTO."
+          elif [[ "$GITHUB_REF" == refs/heads/main ]]; then
+            gh release delete dev --yes --cleanup-tag || true
+            cp exportar/projeto-galapago.apk projeto-galapago-dev.apk
+            gh release create dev projeto-galapago-dev.apk --prerelease --target "$GITHUB_SHA" \
+              --title "Dev — ${VERSAO}" \
+              --notes "Build automático de main (${GITHUB_SHA}). Assinado com a chave de DESENVOLVIMENTO: instala por cima do build anterior."
+          fi
