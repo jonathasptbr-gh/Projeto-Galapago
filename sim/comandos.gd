@@ -1,14 +1,19 @@
 extends RefCounted
-## Gesto → COMANDO (a ação pedida) — LÓGICA PURA, pela tabela "mapa" de
-## dados/gestos.json. É a INTENÇÃO do jogador; quem decide se a criatura
-## obedece é a camada seguinte (afinidade, pacote P4 — hoje obedece sempre).
+## Gesto → COMANDO (a intenção do jogador) — LÓGICA PURA, pela tabela "mapa"
+## de dados/gestos.json. Quem decide se a criatura obedece é a camada de
+## afinidade (P4); hoje ela obedece.
 ##
-## Deslize: o ângulo é RELATIVO ao olhar da criatura (0 = frente, positivo =
-## direita dela). A tela tem y para baixo, então "direita da criatura" é o
-## sentido horário na tela — é o que Vector2.angle() já mede.
+## Regras (v0.5):
+## - arrasto começando PERTO da criatura = ROTA (vem como "trajetoria");
+## - gesto de ação só FORA da área dela; o SETOR é relativo ao OLHAR:
+##   frente → ataque (a direção do golpe é do alvo/rota, não do dedo),
+##   esquerda/direita → esquiva para aquele lado;
+## - toque = travar a mira (ou interagir); toque duplo = pular;
+##   segurar = defender (para a rota); segurar nela = escavar.
 ##
-## Comando: {acao, direcao (unitário), alvo, pontos, setor, gesto}.
-## Posições (alvo, pontos) vêm em pixels de MUNDO: a jogo/ converte antes.
+## Comando: {acao, lado, alcance, alvo, pontos, setor, direcao, gesto}.
+
+const AO_ALCANCE := 110.0
 
 
 ## Ângulo do vetor em relação ao olhar, em graus, em (-180, 180].
@@ -29,7 +34,7 @@ static func setor(angulo: float, tabela: Array) -> Dictionary:
 static func traduzir(ev: Dictionary, olhar: Vector2, mapa: Dictionary) -> Dictionary:
 	var g: String = ev.get("gesto", "")
 	var cmd := {"gesto": g, "alvo": ev.get("alvo", Vector2.ZERO), "pontos": ev.get("pontos_mundo", PackedVector2Array()),
-		"direcao": Vector2(ev.get("vetor", Vector2.ZERO)).normalized(), "setor": ""}
+		"direcao": Vector2(ev.get("vetor", Vector2.ZERO)).normalized(), "setor": "", "lado": 0.0, "alcance": AO_ALCANCE}
 	match g:
 		"toque", "toque_duplo", "trajetoria":
 			cmd["acao"] = mapa.get(g, "")
@@ -45,6 +50,8 @@ static func traduzir(ev: Dictionary, olhar: Vector2, mapa: Dictionary) -> Dictio
 			cmd["acao"] = s["acao"]
 			cmd["setor"] = s["nome"]
 			cmd["angulo"] = ang
+			if s.has("lado"):
+				cmd["lado"] = float(s["lado"])
 		_:
 			return {}
 	if cmd["acao"] == "":

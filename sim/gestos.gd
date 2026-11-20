@@ -90,10 +90,12 @@ func soltar(pos: Vector2, t_ms: float) -> Array:
 			_ultimo_toque_t = t_ms
 			_ultimo_toque_pos = pos
 		return saida
-	if dur <= lim["deslize_max_ms"] and vetor.length() >= lim["deslize_min_px"]:
-		return [_evento("deslize", t_ms)]
+	# QUALQUER arrasto começando perto da criatura é ROTA — mesmo rápido. Vem
+	# ANTES do teste de deslize: é a mão do jogador desenhando o caminho.
 	if _pontos[0].distance_to(_criatura) <= lim["trajetoria_raio_inicio_px"] and _comprimento() >= lim["trajetoria_min_px"]:
 		return [_evento("trajetoria", t_ms)]
+	if dur <= lim["deslize_max_ms"] and vetor.length() >= lim["deslize_min_px"]:
+		return [_evento("deslize", t_ms)]
 	return [_evento("nada", t_ms)]
 
 

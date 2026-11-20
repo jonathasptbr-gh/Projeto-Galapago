@@ -1,34 +1,38 @@
 extends Node
 ## DEMO roteirizada (`-- --demo`, usada pelo oráculo): sintetiza DEDOS — não
 ## comandos — e os entrega pelo MESMO caminho de um toque de verdade
-## (main.dedo_desceu/moveu/subiu → sim/gestos → sim/comandos → sim/corpo).
-## Se a tabela de gestos mudar, a demo continua testando o sistema real.
+## (main.dedo_* → sim/gestos → sim/comandos → sim/corpo).
 ##
-## Cada passo: {t (s), tipo, ...}. Posições-alvo em CÉLULAS do mapa; direções
-## de deslize em graus RELATIVOS ao olhar da criatura no momento.
+## O roteiro mostra as regras da v0.5:
+## 1. rota riscada a partir dela;
+## 2. ataque, esquiva e pulo DURANTE a caminhada — sem cancelar a rota;
+## 3. toque na árvore trava a mira; novo ataque sai na direção do alvo;
+## 4. toque no adversário trava num alvo MÓVEL;
+## 5. segurar = defesa (para a rota); soltar retoma;
+## 6. ao terminar a rota, autonomia (vai/ronda o alvo marcado).
 
 const Mock := preload("res://jogo/mock.gd")
 
 var main: Node
 var _passos: Array = []
-var _curso: Array = []  # dedos em curso: {t0, t1, de, ate, pts}
+var _curso: Array = []
 
 
 func _init(m: Node) -> void:
 	main = m
 	_passos = [
-		{"t": 0.5, "tipo": "trajetoria", "ate": [[12, 10], [19, 11]], "dur": 0.7},
-		{"t": 5.0, "tipo": "deslize", "rel": -45.0},
-		{"t": 5.9, "tipo": "deslize", "rel": 45.0},
-		{"t": 6.9, "tipo": "deslize", "rel": 0.0},
-		{"t": 8.0, "tipo": "toque_duplo", "alvo": [23, 11]},
-		{"t": 9.4, "tipo": "segurar", "longe": true, "dur": 1.1},
-		{"t": 11.0, "tipo": "deslize", "rel": 180.0},
-		{"t": 11.9, "tipo": "trajetoria", "ate": [[25, 12], [28, 14]], "dur": 0.6},
-		{"t": 14.6, "tipo": "segurar", "longe": false, "dur": 0.6},
-		{"t": 16.0, "tipo": "trajetoria", "ate": [[28, 17], [7, 17]], "dur": 0.8},
-		{"t": 24.8, "tipo": "segurar", "longe": false, "dur": 0.6},
-		{"t": 26.2, "tipo": "trajetoria", "ate": [[10, 16], [13, 15]], "dur": 0.6},
+		{"t": 0.5, "tipo": "rota", "ate": [[9, 11], [18, 12]], "dur": 0.9},
+		{"t": 2.4, "tipo": "longe", "rel": 0.0},          # ataque (andando)
+		{"t": 3.6, "tipo": "longe", "rel": -90.0},        # esquiva à esquerda
+		{"t": 4.6, "tipo": "longe", "rel": 90.0},         # esquiva à direita
+		{"t": 5.6, "tipo": "toque_duplo"},                # pulo (arco andando)
+		{"t": 7.0, "tipo": "toque", "celula": [12, 13]},  # trava mira na árvore
+		{"t": 8.0, "tipo": "longe", "rel": 0.0},          # ataque na direção do alvo
+		{"t": 9.4, "tipo": "toque", "celula": [16, 9]},   # trava no adversário (móvel)
+		{"t": 10.6, "tipo": "defender", "dur": 1.6},      # defesa: para a rota
+		{"t": 12.8, "tipo": "longe", "rel": 0.0},         # ataque na direção do alvo
+		{"t": 14.0, "tipo": "rota", "ate": [[19, 13]], "dur": 0.5},  # rota curta: acaba
+		{"t": 17.0, "tipo": "toque", "celula": [13, 14]}, # interage com o baú
 	]
 
 
@@ -51,29 +55,43 @@ func _process(_delta: float) -> void:
 			main.dedo_moveu(_em(d, u))
 
 
+func _cria() -> Vector2:
+	return main.tela_de(main.criatura.ponto_visual() + Vector2(0, -20))
+
+
 func _disparar(p: Dictionary, agora: float) -> void:
-	var cria: Vector2 = main.tela_de(main.criatura.ponto_visual() + Vector2(0, -20))
+	var cria := _cria()
 	var olhar: Vector2 = main.corpo.olhar
 	match p["tipo"]:
-		"trajetoria":
+		"rota":
 			var pts := PackedVector2Array([cria])
 			for c in p["ate"]:
 				pts.append(main.tela_de(main.mundo.centro(Vector2i(c[0], c[1]))))
 			_curso.append({"t0": agora, "t1": agora + float(p["dur"]), "pts": pts})
-		"deslize":
-			var v := olhar.rotated(deg_to_rad(float(p["rel"]))) * 140.0
-			var de := cria + Vector2(-60, 140)  # longe da criatura: deslize vale de qualquer lugar
-			_curso.append({"t0": agora, "t1": agora + 0.15, "pts": PackedVector2Array([de, de + v])})
+		"longe":
+			# dedo LONGE dela: é gesto de ação, na direção relativa ao olhar
+			var v := olhar.rotated(deg_to_rad(float(p["rel"]))) * 150.0
+			var de := cria + Vector2(0, 230)
+			if de.distance_to(cria) < 130.0:
+				de = cria + Vector2(0, -230)
+			_curso.append({"t0": agora, "t1": agora + 0.16, "pts": PackedVector2Array([de, de + v])})
 		"toque_duplo":
-			var alvo: Vector2 = main.tela_de(main.mundo.centro(Vector2i(p["alvo"][0], p["alvo"][1])))
-			_curso.append({"t0": agora, "t1": agora + 0.08, "pts": PackedVector2Array([alvo, alvo])})
-			_curso.append({"t0": agora + 0.16, "t1": agora + 0.24, "pts": PackedVector2Array([alvo, alvo])})
-		"segurar":
-			var ponto: Vector2 = cria + (Vector2(0, 160) if p["longe"] else Vector2(4, 6))
+			var alvo := cria + Vector2(0, 240)
+			if alvo.y > 660.0:
+				alvo = cria + Vector2(0, -240)
+			_curso.append({"t0": agora, "t1": agora + 0.14, "pts": PackedVector2Array([alvo, alvo])})
+			_curso.append({"t0": agora + 0.26, "t1": agora + 0.40, "pts": PackedVector2Array([alvo, alvo])})
+		"toque":
+			var c: Array = p["celula"]
+			var ponto: Vector2 = main.tela_de(main.mundo.centro(Vector2i(c[0], c[1])))
+			_curso.append({"t0": agora, "t1": agora + 0.10, "pts": PackedVector2Array([ponto, ponto])})
+		"defender":
+			var ponto := cria + Vector2(0, 200)
+			if ponto.y > 690.0:
+				ponto = cria + Vector2(0, -200)
 			_curso.append({"t0": agora, "t1": agora + float(p["dur"]), "pts": PackedVector2Array([ponto, ponto])})
 
 
-## Ponto do dedo na fração u do traço (polilinha em tela).
 func _em(d: Dictionary, u: float) -> Vector2:
 	var pts: PackedVector2Array = d["pts"]
 	if pts.size() == 1:

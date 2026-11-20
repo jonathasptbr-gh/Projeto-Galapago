@@ -1,5 +1,5 @@
 {
- "_leia": "Gestos -> ações. Distâncias em pixels de TELA (1280x720 lógicos: o dedo tem o mesmo tamanho em qualquer zoom); tempos em ms. Ângulos de deslize são RELATIVOS ao olhar da criatura, em graus: 0 = frente, positivo = à DIREITA dela, negativo = à esquerda, ±180 = trás. Lido por sim/gestos.gd (limiares) e sim/comandos.gd (mapa). Ver docs/gdd/gestos-e-acoes.md.",
+ "_leia": "Gestos -> ações. Distâncias em pixels de TELA (1280x720 lógicos); tempos em ms. Ângulos do deslize são RELATIVOS ao olhar da criatura: 0 = frente, positivo = à DIREITA dela. v0.5: arrasto começando PERTO da criatura é sempre ROTA; gesto de ação só fora; ataque mira no alvo marcado (ou na direção da rota); esquiva é lateral. Ver docs/gdd/gestos-e-acoes.md.",
  "limiares": {
   "toque_max_px": 16,
   "toque_max_ms": 260,
@@ -8,22 +8,21 @@
   "segurar_min_ms": 380,
   "deslize_min_px": 44,
   "deslize_max_ms": 380,
-  "trajetoria_raio_inicio_px": 100,
-  "trajetoria_min_px": 60,
-  "na_criatura_raio_px": 70
+  "trajetoria_raio_inicio_px": 110,
+  "trajetoria_min_px": 40,
+  "na_criatura_raio_px": 70,
+  "alvo_raio_px": 110
  },
  "mapa": {
-  "toque": "olhar",
+  "toque": "travar",
   "toque_duplo": "pular",
   "segurar": "defender",
   "segurar_na_criatura": "escavar",
   "trajetoria": "mover",
   "deslize": [
-   {"nome": "frente-esquerda", "de": -105, "ate": -12, "acao": "ataque_x"},
-   {"nome": "frente", "de": -12, "ate": 12, "acao": "investida"},
-   {"nome": "frente-direita", "de": 12, "ate": 105, "acao": "ataque_y"},
-   {"nome": "trás", "de": 105, "ate": 180, "acao": "esquiva"},
-   {"nome": "trás", "de": -180, "ate": -105, "acao": "esquiva"}
+   {"nome": "frente", "de": -70, "ate": 70, "acao": "ataque"},
+   {"nome": "esquerda", "de": -180, "ate": -70, "acao": "esquiva", "lado": -1},
+   {"nome": "direita", "de": 70, "ate": 180, "acao": "esquiva", "lado": 1}
   ]
  }
 }

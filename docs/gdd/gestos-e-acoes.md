@@ -1,91 +1,92 @@
-# Gestos e ações — a fundação do combate
+# Gestos e ações — como a criatura se move e age
 
-> Como um dedo na tela vira a ação da criatura. Tudo o que é REGRA mora em
-> `sim/` (testado) e nas tabelas `dados/gestos.json` + `dados/acoes.json`
-> (editáveis); a apresentação em `jogo/` só desenha. Decidido em v0.4.0.
+> Regra toda em `sim/` (testada) e nas tabelas `dados/gestos.json` +
+> `dados/acoes.json` (editáveis); `jogo/` só desenha. v0.5.
 
 ## O fluxo
 
 ```
-dedo (toque real OU demo roteirizada — mesmo caminho)
-  → sim/gestos.gd  : reconhece O GESTO (toque, toque_duplo, segurar, deslize, trajetória)
-  → sim/comandos.gd: traduz em COMANDO (a ação pedida + direção + alvo)
-  → sim/corpo.gd   : executa — e é AQUI que a afinidade vai agir depois (P4)
+dedo (toque real ou demo roteirizada — mesmo caminho)
+  → sim/gestos.gd   : reconhece O GESTO
+  → sim/comandos.gd : traduz em COMANDO (ação + lado + alvo no mundo)
+  → sim/corpo.gd    : ROTA + OVERLAYS + AUTONOMIA (a afinidade entra aqui, P4)
 ```
 
-O tempo é **simulado** (`tempo_ms` acumulado na cena): teste, demo e oráculo são
-determinísticos — o mesmo dedo dá sempre o mesmo resultado.
+Tempo **simulado** (`tempo_ms`): teste, demo e oráculo são determinísticos.
 
-## Gestos reconhecidos (limiares em `dados/gestos.json`)
+## A regra de ouro: perto = MOVE, longe = AGE
 
-| gesto | como se faz | vira |
+| onde começa o dedo | o que é |
+|---|---|
+| **perto da criatura** (≈110 px de tela) | **ROTA** — qualquer arrasto, mesmo rápido, é caminho |
+| **longe** | **GESTO DE AÇÃO** — o setor decidido pelo ângulo |
+
+## A rota manda; as ações só a modificam
+
+A criatura **segue a rota até o fim**. Ela só perde a rota se:
+
+1. o jogador riscar **outra** rota (substitui);
+2. **defender** (segurar) — isso a **para** sem apagar a rota; ao soltar, retoma;
+3. **escavar** — troca de camada, e a rota não vale mais lá.
+
+**Ataque, esquiva e pulo NÃO cancelam a rota** — são *overlays* por cima:
+
+| overlay | o que faz | efeito na rota |
 |---|---|---|
-| **toque** | dedo desce e sobe, quase sem andar, rápido | a criatura olha para o ponto |
-| **toque duplo** | dois toques perto, em menos de ~0,34 s | **pular** (em direção ao toque) |
-| **segurar** | dedo parado ≥ ~0,38 s | **defender** (segura enquanto o dedo fica) |
-| **segurar na criatura** | o mesmo, começando em cima dela | **escavar** (desce/sobe) |
-| **deslize** | rápido, de qualquer lugar, ≥ ~44 px | ataque/investida/esquiva, pelo SETOR |
-| **trajetória** | começa na criatura, mais lento e longo | **mover** pelo caminho riscado |
+| **ataque** | golpe (antecipação → ativa → recuperação); a direção é **do alvo** ou, sem alvo, **da rota** | nenhum: continua andando |
+| **esquiva** | desloca para o lado (amplitúe do gesto) e **volta** | nenhum: corrige sozinha e segue |
+| **pulo** | arco no ar enquanto segue | nenhum: continua andando |
 
-Ordem ao soltar: segurar → toque(duplo) → deslize → trajetória → (não
-reconhecido). Um traço lento começando LONGE da criatura é "não reconhecido"
-(a HUD mostra).
+## Gestos (limiares em `dados/gestos.json`)
 
-## Setores do deslize (relativos ao OLHAR da criatura)
-
-O ângulo é medido em relação à direção que a criatura olha — **0 = frente,
-positivo = a direita dela** (a tela tem y para baixo). Tabela em
-`dados/gestos.json` → `mapa.deslize`:
-
-| setor | ângulo | ação |
+| gesto | como | vira |
 |---|---|---|
-| frente-esquerda | −105° a −12° | `ataque_x` |
-| frente | −12° a +12° | `investida` |
-| frente-direita | +12° a +105° | `ataque_y` |
-| trás | ±105° a ±180° | `esquiva` |
+| **toque** | dedo quase parado, rápido | **travar a mira** no alvo mais próximo do toque (árvore/adversário); no que é interativo (baú) → **interagir**; repetir no mesmo alvo → soltar |
+| **toque duplo** | dois toques perto, < 0,34 s | **pular** (arco) |
+| **segurar** | parado ≥ 0,38 s, longe dela | **defender** (para a rota enquanto o dedo fica) |
+| **segurar nela** | o mesmo, começando em cima | **escavar** (desce/sobe) |
+| **deslize longe** | ≥ 44 px, < 0,38 s | pelo **setor relativo ao olhar**: frente (±70°) → **ataque**; esquerda/direita → **esquiva** daquele lado |
+| **arrasto perto** | ≥ 40 px | **rota** |
 
-Olhando para o SUL, o que é "frente-esquerda" na tela vira sudeste — porque é
-relativo ao olhar, não à tela.
+O ataque **não usa o ângulo do dedo**: só o setor (frente). A direção do golpe
+sai do **alvo marcado** (mesmo móvel) ou, sem alvo, da **direção em que segue**.
+
+## Alvos
+
+- Travaveis: **árvore** e **adversário**; interativo: **baú**.
+- A mira trava no mais perto do toque dentro de ~110 px e **acompanha** o alvo
+  que anda (a posição é re-resolvida a cada quadro por `sim/alvos.gd`).
+- Toque no mesmo alvo solta a mira.
+
+## Autonomia (sem rota)
+
+Ao terminar a rota, a criatura decide sozinha, com sorteio **semeado**
+(determinístico): **fica parada**, **vagueia devagar** ou, se há alvo marcado,
+**aproxima** dele e depois **ronda** ao redor. Cada passo é cortado pelo mundo
+(não entra na água nem em parede).
 
 ## Ações (`dados/acoes.json`)
 
-Cada ação tem `fases = [antecipação, ativa, recuperação]` (segundos) e, quando
-cabe: `deslocamento` (px de mundo), `alcance`/`arco` do golpe, `distancia`/
-`altura` do pulo, `recarga`, `sustentada`, `vira`, `invulneravel`.
-
-- **antecipação** = vento do golpe (nada vale ainda); **ativa** = o efeito
-  (golpe acerta, pulo voa, deslocamento acontece); **recuperação** = não repete
-  e aceita UM comando guardado (sai assim que termina).
-- **recarga** impede repetir a mesma ação antes do tempo.
-- **sustentada** (defender): fica na fase ativa enquanto o dedo segura; soltar
-  manda `soltar` e ela entra em recuperação.
-
-| ação | o que faz | parâmetros |
-|---|---|---|
-| `mover` | anda pelo caminho riscado (o mundo corta o que não dá para andar) | `velocidade` 110 |
-| `olhar` | vira para o toque | — |
-| `ataque_x` | golpe rápido para frente-esquerda | alcance 36, arco 110°, passinho 10 |
-| `ataque_y` | golpe mais lento e maior para frente-direita | alcance 46, arco 60°, passinho 4 |
-| `investida` | avança reto (para na parede) | deslocamento 64 |
-| `esquiva` | pula para TRÁS, invulnerável na ativa | deslocamento 56 |
-| `pular` | voa até ~84 px e pousa só onde dá | altura 26 |
-| `defender` | sustentada, mostra escudo | — |
-| `escavar` | no fim da ativa troca a camada | — |
+| ação | parâmetros |
+|---|---|
+| `mover` | `velocidade` 110 px/s |
+| `ataque` | `fases` [0,10 · 0,14 · 0,18] s, `alcance` 40, `arco` 90°, `recarga` 0,15 |
+| `esquiva` | `fases` [0 · 0,20 · 0] s, `deslocamento` 34 px (lateral), `recarga` 0,30 |
+| `pular` | `fases` [0,06 · 0,42 · 0,06] s, `altura` 26 px, `recarga` 0,30 |
+| `defender` | `sustentada` |
+| `escavar` | `fases` [0,15 · 0,55 · 0,15] s |
 
 ## Como mudar sem tocar em código
 
-- **Mudar qual setor faz o quê:** edite `mapa.deslize` em `dados/gestos.json`.
-  A legenda da HUD e a demo seguem a tabela sozinhas.
-- **Mudar o peso de uma ação** (alcance, vento, recarga): `dados/acoes.json`.
-- **Mudar o quanto um gesto é tolerante:** `limiares` em `dados/gestos.json`.
-- A demo (`jogo/demo.gd`) sintetiza DEDOS e passa pelo fluxo real — se a tabela
-  mudar, ela continua exercitando o sistema de verdade.
+- **Setores** (`frente`/`esquerda`/`direita` e qual ação cada um faz):
+  `mapa.deslize` em `dados/gestos.json`. A legenda da HUD e a demo seguem.
+- **Peso de cada ação** (vento, alcance, recarga, altura do pulo):
+  `dados/acoes.json`.
+- **Tolerância dos gestos**: `limiares` em `dados/gestos.json`.
 
 ## O que fica para depois
 
-- **Afinidade** (P4): hoje a criatura obedece sempre; a decisão
-  {obedece · hesita · reinterpreta · desobedece} entra em `sim/corpo.gd`, entre
-  o comando e a execução — o ponto de entrada já é o `comandar()`.
-- **Inimigos/alvos:** o golpe calcula alcance e arco, mas ainda não acerta nada.
-- **Gestos de dois dedos** (pinça de zoom, por exemplo): o reconhecedor é de um
-  dedo; o de dois entra quando houver design.
+- **Afinidade** (P4): hoje a criatura obedece; a decisão
+  {obedece · hesita · reinterpreta · desobedece} entra em `corpo.comandar()`.
+- **Dano e contato**: o adversário só vagueia (de propósito, por enquanto).
+- **Interação de verdade**: hoje o baú só muda de cor.

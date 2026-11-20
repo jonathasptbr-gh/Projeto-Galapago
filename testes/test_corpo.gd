@@ -6,124 +6,232 @@ const Corpo := preload("res://sim/corpo.gd")
 var terrenos: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://dados/terrenos.json"))
 var acoes: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://dados/acoes.json"))
 
+# Mapa amplo (8×12 células = 384×256 px): cabe rota horizontal e vertical. A
+# criatura começa em (48, 48) = célula (1,1). Depois que a rota termina ela
+# entra em AUTONOMIA e anda sozinha — por isso as asserções de rota medem no
+# MOMENTO em que a rota acaba (`_seguir_ate_fim`), não no fim do teste.
+const MAPA := [
+	",,,,,,,,,,,,", ",,,,,,,,,,,,", ",,,,,,,,,,,,", ",,,,,,,,,,,,",
+	",,,,,,,,,,,,", ",,,,,,,,,,,,", ",,,,,,,,,,,,", ",,,,,,,,,,,,",
+]
+const AGUA := [",,,,,,,,,,,,", ",,~~,,,,,,,,", ",,,,,,,,,,,,"]
+const TERRA := [",,,,,,,,,,,,", ":,,,:,,,,,,,", ",,,,,,,,,,,,"]
+const TUNEL := ["", "=====,,,,,,,", ""]
 
-func _setup(celulas: Array, subsolo: Array = []) -> Array:
+
+func _setup(celulas: Array, subsolo: Array = [], semente := 5) -> Array:
 	var m := M.criar({"celula_px": 32, "celulas": celulas, "subsolo": subsolo}, terrenos)
 	var c := Corpo.new(acoes)
-	c.pos = Vector2(48, 16)
+	c.rng.seed = semente
+	c.pos = Vector2(48, 48)
 	return [m, c]
 
 
-func _rodar(c: RefCounted, m: RefCounted, segundos: float, dt := 1.0 / 30.0) -> Array:
+## Avança até a ROTA ACABAR (ou o limite). Devolve os eventos.
+func _seguir_ate_fim(c: RefCounted, m: RefCounted, alvos: Array = [], limite_s := 8.0) -> Array:
+	var evs: Array = []
+	var t := 0.0
+	while c.em_rota() and t < limite_s:
+		c.passo(1.0 / 30.0, m, alvos)
+		evs.append_array(c.drenar_eventos())
+		t += 1.0 / 30.0
+	return evs
+
+
+func _rodar(c: RefCounted, m: RefCounted, segundos: float, alvos: Array = [], dt := 1.0 / 30.0) -> Array:
 	var todos: Array = []
 	var t := 0.0
 	while t < segundos:
-		c.passo(dt, m)
+		c.passo(dt, m, alvos)
 		todos.append_array(c.drenar_eventos())
 		t += dt
 	return todos
 
 
-func test_ataque_passa_pelas_tres_fases_e_volta_a_parado() -> void:
-	var s := _setup([",,,,,,"])
+func _alvo(id: String, pos: Vector2, tipo := "arvore") -> Dictionary:
+	return {"id": id, "tipo": tipo, "pos": pos, "raio": 14.0, "travavel": true, "interativo": false, "dados": {}}
+
+
+# ---------------------------------------------------------------- rota
+
+func test_rota_percorre_ate_o_fim_e_entra_em_autonomia() -> void:
+	var s := _setup(MAPA)
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
-	igual(c.comandar({"acao": "ataque_x", "direcao": Vector2.RIGHT}, m), "aceito", "aceito")
-	var ev: Array = c.drenar_eventos() + _rodar(c, m, 1.0)
-	igual(ev, ["antecipacao:ataque_x", "inicio:ataque_x", "ativo:ataque_x", "recuperacao:ataque_x", "fim:ataque_x"], "fases em ordem")
-	igual(c.estado, "parado", "parado")
-	checar(c.pos.x > 48.0, "deu o passinho do golpe")
+	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(240, 48)])}, m, []).begins_with("ok"), "aceitou a rota")
+	checar(c.em_rota(), "está em rota")
+	var evs := _seguir_ate_fim(c, m)
+	checar(not c.em_rota(), "rota terminou")
+	checar(c.pos.x > 225.0, "chegou ao fim da rota (x=%s)" % c.pos.x)
+	checar("rota:fim" in evs, "avisou o fim")
+	_rodar(c, m, 3.0)
+	checar(c.autonomia in ["parado", "vagar"], "depois fica parada ou vagueia (%s)" % c.autonomia)
 
 
-func test_golpe_so_vale_na_fase_ativa() -> void:
-	var s := _setup([",,,,,,"])
-	var c: RefCounted = s[1]
-	c.comandar({"acao": "ataque_y", "direcao": Vector2.RIGHT}, s[0])
-	igual(c.golpe_ativo(), {}, "antecipação: ainda não")
-	_rodar(c, s[0], 0.25)
-	checar(not c.golpe_ativo().is_empty(), "ativa: vale")
-
-
-func test_ocupado_guarda_na_recuperacao_e_recusa_antes() -> void:
-	var s := _setup([",,,,,,"])
+## A REGRA CENTRAL: ataque NÃO cancela a rota.
+func test_ataque_nao_cancela_a_rota() -> void:
+	var s := _setup(MAPA)
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
-	c.comandar({"acao": "ataque_x", "direcao": Vector2.RIGHT}, m)
-	checar(c.comandar({"acao": "ataque_y", "direcao": Vector2.RIGHT}, m).begins_with("recusado"), "na antecipação recusa")
-	_rodar(c, m, 0.27)
-	igual(c.fase, "recuperacao", "chegou na recuperação")
-	igual(c.comandar({"acao": "ataque_y", "direcao": Vector2.RIGHT}, m), "guardado", "guarda")
-	var ev: Array = _rodar(c, m, 0.3)
-	checar("inicio:ataque_y" in ev, "o guardado saiu em seguida")
-
-
-func test_recarga() -> void:
-	var s := _setup([",,,,,,"])
-	var m: RefCounted = s[0]
-	var c: RefCounted = s[1]
-	c.comandar({"acao": "investida", "direcao": Vector2.RIGHT}, m)
-	_rodar(c, m, 0.45)
-	igual(c.estado, "parado", "terminou")
-	igual(c.comandar({"acao": "investida", "direcao": Vector2.RIGHT}, m), "recusado: recarga", "em recarga")
-	_rodar(c, m, 0.6)
-	igual(c.comandar({"acao": "investida", "direcao": Vector2.RIGHT}, m), "aceito", "recarga acabou")
-
-
-func test_investida_para_na_parede() -> void:
-	var s := _setup([",,#,,,"])
-	var c: RefCounted = s[1]
-	c.comandar({"acao": "investida", "direcao": Vector2.RIGHT}, s[0])
-	_rodar(c, s[0], 1.0)
-	checar(c.pos.x < 64.0, "não atravessou a rocha (x=%s)" % c.pos.x)
-
-
-func test_pulo_sobre_o_canal_com_altura() -> void:
-	var s := _setup([",,~~,,"])
-	var m: RefCounted = s[0]
-	var c: RefCounted = s[1]
-	c.comandar({"acao": "pular", "alvo": Vector2(4 * 32 + 16, 16)}, m)
-	var zmax := 0.0
-	for i in 40:
-		c.passo(1.0 / 30.0, m)
-		zmax = maxf(zmax, c.z)
-	igual(m.celula_de(c.pos), Vector2i(4, 0), "pousou do outro lado")
-	checar(zmax > 20.0, "subiu no ar (z máx %s)" % zmax)
-	perto(c.z, 0.0, 0.001, "voltou ao chão")
-
-
-func test_defender_sustenta_enquanto_segura() -> void:
-	var s := _setup([",,,,,,"])
-	var m: RefCounted = s[0]
-	var c: RefCounted = s[1]
-	c.comandar({"acao": "defender"}, m)
-	_rodar(c, m, 2.0)
-	checar(c.defendendo(), "segue defendendo enquanto segura")
-	c.comandar({"acao": "soltar"}, m)
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(400, 48)])}, m, [])
+	_rodar(c, m, 0.3)
+	var x0: float = c.pos.x
+	checar(c.comandar({"acao": "ataque"}, m, []).begins_with("ok"), "atacou")
+	checar(c.em_rota(), "a rota CONTINUA")
 	_rodar(c, m, 0.5)
-	checar(not c.defendendo(), "soltou")
-	igual(c.estado, "parado", "parado")
+	checar(c.pos.x > x0 + 30.0, "seguiu andando durante o golpe (x %s → %s)" % [x0, c.pos.x])
 
 
-func test_escavar_desce_e_sobe() -> void:
-	var s := _setup([":,,,:"], ["====="])
+func test_esquiva_desloca_para_o_lado_e_volta_sem_perder_a_rota() -> void:
+	var s := _setup(MAPA)
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
-	c.pos = Vector2(16, 16)
-	igual(c.comandar({"acao": "escavar"}, m), "aceito", "escava")
-	_rodar(c, m, 1.2)
-	igual(c.camada, M.SUBSOLO, "no subsolo")
-	checar(c.comandar({"acao": "pular"}, m).begins_with("recusado"), "não pula no subsolo")
-	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(4 * 32 + 16, 16)])}, m)
-	_rodar(c, m, 2.0)
-	igual(m.celula_de(c.pos), Vector2i(4, 0), "andou no túnel")
-	c.comandar({"acao": "escavar"}, m)
-	_rodar(c, m, 1.2)
-	igual(c.camada, M.SUPERFICIE, "voltou à superfície")
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(400, 48)])}, m, [])
+	_rodar(c, m, 0.2)
+	c.olhar = Vector2.RIGHT
+	checar(c.comandar({"acao": "esquiva", "lado": -1.0}, m, []).begins_with("ok"), "esquivou")
+	_rodar(c, m, 0.09)
+	checar(c.desvio.length() > 8.0, "saiu para o lado (%s)" % c.desvio.length())
+	checar(c.em_rota(), "rota continua")
+	_rodar(c, m, 0.4)
+	perto(c.desvio.length(), 0.0, 0.5, "voltou para a rota")
+	checar(c.em_rota(), "e segue na rota")
 
+
+func test_pulo_e_arco_sem_cancelar_a_rota() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(400, 48)])}, m, [])
+	var zmax := 0.0
+	_rodar(c, m, 0.1)
+	checar(c.comandar({"acao": "pular"}, m, []).begins_with("ok"), "pulou")
+	for i in 20:
+		c.passo(1.0 / 30.0, m, [])
+		zmax = maxf(zmax, c.z)
+	checar(zmax > 12.0, "subiu no ar (z máx %s)" % zmax)
+	perto(c.z, 0.0, 0.01, "voltou ao chão")
+	checar(c.em_rota(), "rota continua depois do pulo")
+
+
+func test_defesa_para_a_rota_e_soltar_retoma() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(400, 48)])}, m, [])
+	_rodar(c, m, 0.3)
+	c.comandar({"acao": "defender"}, m, [])
+	var t0: float = c.rota_t
+	_rodar(c, m, 0.5)
+	perto(c.rota_t, t0, 0.01, "parou durante a defesa")
+	c.comandar({"acao": "soltar"}, m, [])
+	_rodar(c, m, 0.4)
+	checar(c.rota_t > t0 + 30.0, "retomou ao soltar (%s → %s)" % [t0, c.rota_t])
+
+
+func test_nova_rota_substitui_a_anterior() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(400, 48)])}, m, [])
+	_rodar(c, m, 0.2)
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(48, 240)])}, m, [])
+	_rodar(c, m, 1.0)
+	checar(c.pos.y > 100.0, "seguiu a rota NOVA (y=%s)" % c.pos.y)
+	checar(c.pos.x < 120.0, "e abandonou a antiga (x=%s)" % c.pos.x)
+
+
+# ---------------------------------------------------------------- alvo
+
+func test_travar_solta_e_mira_no_movel() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	var alvos := [_alvo("arvore:3,1", Vector2(112, 48)), _alvo("adversario:0", Vector2(200, 48), "adversario")]
+	checar(c.comandar({"acao": "travar", "alvo": Vector2(112, 40)}, m, alvos).begins_with("ok"), "travou na árvore")
+	igual(c.alvo_id, "arvore:3,1", "id certo")
+	igual(c.comandar({"acao": "travar", "alvo": Vector2(112, 40)}, m, alvos), "ok: mira solta", "mesmo alvo solta")
+	igual(c.alvo_id, "", "soltou")
+	c.comandar({"acao": "travar", "alvo": Vector2(200, 48)}, m, alvos)
+	igual(c.alvo_id, "adversario:0", "travou no adversário")
+	alvos[1]["pos"] = Vector2(48, 140)  # o adversário ANDOU
+	c.comandar({"acao": "ataque"}, m, alvos)
+	checar(c.ataque_dir.y > 0.9, "golpe para onde o alvo está AGORA (%s)" % c.ataque_dir)
+
+
+func test_ataque_sem_alvo_usa_a_direcao_da_rota() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(400, 120)])}, m, [])
+	_rodar(c, m, 0.2)
+	c.comandar({"acao": "ataque"}, m, [])
+	checar(c.ataque_dir.x > 0.5, "golpe na direção em que segue (%s)" % c.ataque_dir)
+
+
+func test_interagir_com_bau_nao_trava() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	var bau := {"id": "bau:2,1", "tipo": "bau", "pos": Vector2(80, 48), "raio": 14.0, "travavel": false, "interativo": true, "dados": {}}
+	checar(c.comandar({"acao": "travar", "alvo": Vector2(80, 48)}, m, [bau]).begins_with("ok"), "interagiu")
+	igual(c.alvo_id, "", "não travou mira")
+	checar("interagir:bau:2,1" in c.drenar_eventos(), "evento de interação")
+
+
+# ---------------------------------------------------------------- autonomia
+
+func test_autonomia_vai_ate_o_alvo_marcado() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	var alvos := [_alvo("adversario:0", Vector2(280, 48), "adversario")]
+	c.comandar({"acao": "travar", "alvo": Vector2(280, 48)}, m, alvos)
+	var antes: float = c.pos.distance_to(Vector2(280, 48))
+	_rodar(c, m, 5.0, alvos)
+	var depois: float = c.pos.distance_to(alvos[0]["pos"])
+	checar(depois < antes - 60.0, "chegou mais perto do alvo (%s → %s)" % [antes, depois])
+
+
+func test_autonomia_e_deterministica_com_a_mesma_semente() -> void:
+	var a := _setup(MAPA, [], 99)
+	var b := _setup(MAPA, [], 99)
+	for i in 150:
+		a[1].passo(1.0 / 30.0, a[0], [])
+		b[1].passo(1.0 / 30.0, b[0], [])
+	perto_v(a[1].pos, b[1].pos, 0.001, "mesma semente, mesmo passeio")
+
+
+func test_autonomia_nao_sai_do_mundo() -> void:
+	var s := _setup(MAPA, [], 3)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	_rodar(c, m, 20.0)
+	checar(m.dentro(m.celula_de(c.pos)), "ficou dentro do mapa (%s)" % c.pos)
+
+
+# ---------------------------------------------------------------- mundo
 
 func test_mover_respeita_o_mundo() -> void:
-	var s := _setup([",,,~~,"])
+	var s := _setup(AGUA)
+	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
-	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(5 * 32 + 16, 16)])}, s[0])
-	_rodar(c, s[0], 3.0)
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(300, 48)])}, m, [])
+	_rodar(c, m, 3.0)
 	checar(c.pos.x < 96.0, "parou antes da água (x=%s)" % c.pos.x)
+
+
+func test_escavar_desce_anda_no_tunel_e_sobe() -> void:
+	var s := _setup(TERRA, TUNEL)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.pos = Vector2(16, 48)  # célula (0,1) = terra fofa
+	checar(c.comandar({"acao": "escavar"}, m, []).begins_with("ok"), "escava")
+	_rodar(c, m, 1.2)
+	igual(c.camada, M.SUBSOLO, "no subsolo")
+	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(144, 48)])}, m, []).begins_with("ok"), "rota no túnel")
+	_seguir_ate_fim(c, m)
+	igual(m.celula_de(c.pos), Vector2i(4, 1), "andou no túnel até a saída (pos %s)" % c.pos)
+	checar(c.comandar({"acao": "escavar"}, m, []).begins_with("ok"), "escava para subir")
+	_rodar(c, m, 1.2)
+	igual(c.camada, M.SUPERFICIE, "voltou à superfície")

@@ -113,5 +113,14 @@
    ],
    "copa": 46
   }
+ ],
+ "adversarios": [
+  {
+   "celula": [
+    16,
+    9
+   ],
+   "semente": 7
+  }
  ]
 }

@@ -3,7 +3,36 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
-## v0.4.0 — a fundação: gestos, ações e camadas (2026-11-20)
+## v0.5.0 — movimento com rota + autonomia, alvos e atualizador consertado (2026-11-20)
+
+- **Atualização (relato do operador):** só funcionou baixando à mão. Medido: o
+  manifesto e o `galapago/build` estavam certos; o defeito era **quando**
+  verificar — só no arranque a frio, e o Android mantém o app vivo. Agora
+  verifica ao abrir, **ao voltar do segundo plano**, de 5 em 5 min, e por botão
+  ("Verificar atualização"); o estado fica **visível** na HUD; duas fontes
+  (manifesto e API da Release) com nova tentativa; e um botão persistente
+  "ATUALIZAR" que não depende de o aviso ser visto.
+- **Movimento redesenhado (regra do operador):** rota e ações **andam
+  juntas**. Ataque, esquiva e pulo são OVERLAYS que não cancelam a rota; a
+  esquiva desloca e volta; o pulo é arco enquanto ela segue; a defesa PARALISA
+  sem apagar; só uma rota nova substitui. Arrasto perto dela = rota (mesmo
+  rápido); longe = gesto de ação (frente = ataque; lados = esquiva).
+- **Alvos:** toque trava/solta a mira em árvore ou adversário (posição
+  re-resolvida: mira em alvo MÓVEL); o ataque vai na direção do alvo, ou da
+  rota sem alvo; baú interage.
+- **Autonomia:** ao fim da rota, fica parada, vagueia devagar ou vai/ronda o
+  alvo marcado — sorteio **semeado** (determinístico).
+- **Adversário de teste** (`sim/adversario.gd`): vagueia sem reagir, sem dano,
+  sem contato; determinístico por semente; não entra na água.
+- `sim/corpo.gd` reescrito; `sim/alvos.gd` e `sim/adversario.gd` novos; HUD
+  mostra versão, estado da atualização, rota/autonomia, alvo e camada.
+- **Testes:** 49 verdes (rota, overlays sem cancelar rota, defesa para/retoma,
+  alvo móvel, autonomia determinística e dentro do mapa, escavação). Parser: 35 scripts limpos.
+- Defeito real encontrado e corrigido: no quadro em que a rota terminava, o
+  código limpava `rota` e depois lia a posição dela — a criatura ia para
+  (0,0). Agora a posição final é calculada antes de limpar.
+
+## v0.4.0## v0.4.0 — a fundação: gestos, ações e camadas (2026-11-20)
 
 - **Escala confirmada (captura do operador = análise):** criatura 64×64 px de
   arte, célula 32 px, câmera 2×. A "impressão de grande" é a ampliação

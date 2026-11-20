@@ -7,6 +7,8 @@ const Mock := preload("res://jogo/mock.gd")
 
 var tipo := ""
 var desnivel := 0.0
+var id_objeto := ""
+var aberto := false
 
 
 func _draw() -> void:
@@ -18,6 +20,8 @@ func _draw() -> void:
 		"arvore":
 			draw_texture_rect(Mock.xadrez(12, 3, Color("#6e4a2a"), Color("#8a5d35")), Rect2(o + Vector2(-6, -26), Vector2(12, 26)), false)
 		"bau":
-			draw_texture_rect(Mock.xadrez(20, 4, Color("#d9a520"), Color("#f2c94c")), Rect2(o + Vector2(-10, -14), Vector2(20, 14)), false)
+			var a := Color("#6b6b6b") if aberto else Color("#d9a520")
+			var b := Color("#8a8a8a") if aberto else Color("#f2c94c")
+			draw_texture_rect(Mock.xadrez(20, 4, a, b), Rect2(o + Vector2(-10, -14), Vector2(20, 14)), false)
 		_:
 			draw_rect(Rect2(o + Vector2(-8, -16), Vector2(16, 16)), Color.MAGENTA)

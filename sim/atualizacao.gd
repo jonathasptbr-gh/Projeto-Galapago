@@ -62,3 +62,34 @@ static func download_completo(lidos: int, manifesto: Dictionary) -> bool:
 ## Texto curto do tamanho, para o aviso ("25,3 MB").
 static func tamanho_legivel(bytes: int) -> String:
 	return ("%.1f MB" % (bytes / 1048576.0)).replace(".", ",")
+
+
+## Código do build a partir do nome ("0.5.0-b13" → 13); -1 se não houver.
+## Usado pela fonte alternativa (API da Release, que não traz o código).
+static func codigo_do_nome(nome: String) -> int:
+	var partes := nome.split("-b")
+	if partes.size() < 2:
+		return -1
+	var n := partes[partes.size() - 1].strip_edges()
+	return int(n) if n.is_valid_int() else -1
+
+
+## Manifesto a partir do JSON da API da Release (fonte alternativa): o asset
+## .apk e o versao.json estão em `assets`.
+static func manifesto_da_api(dados: Dictionary) -> Dictionary:
+	if not dados.has("assets"):
+		return {}
+	var apk := ""
+	var bytes := 0
+	for a in dados["assets"]:
+		if str(a.get("name", "")).ends_with(".apk"):
+			apk = str(a.get("browser_download_url", ""))
+			bytes = int(a.get("size", 0))
+	var nome := str(dados.get("tag_name", "")) + ""
+	var codigo := codigo_do_nome(str(dados.get("name", "")))
+	if codigo < 0:
+		codigo = codigo_do_nome(str(dados.get("tag_name", "")))
+	if apk == "" or codigo < 0:
+		return {}
+	return {"versao_codigo": codigo, "versao_nome": str(dados.get("name", nome)),
+		"apk": apk, "bytes": bytes, "sha256": "", "commit": "", "publicado_em": str(dados.get("published_at", ""))}
