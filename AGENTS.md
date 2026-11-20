@@ -40,10 +40,17 @@ a arte fica) é do operador: o agente propõe com opções, não decide calado.
   `tools/quadros.sh` e **abrir** os PNG antes de dizer que ficou certo.
 - **Arte** segue [`ARTE`](docs/ARTE.md): paleta-mestra, âncora de estilo,
   validação por script. Chamada ao PixelLab custa dinheiro do operador: cotar
-  antes (`get_*_capabilities`), gerar o mínimo, nunca em laço sem teto.
-- **Entrega direto em `main`.** `git add <caminhos>` (nunca `-A`), commit
-  `vX.Y.Z: <resumo>`, `git push origin main`, depois conferir o CI
-  (`tools/estado.sh --ci`).
+  antes (`search_help`, `get_pro_flash_capabilities`), gerar o mínimo, nunca em
+  laço sem teto. **Qual ferramenta para qual tarefa:**
+  [`PIXELLAB`](docs/PIXELLAB.md); lista completa (140, gerada da fonte):
+  [`pixellab/CATALOGO`](docs/pixellab/CATALOGO.md).
+- **Godot:** [`GODOT`](docs/GODOT.md) (comandos, arquivos, convenções, pixel
+  art, toque, export Android). API desta versão: `tools/godot-api.sh <Classe>`
+  — não escreva API do Godot de memória.
+- **Entrega direto em `main`**, pelo rito de [`BUILD`](docs/BUILD.md):
+  `git add <caminhos>` (nunca `-A`), commit `vX.Y.Z: <resumo>`,
+  `git push origin main`, CI verde (`tools/estado.sh --ci`; vermelho →
+  `node tools/ci-log.mjs`), APK em `node tools/baixar-apk.mjs`.
 - **Versão** em três casas: a 3ª conserta, a 2ª entrega sistema/pacote, a 1ª é
   marco público (demo). A nota do lote mora em
   [`docs/HISTORICO.md`](docs/HISTORICO.md) (seção `## vX.Y.Z` no topo).
@@ -58,13 +65,18 @@ a arte fica) é do operador: o agente propõe com opções, não decide calado.
 ## Estrutura
 
 ```
-project.godot         configuração (320x180, gl_compatibility, paisagem)
+project.godot         configuração (320x180, gl_compatibility, paisagem, ETC2/ASTC)
+export_presets.cfg    preset Android (arm64, sem Gradle)
 sim/                  lógica pura (trajetória, depois gestos, afinidade, evolução)
 jogo/                 cenas e apresentação
 testes/               run.gd (executor), caso.gd (base), test_*.gd
-tools/                estado.sh · testes.sh · quadros.sh
-arte/                 fonte/ (bruto da IA) · criaturas/ · cenarios/
-docs/                 CONCEITO · ARQUITETURA · ORACULO · ARTE · AMBIENTE ·
-                      PEDIDOS-EM-ESPERA · HISTORICO · RESIDUOS · gdd/
-.github/workflows/    ci.yml (testes + quadros; APK no pacote P2)
+tools/                estado.sh · testes.sh · quadros.sh · godot-api.sh ·
+                      ci-log.mjs · baixar-apk.mjs · pixellab-catalogo.mjs ·
+                      android/ (exportar.sh, keystore de DEV)
+arte/                 fonte/ (bruto da IA, .gdignore) · criaturas/ · cenarios/
+docs/                 CONCEITO · ARQUITETURA · ORACULO · ARTE · PIXELLAB ·
+                      pixellab/ (CATALOGO, ferramentas.json, recursos/) ·
+                      GODOT · BUILD · AMBIENTE · PEDIDOS-EM-ESPERA ·
+                      HISTORICO · RESIDUOS · gdd/
+.github/workflows/    ci.yml (testes + quadros → APK + Release `dev`)
 ```

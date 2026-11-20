@@ -7,7 +7,7 @@
 | pacote | o quê | depende de | estado |
 |---|---|---|---|
 | P1 | Conectar o PixelLab (MCP) e gerar a 1ª prova | conta do operador | **feito (v0.1.1)** — falta o operador trocar a chave exposta no chat |
-| P2 | APK no CI (export Android + Release) | — | na fila |
+| P2 | APK no CI (export Android + Release) | — | **feito (v0.2.0)** — falta o operador instalar e riscar |
 | P3 | Gestos: classificador de deslizes + trajetória na arena | — | na fila |
 | P4 | Afinidade e personalidade (sim) | P3 | na fila |
 | P5 | Vivência → evolução (sim) + simulação em massa | P4 | na fila |

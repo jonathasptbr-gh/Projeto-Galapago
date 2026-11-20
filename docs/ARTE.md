@@ -2,6 +2,9 @@
 
 ## Ferramenta: PixelLab (MCP)
 
+> **Como usar cada ferramenta:** [`PIXELLAB.md`](PIXELLAB.md). Lista completa
+> gerada da fonte: [`pixellab/CATALOGO.md`](pixellab/CATALOGO.md).
+
 PixelLab gera pixel art de jogo: personagens 4/8 direções (com *templates* de
 quadrúpede: `dog`, `cat`, `horse`, `lion`, `bear`, ou `custom` sem esqueleto),
 animações, **estados/variantes de um mesmo personagem**

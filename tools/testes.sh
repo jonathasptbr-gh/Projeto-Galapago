@@ -14,4 +14,16 @@ if printf '%s\n' "$saida" | grep -q -E 'SCRIPT ERROR|Parse Error|Failed to load 
   echo "REPROVADO: erro de script na saída (acima)." >&2
   rc=1
 fi
+
+# Todo .gd do projeto passa pelo parser (--check-only), inclusive os que nenhum
+# teste carrega (jogo/). Pastas com .gdignore ficam de fora, como no Godot.
+ruins=0
+while IFS= read -r f; do
+  if ! out=$("$G" --headless --path . --check-only -s "res://${f#./}" 2>&1); then
+    printf '  PARSE  %s\n%s\n' "$f" "$(printf '%s\n' "$out" | grep -E 'ERROR' | head -3)" >&2
+    ruins=$((ruins + 1))
+  fi
+done < <(find . -name '*.gd' -not -path './.godot/*' -not -path './arte/fonte/*' | sort)
+echo "parser: $(find . -name '*.gd' -not -path './.godot/*' -not -path './arte/fonte/*' | wc -l) scripts, $ruins com erro"
+[ "$ruins" -eq 0 ] || rc=1
 exit "$rc"

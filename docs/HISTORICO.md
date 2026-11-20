@@ -21,6 +21,24 @@
   por cima do anterior. A chave da loja será outra, em *secret*.
 - `tools/baixar-apk.mjs`: baixa o APK de uma Release (privada) para
   `/sdcard/Download/DSH-Go/`.
+- CI #5 vermelho → `import_etc2_astc=true` (o export Android recusa sem ETC2/ASTC);
+  CI #6 verde: `com.projetogalapago.jogo` `0.2.0-b6`, minSdk 24, targetSdk 36,
+  26 MB; assinatura conferida localmente = SHA-256 do keystore de dev. APK
+  entregue em `/sdcard/Download/DSH-Go/projeto-galapago-dev.apk`.
+- **Catálogo PixelLab da fonte:** `tools/pixellab-catalogo.mjs` (MCP
+  `tools/list` + `resources/list`/`read`) → `docs/pixellab/CATALOGO.md`
+  (140 ferramentas em 11 categorias), `ferramentas.json` (esquemas completos),
+  `recursos/` (7 guias oficiais, 3 de Godot). Diff servidor × ferramentas
+  visíveis na sessão: idêntico (140 = 140).
+- **Guias:** `docs/PIXELLAB.md` (ferramenta por tarefa do jogo, custos, o que o
+  trial não tem: Tier 1 = tiles/salas pro, edit_animation, transfer_outfit…;
+  Tier 2 = música e som), `docs/GODOT.md` (CLI conferida no `--help`, arquivos,
+  convenções, pixel art, toque, export Android e armadilhas), `docs/BUILD.md`
+  (o rito; o `ci.yml` já o citava sem existir).
+- **Ferramentas:** `tools/godot-api.sh` (API 4.7.2 offline: estrutura do
+  `--doctool` + textos da tag `4.7.2-stable` em cache), `tools/ci-log.mjs`,
+  e `tools/testes.sh` passa a rodar `--check-only` em todo `.gd` (testado:
+  reprova erro de parse com código 1).
 - Ambiente: JDK 17 no celular (para `keytool`); o `dpkg` só configura com
   `/usr/share/man/man1` existente (imagem enxuta). `~/.local/bin` NÃO está no
   PATH dos shells do agente: os scripts já caem para `$HOME/.local/bin/godot`.
