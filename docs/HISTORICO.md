@@ -3,6 +3,20 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.1.1 — PixelLab conectado, P1 (2026-11-20)
+
+- Chave do operador (chegou pelo chat) → cofre `refs.PIXELLAB_TOKEN`; validada
+  antes de configurar (MCP `initialize` + `tools/list` = 140 ferramentas +
+  `get_balance`: trial, 40 gerações).
+- Entrada `mcp-pixellab` no `cordis.patch.yml` do perfil web (backup em
+  `~/tmp/cordis.patch.yml.bak-20261120-1552`); cabeçalho por `!!js` que lê o
+  cofre. Conferida por `dsh web --dump-config` e pela avaliação do `!!js` fora
+  do motor. Recarga a quente: as ferramentas vieram na mesma sessão.
+- Prova: `create_image_pixen` 64×64, vista lateral, seed 20261120 →
+  `arte/fonte/p1-cao-base-pixen.png` (64 cores, fundo transparente). 1 geração.
+- `docs/ARTE.md`: como a conexão é feita, como trocar a chave, tabela de custo.
+- Ambiente: Pillow instalado por pip (inspeção de PNG em script).
+
 ## v0.1.0 — esqueleto (2026-11-20)
 
 - Repositório privado `jonathasptbr-gh/Projeto-Galapago` criado; motor

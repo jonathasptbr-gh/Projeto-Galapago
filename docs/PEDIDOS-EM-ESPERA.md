@@ -6,7 +6,7 @@
 
 | pacote | o quê | depende de | estado |
 |---|---|---|---|
-| P1 | Conectar o PixelLab (MCP) e gerar a 1ª prova | conta do operador | **aguarda a chave** |
+| P1 | Conectar o PixelLab (MCP) e gerar a 1ª prova | conta do operador | **feito (v0.1.1)** — falta o operador trocar a chave exposta no chat |
 | P2 | APK no CI (export Android + Release) | — | na fila |
 | P3 | Gestos: classificador de deslizes + trajetória na arena | — | na fila |
 | P4 | Afinidade e personalidade (sim) | P3 | na fila |
@@ -30,6 +30,11 @@
   64×64 ~5 gerações) do cão-base; PNG em `arte/fonte/` e prévia em
   `/sdcard/Download/DSH-Go/` (avisando).
 - **Pronto quando:** imagem gerada, salva, vista pelo agente e pelo operador.
+- **Feito em v0.1.1:** a chave chegou PELO CHAT (fica no histórico da sessão) e
+  foi posta no cofre pelo agente; a conexão leu o cofre e funcionou na mesma
+  sessão (recarga a quente). A prova saiu por `create_image_pixen` (1 geração,
+  não as 5 do Pro Flash). Pendente do operador: gerar chave nova e trocá-la no
+  cofre (ver `docs/ARTE.md`, "Trocar a chave").
 
 ## P2 — APK no CI
 

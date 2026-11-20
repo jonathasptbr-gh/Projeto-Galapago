@@ -11,15 +11,37 @@ objetos, edição/inpaint, efeitos sonoros e música. Referência das ferramenta
 `get_*`) e **cobrado em gerações** — o custo de cada chamada está na doc; as
 ferramentas `get_*_capabilities` cotam de graça antes de gastar.
 
-### Conexão (pacote P1)
+### Conexão (pacote P1 — feita em 2026-11-20, v0.1.1)
 
-- Chave: <https://api.pixellab.ai/mcp> (conta do operador). Vai para o cofre do
-  harness (`~/.dsh/.credentials.yaml`, `refs`), **nunca** para chat, commit ou
-  documento.
-- Servidor MCP HTTP `https://api.pixellab.ai/mcp`, cabeçalho
-  `Authorization: Bearer <chave>`, como entrada `@deepseek-ai/dsh-mcp-client`
-  (`transport: streamable-http`) no perfil do DSH. As ferramentas aparecem como
-  `mcp__pixellab__*` numa **sessão nova**.
+- Chave: conta do operador, em <https://api.pixellab.ai/mcp>. Mora **só** no
+  cofre do harness: `~/.dsh/.credentials.yaml`, `refs.PIXELLAB_TOKEN` (600).
+  Nunca em chat, commit ou documento.
+- Entrada `id: mcp-pixellab` (`@deepseek-ai/dsh-mcp-client`,
+  `transport: streamable-http`, `url: https://api.pixellab.ai/mcp`) num
+  `- insert:` ao fim de `~/.dsh/profiles/web/cordis.patch.yml`. O cabeçalho
+  `Authorization` é um `!!js` que lê o cofre com
+  `process.getBuiltinModule("fs")` — o cofre NÃO vira `process.env`, e o `!!js`
+  roda no escopo global do Node (`with (ctx) eval(expr)`), por isso dá.
+- O DSH recarregou o patch a quente: as ferramentas `mcp__pixellab__*`
+  apareceram na mesma sessão. **Trocar a chave** = editar a ref no cofre e
+  reiniciar o motor (a expressão só é avaliada ao montar a entrada).
+- Prova: `get_balance` pela integração + 1 geração `create_image_pixen`
+  (`arte/fonte/p1-cao-base-pixen.png`, seed 20261120).
+- Conta: **trial, 40 gerações** + bônus diário de 5 (acumula até 20), que só é
+  gasto depois das 40. Planejar cada chamada.
+
+### Custo de referência (doc da PixelLab, 2026-11-20)
+
+| ferramenta | custo | uso |
+|---|---|---|
+| `create_image_pixen` / `create_image_pixflux` | 1 | exploração barata, peças avulsas |
+| `create_image_pro_flash` 64×64 | 5 | imagem de qualidade, aceita `palette` |
+| `create_character_pro_flash` 64×64 (8 direções, `template_id=dog`) | 6 | criatura com esqueleto animável |
+| `create_character_state` (arte ≤70 px) | 10 | variante/evolução mantendo identidade |
+| `animate_character` template ≤92 px | 1 por direção | animações de esqueleto |
+| `pixelart_workbench`, `reduce_colors` | grátis / 0,1 | inspeção, limpeza, paleta — feitos por nós |
+
+`search_help(tool="<nome>")` dá a referência completa de graça.
 
 ## Regras de produção
 

@@ -11,6 +11,8 @@ Medido em 2026-11-20. O `tools/estado.sh` confere o que importa.
 | Android SDK | **não há** — APK só no CI (pacote P2) |
 | git | auth por `http.https://github.com/.extraHeader` global (ver o `AGENTS.md` da máquina); `core.trustctime false` no clone |
 | temporários | `~/tmp` (não `/tmp`) |
+| Pillow | `pip install pillow` (inspeção de PNG em script) |
+| PixelLab | MCP `mcp__pixellab__*`; chave em `refs.PIXELLAB_TOKEN`; ver `docs/ARTE.md` |
 
 ## Reinstalar o Godot
 
