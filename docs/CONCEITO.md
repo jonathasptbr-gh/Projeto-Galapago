@@ -27,7 +27,10 @@
   da tolerância, já é caminho, desenhado **ao vivo** e partindo de onde a
   criatura estava quando o dedo desceu (a linha não anda com ela). O tempo
   desacelera e a tela escurece durante o desenho; ao soltar, uma rampa de
-  aceleração devolve o ritmo.
+  aceleração devolve o ritmo. Desde a v0.9.1 a linha é o **eixo de uma estrada
+  larga**: o animal anda **dentro da faixa** (mais à esquerda, à direita ou no
+  centro), num percurso **orgânico**, e **freia** nos últimos passos para parar
+  macio — ele não pisa exatamente na risca.
 - **Um dedo faz tudo (v0.9): o ataque nasce da FORMA do desenho.** Arrastar
   desenha a rota; um **laço** que cruza o próprio caminho vira **ataque em
   área** (onda que cresce do centro do laço); um **bico** (ida e volta brusca)

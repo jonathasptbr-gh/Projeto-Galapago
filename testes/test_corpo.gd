@@ -471,3 +471,95 @@ func test_alvo_final_se_perde_se_o_inimigo_andar() -> void:
 	checar("mira_final:perde" in evs, "a mira se perdeu (%s)" % [evs])
 	checar("golpe_final:adversario:0" not in evs, "não golpeou o alvo perdido")
 	checar(c.mira_final_id == "", "e a marca foi limpa")
+
+
+# ---------------------------------------------------------------- v0.9.1: ajustes
+
+## O laço acende em QUALQUER parte da circunferência: se a criatura já está
+## andando no anel quando ele fecha, a onda sai na hora.
+func test_laco_acende_com_a_criatura_no_anel() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	# o anel do laço passa a 12 px do ponto de partida (nó em 60,48)
+	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([
+		Vector2(130, 48), Vector2(130, 120), Vector2(60, 120), Vector2(60, 30)])}, m, []).begins_with("ok"), "rota com laço")
+	var evs := _rodar(c, m, 0.1)
+	checar("laco:onda" in evs, "onda saiu com a criatura no anel (%s)" % [evs])
+
+
+## Bico em "T" no MEIO do caminho: o beco NÃO é andado, a criatura para e
+## dispara da base na direção da ponta.
+func test_bico_em_t_no_meio_nao_e_andado() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([
+		Vector2(150, 48), Vector2(150, 120), Vector2(150, 48), Vector2(260, 48)])}, m, []).begins_with("ok"), "rota com T")
+	var alto := false
+	for p in c.rota:
+		if p.y > 60.0:
+			alto = true
+	checar(not alto, "o beco saiu da rota (%s)" % [c.rota])
+	var disparou := false
+	var dir_ok := false
+	for i in 90:
+		c.passo(1.0 / 30.0, m, [])
+		for e in c.drenar_eventos():
+			if e == "bico:tiro":
+				disparou = true
+				for ef in c.efeitos:
+					if str(ef["tipo"]) == "tiro":
+						dir_ok = Vector2(ef["dir"]).dot(Vector2(0, 1)) > 0.9
+		if disparou:
+			break
+	checar(disparou, "o T disparou")
+	checar(dir_ok, "tiro na direção da ponta")
+	# a criatura PARA no disparo (pausa do bico)
+	var pos_disparo: Vector2 = c.pos
+	_rodar(c, m, 0.15)
+	checar(c.pos.distance_to(pos_disparo) < 1.0, "parou antes de entrar no beco (%s → %s)" % [pos_disparo, c.pos])
+
+
+## A ESTRADA: a criatura anda por dentro de uma faixa (não colada na linha) e o
+## caminho não é retilíneo — mas não sai da largura.
+func test_estrada_organica_nao_e_reta() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(330, 48)])}, m, [])
+	var max_desvio := 0.0
+	var minimo := 0.0
+	for i in 70:
+		c.passo(1.0 / 30.0, m, [])
+		c.drenar_eventos()
+		var d: float = c.pos.y - 48.0
+		max_desvio = maxf(max_desvio, d)
+		minimo = minf(minimo, d)
+	checar(max_desvio > 1.5, "saiu para um lado da linha (%.1f px)" % max_desvio)
+	checar(absf(minimo) > 1.5, "saiu para o outro lado (%.1f px)" % minimo)
+	checar(max_desvio <= 17.0 and minimo >= -17.0, "ficou na estrada (%.1f a %.1f px)" % [minimo, max_desvio])
+
+
+## ZONA DE FREIO: o fim do caminho é mais lento que o meio.
+func test_freio_no_fim_do_caminho() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(240, 48)])}, m, [])
+	var meio := 0.0
+	var fim := 0.0
+	var t := 0.0
+	while c.em_rota() and t < 5.0:
+		var antes: Vector2 = c.pos
+		c.passo(1.0 / 30.0, m, [])
+		c.drenar_eventos()
+		var v: float = c.pos.distance_to(antes) * 30.0
+		var restante: float = c.total_rota - c.rota_t
+		if restante > 70.0 and restante < 150.0:
+			meio = maxf(meio, v)
+		if restante < 6.0:
+			fim = maxf(fim, v)
+		t += 1.0 / 30.0
+	checar(meio > 70.0, "andou no meio (%.0f px/s)" % meio)
+	checar(fim < 35.0, "freou no fim (%.0f px/s)" % fim)

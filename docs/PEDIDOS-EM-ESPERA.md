@@ -178,3 +178,8 @@
   (empurrão + piscada), `sim/alvos.gd` (`empurrar`/`reage`), `jogo/` (efeitos,
   mira do alvo final, HUD, demo), `dados/*.json`. Detalhe em
   [`gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md).
+- **Ajustes (v0.9.1, mesmo dia):** o laço acende em **qualquer parte da
+  circunferência** (anel), não só no nó; o **bico no meio do caminho** (o "T")
+  é reconhecido, o **beco não é andado** (sai da rota) e a criatura **para antes
+  de disparar**; o caminho virou **ESTRADA** (o animal anda dentro da largura,
+  com desvio orgânico) e ganhou **zona de freio** no fim.

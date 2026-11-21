@@ -67,9 +67,10 @@ func test_bico_da_a_base_e_a_direcao() -> void:
 	igual(bicos.size(), 1, "um bico")
 	if bicos.is_empty():
 		return
-	perto_v(Vector2(bicos[0]["ponto"]), Vector2(0, 0), 8.0, "base do bico")
+	# a volta termina em 20; a base é o ponto do traço mais perto dela
+	checar(Vector2(bicos[0]["ponto"]).distance_to(Vector2(20, 0)) <= 10.0, "base do bico (%s)" % bicos[0]["ponto"])
 	checar(Vector2(bicos[0]["dir"]).dot(Vector2(1, 0)) > 0.9, "direção do bico (%s)" % bicos[0]["dir"])
-	checar(float(bicos[0]["comprimento"]) > 70.0, "comprimento (%s)" % bicos[0]["comprimento"])
+	checar(float(bicos[0]["comprimento"]) > 55.0, "comprimento (%s)" % bicos[0]["comprimento"])
 
 
 ## O bico no MEIO do caminho: a base é onde o espinho sai, não o começo.
@@ -106,3 +107,29 @@ func test_centroide_de_retangulo() -> void:
 	var pol := PackedVector2Array([Vector2(0, 0), Vector2(100, 0), Vector2(100, 100), Vector2(0, 100)])
 	perto_v(F.centroide(pol), Vector2(50, 50), 0.01, "centro do retângulo")
 	perto(F.area_assinada(pol), 10000.0, 0.01, "área")
+
+
+## v0.9.1: o "T" — o bico SAI da estrada na perpendicular e volta para ela.
+func test_bico_em_t_perpendicular() -> void:
+	var p := _denso([[0, 0], [150, 0], [150, 70], [150, 0], [260, 0]])
+	var bicos := _por_tipo(F.analisar(p, CFG), "bico")
+	igual(bicos.size(), 1, "um bico em T (%s)" % [bicos])
+	if bicos.is_empty():
+		return
+	checar(Vector2(bicos[0]["ponto"]).distance_to(Vector2(150, 0)) <= 10.0, "base no T (%s)" % bicos[0]["ponto"])
+	checar(Vector2(bicos[0]["dir"]).dot(Vector2(0, 1)) > 0.9, "direção da ponta (%s)" % bicos[0]["dir"])
+	checar(int(bicos[0]["j"]) > int(bicos[0]["i"]), "i/j para cortar o beco")
+
+
+## O ANEL do laço (a circunferência fechada) vai na marca.
+func test_laco_tem_anel_fechado() -> void:
+	var p := _denso([[0, 0], [100, 0], [100, 100], [30, 100], [30, -30]])
+	var lacos := _por_tipo(F.analisar(p, CFG), "laco")
+	igual(lacos.size(), 1, "um laço")
+	if lacos.is_empty():
+		return
+	var anel: PackedVector2Array = lacos[0]["anel"]
+	checar(anel.size() >= 4, "anel com pontos")
+	perto_v(anel[0], anel[anel.size() - 1], 0.01, "anel fechado no nó")
+	checar(F.distancia_polilinha(Vector2(65, 0), anel) < 1.0, "ponto da circunferência")
+	checar(F.distancia_polilinha(Vector2(65, 50), anel) > 20.0, "centro NÃO está na circunferência")

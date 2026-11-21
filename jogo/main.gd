@@ -250,6 +250,7 @@ func _evento(e: String) -> void:
 		print("evento: ", e)
 		hud.nota("GOLPE FINAL em %s" % e.substr(12))
 	elif e == "mira_final:perde":
+		print("evento: ", e)
 		hud.nota("alvo final fugiu: a mira se perdeu")
 	elif e.begins_with("mira_final:"):
 		print("evento: ", e)

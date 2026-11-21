@@ -4,6 +4,15 @@
 
 | versão | onde | o quê | tamanho |
 |---|---|---|---|
+| v0.9.1 | `sim/formas.gd` | a BASE do bico é o ponto do traço mais perto da volta: num "T" a volta entra na estrada e a base pode ficar alguns px dentro da boca do beco | design |
+| v0.9.1 | `sim/formas.gd` | a base é achada por uma CURVA (≥ 45°) na volta; se o dedo reencontrar a estrada numa curva muito suave, o bico pode não ser lido (o fim do traço tem a regra própria) | pequeno |
+| v0.9.1 | `sim/corpo.gd` | a estrada é um alvo À FRENTE + senoides; os valores (largura 30, desvio 9, ondas 120/47, freio 44) são pontos de partida — ajustar no aparelho | pequeno |
+| v0.9.1 | `sim/corpo.gd` | o desvio de tronco mantém o LADO escolhido até passar: pode dar a volta pelo lado mais longo, mas não fica oscilando | design |
+| v0.9.1 | `sim/corpo.gd` | quando a rota acaba DURANTE o desenho, o alvo final usa a posição ATUAL do inimigo (não a do soltar): é o que permite o golpe final com traço ao vivo | decisão |
+| v0.9.1 | `sim/corpo.gd` | o bico pausa 0,25 s: a pausa também congela a autonomia/rota por um instante (o mundo continua) | decisão |
+| v0.9.1 | demo | o beco do demo virou um "T" no meio do caminho; o golpe final do roteiro depende de a criatura chegar perto do adversário | — |
+| v0.9.1 | `sim/corpo.gd` | a leitura das formas refaz o RDP/laços e a busca do bico sobre o TRAÇO INTEIRO a cada ~5 pontos desenhados; o custo não foi medido no aparelho | pequeno |
+| v0.9.1 | oráculo | 180 quadros 720×1280 em ~5 min (~1,7 s/quadro); a demo agora passa dos 19 s (o golpe final do roteiro fica fora dos 180) | operador |
 | v0.9.0 | `sim/formas.gd` | a base do bico é o ponto onde a VOLTA reencontra o caminho (ou a partida, se o traço acaba na volta): num bico desenhado no MEIO de uma reta, a base pode sair alguns px antes do ponto exato | design |
 | v0.9.0 | `sim/formas.gd` | um laço é lido no traço reduzido (RDP 3 px) e um bico no traço amostrado (6 px): desenhos minúsculos (laço < 700 px², espinho < 18 px) não contam — limiares em `formas` | pequeno |
 | v0.9.0 | `sim/corpo.gd` | a onda e o tiro só atingem ADVERSÁRIO (quem sabe reagir); árvore leva a batida de travessia mas não reage | design |

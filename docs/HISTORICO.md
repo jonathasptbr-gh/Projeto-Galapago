@@ -3,6 +3,58 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.9.1 — o laço acende no anel, o bico em "T" não é andado e o caminho vira ESTRADA (2026-11-21)
+
+- **Pedido do operador (ajustes):** (1) o efeito do laço deve acender quando a
+  criatura estiver em **qualquer parte da circunferência** do laço, desde o nó —
+  se ela já estiver andando no laço quando ele fecha, a habilidade já está
+  ativa; (2) o **bico** só era lido a partir do parado: reconhecer o espinho no
+  **meio do caminho** (formatos de "T") e **não andar o beco** — a criatura para
+  antes de entrar e dispara na direção apontada; (3) o caminho é uma **ESTRADA
+  mais larga**: o animal pode ir mais à esquerda, à direita ou no centro (os
+  pontos eram a referência, não a obrigação de pisar na linha), o percurso fica
+  **menos retilíneo e mais orgânico**, e o fim ganha uma **zona de freio** para
+  parar suave.
+- **`sim/formas.gd`:** o laço guarda o **anel** (a circunferência fechada) na
+  marca. O **bico foi reescrito**: a PONTA é uma reversão (~180°) e a BASE é
+  onde a volta **reencontra a estrada** — a primeira curva forte
+  (`bico_base_angulo` 45°) depois da ponta, ou o fim do traço, sempre perto do
+  traço anterior (`bico_base_px` 14, `bico_fim_px` 40 no fim). A marca leva
+  `i`/`j` (índices no traço cru) do trecho a cortar. `distancia_polilinha`
+  mede a distância ao anel. Isso pega o **"T" perpendicular**, o "V" e o bico
+  deitado na própria linha.
+- **`sim/corpo.gd`:** o gatilho do laço agora é a **distância ao anel**
+  (qualquer parte), sem a checagem de direção: laço fechado com a criatura em
+  cima = onda na hora. `_bicos`/`_sem_bicos` **cortam o beco da rota** (o trecho
+  `i+1..j`) e o bico só arma a marca na base; ao acender, a criatura **PAUSA**
+  (`bico_pausa_s` 0,25 s) e o tiro sai da base na direção da ponta.
+  A rota virou **follow-the-road**: `_projetar` (busca local na rota),
+  `_ponto_em_rota`/`_tangente_em_rota`, alvo **à frente** (`olhar_px` 22) +
+  **desvio lateral orgânico** (duas senoides de fases sorteadas, amplitude
+  `estrada_desvio_px` 9, dentro de `estrada_largura_px` 30) e **zona de freio**
+  (`freio_px` 44, `freio_min` 0,12, smoothstep) — a criatura para onde está
+  (`parada_px` 4), sem salto para o último ponto. No desvio de tronco, o alvo
+  à frente **pula** o ponto dentro do objeto e o **lado** escolhido é mantido
+  até passar (sem oscilar na beirada). O **alvo final** também é marcado quando
+  a rota acaba **durante** o desenho (traço ao vivo); o comando `ataque` usa a
+  **tangente** da estrada (o `_rota_i` agora é o segmento atual).
+- **Dados (`dados/acoes.json`):** `formas` ganha `bico_base_px`, `bico_fim_px`,
+  `bico_base_angulo` (sai `bico_volta_px`); `combate` ganha `bico_pausa_s`;
+  `rota` ganha `olhar_px`, `estrada_largura_px`, `estrada_desvio_px`,
+  `estrada_onda_px`, `estrada_onda2_px`, `freio_px`, `freio_min`, `parada_px`.
+- **`jogo/`:** `demo.gd` troca o bico por um **"T" no meio do caminho**;
+  `main._evento` mostra no log `mira_final:perde`.
+- **Verificação:** **88 testes, 0 falhas**, 38 scripts (parser limpo); seis
+  novos: laço acende no anel, T no meio não é andado (e a criatura para),
+  estrada orgânica dentro da largura, freio no fim, T e anel em `test_formas`.
+  **Oráculo de quadros** (`tools/quadros.sh`, 180 quadros 720×1280 em ~5 min,
+  ~1,7 s/quadro): o laço acende cedo (nota "LAÇO: onda em área" antes de
+  4,4 s, com a criatura no anel), o **"T" é desenhado e o beco sai do traço**
+  (a linha segue reta), a criatura **para na base e dispara para cima** (nota
+  "BICO: tiro disparado") e o corpo anda **DENTRO da faixa**, fora da linha
+  branca — abri os PNG. Detalhe em
+  [`gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md).
+
 ## v0.9.0 — o ataque nasce do DESENHO: laço, bico, travessia e alvo final (2026-11-21)
 
 - **Pedido do operador:** ajustar o sistema de gestos e ações — (1) **laço** no

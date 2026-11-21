@@ -14,12 +14,13 @@ extends RefCounted
 ##   acontecem POR CIMA da rota sem cancelá-la.
 ##
 ## v0.9 — O ATAQUE NASCE DO DESENHO (`sim/formas.gd`), não de um gesto de dois
-## dedos:
+## dedos; v0.9.1 afinou as três pontas:
 ##
 ## - **laço** desenhado → onda em ÁREA, com centro no centro do laço. Acende
-##   quando a criatura passa pelo NÓ (o cruzamento) no trecho que fecha o laço;
-## - **bico** (ida e volta brusca) → TIRO do ponto do caminho antes do bico,
-##   na direção do bico;
+##   quando a criatura está em qualquer parte da CIRCUNFERÊNCIA (o anel) —
+##   laço que fecha com ela em cima já dispara;
+## - **bico** (o "T"/"V" que sai da estrada e volta) → o BECO é CORTADO da rota:
+##   a criatura para na base e atira na direção da ponta;
 ## - **travessia** de um alvo → BATIDA/empurrão ao passar por cima;
 ## - **fim do caminho em cima do adversário** → ele é marcado como alvo do
 ##   GOLPE FINAL (a marca vai NELE, não no lugar final). Se ele andar demais
@@ -65,6 +66,7 @@ var total_rota := 0.0
 var _rota_i := 0
 var _barrado := false
 var _desvios := 0
+var _desvio_lado := 0.0            # lado do desvio em curso (histerese no tronco)
 
 # overlays
 var _pulo_t := 0.0
@@ -87,7 +89,11 @@ var habilidade_t := 0.0
 var habilidade_dur := 0.0
 var _formas_cfg: Dictionary = {}
 var _combate: Dictionary = {}
-var _bico_partida := false          # o traço começou com um bico (não cortar)
+var _bicos: Array = []              # bicos lidos do traço (i/j: trecho a cortar)
+var _arcos_rota := PackedFloat32Array()  # arco acumulado em cada ponto da rota
+var _fase1 := 0.0                   # fases do desvio orgânico (semente da rota)
+var _fase2 := 0.0
+var _pausa_t := 0.0                 # pausa curta ao disparar o bico
 var _disparadas := {}            # chaves de marcas que já acenderam
 var _traco_lido := 0             # pontos do traço já lidos (economia)
 
@@ -205,16 +211,29 @@ func tracar(pontos: PackedVector2Array, mundo: RefCounted, inicio := false, alvo
 func _adotar_traco(pontos: PackedVector2Array, mundo: RefCounted, inicio: bool, alvos: Array) -> String:
 	if pontos.size() < 2:
 		return "recusado: caminho vazio"
+	if inicio:
+		_bicos = []
+		_traco_lido = 0
 	traco = pontos.duplicate()
 	# ler as formas a cada poucos pontos (o RDP e os laços custam): a origem lê
-	# sempre, porque é lá que o bico "sem se mover" começa.
+	# sempre. O bico é lido no traço CRU e guardado com i/j (o trecho a cortar).
 	var achadas: Array = []
 	if inicio or traco.size() - _traco_lido >= 5:
 		achadas = Formas.analisar(traco, _formas_cfg)
 		_traco_lido = traco.size()
-	var nova := _pontos_de_rota(pontos, mundo, _tem_bico_inicial(achadas))
+		for m in achadas:
+			if str(m["tipo"]) == "bico" and not _tem_bico(int(m["i"])):
+				_bicos.append(m)
+	# O bico NÃO é andado: o trecho do "beco" sai da rota (v0.9.1).
+	var limpo := _sem_bicos(traco)
+	var nova := _pontos_de_rota(limpo, mundo)
 	if nova.is_empty():
-		return "recusado: caminho curto"
+		if _bicos.is_empty() and achadas.is_empty():
+			return "recusado: caminho curto"
+		# só havia bico (desenhado da posição inicial): a criatura fica e dispara
+		_guardar_rota(PackedVector2Array(), inicio)
+		_montar_marcas(achadas, alvos)
+		return "ok: bico"
 	if inicio:
 		# ela andou enquanto o dedo descia: põe NA FRENTE o trecho que a traz de
 		# volta ao começo do traço (depois da simplificação, senão um traço reto
@@ -230,35 +249,44 @@ func _adotar_traco(pontos: PackedVector2Array, mundo: RefCounted, inicio: bool, 
 
 
 ## O traço vira PONTOS DE REFERÊNCIA: DESCONTO INICIAL (o vai-e-volta do
-## começo não é obedecido — salvo se for um BICO) e Douglas-Peucker.
-func _pontos_de_rota(pts: PackedVector2Array, mundo: RefCounted, pular_desconto := false) -> PackedVector2Array:
+## começo não é obedecido) e Douglas-Peucker. O "beco" do bico já saiu antes.
+func _pontos_de_rota(pts: PackedVector2Array, mundo: RefCounted) -> PackedVector2Array:
 	if pts.size() < 2:
 		return PackedVector2Array()
-	if not pular_desconto:
-		var cortado := Trajetoria.descontar_inicio(pts, float(rota_cfg.get("desconto_raio_px", 44.0)),
-			float(rota_cfg.get("desconto_janela_px", 140.0)))
-		if cortado.size() < pts.size() and cortado.size() >= 2:
-			# se a reta até o ponto de alinhamento atravessa parede, o desvio
-			# inicial era necessário: não corta.
-			if mundo.caminho_livre(pts[0], cortado[1], camada):
-				pts = cortado
+	var cortado := Trajetoria.descontar_inicio(pts, float(rota_cfg.get("desconto_raio_px", 44.0)),
+		float(rota_cfg.get("desconto_janela_px", 140.0)))
+	if cortado.size() < pts.size() and cortado.size() >= 2:
+		# se a reta até o ponto de alinhamento atravessa parede, o desvio
+		# inicial era necessário: não corta.
+		if mundo.caminho_livre(pts[0], cortado[1], camada):
+			pts = cortado
 	var nova := Trajetoria.simplificar(pts, float(rota_cfg.get("simplificar_px", 10.0)))
 	if nova.size() < 2 or Trajetoria.comprimento(nova) < 6.0:
 		return PackedVector2Array()
 	return nova
 
 
-## Um bico desenhado já no PONTO DE PARTIDA? Então o vai-e-volta inicial é
-## ataque, não tremor do dedo: o desconto inicial não pode comê-lo.
-func _tem_bico_inicial(achadas: Array) -> bool:
-	if _bico_partida:
-		return true
-	if traco.is_empty():
-		return false
-	for m in achadas:
-		if m["tipo"] == "bico" and Vector2(m["ponto"]).distance_to(traco[0]) <= 14.0:
+## Já existe um bico com esta base? (os i/j apontam para o MESMO traço)
+func _tem_bico(i: int) -> bool:
+	for m in _bicos:
+		if absi(int(m["i"]) - i) <= 3:
 			return true
 	return false
+
+
+## Tira do traço cru os trechos de BICO (i+1..j): a criatura não anda o beco.
+func _sem_bicos(pts: PackedVector2Array) -> PackedVector2Array:
+	if _bicos.is_empty():
+		return pts
+	var pular := {}
+	for m in _bicos:
+		for k in range(int(m["i"]) + 1, int(m["j"]) + 1):
+			pular[k] = true
+	var out := PackedVector2Array()
+	for i in pts.size():
+		if not pular.has(i):
+			out.append(pts[i])
+	return out
 
 
 ## Adota `nova` como rota. `reiniciar` zera o progresso (rota nova); sem ele o
@@ -267,6 +295,7 @@ func _tem_bico_inicial(achadas: Array) -> bool:
 func _guardar_rota(nova: PackedVector2Array, reiniciar: bool) -> void:
 	rota = nova
 	total_rota = Trajetoria.comprimento(rota)
+	_arcos_rota = Formas.arcos(rota)
 	_barrado = false
 	autonomia = ""
 	_auto_destino = Vector2.ZERO
@@ -274,17 +303,16 @@ func _guardar_rota(nova: PackedVector2Array, reiniciar: bool) -> void:
 		_rota_i = 0
 		rota_t = 0.0
 		_desvios = 0
+		_desvio_lado = 0.0
 		marcas = []
 		_disparadas = {}
 		mira_final_id = ""
-		_bico_partida = false
+		# a "estrada" ganha fases próprias (mesma semente = mesmo passeio)
+		_fase1 = rng.randf() * TAU
+		_fase2 = rng.randf() * TAU
 		eventos.append("rota:nova")
 	if _rota_i >= rota.size():
-		_rota_i = rota.size() - 1
-	var base := pos
-	var chegada := float(rota_cfg.get("chegada_px", 12.0))
-	while _rota_i < rota.size() - 1 and base.distance_to(rota[_rota_i]) <= chegada:
-		_rota_i += 1
+		_rota_i = maxi(0, rota.size() - 1)
 
 
 # ---------------------------------------------------------------- marcas (formas)
@@ -294,9 +322,6 @@ func _guardar_rota(nova: PackedVector2Array, reiniciar: bool) -> void:
 func _montar_marcas(achadas: Array, alvos: Array) -> void:
 	for m in achadas:
 		var k: String = str(m["chave"])
-		if str(m["tipo"]) == "bico" and not traco.is_empty() \
-				and Vector2(m["ponto"]).distance_to(traco[0]) <= 14.0:
-			_bico_partida = true
 		if _disparadas.has(k) or _tem_marca(k):
 			continue
 		marcas.append(m)
@@ -363,18 +388,16 @@ func _checar_marcas(alvos: Array) -> void:
 	var raio := float(_formas_cfg.get("gatilho_raio_px", 24.0))
 	for m in marcas.duplicate():
 		var p: Vector2 = m["ponto"]
-		if str(m["tipo"]) == "bico":
-			# o bico acende na BASE — mas quando a forma é reconhecida (a volta
-			# já foi desenhada) a criatura pode já estar DENTRO do espinho: o
-			# tiro é para sair dali, do ponto antes dele, sem esperar a volta.
-			if pos.distance_to(p) <= raio or _dist_segmento(pos, Vector2(m["base"]), Vector2(m["ponta"])) <= 22.0:
+		if str(m["tipo"]) == "laco":
+			# v0.9.1: acende em QUALQUER parte da circunferência do laço (não
+			# só no nó). Se o laço fechou com a criatura já andando nele, a
+			# onda sai na hora.
+			if Formas.distancia_polilinha(pos, m["anel"]) <= raio:
 				_disparar(m, alvos)
 			continue
-		if pos.distance_to(p) > raio:
-			continue
-		if str(m["tipo"]) == "laco" and olhar.dot(Vector2(m["dir"])) < 0.35:
-			continue
-		_disparar(m, alvos)
+		# bico: acende na BASE (o ponto antes do beco); o beco já não está na rota
+		if pos.distance_to(p) <= raio:
+			_disparar(m, alvos)
 
 
 func _disparar(m: Dictionary, alvos: Array) -> void:
@@ -391,6 +414,8 @@ func _disparar(m: Dictionary, alvos: Array) -> void:
 			eventos.append("laco:onda")
 		"bico":
 			olhar = Vector2(m["dir"])
+			# para antes de entrar no beco e dispara (v0.9.1)
+			_pausa_t = maxf(_pausa_t, float(_combate.get("bico_pausa_s", 0.25)))
 			efeitos.append({
 				"tipo": "tiro", "pos": Vector2(m["base"]), "dir": Vector2(m["dir"]),
 				"raio": float(_combate.get("tiro_raio", 9.0)), "andado": 0.0,
@@ -454,16 +479,6 @@ func _atualizar_efeitos(dt: float, alvos: Array) -> void:
 				efeitos.erase(e)
 
 
-## Distância de um ponto ao SEGMENTO a→b (usada pelo bico).
-func _dist_segmento(q: Vector2, a: Vector2, b: Vector2) -> float:
-	var ab := b - a
-	var l2 := ab.length_squared()
-	if l2 < 0.000001:
-		return q.distance_to(a)
-	var t := clampf((q - a).dot(ab) / l2, 0.0, 1.0)
-	return q.distance_to(a + ab * t)
-
-
 func _atingidos_tem(onda: Dictionary, id: String) -> bool:
 	for x in onda["atingidos"]:
 		if str(x) == id:
@@ -481,7 +496,12 @@ func finalizar_rota(alvos: Array) -> String:
 	_checar_marcas(alvos)
 	if rota.is_empty():
 		return ""
-	var fim := rota[rota.size() - 1]
+	return _marcar_alvo_no_fim(alvos, rota[rota.size() - 1])
+
+
+## O FIM do traço caiu em cima de um adversário? Ele vira alvo do golpe final.
+## A marca vai NELE (`mira_final_pos` é onde ele estava na hora).
+func _marcar_alvo_no_fim(alvos: Array, fim: Vector2) -> String:
 	var melhor := {}
 	var melhor_d := float(_combate.get("mira_final_raio", 34.0))
 	for a in alvos:
@@ -493,6 +513,8 @@ func finalizar_rota(alvos: Array) -> String:
 			melhor_d = d
 	if melhor.is_empty():
 		return ""
+	if mira_final_id == str(melhor["id"]):
+		return "ok: alvo final"
 	mira_final_id = str(melhor["id"])
 	mira_final_pos = Vector2(melhor["pos"])
 	eventos.append("mira_final:" + mira_final_id)
@@ -551,20 +573,17 @@ func _cmd_travar(cmd: Dictionary, alvos: Array) -> String:
 
 
 func _cmd_ataque(cmd: Dictionary, alvos: Array) -> String:
-	var dir: Vector2 = olhar
-	# a direção do golpe NÃO vem do gesto: é o alvo marcado; sem alvo, a rota
+	# a direção do golpe NÃO vem do gesto: é o alvo marcado; sem alvo, a ROTA
+	var para: Vector2 = olhar
 	if alvo_id != "":
 		var ap := alvo_pos(alvos)
 		if ap != Vector2.ZERO and ap.distance_to(pos) > 1.0:
-			dir = (ap - pos).normalized()
+			para = (ap - pos).normalized()
 		elif em_rota():
-			dir = (rota[_rota_i] - pos).normalized()
-	else:
-		if em_rota():
-			dir = (rota[_rota_i] - pos).normalized()
-		else:
-			dir = olhar
-	return _cmd_golpe("ataque", dir)
+			para = _tangente_em_rota(rota_t)
+	elif em_rota():
+		para = _tangente_em_rota(rota_t)
+	return _cmd_golpe("ataque", para)
 
 
 ## Golpe genérico (ataque físico ou batida): mesma máquina de fases, mesma
@@ -656,6 +675,11 @@ func passo(dt: float, mundo: RefCounted, alvos: Array = []) -> void:
 		_atualizar_escavar(dt, mundo)
 		pos = mundo.centro(_escavar_celula)
 		return
+	# pausa curta do bico: para antes do beco, dispara e depois segue
+	if _pausa_t > 0.0:
+		_pausa_t = maxf(_pausa_t - dt, 0.0)
+		_checar_marcas(alvos)
+		return
 	if em_rota():
 		pos = _avancar_rota(dt, mundo, alvos)
 	else:
@@ -663,50 +687,119 @@ func passo(dt: float, mundo: RefCounted, alvos: Array = []) -> void:
 	_checar_marcas(alvos)
 
 
-## Avança a rota e devolve a posição no CHÃO. A rota é uma série de pontos de
-## referência: procura o próximo, avança até ele e passa para o seguinte. Se um
-## passo for barrado, a rota NÃO é apagada: ela para (`barrado()`) e espera —
-## um pulo durante a rota passa por cima e retoma.
+## Avança a rota como uma ESTRADA (v0.9.1): a criatura segue o traço por
+## dentro de uma FAIXA (pode ir mais à esquerda, à direita ou no centro), mira
+## um ponto À FRENTE (o caminho fica curvo, não retilíneo) e FREIA nos últimos
+## `freio_px` (zona de freio), para parar macio. Se um passo for barrado, a rota
+## NÃO é apagada: para (`barrado()`) e espera — um pulo passa por cima e retoma.
 func _avancar_rota(dt: float, mundo: RefCounted, alvos: Array) -> Vector2:
-	if rota.is_empty() or _rota_i >= rota.size():
+	if rota.is_empty() or total_rota <= 0.001:
 		return _terminar_rota(alvos)
 	var base := pos
-	var restante := velocidade * dt
-	var voltas := 0
-	while restante > 0.001 and _rota_i < rota.size() and voltas < 4:
-		voltas += 1
-		var alvo := rota[_rota_i]
-		var para := alvo - base
-		var dist := para.length()
-		var chegada := float(rota_cfg.get("chegada_px", 12.0))
-		# um ponto de referência DENTRO de um tronco não é alcançável no centro;
-		# chegar perto dele já conta (a criatura contorna o objeto e segue).
-		if mundo.bloqueio(mundo.celula_de(alvo), camada) == "objeto":
-			chegada = maxf(chegada, 24.0)
-		if dist <= chegada:
-			_rota_i += 1
-			_desvios = 0
-			if _rota_i >= rota.size():
-				return _terminar_rota(alvos)
-			continue
-		var dir := para / dist
-		var passo := minf(restante, dist)
-		var novo := _passo_com_desvio(base, dir, passo, alvo, mundo)
-		var andado := novo.distance_to(base)
-		if andado < 0.001:
-			_barrado = true
-			return base
-		_barrado = false
-		rota_t += andado
-		restante -= andado
-		olhar = (novo - base).normalized() if andado > 0.001 else olhar
-		base = novo
-		if base.distance_to(alvo) <= chegada:
-			_rota_i += 1
-			_desvios = 0
-			if _rota_i >= rota.size():
-				return _terminar_rota(alvos)
-	return base
+	var proj := _projetar(base)
+	rota_t = float(proj["s"])
+	_rota_i = int(proj["i"])
+	if rota_t >= total_rota - float(rota_cfg.get("parada_px", 4.0)):
+		return _terminar_rota(alvos)
+	# FREIO: perde velocidade perto do fim
+	var restante := total_rota - rota_t
+	var freio_px := maxf(float(rota_cfg.get("freio_px", 44.0)), 1.0)
+	var f := clampf(restante / freio_px, 0.0, 1.0)
+	f = f * f * (3.0 - 2.0 * f)
+	f = maxf(f, float(rota_cfg.get("freio_min", 0.12)))
+	var passo := velocidade * f * dt
+	# ALVO: um ponto À FRENTE na estrada + o desvio orgânico lateral
+	var olhar_px := maxf(float(rota_cfg.get("olhar_px", 22.0)), 1.0)
+	var s_alvo := minf(rota_t + olhar_px, total_rota)
+	# um ponto de referência DENTRO de um tronco não é alcançável: mira ADIANTE
+	# (a criatura contorna o objeto e a rota segue)
+	var pulos := 0
+	while pulos < 8 and s_alvo < total_rota - 0.01 \
+			and mundo.bloqueio(mundo.celula_de(_ponto_em_rota(s_alvo)), camada) == "objeto":
+		s_alvo = minf(s_alvo + 18.0, total_rota)
+		pulos += 1
+	var centro := _ponto_em_rota(s_alvo)
+	var tang := _tangente_em_rota(s_alvo)
+	if tang.length() < 0.01:
+		tang = olhar if olhar.length() > 0.01 else Vector2.RIGHT
+	var meia := maxf(float(rota_cfg.get("estrada_largura_px", 30.0)) * 0.5, 0.0)
+	var desvio := clampf(_desvio_organico(s_alvo), -meia, meia)
+	var destino := centro + tang.orthogonal() * desvio
+	var para := destino - base
+	if para.length() < 0.01:
+		para = tang
+	var dir := para.normalized()
+	var novo := _passo_com_desvio(base, dir, passo, destino, mundo)
+	if novo.distance_to(base) < 0.001:
+		_barrado = true
+		return base
+	_barrado = false
+	olhar = (novo - base).normalized()
+	return novo
+
+
+## Projeta a criatura na rota (busca LOCAL em volta do segmento atual, para um
+## laço não "pular" de braço). Devolve {s, i, d}.
+func _projetar(q: Vector2) -> Dictionary:
+	if rota.size() < 2 or _arcos_rota.size() < 2:
+		return {"s": 0.0, "i": 0, "d": INF}
+	var melhor_s := 0.0
+	var melhor_d := INF
+	var melhor_i := 0
+	var i0 := maxi(0, _rota_i - 2)
+	var i1 := mini(rota.size() - 1, _rota_i + 12)
+	for i in range(i0, i1):
+		var a := rota[i]
+		var b := rota[i + 1]
+		var ab := b - a
+		var l2 := ab.length_squared()
+		var t := 0.0
+		if l2 > 0.0001:
+			t = clampf((q - a).dot(ab) / l2, 0.0, 1.0)
+		var p := a + ab * t
+		var d := p.distance_to(q)
+		if d < melhor_d:
+			melhor_d = d
+			melhor_i = i
+			melhor_s = _arcos_rota[i] + ab.length() * t
+	return {"s": melhor_s, "i": melhor_i, "d": melhor_d}
+
+
+## Ponto da rota a `s` px de arco do começo.
+func _ponto_em_rota(s: float) -> Vector2:
+	if rota.is_empty():
+		return Vector2.ZERO
+	if s <= 0.0:
+		return rota[0]
+	if s >= total_rota or _arcos_rota.size() < 2:
+		return rota[rota.size() - 1]
+	for i in range(1, rota.size()):
+		if _arcos_rota[i] >= s:
+			var seg := _arcos_rota[i] - _arcos_rota[i - 1]
+			var t := (s - _arcos_rota[i - 1]) / maxf(seg, 0.0001)
+			return rota[i - 1].lerp(rota[i], t)
+	return rota[rota.size() - 1]
+
+
+## Direção da rota a `s` px de arco.
+func _tangente_em_rota(s: float) -> Vector2:
+	if rota.size() < 2 or _arcos_rota.size() < 2:
+		return olhar
+	var i := 0
+	while i < rota.size() - 2 and _arcos_rota[i + 1] < s:
+		i += 1
+	var d := rota[i + 1] - rota[i]
+	return d.normalized() if d.length() > 0.01 else olhar
+
+
+## Desvio lateral do "caminho orgânico": duas senoides de fases sorteadas (a
+## mesma semente dá o mesmo passeio). A criatura anda ora mais à esquerda, ora
+## mais à direita da linha, dentro da estrada — o caminho não fica retilíneo.
+func _desvio_organico(s: float) -> float:
+	var o1 := maxf(float(rota_cfg.get("estrada_onda_px", 120.0)), 1.0)
+	var o2 := maxf(float(rota_cfg.get("estrada_onda2_px", 47.0)), 1.0)
+	var amp := float(rota_cfg.get("estrada_desvio_px", 9.0))
+	return amp * (0.68 * sin(TAU * s / o1 + _fase1) + 0.32 * sin(TAU * s / o2 + _fase2))
 
 
 ## Um passo em direção a `dir`. No ar (pulo) ignora o chão — é o que permite
@@ -725,27 +818,44 @@ func _passo_com_desvio(base: Vector2, dir: Vector2, passo: float, alvo: Vector2,
 	var fim: Vector2 = mundo.limitar_segmento(base, ideal, camada)
 	if fim.distance_to(ideal) < 0.01:
 		_desvios = 0
+		_desvio_lado = 0.0  # o caminho está livre: o desvio acabou
 		return fim
 	var bloq: Dictionary = _primeiro_bloqueio(base, ideal, mundo)
 	if bloq.is_empty() or str(bloq.get("tipo", "")) != "objeto":
 		return base
 	if _desvios >= int(rota_cfg.get("desvios_max", 80)):
 		return base
-	# leque de pequenos desvios: escolhe o que chega mais perto do alvo
+	# leque de pequenos desvios: escolhe o que chega mais perto do alvo. O LADO
+	# escolhido uma vez é mantido (histerese): sem isso a criatura fica
+	# oscilando de um lado para o outro na beirada do tronco.
+	var angulos: Array = rota_cfg.get("desvio_angulos", [20.0, -20.0, 40.0, -40.0, 60.0, -60.0, 80.0, -80.0, 100.0, -100.0, 120.0, -120.0])
+	var lados: Array = [angulos]
+	if _desvio_lado != 0.0:
+		var mesmo: Array = []
+		for a in angulos:
+			if signf(float(a)) == _desvio_lado:
+				mesmo.append(a)
+		if not mesmo.is_empty():
+			lados = [mesmo]
 	var melhor := base
 	var melhor_d := INF
-	var angulos: Array = rota_cfg.get("desvio_angulos", [20.0, -20.0, 40.0, -40.0, 60.0, -60.0, 80.0, -80.0, 100.0, -100.0, 120.0, -120.0])
-	for a in angulos:
-		var cand_ideal := base + dir.rotated(deg_to_rad(float(a))) * passo
-		var cand: Vector2 = mundo.limitar_segmento(base, cand_ideal, camada)
-		if cand.distance_to(cand_ideal) > 0.01:
-			continue
-		var d: float = cand.distance_to(alvo)
-		if d < melhor_d:
-			melhor = cand
-			melhor_d = d
+	var escolhido := 0.0
+	for lista in lados:
+		for a in lista:
+			var cand_ideal := base + dir.rotated(deg_to_rad(float(a))) * passo
+			var cand: Vector2 = mundo.limitar_segmento(base, cand_ideal, camada)
+			if cand.distance_to(cand_ideal) > 0.01:
+				continue
+			var d: float = cand.distance_to(alvo)
+			if d < melhor_d:
+				melhor = cand
+				melhor_d = d
+				escolhido = float(a)
+		if melhor != base:
+			break
 	if melhor == base:
 		return base
+	_desvio_lado = signf(escolhido)
 	_desvios += 1
 	return melhor
 
@@ -773,23 +883,29 @@ func _primeiro_bloqueio(base: Vector2, ideal: Vector2, mundo: RefCounted) -> Dic
 
 
 ## Fim da rota: o GOLPE FINAL (se o fim caiu em cima de um adversário) e a
-## autonomia. A posição final é calculada ANTES de limpar (era o defeito da
-## v0.5).
+## autonomia. O fim é calculado ANTES de limpar; a criatura PARA onde está (a
+## zona de freio já a desacelerou — não há salto para o último ponto).
 func _terminar_rota(alvos: Array) -> Vector2:
 	var fim: Vector2 = rota[rota.size() - 1] if not rota.is_empty() else pos
+	# a rota pode acabar DURANTE o desenho (traço ao vivo): o alvo final é
+	# marcado aqui, com o adversário onde ele está agora.
+	if mira_final_id == "" and not rota.is_empty():
+		_marcar_alvo_no_fim(alvos, fim)
 	_golpe_final(alvos)
 	rota = PackedVector2Array()
+	_arcos_rota = PackedFloat32Array()
 	_rota_i = 0
 	rota_t = 0.0
 	total_rota = 0.0
 	_barrado = false
 	_desvios = 0
+	_desvio_lado = 0.0
 	marcas = []
 	_auto_destino = fim
 	_auto_t = 3.3  # decide JÁ no primeiro passo de autonomia
 	_auto_espera = 0.0
 	eventos.append("rota:fim")
-	return fim
+	return pos
 
 
 func _autonomia(dt: float, mundo: RefCounted, alvos: Array) -> void:
@@ -916,7 +1032,8 @@ func _atualizar_escavar(dt: float, mundo: RefCounted) -> void:
 		_desvios = 0
 		marcas = []
 		mira_final_id = ""
-		_bico_partida = false
+		_bicos = []
+		_arcos_rota = PackedFloat32Array()
 		_recargas["habilidade"] = float(defs.get("habilidade", {}).get("recarga", 0.4))
 		eventos.append("camada:" + camada)
 		eventos.append("habilidade:off")

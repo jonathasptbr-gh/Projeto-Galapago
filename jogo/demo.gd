@@ -4,9 +4,10 @@ extends Node
 ## (main.dedo_* → sim/gestos → sim/comandos → sim/corpo).
 ##
 ## Roteiro da v0.9 — o ataque nasce da FORMA do desenho:
-## 1. caminho com LAÇO: a criatura anda atrás do traço e, ao passar pelo nó, a
-##    ONDA em área cresce do centro do laço;
-## 2. caminho com BICO (ida e volta brusca): dispara o TIRO na direção do bico;
+## 1. caminho com LAÇO: a criatura anda atrás do traço e, ao entrar no ANEL
+##    (a circunferência) do laço, a ONDA em área cresce do centro dele;
+## 2. caminho com BICO em "T" (sai da estrada e volta): o beco NÃO é andado —
+##    a criatura para na base e dispara o TIRO na direção da ponta;
 ## 3. caminho até a AREIA e SEGURAR parado: habilidade (cavar) — e de novo para
 ##    subir;
 ## 4. toque duplo = pulo;
@@ -25,7 +26,7 @@ func _init(m: Node) -> void:
 	main = m
 	_passos = [
 		{"t": 0.5, "tipo": "caminho", "rel": [[0, 0], [70, 0], [70, -50], [20, -50], [20, 15]], "dur": 1.4},
-		{"t": 4.4, "tipo": "caminho", "rel": [[0, 0], [80, 0], [20, 0]], "dur": 0.7},
+		{"t": 4.4, "tipo": "caminho", "rel": [[0, 0], [70, 0], [70, -60], [70, 0], [150, 0]], "dur": 1.0},
 		{"t": 5.8, "tipo": "caminho", "cel": [2, 12], "dur": 0.8},
 		{"t": 8.2, "tipo": "segurar"},
 		{"t": 10.0, "tipo": "segurar"},

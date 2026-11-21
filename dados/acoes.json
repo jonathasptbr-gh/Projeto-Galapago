@@ -1,5 +1,5 @@
 {
- "_leia": "Ações da criatura (v0.9). fases = [antecipação, ativa, recuperação] em segundos; alcance/raio em px de mundo (célula = 32). ATAQUE é o golpe físico (usado no golpe final do caminho); BATIDA é a pancada de passagem por cima de um alvo. PULAR e as HABILIDADES acontecem POR CIMA da rota e NÃO a cancelam. As formas do caminho (`formas`) dizem o que é laço e o que é bico; `combate`, o que cada ataque faz (onda, tiro, empurrão). ROTA: pontos de referência esparsos (`simplificar_px`), desconto do vai-e-volta inicial, desvio local de OBJETOS. Lido por sim/formas.gd e sim/corpo.gd.",
+ "_leia": "Ações da criatura (v0.9.1). fases = [antecipação, ativa, recuperação] em segundos; alcance/raio em px de mundo (célula = 32). ATAQUE é o golpe físico (usado no golpe final do caminho); BATIDA é a pancada de passagem por cima de um alvo. PULAR e as HABILIDADES acontecem POR CIMA da rota e NÃO a cancelam. As formas do caminho (`formas`) dizem o que é laço e o que é bico; `combate`, o que cada ataque faz (onda, tiro, empurrão). ROTA: pontos de referência esparsos (`simplificar_px`), desconto do vai-e-volta inicial, desvio local de OBJETOS; v0.9.1: ESTRADA larga (o animal anda dentro da faixa, com desvio orgânico), alvo À FRENTE e ZONA DE FREIO no fim. Lido por sim/formas.gd e sim/corpo.gd.",
  "mover": {"velocidade": 110},
  "olhar": {},
  "travar": {},
@@ -19,7 +19,9 @@
   "bico_janela_px": 10,
   "bico_ponta_min": 18,
   "bico_tol_px": 26,
-  "bico_volta_px": 40
+  "bico_base_px": 14,
+  "bico_fim_px": 40,
+  "bico_base_angulo": 45
  },
  "combate": {
   "onda_velocidade": 100,
@@ -31,6 +33,7 @@
   "batida_empurrao": 26,
   "batida_cruza_px": 8,
   "batida_tol_px": 34,
+  "bico_pausa_s": 0.25,
   "mira_final_raio": 34,
   "mira_final_tol_px": 48,
   "mira_final_empurrao": 44
@@ -41,6 +44,14 @@
   "desconto_janela_px": 140,
   "chegada_px": 12,
   "desvio_angulos": [20, -20, 40, -40, 60, -60, 80, -80, 100, -100, 120, -120],
-  "desvios_max": 80
+  "desvios_max": 80,
+  "olhar_px": 22,
+  "estrada_largura_px": 30,
+  "estrada_desvio_px": 9,
+  "estrada_onda_px": 120,
+  "estrada_onda2_px": 47,
+  "freio_px": 44,
+  "freio_min": 0.12,
+  "parada_px": 4
  }
 }
