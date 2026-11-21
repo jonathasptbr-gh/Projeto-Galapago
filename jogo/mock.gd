@@ -6,7 +6,13 @@ extends RefCounted
 ## trocar as texturas daqui, não a lógica.
 
 const CELULA := 32  # px de arte por célula
-const ZOOM := 2.0  # 1 px de arte = 2×2 px de tela (decisão do operador: escala C)
+# DISTÂNCIA DA CÂMERA (v0.11.4, pedido do operador: "ver mais do mapa e do campo
+# total"). Era 2,0 (escala C, zoom inteiro). Em 1,6 a tela mostra 450×800 px de
+# arte — os 24 andares do mapa inteiros na vertical (1280/1,6 = 800 < 832 dos
+# limites, então não aparece chão fora do mapa) e ~35% da largura. Custo: o
+# pixel de arte deixa de ser múltiplo inteiro de tela (1–2 px), o que só vai
+# importar quando a arte real entrar (P6). Ajustar aqui muda câmera e demo.
+const ZOOM := 1.6
 const SPRITE := 64  # canvas de criatura, em px de arte
 const ALTURA_PX := 12.0  # quanto um nível de altura "sobe" na tela, em px de arte
 

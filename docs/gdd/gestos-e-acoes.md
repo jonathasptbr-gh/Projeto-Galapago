@@ -1,7 +1,7 @@
 # Gestos e ações — como a criatura se move e age
 
 > Regra toda em `sim/` (testada) e nas tabelas `dados/gestos.json` +
-> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.11.3.**
+> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.11.4.**
 
 ## O fluxo
 
@@ -23,12 +23,12 @@ Tempo **simulado** (`tempo_ms`): teste, demo e oráculo são determinísticos.
 | **1 dedo arrastando** (acima de 16 px) | **caminho**, desenhado **AO VIVO** (sem espera) |
 | **laço** no caminho | **ataque em área**: uma onda que cresce do **centro** do laço; a trava é a **distância da criatura ao centro** (`area_gatilho_px` = 224 px, ~7× o corpo) — não precisa chegar no anel |
 | **bico** (ida e volta brusca, em "T" ou "V") | **v0.11: o bico é ANDADO** — o traço é obedecido como foi desenhado, nada é ignorado |
-| **levar o fim do caminho até o alvo** | ele fica **MARCADO** (um "X" amarelo que anda com ele); a marca vale para o **tiro** e para o **golpe físico** — e está ligada ao caminho |
+| **levar o fim do caminho até o alvo** | ele fica **MARCADO** (um "X" amarelo que anda com ele); a marca vale para o **tiro** e para o **golpe físico** — e está ligada ao caminho. **v0.11.4:** a marca segue a **PONTA** do traço — passar por cima e **seguir longe** não marca (não há volta para bater) |
 | **passar por cima** de um alvo com a linha | **batida/empurrão** ao chegar naquele ponto (embalo longo) |
-| **terminar o caminho** com alvo marcado | o animal **vai atrás** (perseguição final) e só bate **ao chegar perto** |
-| **segurar** | **com um caminho em curso → SPRINT** (acelera e gasta a **barra de energia**); **sem caminho → habilidade em si mesmo** (cavar). Ativa no **limiar** do segurar, sem esperar soltar |
+| **terminar o caminho** com alvo marcado | o animal **vai atrás** (perseguição final) e só bate **ao chegar perto**. Com o destino longe do alvo **não há marca** e ele **não volta** (v0.11.4) |
+| **segurar** | **com um caminho em curso → SPRINT** (acelera e gasta a **barra de energia**); **sem caminho → habilidade em si mesmo** (cavar). Ativa no **limiar** do segurar, sem esperar soltar. **v0.11.4:** ao soltar, o embalo **continua por `sprint.cauda_s`** e cai aos poucos (dá para pular ainda acelerado) |
 | **toque simples** | **TIRO** HÍBRIDO: **com alvo marcado**, mirado nele; **sem marca**, na **direção do toque em relação ao animal** (1 s de recarga; o animal **para** para atirar e segue o caminho). Sai ~0,28 s depois, para não atirar no 1º toque de um duplo |
-| **toque duplo** | **PULO** |
+| **toque duplo** | **PULO**. **v0.11.4:** o pulo pedido **durante o ar** entra na **FILA** e sai no quadro em que o anterior pousa (`pular.buffer_s`) — pulsos seguidos emendam sem atraso |
 
 **Não há gesto de dois dedos** (v0.9 tirou ataque ↑, defesa ↓ e especial
 abrindo). Um segundo dedo não é ação: o caminho continua no primeiro dedo e
@@ -232,6 +232,12 @@ O **toque simples** atira **sempre**, de duas formas:
 - a marca **sai** quando o animal faz o **golpe físico** (chegar no alvo) ou
   quando um **novo caminho** começa. Se o alvo marcado sumir, a marca cai e o
   toque vira um tiro livre.
+- **v0.11.4 — a marca acompanha a PONTA:** ela só nasce enquanto a ponta do
+  traço está no alvo e **sai** se o traço continua e termina mais de
+  `combate.mira_final_raio` (34 px) longe dele (`_soltar_marca_longe_da_ponta`;
+  evento `mira_final:` vazio). Um caminho que **passa por cima** (batida) e
+  **segue** para longe não volta para dar o golpe de perseguição. Depois de
+  soltar o dedo, a marca **não é revalidada**: ela anda com o alvo, como antes.
 
 ## Travessia e alvo final (no `sim/corpo.gd`)
 
@@ -255,9 +261,15 @@ corpo:
 
 - **com um caminho em curso → SPRINT**: o animal acelera (`sprint.fator` 1,7×)
   enquanto o dedo fica e **gasta a BARRA DE ENERGIA** (`sprint.gasto_s` 0,45/s);
-  ao soltar (ou quando a energia acaba), o sprint para e a energia **recupera**
+  ao soltar (ou quando a energia acaba), a energia **recupera**
   (`sprint.recarga_s` 0,22/s). A barra aparece na HUD (embaixo, à esquerda) e
   fica laranja quando está baixa. Com alvo marcado ou não, funciona igual;
+- **v0.11.4 — a CAUDA:** soltar não corta a velocidade na hora. `_fator_sprint`
+  mantém o embalo por `sprint.cauda_s` (0,60 s) em **queda linear de 1,7× até
+  1,0×** (a energia só é gasta segurando). É ela que deixa **pular ainda
+  acelerado**: o pulo sobe a mesma altura, mas o **avanço horizontal** cresce
+  (~1,45× o pulo normal, pela queda de 1,7× a 1,0× em 0,42 s; o teste exige
+  >1,2×);
 - **sem caminho → HABILIDADE em si mesmo** (hoje: **cavar**), ativada no
   limiar: desce ao subsolo em célula escavável e sobe de novo do subsolo. A
   habilidade dura o tempo das fases (`cavar.fases`). A HUD diz o motivo quando
@@ -293,7 +305,7 @@ depois **ronda** ao redor. Cada passo é cortado pelo mundo.
 | `mover` | `velocidade` 110 px/s |
 | `ataque` | golpe físico do fim do caminho: `fases` [0,10 · 0,14 · 0,18] s, `alcance` 40, `arco` 90°, `recarga` 0,15 |
 | `batida` | pancada de travessia: `fases` [0,06 · 0,10 · 0,12] s, `alcance` 30, `arco` 120° |
-| `pular` | `fases` [0,06 · 0,42 · 0,06] s, `altura` 26 px, `recarga` 0,30 |
+| `pular` | `fases` [0,06 · 0,42 · 0,06] s, `altura` 26 px, `recarga` 0,08 (cooldown de POUSO), `buffer_s` 0,60 (fila do pulo no ar) |
 | `habilidade` | `nome` = `cavar` (o que o segurar ativa) |
 | `cavar` | `fases` [0,15 · 0,55 · 0,15] s |
 | `formas` | limiares do laço (tabela abaixo) |
@@ -349,6 +361,7 @@ acende quando a recarga termina).
 |---|---|---|
 | `fator` | 1,7× | quanto acelera |
 | `gasto_s` / `recarga_s` | 0,45 / 0,22 por s | quanto a barra gasta e quanto recupera |
+| `cauda_s` | 0,60 s | v0.11.4: quanto o embalo dura DEPOIS de soltar (1,7× → 1,0×) |
 | `minimo` | 0,08 | energia mínima para começar o sprint |
 
 ### `combate`
@@ -363,7 +376,7 @@ acende quando a recarga termina).
 | `onda_recarga_s` / `tiro_recarga_s` | 1,0 s | **cooldown** dos especiais (área/tiro) |
 | `area_gatilho_px` | 224 | distância da criatura ao **centro** que acende a área (≈7× o corpo) |
 | `tiro_pausa_s` | 0,25 s | a pausa do animal para atirar |
-| `mira_final_raio` | 34 px | onde o fim do caminho MARCA o alvo |
+| `mira_final_raio` | 34 px | onde o fim do caminho MARCA o alvo — e o quanto a PONTA pode se afastar dele sem perder a marca (v0.11.4) |
 | `mira_final_empurrao` | 44 px | empurrão do golpe final |
 
 ## Alvos

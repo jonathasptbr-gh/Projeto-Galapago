@@ -21,6 +21,7 @@
 | P13 | Caminho ao vivo (sem espera) + ações em paralelo + véu/rampa + sensibilidade | P12 | **feito (v0.7.0/0.7.1)** |
 | P14 | Gestos de AÇÃO com dois dedos (ataque ↑, defesa ↓, especial abrindo) | P13 | **feito (v0.8.0)** — **substituído no P15** |
 | P15 | Ataque pela FORMA do desenho: laço (área), bico (tiro), travessia, alvo final, segurar = habilidade | P14 | **feito (v0.9.0)** |
+| P16 | Ajustes de sensação (21/11): marca na ponta, câmera mais distante, pulo emendado, cauda do sprint | P15 | **feito (v0.11.4)** |
 
 ---
 
@@ -219,3 +220,25 @@
   `giro_suavidade` 10 e `giro_max_graus_s` 720, e o ângulo do contorno é
   mantido (`_desvio_angulo`). A **linha do caminho apaga** o trecho já andado
   (`traco_t` + fade de 22 px em `jogo/trilha.gd`).
+
+## P16 — Ajustes de sensação da v0.11 (21/11)
+
+- **Operador (2026-11-21, quatro falas seguidas):** (1) "se o caminho passa,
+  criando um ataque de empurrão, com o destino final longe do alvo, então não
+  volte para dar o ataque de perseguição"; (2) "distancie um pouco mais a
+  câmera, permitindo ver mais do mapa e do campo total"; (3) "verifique o delay
+  de percepção de pulo — pode detectar o pulo ainda durante o primeiro pulo,
+  mas só deixe ele pular após terminar a animação do primeiro pulo. Hoje existe
+  muito delay entre dois pulos quando se tenta dar dois ou mais pulos
+  seguidos"; (4) "para o modo acelerado, ao segurar durante uma caminhada…
+  mantenha ele acelerado por um tempo mesmo após soltar o acelerador, assim é
+  possível saltar ainda acelerado indo mais longe".
+- **Feito em v0.11.4:** `_soltar_marca_longe_da_ponta` (a marca segue a PONTA;
+  a batida da travessia fica), `Mock.ZOOM` 2,0 → 1,6 (mapa inteiro na vertical),
+  `_pulo_fila_t` + `pular.buffer_s` (pulo pedido no ar sai no pouso; recarga de
+  pouso 0,30 → 0,08) e `_sprint_cauda_t` + `sprint.cauda_s` (cauda de 0,60 s,
+  queda linear). Detalhe no [`HISTORICO`](HISTORICO.md) e em
+  [`gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md).
+- **Pendente de ajuste fino (no aparelho):** o quanto a câmera afasta (1,6 é
+  ponto de partida; zoom fracionário — decisão de arte no P6), a duração da
+  cauda do sprint e o `buffer_s` do pulo.

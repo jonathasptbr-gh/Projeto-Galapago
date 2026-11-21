@@ -46,8 +46,8 @@ separados.
 `gl_compatibility` (OpenGL 3.3 / GLES 3): roda em celular modesto e é o único
 que o oráculo de quadros renderiza sem GPU. **Tela em alta resolução e
 RETRATO** (720×1280, `canvas_items`, `expand`) com **arte pixelada** (filtro
-*nearest*, câmera com zoom inteiro 2): linhas, sombras, efeitos e texto são
-lisos. Detalhes em [`GODOT.md`](GODOT.md#6-pixel-art-no-godot).
+*nearest*, câmera com **zoom 1,6** desde a v0.11.4 — era inteiro 2, ver
+`jogo/mock.gd`): linhas, sombras, efeitos e texto são lisos. Detalhes em [`GODOT.md`](GODOT.md#6-pixel-art-no-godot).
 
 ## Mundo e mapa
 

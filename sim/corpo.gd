@@ -45,6 +45,22 @@ extends RefCounted
 ## `_desvio_angulo`). A LINHA apaga o que já foi andado: `traco_t` é o arco
 ## andado do traço cru.
 ##
+## v0.11.4 — três ajustes de sensação (pedidos do operador):
+##
+## - **A MARCA vale para a PONTA, não para a passagem.** Ela nasce quando a
+##   ponta do caminho alcança um adversário e **sai** se o traço continua e
+##   termina longe dele (`_soltar_marca_longe_da_ponta`). Assim, um caminho que
+##   PASSA por cima (batida/empurrão) e segue para longe **não volta** para dar
+##   o golpe de perseguição;
+## - **PULO NA FILA**: o toque duplo durante o ar é percebido na hora
+##   (`_pulo_fila_t`) e o pulo sai no **quadro em que o anterior termina** —
+##   pulsos seguidos emendam sem o atraso de esperar o toque cair no chão.
+##   O pedido expira em `pular.buffer_s`;
+## - **CAUDA DO SPRINT**: soltar o segurar não corta a velocidade na hora. O
+##   embalo **continua por `sprint.cauda_s` e cai aos poucos** (`_fator_sprint`),
+##   então dá para **pular ainda acelerado e ir mais longe**. A energia só é
+##   gasta enquanto o segurar está ativo.
+##
 ## v0.9 — O ATAQUE NASCE DO DESENHO (`sim/formas.gd`), não de um gesto de dois
 ## dedos; v0.9.1 afinou as três pontas:
 ##
@@ -61,6 +77,8 @@ extends RefCounted
 ## - **fim do caminho em cima do adversário** → ele é marcado como alvo do
 ##   GOLPE FINAL (a marca vai NELE, não no lugar final). Se ele andar demais
 ##   até a criatura chegar, a automira se perde e o golpe sai no vazio.
+##   v0.11.4: quem passou por cima e SEGUIU para longe não volta — a marca
+##   acompanha a PONTA do traço, não a passagem.
 ##
 ## A **ESQUIVA É O PRÓPRIO CAMINHAR** (com o tempo lento do desenho): não há
 ## efeito de esquiva. A **HABILIDADE É DE SI MESMO** e dura um tempo: segurar o
@@ -117,6 +135,9 @@ var _olhar_suave := Vector2.ZERO     # direção do desenho (filtrada, só visua
 var _pulo_t := 0.0
 var _pulo_dur := 0.0
 var _pulo_altura := 0.0
+# PULO NA FILA (v0.11.4): o pedido feito NO AR fica guardado este tempo e sai
+# no quadro em que o pulo anterior termina (emenda sem perder o gesto).
+var _pulo_fila_t := 0.0
 var ataque := ""                 # "" = nenhum
 var ataque_t := 0.0
 var ataque_dir := Vector2.RIGHT
@@ -145,6 +166,8 @@ var _pausa_t := 0.0                 # pausa curta ao disparar o tiro
 var energia := 1.0
 var _sprint := false
 var _sprint_cfg: Dictionary = {}
+# CAUDA do sprint (v0.11.4): ao soltar, o embalo continua caindo aos poucos
+var _sprint_cauda_t := 0.0
 # EMBALO dos golpes físicos (v0.9.2): acelera curto na marcação e longo no
 # empurrão, passando mais rápido pelo alvo e desacelerando depois
 var _turbo_t := 0.0
@@ -261,6 +284,9 @@ func comandar(cmd: Dictionary, mundo: RefCounted, alvos: Array = []) -> String:
 		"soltar_segurar":
 			if _sprint:
 				_sprint = false
+				# v0.11.4: a CAUDA mantém o embalo por um tempo (o teste de
+				# "pular ainda acelerado" depende dela).
+				_sprint_cauda_t = maxf(float(_sprint_cfg.get("cauda_s", 0.6)), 0.0)
 				eventos.append("sprint:off")
 			return "ok"
 	if not defs.has(a):
@@ -365,6 +391,7 @@ func _guardar_rota(nova: PackedVector2Array, reiniciar: bool) -> void:
 		_dir_suave = Vector2.ZERO
 		_olhar_suave = Vector2.ZERO
 		_sprint = false
+		_sprint_cauda_t = 0.0
 		marcas = []
 		_disparadas = {}
 		mira_final_id = ""
@@ -395,8 +422,11 @@ func _montar_marcas(achadas: Array, alvos: Array) -> void:
 			marcas.erase(m)
 	_marcas_de_travessia(alvos)
 	# a MARCA do alvo nasce durante o caminho: quando a PONTA do traço o alcança
+	# — e SAI se a ponta segue e deixa o alvo para trás (v0.11.4).
 	if rota.size() >= 2:
-		_marcar_alvo_no_fim(alvos, rota[rota.size() - 1])
+		var ponta: Vector2 = rota[rota.size() - 1]
+		_soltar_marca_longe_da_ponta(alvos, ponta)
+		_marcar_alvo_no_fim(alvos, ponta)
 
 
 func _tem_marca(chave: String) -> bool:
@@ -512,6 +542,21 @@ func _fator_embalo() -> float:
 	return 1.0 + (_turbo_fator - 1.0) * sin(PI * u)
 
 
+## Quanto o SPRINT acelera AGORA (1,0 = normal). Segurando e com energia é o
+## fator cheio; SOLTOU (ou a energia acabou), a CAUDA (v0.11.4) mantém parte do
+## embalo e cai aos poucos por `sprint.cauda_s` — é ela que deixa pular logo
+## depois de soltar e ainda ir mais longe.
+func _fator_sprint() -> float:
+	var cheio := maxf(float(_sprint_cfg.get("fator", 1.7)), 1.0)
+	if _sprint and energia > 0.0:
+		return cheio
+	if _sprint_cauda_t <= 0.0:
+		return 1.0
+	var dur := maxf(float(_sprint_cfg.get("cauda_s", 0.6)), 0.01)
+	var u := clampf(_sprint_cauda_t / dur, 0.0, 1.0)
+	return 1.0 + (cheio - 1.0) * u
+
+
 # ---------------------------------------------------------------- efeitos
 
 ## Ondas e tiros: a onda CRESCE do centro e empurra quem ela varre; o tiro
@@ -597,6 +642,25 @@ func _marcar_alvo_no_fim(alvos: Array, fim: Vector2) -> String:
 	_embalo_final_feito = false
 	eventos.append("mira_final:" + mira_final_id)
 	return "ok: alvo marcado"
+
+
+## v0.11.4 — a MARCA acompanha a PONTA, não a PASSAGEM: se o caminho passou por
+## cima do alvo (batida/empurrão) e continuou, terminando LONGE dele, a marca
+## SAI. Sem isso a criatura chegava ao fim e VOLTAVA para dar o golpe de
+## perseguição num alvo que só tinha empurrado de passagem.
+func _soltar_marca_longe_da_ponta(alvos: Array, ponta: Vector2) -> void:
+	if mira_final_id == "":
+		return
+	var a := Alvos.por_id(alvos, mira_final_id)
+	if a.is_empty():
+		mira_final_id = ""
+		eventos.append("mira_final:perde")
+		return
+	var d: float = ponta.distance_to(Vector2(a["pos"])) - float(a["raio"])
+	if d > float(_combate.get("mira_final_raio", 34.0)):
+		mira_final_id = ""
+		_embalo_final_feito = false
+		eventos.append("mira_final:")
 
 
 ## O golpe físico que FECHA o caminho: perto do alvo marcado, bate e empurra,
@@ -687,13 +751,29 @@ func _cmd_pular(cmd: Dictionary) -> String:
 	if float(_recargas.get("pular", 0.0)) > 0.0:
 		return "recusado: recarga"
 	if no_ar():
-		return "recusado: já está no ar"
+		# v0.11.4: o pulo pedido NO AR é PERCEBIDO na hora e só é EXECUTADO
+		# quando a animação do atual termina (emenda; sem esperar o toque cair).
+		var buffer := maxf(float(defs.get("pular", {}).get("buffer_s", 0.6)), 0.0)
+		if buffer <= 0.0:
+			return "recusado: já está no ar"
+		if _pulo_fila_t > 0.0:
+			return "ok: pulo já na fila"
+		_pulo_fila_t = buffer
+		eventos.append("pulo:fila")
+		return "ok: pulo na fila"
+	_iniciar_pulo()
+	return "ok: pulando"
+
+
+## Começa o arco do pulo em si (fases em `dados/acoes.json`). Separado do
+## comando porque a FILA (v0.11.4) precisa disparar o próximo sem passar pelo
+## comando de novo.
+func _iniciar_pulo() -> void:
 	var d: Dictionary = defs.get("pular", {"fases": [0.06, 0.42, 0.06], "altura": 26.0})
 	_pulo_dur = maxf(float(d.get("fases", [0.06, 0.42, 0.06])[1]), 0.1)
 	_pulo_t = _pulo_dur
 	_pulo_altura = float(d.get("altura", 26.0))
 	eventos.append("pulo:on")
-	return "ok: pulando"
 
 
 ## TIRO (v0.10/v0.11.1): HÍBRIDO.
@@ -812,11 +892,13 @@ func passo(dt: float, mundo: RefCounted, alvos: Array = []) -> void:
 	_atualizar_habilidade(dt)
 	_atualizar_efeitos(dt, alvos)
 	_turbo_t = maxf(_turbo_t - dt, 0.0)
+	_sprint_cauda_t = maxf(_sprint_cauda_t - dt, 0.0)
 	# ENERGIA do sprint: gasta acelerando no caminho, recupera parada/andando
 	if _sprint and em_rota() and energia > 0.0:
 		energia = maxf(0.0, energia - float(_sprint_cfg.get("gasto_s", 0.45)) * dt)
 		if energia <= 0.0:
 			_sprint = false
+			_sprint_cauda_t = maxf(float(_sprint_cfg.get("cauda_s", 0.6)), 0.0)
 			eventos.append("sprint:off")
 	else:
 		energia = minf(1.0, energia + float(_sprint_cfg.get("recarga_s", 0.22)) * dt)
@@ -851,9 +933,7 @@ func _avancar_rota(dt: float, mundo: RefCounted, alvos: Array) -> Vector2:
 	if rota.is_empty() or total_rota <= 0.001:
 		return _terminar_rota(alvos)
 	var base := pos
-	var fator_sprint := 1.0
-	if _sprint and energia > 0.0:
-		fator_sprint = float(_sprint_cfg.get("fator", 1.7))
+	var fator_sprint := _fator_sprint()
 	# o avanço que ela DEVERIA ter neste quadro: é o que desempata a projeção
 	# num cruzamento/bico (dois braços no mesmo lugar) e impede o "pulo".
 	var esperado := maxf(velocidade * fator_sprint * _fator_embalo() * dt * 2.0, 2.0)
@@ -1288,9 +1368,7 @@ func _terminar_rota(alvos: Array) -> Vector2:
 	var dir := _tangente_em_rota(total_rota)
 	if dir.length() < 0.01:
 		dir = olhar
-	var fator := 1.0
-	if _sprint and energia > 0.0:
-		fator = float(_sprint_cfg.get("fator", 1.7))
+	var fator := _fator_sprint()
 	var v0 := velocidade * _fator_embalo() * fator
 	var freio := maxf(float(rota_cfg.get("freio_extra_px", 16.0)), 0.0)
 	if fator > 1.0:
@@ -1480,6 +1558,7 @@ func _decidir_autonomia(mundo: RefCounted, alvos: Array) -> void:
 
 
 func _atualizar_pulo(dt: float) -> void:
+	_pulo_fila_t = maxf(_pulo_fila_t - dt, 0.0)
 	if _pulo_t <= 0.0:
 		z = 0.0
 		return
@@ -1488,8 +1567,13 @@ func _atualizar_pulo(dt: float) -> void:
 	z = sin(PI * u) * _pulo_altura
 	if _pulo_t <= 0.0:
 		z = 0.0
-		_recargas["pular"] = float(defs.get("pular", {}).get("recarga", 0.3))
+		_recargas["pular"] = float(defs.get("pular", {}).get("recarga", 0.08))
 		eventos.append("pulo:off")
+		# v0.11.4: o pulo PEDIDO durante o ar sai NESTE quadro (emenda o
+		# próximo sem esperar o toque cair no chão).
+		if _pulo_fila_t > 0.0:
+			_pulo_fila_t = 0.0
+			_iniciar_pulo()
 
 
 func _atualizar_ataque(dt: float) -> void:

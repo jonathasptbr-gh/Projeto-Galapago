@@ -76,13 +76,17 @@ o binário local, `config/features` do `project.godot` e o nome
 
 - **Arte pixelada, tela não** (decisão do operador, v0.3.0; **retrato desde a
   v0.6.0**): a tela é 720×1280 (`canvas_items`, `expand`, orientação 1 =
-  retrato); a arte usa filtro *nearest* e a câmera tem **zoom inteiro** (2 →
-  cada pixel de arte vira 2×2), então os sprites ficam nítidos.
+  retrato); a arte usa filtro *nearest*. A câmera nasceu com **zoom inteiro**
+  (2 → cada pixel de arte vira 2×2) e desde a **v0.11.4** está em **1,6**
+  (`jogo/mock.gd`, pedido do operador para ver mais do mapa): o pixel de arte
+  passa a ocupar 1–2 px de tela — no xadrez do mock não se nota, e com a arte
+  real (P6) é decisão a tomar (arte em 2× ou zoom inteiro).
   Linhas, sombras, efeitos e texto são desenhados na resolução da tela, lisos:
   `draw_polyline(..., antialiased=true)`, `draw_circle(..., antialiased=true)`,
   `draw_arc(..., antialiased=true)`. Snap 2D desligado: movimento em subpixel.
-- **Zoom não inteiro** (pinça, efeito) borra/deforma pixels de arte — se vier,
-  decidir com o operador.
+- **Zoom não inteiro** (pinça, efeito) borra/deforma pixels de arte: o 1,6 da
+  v0.11.4 é o caso vivo disso. Alternativas quando a arte real chegar: desenhar
+  a arte em 2× (32→64) e voltar a um zoom inteiro, ou aceitar o 1,6.
 - **Import de PNG:** padrão do Godot 4 para texturas 2D é sem perda; manter
   mipmaps desligados para sprites. Conferir no `.import` gerado.
 - **Animação de sprite:** `AnimatedSprite2D` + `SpriteFrames` (um `SpriteFrames`

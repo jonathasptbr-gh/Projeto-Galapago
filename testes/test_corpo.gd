@@ -987,3 +987,103 @@ func test_inercia_do_sprint_e_um_pouco_maior() -> void:
 	checar(normal > 8.0 and normal < 24.0, "frenagem normal curta (%.1f px)" % normal)
 	checar(sprint > normal + 3.0, "frenagem do sprint um pouco maior (%.1f vs %.1f px)" % [sprint, normal])
 	checar(sprint < normal + 20.0, "não exagera no sprint (%.1f px)" % sprint)
+
+
+# ---------------------------------------------------------------- v0.11.4: ajustes do operador
+
+## v0.11.4: passar POR CIMA e SEGUIR para longe não deixa a marca — o animal
+## não volta do fim do caminho para dar o golpe de perseguição num alvo que só
+## empurrou de passagem. (A batida da travessia continua acontecendo.)
+func test_passar_por_cima_e_seguir_longe_nao_volta_para_bater() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	var adv := _adv(Vector2(150, 48))
+	var alvos := [_alvo_adv("adversario:0", adv)]
+	# TRAÇO AO VIVO: a ponta chega no inimigo...
+	checar(c.tracar(PackedVector2Array([c.pos, Vector2(150, 48)]), m, true, alvos).begins_with("ok"), "traço até o inimigo")
+	igual(c.mira_final_id, "adversario:0", "marcou ao chegar nele")
+	# ...e continua, sem soltar o dedo, até LONGE dele
+	checar(c.tracar(PackedVector2Array([c.pos, Vector2(150, 48), Vector2(330, 48)]), m, false, alvos).begins_with("ok"), "segue o traço")
+	igual(c.mira_final_id, "", "a marca saiu quando a ponta se afastou")
+	var evs := _rodar_com(c, m, alvos, adv, 5.0)
+	checar("batida:adversario:0" in evs, "deu a batida ao passar (%s)" % [evs])
+	checar("golpe_final:adversario:0" not in evs, "NÃO voltou para o golpe final (%s)" % [evs])
+	checar(c.pos.x > 300.0, "foi até o fim do caminho, sem voltar (x=%.0f)" % c.pos.x)
+
+
+## v0.11.4: o pulo PEDIDO durante o ar é percebido na hora e sai no quadro em
+## que o primeiro termina — dois (ou mais) pulos emendam sem o atraso de
+## esperar o toque cair no chão.
+func test_pulo_pedido_no_ar_sai_ao_terminar_o_primeiro() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	checar(c.comandar({"acao": "pular"}, m, []).begins_with("ok"), "1º pulo")
+	_rodar(c, m, 0.1)
+	igual(c.comandar({"acao": "pular"}, m, []), "ok: pulo na fila", "o 2º pulo fica na fila")
+	# sem NENHUM comando novo, o 2º sobe quando o 1º pousa (~0,32 s depois)
+	var evs := _rodar(c, m, 0.5)
+	var ons := 0
+	for e in evs:
+		if e == "pulo:on":
+			ons += 1
+	igual(ons, 1, "o 2º pulo saiu sozinho (%s)" % [evs])
+	checar(c.z > 6.0, "está no ar no 2º pulo (z=%.1f)" % c.z)
+	perto(float(c._pulo_fila_t), 0.0, 0.001, "a fila foi consumida")
+
+
+## v0.11.4: soltar o segurar NÃO corta a velocidade na hora — a CAUDA mantém o
+## embalo por um tempo e só depois volta à caminhada normal (e a energia para
+## de ser gasta no soltar).
+func test_cauda_do_sprint_mantem_o_embalo_depois_de_soltar() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(340, 48)])}, m, [])
+	_rodar(c, m, 0.2)
+	c.comandar({"acao": "segurar"}, m, [])
+	_rodar(c, m, 0.2)
+	c.comandar({"acao": "soltar_segurar"}, m, [])
+	var p0: Vector2 = c.pos
+	var e0: float = c.energia
+	_rodar(c, m, 0.1)
+	var v: float = c.pos.distance_to(p0) / 0.1
+	checar(v > 140.0, "ainda acelerado logo após soltar (%.0f px/s)" % v)
+	_rodar(c, m, 0.8)
+	var p1: Vector2 = c.pos
+	_rodar(c, m, 0.1)
+	var v2: float = c.pos.distance_to(p1) / 0.1
+	checar(v2 < 125.0, "voltou à velocidade normal depois da cauda (%.0f px/s)" % v2)
+	checar(c.energia > e0, "a energia não é mais gasta ao soltar (%.2f → %.2f)" % [e0, c.energia])
+
+
+## Distância andada DURANTE um pulo, numa rota reta; com `sprint`, acelera e
+## SOLTA antes de pular (a cauda é o que tem de manter o embalo).
+func _pulo_andado(sprint: bool) -> float:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(340, 48)])}, m, [])
+	_rodar(c, m, 0.15)
+	if sprint:
+		c.comandar({"acao": "segurar"}, m, [])
+		_rodar(c, m, 0.2)
+		c.comandar({"acao": "soltar_segurar"}, m, [])
+	c.comandar({"acao": "pular"}, m, [])
+	var p0: Vector2 = c.pos
+	var t := 0.0
+	while c.no_ar() and t < 1.0:
+		c.passo(1.0 / 30.0, m, [])
+		c.drenar_eventos()
+		t += 1.0 / 30.0
+	return c.pos.distance_to(p0)
+
+
+## v0.11.4 (o pedido do operador): depois de soltar o acelerador ainda dá para
+## PULAR acelerado — o pulo vai mais longe do que o pulo normal.
+func test_pulo_com_cauda_do_sprint_vai_mais_longe() -> void:
+	var normal := _pulo_andado(false)
+	var com_cauda := _pulo_andado(true)
+	checar(normal > 20.0, "o pulo normal anda (%.1f px)" % normal)
+	checar(com_cauda > normal * 1.2, "o pulo com cauda vai mais longe (%.1f vs %.1f px)" % [com_cauda, normal])

@@ -4,6 +4,12 @@
 
 | versão | onde | o quê | tamanho |
 |---|---|---|---|
+| v0.11.4 | HUD (`jogo/hud.gd`) | com o zoom 1,6 o mapa ocupa a tela inteira e a **legenda GESTOS** passa a ficar **por cima do mapa** (antes caía no fundo azul); é HUD de desenvolvimento — some com a UI real | pequeno |
+| v0.11.4 | `jogo/mock.gd` | o `ZOOM` 1,6 é **fracionário**: 1 px de arte vira 1–2 px de tela. No xadrez do mock não se nota; com a **arte real** (P6) é preciso decidir — arte desenhada em 2× ou voltar a um zoom inteiro (1 ou 2) | design |
+| v0.11.4 | `sim/corpo.gd` | a **cauda do sprint** é queda linear de 0,60 s (1,7× → 1,0×): soltar o segurar ainda empurra o animal por ~40 px; `sprint.cauda_s` é ponto de partida | pequeno |
+| v0.11.4 | `sim/corpo.gd` | a **fila do pulo** guarda UM pedido por `pular.buffer_s` (0,60 s): dois toques duplos no MESMO ar não empilham dois pulos (o segundo é ignorado) | decisão |
+| v0.11.4 | `sim/corpo.gd` | a marca é validada na ponta **só enquanto o caminho é desenhado**; depois de soltar ela viaja com o alvo — passar por cima e SEGUIR já não a deixa nascer (o alvo é reavaliado a cada traço) | decisão |
+| v0.11.4 | `sim/gestos.gd` | o **toque simples (tiro)** continua pendente 280 ms até a janela do duplo; o pedido era o pulo, então esse atraso não foi mexido | design |
 | v0.11.3 | `jogo/trilha.gd` | o corte da linha é a projeção do corpo no **traço cru** (não na rota): no tremor inicial/amontoado e num cruzamento ele pode apagar um pouco antes/depois da passagem; nunca volta | pequeno |
 | v0.11.3 | `sim/corpo.gd` | o contorno de **desnível** exige um ponto da rota em nível **≤ base + 0,5** a até 128 px/260 px; uma rota que termina no **topo** do barranco para na fronteira (o pulo sobe/desce) | decisão |
 | v0.11.3 | `sim/corpo.gd` | a suavização **atrasa** a curva (720°/s); o bico/cantos ficam um pouco mais arredondados; o passo real ainda pode dar **1–2 viradas** de ~80–100° no início do contorno (uma vez), mas a direção desenhada não pisca | pequeno |

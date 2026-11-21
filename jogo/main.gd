@@ -252,6 +252,10 @@ func _evento(e: String) -> void:
 	elif e == "mira_final:perde":
 		print("evento: ", e)
 		hud.nota("alvo marcado se perdeu")
+	elif e == "mira_final:":
+		# v0.11.4: o caminho passou por cima e SEGUIU — não volta para bater
+		print("evento: ", e)
+		hud.nota("marca solta: o caminho seguiu longe")
 	elif e.begins_with("mira_final:"):
 		print("evento: ", e)
 		hud.nota("ALVO MARCADO em %s" % e.substr(11))

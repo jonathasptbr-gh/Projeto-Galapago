@@ -3,6 +3,55 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.11.4 — a marca segue a ponta, pulo emendado e cauda do sprint (2026-11-21)
+
+- **Pedido do operador (2026-11-21, logo depois da v0.11.3, quatro ajustes):**
+  (1) se o caminho **passa** por cima (empurrão) e o **destino final fica longe**
+  do alvo, **não voltar** para dar o ataque de perseguição; (2) **afastar um
+  pouco a câmera**, para ver mais do mapa e do campo total; (3) **delay do
+  pulo**: pode perceber o pulo ainda durante o primeiro, mas só executá-lo
+  quando a animação anterior terminar (hoje há muito atraso entre dois pulos
+  seguidos); (4) no modo acelerado, **manter o embalo por um tempo depois de
+  soltar** o segurar, para poder pular ainda acelerado e ir mais longe.
+- **`sim/corpo.gd` — a MARCA acompanha a PONTA (1):** `_soltar_marca_longe_da_ponta`
+  roda todo quadro de traço e **apaga** `mira_final_id` quando a ponta da rota
+  se afasta mais de `combate.mira_final_raio` (34 px) do alvo marcado (evento
+  `mira_final:` — vazio; `jogo/main.gd` mostra "marca solta"). A marca nasce
+  só quando a ponta está no alvo, então **passar por cima e seguir longe não
+  deixa marca** e o fim do caminho não persegue de volta. A **batida/empurrão
+  da travessia continua** igual (`_marcas_de_travessia`). Depois de **soltar**
+  o dedo a marca não é mais validada: ela viaja com o alvo, como antes (é o que
+  permite perseguir um alvo que anda).
+- **`jogo/mock.gd` — câmera mais distante (2):** `ZOOM` 2,0 → **1,6**. A tela
+  passa a mostrar 450×800 px de arte (era 360×640): os **24 andares do mapa
+  inteiros na vertical** (1280/1,6 = 800 < 832 dos limites da câmera — não
+  aparece chão fora do mapa) e ~35% da largura. `jogo/demo.gd` lê
+  `main.camera.zoom.x`, então demo e oráculo acompanham sozinhos. **Custo:**
+  zoom fracionário (1 px de arte = 1–2 px de tela); no xadrez do mock não se
+  nota — vira decisão de arte no P6 (ver RESIDUOS).
+- **`sim/corpo.gd` — PULO NA FILA (3):** `_cmd_pular` no ar não recusa mais:
+  guarda **um** pedido em `_pulo_fila_t` (`pular.buffer_s` 0,60 s) e devolve
+  `ok: pulo na fila` (evento `pulo:fila`). `_atualizar_pulo` decrementa a fila
+  e, no quadro em que o pulo anterior pousa (`pulo:off`), chama `_iniciar_pulo`
+  — o mesmo `_iniciar_pulo` extraído do comando, com `pulo:on` no mesmo quadro.
+  O **cooldown de pouso** caiu de `pular.recarga` **0,30 → 0,08 s**: ele também
+  engolia o 2º pulo de quem toca de novo logo depois do pouso.
+- **`sim/corpo.gd` — CAUDA do sprint (4):** `soltar_segurar` (e o fim da
+  energia) marcam `_sprint_cauda_t = sprint.cauda_s` (0,60 s); `_fator_sprint`
+  devolve o fator cheio (`sprint.fator` 1,7) enquanto segura e, na cauda,
+  **1,7× → 1,0× em queda linear**. `_avancar_rota` e `_terminar_rota` (inércia
+  e `freio_sprint_x`) usam o helper — antes olhavam `_sprint` direto e cortavam
+  a velocidade no soltar. A **energia só é gasta segurando**; a cauda não gasta
+  e a recarga continua. Saltar durante a cauda anda mais longe (o pulo é um
+  overlay: a altura não muda, o **avanço horizontal** é que cresce).
+- **`dados/acoes.json`:** `pular.recarga` 0,08, `pular.buffer_s` 0,60,
+  `sprint.cauda_s` 0,60; `_leia` em v0.11.4 (idem em `dados/gestos.json`).
+- **Testes novos (4):** `test_passar_por_cima_e_seguir_longe_nao_volta_para_bater`
+  (marca sai, batida acontece, nenhum `golpe_final`), `test_pulo_pedido_no_ar_sai_ao_terminar_o_primeiro`
+  (2º `pulo:on` sem comando novo), `test_cauda_do_sprint_mantem_o_embalo_depois_de_soltar`
+  (>140 px/s logo após soltar, <125 px/s depois da cauda) e
+  `test_pulo_com_cauda_do_sprint_vai_mais_longe` (>1,2× o pulo normal).
+
 ## v0.11.3 — contorno de encostas, direção estável e linha que apaga (2026-11-21)
 
 - **Pedido do operador:** (1) o contorno de "não parada" não estava valendo
