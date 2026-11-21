@@ -22,6 +22,7 @@
 | P14 | Gestos de AÇÃO com dois dedos (ataque ↑, defesa ↓, especial abrindo) | P13 | **feito (v0.8.0)** — **substituído no P15** |
 | P15 | Ataque pela FORMA do desenho: laço (área), bico (tiro), travessia, alvo final, segurar = habilidade | P14 | **feito (v0.9.0)** |
 | P16 | Ajustes de sensação (21/11): marca na ponta, câmera mais distante, pulo emendado, cauda do sprint | P15 | **feito (v0.11.4)** |
+| P17 | Desligar o ataque em área do laço (desenho de círculo) | P16 | **feito (v0.11.5)** |
 
 ---
 
@@ -242,3 +243,15 @@
 - **Pendente de ajuste fino (no aparelho):** o quanto a câmera afasta (1,6 é
   ponto de partida; zoom fracionário — decisão de arte no P6), a duração da
   cauda do sprint e o `buffer_s` do pulo.
+
+## P17 — Desligar o ataque em área do laço (v0.11.5)
+
+- **Operador (2026-11-21):** "Vamos desativar o ataque em área feito por
+  desenho de círculo do caminho."
+- **Feito em v0.11.5:** `formas.laco_ataque` (falso) em `dados/acoes.json`;
+  `sim/formas.gd` devolve `[]` sem ler o traço. O desenho de círculo continua
+  sendo **caminho** (a rota é andada); o que sai é a **ONDA**. O código da
+  onda fica **inteiro atrás do interruptor** (religar = trocar a chave e
+  rebuildar). Sem a linha "laço perto → ataque em área" na HUD.
+- **Pendente de design:** se o laço deve ganhar **outro** efeito (ou sumir de
+  vez, com o código e os dados apagados), é decisão do operador.

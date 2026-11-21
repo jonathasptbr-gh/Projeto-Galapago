@@ -29,7 +29,8 @@ em código: mudar o design não exige mexer na lógica.
 
 ```
 toque → gesto de TELA + caminho AO VIVO (sim/gestos)
-      → FORMA do desenho (sim/formas: laço → onda em área; bico → tiro)
+      → FORMA do desenho (sim/formas: o laço virou onda em área até a v0.11.5 —
+        desligado em `formas.laco_ataque`; hoje só caminho)
       → pontos de referência (sim/trajetoria: desconto inicial + Douglas-Peucker)
       → INTENÇÃO
       → decisão da criatura (sim/afinidade: afinidade × temperamento × humor)

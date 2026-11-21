@@ -4,9 +4,13 @@ const F := preload("res://sim/formas.gd")
 
 ## Os limiares vêm dos DADOS (dados/acoes.json), como no jogo: o teste não
 ## repete os números — mudar o design muda o teste junto.
-func _cfg() -> Dictionary:
+## v0.11.5: o jogo vem com `formas.laco_ataque` DESLIGADO; estes testes são da
+## LEITURA da forma, então ligam o interruptor de propósito (`ligado=true`).
+func _cfg(ligado := true) -> Dictionary:
 	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://dados/acoes.json"))
-	return d.get("formas", {})
+	var cfg: Dictionary = (d.get("formas", {}) as Dictionary).duplicate()
+	cfg["laco_ataque"] = ligado
+	return cfg
 
 
 ## Traço com pontos a cada 2 px (o dedo deixa pontos densos, não só os vértices).
@@ -75,3 +79,15 @@ func test_centroide_de_retangulo() -> void:
 	var pol := PackedVector2Array([Vector2(0, 0), Vector2(100, 0), Vector2(100, 100), Vector2(0, 100)])
 	perto_v(F.centroide(pol), Vector2(50, 50), 0.01, "centro do retângulo")
 	perto(F.area_assinada(pol), 10000.0, 0.01, "área")
+
+
+# ---------------------------------------------------------------- interruptor (v0.11.5)
+
+## v0.11.5: o ataque em área por LAÇO está DESLIGADO nos dados do jogo, e com a
+## chave falsa `analisar` não devolve nada (nem reduz o traço).
+func test_laco_desligado_nos_dados_e_na_leitura() -> void:
+	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://dados/acoes.json"))
+	igual(bool(d.get("formas", {}).get("laco_ataque", true)), false, "formas.laco_ataque desligado")
+	var p := _denso([[0, 0], [100, 0], [100, 100], [30, 100], [30, -30]])
+	igual(F.analisar(p, _cfg(false)).size(), 0, "com o laço desligado não há marca")
+	igual(F.analisar(p, _cfg(true)).size(), 1, "com o laço ligado a marca volta (código inteiro)")

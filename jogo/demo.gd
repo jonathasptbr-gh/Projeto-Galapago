@@ -3,9 +3,9 @@ extends Node
 ## comandos — e os entrega pelo MESMO caminho de um toque de verdade
 ## (main.dedo_* → sim/gestos → sim/comandos → sim/corpo).
 ##
-## Roteiro da v0.10:
-## 1. caminho com LAÇO perto: a ONDA em área cresce do centro (a trava é a
-##    distância ao centro, não chegar no anel);
+## Roteiro (v0.10; v0.11.4/v0.11.5 ajustaram as regras):
+## 1. caminho com LAÇO perto: o laço é ANDADO como caminho (v0.11.5 desligou a
+##    ONDA em área — o roteiro ficou igual para os quadros compararem);
 ## 2. caminho até a AREIA e SEGURAR parado: habilidade (cavar) — e de novo para
 ##    subir;
 ## 3. TOQUE DUPLO = PULO;

@@ -1,7 +1,7 @@
 # Gestos e ações — como a criatura se move e age
 
 > Regra toda em `sim/` (testada) e nas tabelas `dados/gestos.json` +
-> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.11.4.**
+> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.11.5.**
 
 ## O fluxo
 
@@ -21,7 +21,7 @@ Tempo **simulado** (`tempo_ms`): teste, demo e oráculo são determinísticos.
 | gesto | vira |
 |---|---|
 | **1 dedo arrastando** (acima de 16 px) | **caminho**, desenhado **AO VIVO** (sem espera) |
-| **laço** no caminho | **ataque em área**: uma onda que cresce do **centro** do laço; a trava é a **distância da criatura ao centro** (`area_gatilho_px` = 224 px, ~7× o corpo) — não precisa chegar no anel |
+| **laço** no caminho | **DESLIGADO na v0.11.5** (era ataque em área: uma onda que crescia do centro do laço). Hoje o círculo é **só caminho** — a rota é andada e nada acende. O código da onda fica atrás de `formas.laco_ataque` |
 | **bico** (ida e volta brusca, em "T" ou "V") | **v0.11: o bico é ANDADO** — o traço é obedecido como foi desenhado, nada é ignorado |
 | **levar o fim do caminho até o alvo** | ele fica **MARCADO** (um "X" amarelo que anda com ele); a marca vale para o **tiro** e para o **golpe físico** — e está ligada ao caminho. **v0.11.4:** a marca segue a **PONTA** do traço — passar por cima e **seguir longe** não marca (não há volta para bater) |
 | **passar por cima** de um alvo com a linha | **batida/empurrão** ao chegar naquele ponto (embalo longo) |
@@ -134,9 +134,9 @@ a área por engano. Depois do Douglas-Peucker:
 - o teste é o **RETORNO**, não a proximidade: o arco precisa ser bem maior do
   que a distância líquida (`arco ≥ d·1,8 + 12`) — reta e curva de verdade não
   são tocadas;
-- **laço mínimo para a ÁREA:** `laco_area_min` 2200 px², `laco_arco_min` 160 px
-  e `laco_raio_min` 28 px (≈1,4× a área do corpo de 40×40). Abaixo disso o
-  traço não vira marca de ataque; um laço desenhado de propósito, sim.
+- **laço mínimo para a ÁREA (v0.11.5: sem efeito, a área está desligada):**
+  `laco_area_min` 2200 px², `laco_arco_min` 160 px e `laco_raio_min` 28 px
+  (≈1,4× a área do corpo de 40×40). Abaixo disso o traço não virava marca.
 
 ### O laço e o bico são ANDADOS (v0.11.1)
 
@@ -203,11 +203,12 @@ Tudo em `sim/formas.gd` (puro). O traço CRU é lido antes de virar rota:
 |---|---|---|
 | **laço** | o traço volta e **cruza** a si mesmo; a área fechada tem `laco_area_min` (2200 px²) e o arco `laco_arco_min` (160 px) — tamanho mínimo v0.11.1 | o **nó**, o **centro** (centroide da área), o **raio** (`√area/π`, limitado a 28–120 px) e a direção do fechamento |
 
-- **Laço → onda em área.** A marca acende quando a **distância da criatura ao
-  CENTRO** do laço é ≤ `area_gatilho_px` (224 px ≈ 7× o corpo de ~32 px) — não
-  precisa chegar no anel nem no nó. Laço feito perto: a onda sai **na hora**.
-  A onda é **um círculo que cresce do centro**; varre e empurra quem está na
-  área.
+- **Laço → onda em área (DESLIGADO na v0.11.5).** `formas.laco_ataque`
+  falso faz `Formas.analisar` devolver `[]` **sem nem reduzir o traço**: o laço
+  não vira marca. A regra fica registrada para quando (se) voltar: a marca
+  acendia quando a **distância da criatura ao CENTRO** do laço era
+  ≤ `area_gatilho_px` (224 px ≈ 7× o corpo), sem precisar chegar no anel; a
+  onda era um círculo que cresce do centro e empurra quem varre.
 - **O bico é andado.** O espinho faz parte do traço: a criatura sai, vai até a
   ponta e volta, como desenhado. (v0.10 ele era ignorado; v0.11 não é mais.)
 - **Sem "desenho certo":** as marcas são lidas a cada ~5 pontos do traço; o
@@ -286,7 +287,7 @@ numa rampa de `planejamento.retomada_ms` (0,45 s). Segurar para a habilidade
 
 | overlay | o que faz | efeito na rota |
 |---|---|---|
-| **onda** (laço) | círculo que cresce do centro do laço e empurra quem varre | nenhum: continua andando |
+| **onda** (laço) | círculo que cresce do centro do laço e empurra quem varre — **DESLIGADA desde a v0.11.5** (`formas.laco_ataque`) | nenhum: continua andando |
 | **tiro** (toque simples) | projétil no alvo marcado (automira) ou na direção do toque (sem marca); para no primeiro alvo | nenhum: o animal PAUSA para atirar e segue |
 | **golpe** (`ataque`/`batida`) | arco de fases (antecipação → ativa → recuperação) | nenhum |
 | **pulo** | arco no ar enquanto segue; atravessa barreira | nenhum |
@@ -349,6 +350,7 @@ acende quando a recarga termina).
 
 | chave | valor | o quê |
 |---|---|---|
+| `laco_ataque` | **falso** | v0.11.5: liga/desliga o ataque em área do laço (falso = o laço é só caminho) |
 | `gatilho_raio_px` | 24 | distância da marca que acende o gatilho |
 | `laco_arco_min` | 160 | arco mínimo do laço (tamanho mínimo v0.11.1) |
 | `laco_area_min` | 2200 | área mínima (px²) — abaixo disso não acende a área |
@@ -395,7 +397,7 @@ acende quando a recarga termina).
 - **Ação de cada gesto**: `mapa` em `dados/gestos.json`.
 - **Sensibilidade do desenho**: `desenho.ganho`.
 - **Segurar/planejamento**: `limiares` e `planejamento`.
-- **O que é laço**: `formas` em `dados/acoes.json`.
+- **O que é laço** (e se ele ataca): `formas.laco_ataque` e os limiares `laco_*` em `dados/acoes.json`.
 - **O que cada ataque faz no alvo**: `combate` (empurrões, alcances, raio).
 - **Peso de cada ação**: fases/alcance/arco em `dados/acoes.json`.
 - **Caminho** (simplificação, desconto, desvio, chegada): bloco `rota`.

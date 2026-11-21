@@ -3,6 +3,37 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.11.5 — o ataque em área do laço desligado (2026-11-21)
+
+- **Pedido do operador (2026-11-21):** "Vamos desativar o ataque em área feito
+  por desenho de círculo do caminho."
+- **Como foi feito (interruptor, não remoção):** `dados/acoes.json` ganhou
+  `formas.laco_ataque: false`. `sim/formas.gd` (`analisar`) devolve `[]` quando
+  a chave é falsa **antes de reduzir o traço** — o laço deixa de custar o RDP
+  e a busca de cruzamentos a cada ~5 pontos. Consequência: nenhuma marca
+  `laco` nasce, então `_checar_marcas`/`_disparar` (ramo `laco`) ficam
+  **parados**; o código da ONDA continua **inteiro** atrás do interruptor.
+- **O que NÃO mudou:** desenhar um círculo continua sendo **caminho** — a rota
+  é simplificada/andada como qualquer traço (o teste
+  `test_laco_e_andado_sem_cortar_a_volta` continua valendo), e a batida de
+  travessia, a marca do alvo e o resto seguem iguais.
+- **Para voltar:** `"laco_ataque": true` em `dados/acoes.json` (precisa de
+  build novo — os dados vão dentro do APK). Os números do laço
+  (`laco_arco_min` 160, `laco_area_min` 2200, `laco_raio_min` 28,
+  `laco_raio_max` 120, `laco_dedupe_px` 26), `formas.gatilho_raio_px` e o
+  `combate.onda_*`/`area_gatilho_px` seguem nos dados, **sem uso** enquanto
+  está desligado.
+- **`jogo/hud.gd`:** saiu a linha "laço perto → ataque em área" da legenda.
+- **Comentários de topo** ajustados em `sim/corpo.gd`, `sim/formas.gd`,
+  `sim/gestos.gd`, `sim/comandos.gd`, `jogo/main.gd` e `jogo/demo.gd` (o
+  roteiro do demo não mudou, para os quadros continuarem comparáveis).
+- **Testes:** novo `test_laco_desenhado_nao_vira_mais_ataque_em_area`
+  (test_corpo: desenha o laço, **zero** marca de área, **nenhuma** onda, rota
+  andada até o fim) e `test_laco_desligado_nos_dados_e_na_leitura`
+  (test_formas: o dado diz `false` e `analisar` responde `[]`; com `true` a
+  marca volta). Os quatro testes antigos da onda continuam rodando com
+  `_acoes_com_laco(true)` — provam que a máquina está inteira.
+
 ## v0.11.4 — a marca segue a ponta, pulo emendado e cauda do sprint (2026-11-21)
 
 - **Pedido do operador (2026-11-21, logo depois da v0.11.3, quatro ajustes):**

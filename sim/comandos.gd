@@ -8,8 +8,9 @@ extends RefCounted
 ## toque duplo (pulo), segurar (sprint no caminho / habilidade sem caminho) e a
 ## trajetória (mover, já desenhada).
 ##
-## O ATAQUE NÃO PASSA POR AQUI: ele nasce da FORMA do caminho (laço → área,
-## bico → tiro) em `sim/formas.gd` → `sim/corpo.gd`.
+## O ATAQUE NÃO PASSA POR AQUI: ele nasce da FORMA do caminho em
+## `sim/formas.gd` → `sim/corpo.gd` (hoje só a travessia; o LAÇO está desligado
+## desde a v0.11.5 — `formas.laco_ataque`).
 ##
 ## Comando: {acao, alvo, pontos, direcao, alcance, gesto}.
 

@@ -79,7 +79,6 @@ func _legenda() -> String:
 	var m: Dictionary = cfg.get("mapa", {})
 	var linhas := PackedStringArray(["GESTOS"])
 	linhas.append("1 dedo arrastando → caminho")
-	linhas.append("laço perto → ataque em área")
 	linhas.append("fim do caminho no alvo → marca")
 	linhas.append("toque → tiro (no alvo marcado ou na direção do toque)")
 	linhas.append("toque duplo → pulo")

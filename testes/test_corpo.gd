@@ -20,9 +20,9 @@ const TERRA := [",,,,,,,,,,,,", ":,,,:,,,,,,,", ",,,,,,,,,,,,"]
 const TUNEL := ["", "=====,,,,,,,", ""]
 
 
-func _setup(celulas: Array, subsolo: Array = [], semente := 5) -> Array:
+func _setup(celulas: Array, subsolo: Array = [], semente := 5, cfg: Dictionary = {}) -> Array:
 	var m := M.criar({"celula_px": 32, "celulas": celulas, "subsolo": subsolo}, terrenos)
-	var c := Corpo.new(acoes)
+	var c := Corpo.new(acoes if cfg.is_empty() else cfg)
 	c.rng.seed = semente
 	c.pos = Vector2(48, 48)
 	return [m, c]
@@ -447,6 +447,16 @@ func _alvo_adv(id: String, adv: RefCounted) -> Dictionary:
 		"travavel": true, "interativo": false, "dados": adv}
 
 
+## As ações do jogo com o LAÇO forçado. v0.11.5 desligou a área por padrão;
+## os testes da ONDA ligam de propósito para provar que o código está inteiro.
+func _acoes_com_laco(ligado: bool) -> Dictionary:
+	var d := acoes.duplicate(true)
+	var f: Dictionary = d.get("formas", {})
+	f["laco_ataque"] = ligado
+	d["formas"] = f
+	return d
+
+
 ## Avança corpo e adversário juntos, mantendo a lista de alvos sincronizada.
 func _rodar_com(c: RefCounted, m: RefCounted, alvos: Array, adv: RefCounted, segundos: float) -> Array:
 	var evs: Array = []
@@ -465,7 +475,7 @@ func _rodar_com(c: RefCounted, m: RefCounted, alvos: Array, adv: RefCounted, seg
 ## LAÇO: o traço fecha em cima de si mesmo. A onda nasce no CENTRO do laço
 ## quando a criatura passa pelo nó, e varre (empurra) quem está lá.
 func test_laco_vira_onda_em_area_no_centro() -> void:
-	var s := _setup(MAPA)
+	var s := _setup(MAPA, [], 5, _acoes_com_laco(true))
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
 	var adv := _adv(Vector2(175, 119))  # centro do laço
@@ -557,7 +567,7 @@ func test_perseguicao_final_vai_atras_do_alvo() -> void:
 ## v0.10: o laço acende pela DISTÂNCIA da criatura ao CENTRO da área (até
 ## `area_gatilho_px`, ~7× o corpo): não precisa chegar no anel.
 func test_laco_acende_pela_distancia_ao_centro() -> void:
-	var s := _setup(MAPA)
+	var s := _setup(MAPA, [], 5, _acoes_com_laco(true))
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
 	# o centro do laço fica a ~58 px do ponto de partida (bem dentro dos 224 px)
@@ -628,7 +638,7 @@ func test_inercia_depois_do_fim_do_caminho() -> void:
 ## Os ataques especiais têm 1 s de RECARGA: uma segunda marca não dispara
 ## durante o cooldown (fica pendente e acende quando a recarga termina).
 func test_recarga_de_um_segundo_nos_especiais() -> void:
-	var s := _setup(MAPA)
+	var s := _setup(MAPA, [], 5, _acoes_com_laco(true))
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
 	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([
@@ -943,7 +953,7 @@ func test_amontoado_curto_e_cortado_da_rota() -> void:
 ## LAÇO PEQUENO não acende a área: o traço do amontoado passa pelo leitor de
 ## formas, mas fica abaixo do tamanho mínimo (não vira marca).
 func test_laco_pequeno_nao_acende_a_area() -> void:
-	var s := _setup(MAPA)
+	var s := _setup(MAPA, [], 5, _acoes_com_laco(true))
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
 	c.comandar({"acao": "mover", "pontos": PackedVector2Array([
@@ -1087,3 +1097,27 @@ func test_pulo_com_cauda_do_sprint_vai_mais_longe() -> void:
 	var com_cauda := _pulo_andado(true)
 	checar(normal > 20.0, "o pulo normal anda (%.1f px)" % normal)
 	checar(com_cauda > normal * 1.2, "o pulo com cauda vai mais longe (%.1f vs %.1f px)" % [com_cauda, normal])
+
+
+# ---------------------------------------------------------------- v0.11.5: laço desligado
+
+## v0.11.5: o ATAQUE EM ÁREA do laço está DESLIGADO (decisão do operador).
+## Desenhar um círculo continua sendo CAMINHO — a rota é andada normalmente —
+## mas não nasce marca de área nem sai a ONDA.
+func test_laco_desenhado_nao_vira_mais_ataque_em_area() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	var adv := _adv(Vector2(175, 119))
+	var alvos := [_alvo_adv("adversario:0", adv)]
+	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([
+		Vector2(240, 48), Vector2(240, 190), Vector2(110, 190), Vector2(110, 30)])}, m, alvos).begins_with("ok"), "rota com laço")
+	var lacos := 0
+	for mm in c.marcas:
+		if str(mm["tipo"]) == "laco":
+			lacos += 1
+	igual(lacos, 0, "nenhuma marca de área (%s)" % [c.marcas])
+	checar(c.total_rota > 200.0, "a rota do laço continua valendo (%.0f px)" % c.total_rota)
+	var evs := _rodar_com(c, m, alvos, adv, 8.0)
+	checar("laco:onda" not in evs, "nenhuma onda saiu (%s)" % [evs])
+	checar(not c.em_rota(), "andou o caminho até o fim (%.0f px)" % c.pos.x)

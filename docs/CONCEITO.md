@@ -32,8 +32,9 @@
   centro), num percurso **orgânico**, e **freia** nos últimos passos para parar
   macio — ele não pisa exatamente na risca.
 - **Um dedo faz tudo: o ataque nasce do DESENHO (v0.9/v0.10).** Arrastar
-  desenha a rota; um **laço** vira **ataque em área** (onda que cresce do
-  centro; acende pela **distância ao centro**, ~7× o corpo); **passar por cima**
+  desenha a rota; um **laço** virava **ataque em área** (onda que cresce do
+  centro; acende pela **distância ao centro**, ~7× o corpo) — **desligado na
+  v0.11.5**, hoje o círculo é só caminho; **passar por cima**
   de um alvo é **batida**; levar o **fim do caminho até o alvo** o **MARCA** (X
   amarelo que anda com ele); **toque duplo** = **tiro** mirado no alvo marcado
   (recarga de 1 s, o animal para e segue); **toque simples** = **pulo**;

@@ -10,6 +10,15 @@ extends RefCounted
 ##   acende quando a criatura passa pelo nó, no trecho que FECHA o laço — por
 ##   isso a marca guarda a `dir` do fechamento (a ida e a volta passam pelo
 ##   mesmo ponto, mas em direções diferentes).
+##
+## **v0.11.5 — O ATAQUE EM ÁREA DO LAÇO ESTÁ DESLIGADO** (decisão do operador,
+## 2026-11-21): `analisar` devolve `[]` quando `formas.laco_ataque` é falso (é o
+## que `dados/acoes.json` traz), **sem nem reduzir o traço** — o laço deixa de
+## custar o RDP e a busca de cruzamentos a cada ~5 pontos. O desenho de círculo
+## continua sendo **caminho** (a rota é andada normalmente); o que sai é a
+## ONDA. O código do laço fica **inteiro atrás do interruptor**: para voltar,
+## basta `"laco_ataque": true` em `dados/acoes.json`.
+##
 ## v0.11: o BICO não é mais lido aqui — o traço é obedecido como foi desenhado
 ## (o animal anda o espinho; o "beco" não é ignorado).
 ## v0.11.1: o LAÇO tem TAMANHO MÍNIMO para valer (`laco_area_min`,
@@ -24,7 +33,11 @@ const TOL_REDUCAO := 3.0   # px — redução para ler laços
 
 
 ## Todas as marcas de um traço (hoje: só o LAÇO). `[]` = nada.
+## v0.11.5: com `formas.laco_ataque` desligado (o padrão do jogo) devolve `[]`
+## sem ler nada — o laço é só caminho.
 static func analisar(pontos: PackedVector2Array, cfg: Dictionary = {}) -> Array:
+	if not bool(cfg.get("laco_ataque", true)):
+		return []
 	if pontos.size() < 3:
 		return []
 	var reduzido := _reduzir(pontos, TOL_REDUCAO)

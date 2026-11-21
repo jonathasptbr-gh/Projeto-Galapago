@@ -61,12 +61,20 @@ extends RefCounted
 ##   então dá para **pular ainda acelerado e ir mais longe**. A energia só é
 ##   gasta enquanto o segurar está ativo.
 ##
+## v0.11.5 — o **ATAQUE EM ÁREA DO LAÇO** está **DESLIGADO** (decisão do
+## operador): desenhar um círculo continua sendo **caminho** (a rota é andada
+## como qualquer traço), mas **não acende a ONDA**. O corte é na leitura da
+## forma (`Formas.analisar` devolve `[]` com `formas.laco_ataque` falso), então
+## `marcas` de laço não nascem e `_checar_marcas`/`_disparar` (ramo `laco`)
+## ficam **parados atrás do interruptor** — o código da onda continua inteiro.
+##
 ## v0.9 — O ATAQUE NASCE DO DESENHO (`sim/formas.gd`), não de um gesto de dois
 ## dedos; v0.9.1 afinou as três pontas:
 ##
 ## - **laço** desenhado → onda em ÁREA, com centro no centro do laço. Acende
 ##   quando a criatura está em qualquer parte da CIRCUNFERÊNCIA (o anel) —
-##   laço que fecha com ela em cima já dispara;
+##   laço que fecha com ela em cima já dispara. **v0.11.5: DESLIGADO** — hoje
+##   o laço é só mais um caminho andado;
 ## - **bico** (o "T"/"V" que sai da estrada e volta) → **v0.11: o bico é
 ##   andado** (o traço é obedecido como foi desenhado; nada é ignorado);
 ## - **toque simples** → TIRO híbrido (com marca: automira; sem marca: direção do
@@ -320,8 +328,9 @@ func _adotar_traco(pontos: PackedVector2Array, mundo: RefCounted, inicio: bool, 
 		_traco_lido = 0
 		traco_t = 0.0
 	traco = pontos.duplicate()
-	# ler as formas a cada poucos pontos (o RDP e os laços custam): a origem lê
-	# sempre. v0.11: o traço é obedecido COMO FOI DESENHADO (o bico anda).
+	# ler as formas a cada poucos pontos (o RDP e os laços custam; com
+	# `formas.laco_ataque` desligado a leitura sai na hora — v0.11.5): a origem
+	# lê sempre. v0.11: o traço é obedecido COMO FOI DESENHADO (o bico anda).
 	var achadas: Array = []
 	if inicio or traco.size() - _traco_lido >= 5:
 		achadas = Formas.analisar(traco, _formas_cfg)

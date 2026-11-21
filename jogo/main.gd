@@ -14,9 +14,10 @@ extends Node2D
 ##
 ## v0.9 — a ORIGEM do caminho é congelada no `dedo_desceu` (posição da criatura
 ## naquele instante). A FORMA do traço vira ataque dentro do `sim/corpo.gd`
-## (laço → onda em área; bico → tiro; travessia → batida; fim em cima do
-## adversário → golpe final marcado nele). Enquanto desenha, o mundo roda em
-## tempo lento e a tela escurece; ao soltar, o tempo ACELERA numa rampa.
+## (travessia → batida; fim em cima do adversário → golpe final marcado nele;
+## o laço NÃO vira mais onda em área desde a v0.11.5 — ver `formas.laco_ataque`
+## em `dados/acoes.json`). Enquanto desenha, o mundo roda em tempo lento e a
+## tela escurece; ao soltar, o tempo ACELERA numa rampa.
 
 const Mundo := preload("res://sim/mundo.gd")
 const Corpo := preload("res://sim/corpo.gd")
