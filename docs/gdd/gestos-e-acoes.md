@@ -1,7 +1,7 @@
 # Gestos e ações — como a criatura se move e age
 
 > Regra toda em `sim/` (testada) e nas tabelas `dados/gestos.json` +
-> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.7.**
+> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.7.1.**
 
 ## O fluxo
 
@@ -23,7 +23,7 @@ frente dela": o que vale é a direção do dedo na tela.
 | gesto (na tela) | vira |
 |---|---|
 | **arrastar** (qualquer distância acima de 16 px) | **caminho**, desenhado **AO VIVO** (sem espera) |
-| **risco rápido para cima** | **ataque físico** (em paralelo ao caminho) |
+| **risco rápido para cima** | **ataque físico** (AÇÃO: não move) |
 | **risco rápido para a esquerda / direita** | **especial** daquele lado |
 | **risco rápido para baixo** | **esquiva para trás** |
 | **para baixo e parar (sem soltar)** | **defesa** (sustentada até soltar; para a rota) |
@@ -50,24 +50,36 @@ O ataque **não usa o ângulo do dedo para mirar**: a direção continua saindo 
    anda 100 px na tela desenha 160 px de caminho — movimento menor cobre mais
    área. Ajustável sem tocar em código.
 
-### O RISCO (ação em paralelo)
+### O RISCO (ação durante a caminhada, não um passo)
 
-Sem a espera, o arrasto deixaria de disparar ataque/esquiva. Para manter as
-ações: um **risco** — traço **curto**, **reto**, **rápido** e **no começo do
-gesto** — dispara a ação do setor **no meio do arrasto**, e o caminho continua:
+Sem a espera, todo arrasto começaria um caminho — inclusive o do ataque. O
+**risco** resolve: traço **curto**, **reto**, **rápido** e **no começo do
+gesto** dispara a ação do setor **no meio do arrasto**:
 
 - `deslize_min_px` (44) ≤ traço ≤ `flick_janela_px` (170);
 - duração ≤ `flick_max_ms` (0,26 s) e velocidade ≥ `flick_vel_min_px_s` (700);
 - desvio da corda ≤ `flick_reta_px` (24) — curva não é risco;
 - **um disparo por gesto**: desenhar rápido não vira metralhadora.
 
-Ou seja: desenho lento/curvo é só caminho; um "tapa" rápido no setor vira
-ataque E caminho, sem atraso e sem cancelar o desenho.
+**Um gesto = uma intenção.** Quando o risco dispara, o traço que o dedo chegou
+a riscar é **cancelado** e a rota que existia antes do dedo descer **volta**
+inteira (com o progresso): a criatura **continua a caminhada** em que estava e
+o golpe acontece por cima dela. É isso que permite atacar **durante** o
+caminho, sem parar nem desviar. O mesmo vale para a **defesa** (baixo + parado):
+ela não deixa caminho.
+
+Ou seja: desenho lento/curvo é só caminho; um "tapa" rápido no setor é só
+ação. Não existe mais gesto que faz as duas coisas.
 
 ### Tempo lento, escurecida e a rampa de saída
 
 - enquanto desenha (ou defende), o **mundo** roda em
-  `planejamento.escala_tempo` (0,35×) — o relógio do GESTO continua real;
+  `planejamento.escala_tempo` (0,35×) — o relógio do GESTO continua real. O
+  tempo lento (e o véu) só entram quando o gesto **deixou de poder ser um
+  risco** (o dedo desacelerou, o traço passou de `flick_janela_px`, virou
+  curva ou durou mais que `flick_max_ms`) — assim a tela não escurece por dois
+  quadros a cada ataque. Um risco não fica em câmera lenta: ao disparar, o
+  tempo volta na hora;
 - a tela **escurece** `planejamento.escurecer` (0,22) — é o que ilustra a
   desaceleração;
 - ao soltar, o tempo **acelera numa rampa** de `planejamento.retomada_ms`

@@ -18,7 +18,7 @@
 | P10 | Mapa básico de cima com profundidade + tela em alta resolução | P1 | **feito (v0.4.0)** — camadas lógicas + mockup |
 | P11 | Movimento por rota + overlays, alvos/mira, adversário e autonomia | P3 | **feito (v0.5.0)** |
 | P12 | Retrato + gestos de tela + caminho por âncora (tempo lento, desconto, desvio de objetos) | P11 | **feito (v0.6.0)** |
-| P13 | Caminho ao vivo (sem espera) + ações em paralelo + véu/rampa + sensibilidade | P12 | **feito (v0.7.0)** |
+| P13 | Caminho ao vivo (sem espera) + ações em paralelo + véu/rampa + sensibilidade | P12 | **feito (v0.7.0/0.7.1)** |
 
 ---
 
@@ -125,3 +125,13 @@
   `jogo/trilha.gd`, `jogo/hud.gd`, `jogo/demo.gd` (sem `hold`) e
   `dados/gestos.json` (`desenho.ganho` 1,6, `planejamento` 0,35×/0,45 s/0,22,
   `flick_*`). Testes: `test_gestos` reescrito, `test_corpo` com traço ao vivo.
+
+### v0.7.1 — a correção do "em paralelo"
+
+- **Operador (2026-11-20, depois da v0.7.0):** "em paralelo" era poder **fazer
+  um ataque durante a caminhada**, não durante o desenho — o gesto de ataque
+  **não** deve virar passo.
+- **Feito:** o risco cancela o traço (`sim/gestos.gd`) e `sim/corpo.gd` ganhou
+  `guardar_rota`/`voltar_rota`: o instantâneo da rota é tirado na descida do
+  dedo e devolvido quando o gesto vira ação, então o golpe acontece por cima
+  da caminhada. Defesa idem. Um gesto = uma intenção.

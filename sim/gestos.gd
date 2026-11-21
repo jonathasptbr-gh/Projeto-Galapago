@@ -13,9 +13,11 @@ extends RefCounted
 ## JÁ É caminho (o jogo desenha a rota ao vivo, quadro a quadro). Acabou o
 ## "segurar parado antes de arrastar".
 ##
-## As AÇÕES continuam em paralelo: um RISCO rápido (limiares `flick_*`)
-## dispara o setor da tabela NO MEIO do arrasto e o caminho continua — no
-## máximo um disparo por gesto (senão um desenho rápido viraria metralhadora).
+## As AÇÕES ficam em paralelo no sentido do jogo: um RISCO rápido (limiares
+## `flick_*`) dispara o setor da tabela sem virar caminho — o traço que o dedo
+## chegou a riscar é cancelado (a rota anterior volta) e a criatura continua a
+## caminhada em que estava. Um gesto = uma intenção: risco vira AÇÃO, arrasto
+## lento/curvo vira CAMINHO. No máximo um disparo por gesto.
 ##
 ## A ORIGEM do caminho é a posição da CRIATURA quando o dedo desceu. Aqui só se
 ## guarda o ponto de TELA do começo (`inicio()`); quem converte tela→mundo
@@ -39,6 +41,7 @@ var _desenhando := false
 var _defendendo := false
 var _segurando := false
 var _acao_disparada := false
+var _planejavel := false   # já não pode ser um risco: o mundo pode desacelerar
 var _pontos := PackedVector2Array()
 var _tempos: Array[float] = []
 var _t0 := 0.0
@@ -72,8 +75,10 @@ func desenhando() -> bool:
 
 
 ## O mundo está em "planejamento" (tempo lento)? Desenho, defesa ou escavação.
+## Um RISCO ainda não confirmado como desenho NÃO desacelera: senão a tela
+## escureceria por dois quadros a cada ataque.
 func planejando() -> bool:
-	return _desenhando or _defendendo or _segurando
+	return (_desenhando and _planejavel) or _defendendo or _segurando
 
 
 func defendendo() -> bool:
@@ -97,6 +102,7 @@ func iniciar(pos: Vector2, t_ms: float, criatura: Vector2) -> Array:
 	_defendendo = false
 	_segurando = false
 	_acao_disparada = false
+	_planejavel = false
 	_pontos = PackedVector2Array([pos])
 	_tempos = [t_ms]
 	_t0 = t_ms
@@ -119,12 +125,24 @@ func mover(pos: Vector2, t_ms: float) -> Array:
 		if pos.distance_to(_pontos[0]) <= lim["desenho_min_px"]:
 			return []
 		_desenhando = true
-	# RISCO rápido: a ação sai AGORA, no meio do desenho, sem parar o caminho.
+	# RISCO rápido: a ação sai AGORA e o gesto deixa de ser caminho — o traço
+	# que o dedo chegou a riscar é CANCELADO por quem desenha (jogo/main.gd
+	# devolve a rota anterior). Ataque NÃO é passo: ele acontece durante a
+	# caminhada que já existia.
 	var ev := _risco(t_ms)
-	if ev.is_empty():
-		return []
-	_acao_disparada = true
-	return [ev]
+	if not ev.is_empty():
+		_acao_disparada = true
+		_desenhando = false
+		return [ev]
+	# ainda é candidato a risco? então não desacelera. Basta o dedo ir mais
+	# devagar, o traço passar da janela, virar curva ou durar mais que o risco.
+	if not _planejavel:
+		var dur := t_ms - _t0
+		_planejavel = _velocidade(t_ms) < lim["flick_vel_min_px_s"] \
+			or _comprimento() > lim["flick_janela_px"] \
+			or dur > lim["flick_max_ms"] \
+			or _desvio_corda() > lim["flick_reta_px"]
+	return []
 
 
 ## Chamar a cada quadro com o dedo parado: é o que transforma em "segurar".
@@ -139,6 +157,7 @@ func tick(t_ms: float) -> Array:
 			return []
 		_defendendo = true
 		_segurando = false
+		_desenhando = false  # defesa também não deixa caminho
 		return [_evento("segurar_inicio", t_ms)]
 	# segurar em cima dela, parado = escavar (decidido no soltar)
 	if _na_criatura and not _segurando and t_ms - _t0 >= lim["segurar_min_ms"] \
@@ -164,6 +183,8 @@ func soltar(pos: Vector2, t_ms: float) -> Array:
 	if _segurando:
 		_segurando = false
 		return [_evento("segurar_inicio", t_ms)]
+	if _acao_disparada:
+		return []  # o gesto já resolveu numa AÇÃO (o risco já disparou)
 	if _desvio_max() > lim["toque_max_px"] or dur > lim["toque_max_ms"]:
 		return [_evento("nada", t_ms)]
 	var saida := [_evento("toque", t_ms)]

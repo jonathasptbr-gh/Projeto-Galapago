@@ -3,6 +3,35 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.7.1 — o gesto de AÇÃO não é passo (2026-11-20)
+
+- **Correção do operador sobre a v0.7.0:** "em paralelo" queria dizer poder
+  **atacar DURANTE a caminhada**, e não que todo gesto vira movimento. Na
+  v0.7.0 o risco de ataque também desenhava um passo (≈120 px de mundo) e
+  desviava a criatura.
+- **Gestos (`sim/gestos.gd`):** quando o risco dispara, `_desenhando` volta a
+  falso — o gesto é de AÇÃO, não de caminho — e o `soltar` não emite
+  `trajetoria` (e nem `nada`: o gesto já resolveu). A **defesa** também
+  cancela o traço. Um gesto = uma intenção.
+- **Corpo (`sim/corpo.gd`):** novos `guardar_rota()` / `voltar_rota(g)` — o
+  instantâneo da rota (pontos, índice, progresso, barreira e autonomia) é
+  tirado na DESCIDA do dedo (`jogo/main.gd`) e devolvido quando o gesto vira
+  ação. Assim o golpe acontece **por cima** da caminhada, que continua de onde
+  estava.
+- **Tela (`jogo/main.gd`):** `_cancelar_traco()` no evento `deslize` e no
+  `segurar_inicio` (defesa/escavar); num risco o tempo volta na hora
+  (`_retomada = 0`), sem rampa — ação não fica em câmera lenta. O véu é
+  suavizado e o "planejamento" (tempo lento + véu) só começa quando o gesto
+  **deixou de poder ser um risco** (`_planejavel` em `sim/gestos.gd`): senão a
+  tela escureceria por dois quadros a cada ataque.
+- **Verificação:** 72 testes; sonda headless da demo inteira (520 quadros, 30 fps):
+  ataques em 2,6 s / 3,6 s / 4,9 s / 6,0 s / 9,2 s / 12,4 s **não** movem a
+  criatura (célula estável; a rota de 3 pontos volta logo após o disparo); a
+  defesa em 10,6 s cancela o traço para baixo; os dois caminhos seguem
+  normais. **71 testes, 0 falhas**, 35 scripts.
+- **O que fica:** a linha da rota pode piscar por ~2 quadros no começo de um
+  risco (o traço nasce ao vivo e é cancelado no disparo) — ver `RESIDUOS`.
+
 ## v0.7.0 — caminho ao vivo, sem espera, e ações em paralelo (2026-11-20)
 
 - **Pedido do operador:** (1) tirar o atraso do toque longo — o arrasto

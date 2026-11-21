@@ -4,10 +4,12 @@
 
 | versão | onde | o quê | tamanho |
 |---|---|---|---|
+| v0.7.1 | `jogo/main.gd` | a linha da rota (e o % na HUD) pode piscar ~1–2 quadros no começo de um risco: o traço nasce ao vivo e é cancelado no disparo; o véu já não pisca | pequeno |
+| v0.7.1 | `sim/corpo.gd` | `voltar_rota` devolve rota/progresso/autonomia, mas NÃO a posição: a criatura fica onde andou nos ~2 quadros do risco (2–3 px) | pequeno |
 | v0.7.0 | `dados/gestos.json` | `desenho.ganho` 1,6, véu 0,22 e rampa 0,45 s são pontos de partida — ajustar com o operador no aparelho | pequeno |
 | v0.7.0 | `sim/gestos.gd` | o começo RETO de um desenho rápido ainda pode disparar uma ação; curva já não dispara (é heurística) | design |
 | v0.7.0 | `jogo/main.gd` | o traço ao vivo refaz a rota (desconto + Douglas-Peucker) a cada quadro; custo não medido no aparelho | pequeno |
-| v0.7.0 | demo | cada risco também vira caminho (~120 px de mundo com ganho 1,6): os ataques da demo empurram a criatura | decisão do operador |
+| v0.7.0 | demo | ~~cada risco também vira caminho e empurra a criatura~~ — **corrigido na v0.7.1** (o risco cancela o traço) | — |
 | v0.7.0 | `sim/corpo.tracar` | a "volta ao começo" só entra no 1º quadro do traço; depois disso ela segue a rota e não volta | design |
 | v0.7.0 | HUD | legenda e estado continuam de desenvolvimento; o estado longo pode encostar na borda no retrato | pequeno |
 | v0.6.1 | atualizador | a v0.5.0 instalada tem o código antigo e não mostra o botão; instalar o APK da v0.6.1 à mão **uma vez** | operador |

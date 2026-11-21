@@ -501,6 +501,32 @@ func _primeiro_bloqueio(base: Vector2, ideal: Vector2, mundo: RefCounted) -> Dic
 			return {"tipo": "terreno", "celula": c}
 	return {}
 
+## GUARDA o estado da rota (e da autonomia) inteiro — é o que permite CANCELAR
+## um traço que virou AÇÃO: um risco rápido de ataque/esquiva não deixa
+## caminho, e a caminhada anterior volta do ponto em que estava.
+func guardar_rota() -> Dictionary:
+	return {
+		"rota": rota.duplicate(), "i": _rota_i, "t": rota_t, "total": total_rota,
+		"barrado": _barrado, "autonomia": autonomia, "destino": _auto_destino,
+		"auto_t": _auto_t, "espera": _auto_espera,
+	}
+
+
+## Devolve o estado guardado por `guardar_rota` (o traço cancelado sai da rota
+## e o progresso volta ao que era).
+func voltar_rota(g: Dictionary) -> void:
+	rota = g["rota"]
+	_rota_i = int(g["i"])
+	rota_t = float(g["t"])
+	total_rota = float(g["total"])
+	_barrado = bool(g["barrado"])
+	_desvios = 0
+	autonomia = str(g["autonomia"])
+	_auto_destino = g["destino"]
+	_auto_t = float(g["auto_t"])
+	_auto_espera = float(g["espera"])
+
+
 ## Fim da rota: guarda o destino para a autonomia e limpa a rota — a posição
 ## final é calculada ANTES de limpar (era o defeito da v0.5).
 func _terminar_rota() -> Vector2:

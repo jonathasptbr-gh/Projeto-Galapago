@@ -52,7 +52,7 @@ func _process(_delta: float) -> void:
 
 func _legenda() -> String:
 	var m: Dictionary = cfg.get("mapa", {})
-	var linhas := PackedStringArray(["v0.7.0 · GESTOS (TELA)"])
+	var linhas := PackedStringArray(["v0.7.1 · GESTOS (TELA)"])
 	linhas.append("arraste → caminho (ao vivo)")
 	for s in m.get("deslize", []):
 		var seta: String = {"cima": "↑", "baixo": "↓", "esquerda": "←", "direita": "→"}.get(s["nome"], "?")

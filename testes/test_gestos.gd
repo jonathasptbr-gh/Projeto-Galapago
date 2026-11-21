@@ -46,8 +46,9 @@ func test_arrasto_ja_e_caminho_sem_espera() -> void:
 	checar(not evs[0]["defesa"], "não é defesa")
 
 
-## O RISCO rápido dispara a ação NO MEIO do arrasto; o caminho segue.
-func test_risco_dispara_acao_no_meio_do_desenho() -> void:
+## O RISCO rápido dispara a ação e o gesto NÃO vira caminho: o traço é
+## cancelado (a rota anterior volta em jogo/main.gd). Ataque não é passo.
+func test_risco_dispara_acao_e_nao_vira_caminho() -> void:
 	var r := _r()
 	r.iniciar(Vector2(200, 700), 0, CRIA)
 	var evs: Array = []
@@ -56,11 +57,11 @@ func test_risco_dispara_acao_no_meio_do_desenho() -> void:
 		p += Vector2(0, -40)
 		evs.append_array(r.mover(p, 30 * i))
 	igual(_nomes(evs), ["deslize"], "uma ação, no meio do traço")
-	checar(r.desenhando(), "o caminho continua sendo desenhado")
+	checar(not r.desenhando(), "o gesto virou AÇÃO, não caminho")
 	var cmd := C.traduzir(evs[0], cfg["mapa"])
 	igual(cmd["acao"], "ataque", "risco para cima = ataque")
 	igual(cmd["setor"], "cima", "setor de cima")
-	igual(_nomes(r.soltar(p + Vector2(20, -40), 220)), ["trajetoria"], "o soltar ainda fecha a rota")
+	igual(_nomes(r.soltar(p + Vector2(20, -40), 220)), [], "soltar não fecha rota nenhuma")
 
 
 ## Um gesto dispara NO MÁXIMO uma ação (senão um desenho rápido vira metralhadora).
@@ -89,6 +90,23 @@ func test_desenho_lento_nao_dispara_acao() -> void:
 	igual(_nomes(r.soltar(p, 1600)), ["trajetoria"], "fecha a rota")
 
 
+## Um risco de ação NÃO desacelera o mundo (a tela não pisca a cada ataque);
+## um desenho lento desacelera já no começo.
+func test_risco_nao_desacelera_e_desenho_desacelera() -> void:
+	var r := _r()
+	r.iniciar(Vector2(200, 700), 0, CRIA)
+	r.mover(Vector2(200, 740), 25)   # 40 px em 25 ms: ainda pode ser risco
+	checar(r.desenhando(), "o traço é caminho provisório")
+	checar(not r.planejando(), "mas o mundo NÃO desacelera ainda")
+	igual(_nomes(r.mover(Vector2(200, 780), 50)), ["deslize"], "o risco dispara")
+	checar(not r.planejando(), "e o mundo não fica lento")
+	var d := _r()
+	d.iniciar(Vector2(100, 900), 0, CRIA)
+	d.mover(Vector2(120, 905), 100)  # 20 px em 100 ms: devagar
+	checar(d.desenhando(), "é desenho")
+	checar(d.planejando(), "desenho desacelera já")
+
+
 ## Curva rápida é desenho, não risco: o traço não é reto.
 func test_risco_curvo_nao_dispara() -> void:
 	var r := _r()
@@ -109,6 +127,7 @@ func test_baixo_parado_defende() -> void:
 	r.mover(Vector2(200, 800), 300)
 	igual(_nomes(r.tick(520)), ["segurar_inicio"], "defende")
 	checar(r.defendendo(), "está defendendo")
+	checar(not r.desenhando(), "defesa também não deixa caminho")
 	igual(_nomes(r.soltar(Vector2(200, 800), 900)), ["segurar_fim"], "soltou")
 
 

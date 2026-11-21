@@ -30,8 +30,9 @@
   aceleração devolve o ritmo.
 - **Gestos relativos à TELA** (v0.6): para cima = ataque físico; lados =
   especiais; para baixo = esquiva; para baixo e continuar parado = defesa;
-  toque duplo = pulo. Um **risco rápido** dispara a ação **no meio do
-  arrasto**, em paralelo ao caminho (v0.7). O detalhe fica em
+  toque duplo = pulo. Um **risco rápido** (v0.7.1) é uma AÇÃO: dispara no meio
+  do arrasto, cancela o traço que ele mesmo riscou e **não move** a criatura —
+  dá para atacar **durante** a caminhada. O detalhe fica em
   [`gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md).
 - **Afinidade como mecânica de controle:**
   - baixa: o comando é sugestão — a criatura hesita, reinterpreta ou desobedece

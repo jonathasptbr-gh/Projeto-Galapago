@@ -384,3 +384,26 @@ func test_traco_comeca_onde_ela_estava_na_descida() -> void:
 	checar(c.rota[1].distance_to(origem) < 1.0, "o 2º é o começo do traço (%s)" % [c.rota])
 	_rodar(c, m, 0.2)
 	checar(c.pos.x < 96.0, "voltou para o começo (x=%s)" % c.pos.x)
+
+
+## Cancelar o traço que virou AÇÃO: a rota anterior volta INTEIRA (com o
+## progresso) — é o que faz "ataque não ser passo" durante a caminhada.
+func test_voltar_rota_desfaz_o_traco_que_virou_acao() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(400, 48)])}, m, [])
+	_rodar(c, m, 0.3)
+	var guardado: Dictionary = c.guardar_rota()
+	var t0: float = c.rota_t
+	var fim: Vector2 = c.rota[c.rota.size() - 1]
+	# o dedo começa um traço ao vivo (para baixo) e ele vira AÇÃO: cancela
+	checar(c.tracar(PackedVector2Array([c.pos - c.desvio, c.pos - c.desvio + Vector2(0, 90)]), m, true).begins_with("ok"), "o traço entrou")
+	checar(c.rota[c.rota.size() - 1].y > 100.0, "a rota agora vai para baixo")
+	c.voltar_rota(guardado)
+	perto(c.rota_t, t0, 0.001, "o progresso voltou")
+	perto_v(c.rota[c.rota.size() - 1], fim, 0.001, "a rota anterior voltou inteira")
+	checar(c.em_rota(), "e ela continua em rota")
+	_rodar(c, m, 0.4)
+	checar(c.pos.x > 80.0, "segue andando na rota antiga (x=%s)" % c.pos.x)
+	checar(absf(c.pos.y - 48.0) < 20.0, "e não desceu pelo traço cancelado (y=%s)" % c.pos.y)

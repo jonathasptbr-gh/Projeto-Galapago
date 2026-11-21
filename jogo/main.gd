@@ -60,9 +60,13 @@ var _gesto_tela := Vector2.ZERO
 var _gesto_origem := Vector2.ZERO
 var _gesto_inv := Transform2D.IDENTITY
 var _traco_iniciado := false
+# a rota de ANTES do gesto: um risco de ação cancela o traço e a devolve
+var _rota_antes := {}
+var _cancelou := false
 # tempo lento do desenho e a rampa de aceleração da saída
 var _escala := 1.0
 var _retomada := 0.0
+var _veu_alfa := 0.0
 
 
 func _ready() -> void:
@@ -193,21 +197,23 @@ func _process(delta: float) -> void:
 	for cp in copas:
 		cp.atualizar(corpo.pos, delta, corpo.camada == Mundo.SUBSOLO)
 	# a rota (a mesma que o dedo desenhou) fica VISÍVEL durante os gestos de
-	# ação: ataque, esquiva e pulo acontecem POR CIMA dela.
+	# ação: ataque, esquiva e pulo acontecem POR CIMA dela, sem movê-la.
 	if corpo.em_rota():
 		trilha.mostrar(corpo.rota)
 	else:
 		trilha.mostrar(PackedVector2Array())
 	camera.position = criatura.ponto_visual()
 	hud.estado(corpo, alvos, planejando, _escala)
-	_escurecer(planejando, plano, retomada_s)
+	_escurecer(planejando, plano, retomada_s, delta)
 
 
 ## VÉU: escurece enquanto desenha e clareia junto com a rampa de aceleração.
-func _escurecer(planejando: bool, plano: Dictionary, retomada_s: float) -> void:
+## Suavizado para não piscar num gesto de ação que mal começou.
+func _escurecer(planejando: bool, plano: Dictionary, retomada_s: float, delta: float) -> void:
 	var forca := float(plano.get("escurecer", 0.22))
-	var v := 1.0 if planejando else 1.0 - _retomada / retomada_s
-	veu.color = Color(0, 0, 0, forca * clampf(v, 0.0, 1.0))
+	var alvo := 1.0 if planejando else 1.0 - _retomada / retomada_s
+	_veu_alfa = lerpf(_veu_alfa, clampf(alvo, 0.0, 1.0), clampf(delta * 9.0, 0.0, 1.0))
+	veu.color = Color(0, 0, 0, forca * _veu_alfa)
 
 
 func _evento(e: String) -> void:
@@ -249,6 +255,8 @@ func dedo_desceu(p: Vector2) -> void:
 	_gesto_origem = corpo.pos - corpo.desvio
 	_gesto_inv = get_viewport().get_canvas_transform().affine_inverse()
 	_traco_iniciado = false
+	_rota_antes = corpo.guardar_rota()
+	_cancelou = false
 	_entregar(reconhecedor.iniciar(p, tempo_ms, tela_de(criatura.ponto_visual() + Vector2(0, -20))))
 
 
@@ -263,6 +271,13 @@ func dedo_subiu(p: Vector2) -> void:
 
 func _entregar(evs: Array) -> void:
 	for ev in evs:
+		# AÇÃO de um risco (ataque, especial, esquiva) ou defesa: o gesto NÃO é
+		# caminho — o traço que o dedo chegou a riscar é cancelado e a rota
+		# anterior volta, então dá para atacar DURANTE a caminhada sem movê-la.
+		if ev["gesto"] in ["deslize", "segurar_inicio"]:
+			_cancelar_traco()
+			if ev["gesto"] == "deslize":
+				_retomada = 0.0  # ação não fica em câmera lenta
 		if ev["gesto"] == "trajetoria":
 			# O caminho já foi desenhado AO VIVO: aqui só se fecha a rota com o
 			# último trecho (nada de recomeçar do zero).
@@ -278,6 +293,16 @@ func _entregar(evs: Array) -> void:
 		var cmd := Comandos.traduzir(ev, cfg_gestos.get("mapa", {}))
 		var res := "não reconhecido" if cmd.is_empty() else str(corpo.comandar(cmd, mundo, alvos))
 		hud.gesto(ev, cmd, res)
+
+
+## Cancela o caminho riscado por este gesto: devolve a rota (e o progresso)
+## que existia antes do dedo descer. É o que faz "ataque não ser passo".
+func _cancelar_traco() -> void:
+	if _cancelou:
+		return
+	_cancelou = true
+	corpo.voltar_rota(_rota_antes)
+	_traco_iniciado = false
 
 
 ## O desenho do dedo em MUNDO, a partir da origem congelada e com o GANHO de
