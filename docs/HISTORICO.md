@@ -3,6 +3,46 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.11.2 — água e rocha contornadas quando a rota volta à terra (2026-11-21)
+
+- **Pedido do operador:** aplicar o **mesmo desvio dos troncos** a **pedras e
+  rios**. Se a linha entra 100 px na água e **logo continua na terra**, o
+  destino não é a água: contornar e seguir. Se a rota **termina** no bloqueio
+  (ou não há continuação próxima), **não tentar cruzar** — para na fronteira, e
+  só o **pulo** atravessa (a menos que bata na fronteira do mapa pulando).
+  Priorizar o destino quando há **continuação do caminho num raio x** perto do
+  animal.
+- **`sim/corpo.gd` — `_alvo_visivel`:** procura um trecho de **TERRENO**
+  (água/rocha) na **rota** (não na corda) até `olhar_px` + 24 px. Se achar e a
+  rota **voltar a uma célula andável** em até `contorno_alcance_px` 260 de arco
+  e `contorno_raio_px` 128 de distância do animal, mira a **continuação** e
+  devolve `contorno: true`. Sem continuação, `contorno: false` e o alvo é o de
+  sempre.
+- **`sim/corpo.gd` — `_passo_com_desvio(..., permitir_terreno)`:** o caso
+  "terreno" deixa de ser sempre parada: com `permitir_terreno`, entra no
+  **mesmo leque de desvios do tronco** (candidatos conferidos com
+  `limitar_segmento`, então **nunca entra na água/rocha**); sem ele, para.
+  O compromisso/histerese do contorno continua.
+- **`sim/corpo.gd` — teimosia limitada:** `_desvio_inicio_s` guarda o arco onde
+  o contorno começou; depois de `desvio_teimoso_apos` 36 passos sem a rota
+  andar `desvio_teimoso_px` 6 px, para na fronteira (antes podia ficar indo e
+  voltando no muro). Um pulo ou caminho novo reinicia.
+- **`dados/acoes.json`:** `contorno_alcance_px` 260, `contorno_raio_px` 128,
+  `desvio_teimoso_apos` 36, `desvio_teimoso_px` 6; `_leia` em v0.11.2.
+- **Testes (102, 0 falhas; parser 38 scripts, 0 erros):**
+  `test_rota_atravessa_agua_contornando_quando_ha_continuacao` (o antigo
+  `test_mover_respeita_o_mundo` virou este: a rota atravessa o lago e segue;
+  confere que ela **nunca entra na água**, 0 quadros),
+  `test_rota_que_termina_na_agua_para_na_fronteira`,
+  `test_rota_contorna_rocha_quando_ha_continuacao` e
+  `test_linha_que_entra_na_agua_e_sai_na_terra_e_contornada` (o vai-e-volta
+  dentro do lago). Os testes de pulo em canal de 1 linha continuam valendo
+  (não há volta; para e o pulo atravessa).
+- **Verificação:** `tools/testes.sh` verde (102 testes, 0 falhas; parser 38
+  scripts); **oráculo de quadros** com **45 quadros** 720×1280, os PNG abertos
+  (a cena/demo não tem lago no roteiro, então o contorno é medido pela sonda
+  headless/testes: posição, tempo e **0 invasão de água**).
+
 ## v0.11.1 — estrada que anda o laço, contorna a barreira e freia depois do fim (2026-11-21)
 
 - **Pedido do operador:** (1) não travar perto de **pedra/beira de mar** quando

@@ -31,6 +31,14 @@ extends RefCounted
 ##   só freia DEPOIS de chegar, num pedaço curto fora do caminho (maior quando
 ##   está no SPRINT manual). A zona de freio antes do fim não existe mais.
 ##
+## v0.11.2 — ÁGUA/ROCHA deixaram de ser parada automática: se a ROTA entra no
+## bloqueio e VOLTA a uma célula andável dentro de `contorno_alcance_px`
+## (arco) e `contorno_raio_px` (distância do animal), a criatura mira a
+## continuação e contorna com o MESMO leque do tronco (nunca entra na água).
+## Se a rota termina no bloqueio ou não há continuação no raio, para na
+## fronteira (o PULO atravessa). Depois de `desvio_teimoso_apos` passos de
+## contorno sem a rota andar, desiste e para — não fica indo e voltando.
+##
 ## v0.9 — O ATAQUE NASCE DO DESENHO (`sim/formas.gd`), não de um gesto de dois
 ## dedos; v0.9.1 afinou as três pontas:
 ##
@@ -72,6 +80,9 @@ const Trajetoria := preload("res://sim/trajetoria.gd")
 const Alvos := preload("res://sim/alvos.gd")
 const Formas := preload("res://sim/formas.gd")
 
+## Passo da varredura de TERRENO na rota (v0.11.2).
+const PASSO_TERRENO := 4.0
+
 # --- estado ---
 var defs: Dictionary = {}
 var rota_cfg: Dictionary = {}
@@ -90,6 +101,7 @@ var _barrado := false
 var _desvios := 0
 var _desvio_lado := 0.0            # lado do desvio em curso (histerese no tronco)
 var _desvio_ref := 0.0             # arco do último desvio (só encerra depois de folga)
+var _desvio_inicio_s := 0.0        # arco onde o contorno começou (teto de teimosia)
 
 # overlays
 var _pulo_t := 0.0
@@ -336,6 +348,7 @@ func _guardar_rota(nova: PackedVector2Array, reiniciar: bool) -> void:
 		_desvios = 0
 		_desvio_lado = 0.0
 		_desvio_ref = 0.0
+		_desvio_inicio_s = 0.0
 		_sprint = false
 		marcas = []
 		_disparadas = {}
@@ -847,6 +860,7 @@ func _avancar_rota(dt: float, mundo: RefCounted, alvos: Array) -> Vector2:
 	# ALVO: o ponto MAIS LONGE da estrada que a linha reta alcança andando.
 	# Sem isso, a criatura corta a corda de uma curva e bate na pedra/beira.
 	var alvo := _alvo_visivel(base, mundo)
+	var contorno := bool(alvo.get("contorno", false))
 	var s_alvo := float(alvo["s"])
 	var centro := _ponto_em_rota(s_alvo)
 	var tang := _tangente_em_rota(s_alvo)
@@ -872,7 +886,7 @@ func _avancar_rota(dt: float, mundo: RefCounted, alvos: Array) -> Vector2:
 	if para.length() < 0.01:
 		para = tang
 	var dir := para.normalized()
-	var novo := _passo_com_desvio(base, dir, passo, destino, mundo)
+	var novo := _passo_com_desvio(base, dir, passo, destino, mundo, contorno)
 	if novo.distance_to(base) < 0.001:
 		_barrado = true
 		return base
@@ -930,6 +944,37 @@ func _alvo_visivel(base: Vector2, mundo: RefCounted) -> Dictionary:
 			and mundo.bloqueio(mundo.celula_de(_ponto_em_rota(s_nom)), camada) == "objeto":
 		s_nom = minf(s_nom + 6.0, total_rota)
 		pulo += 6.0
+	# CONTORNO DE TERRENO (v0.11.2): a ROTA (não a corda) entra em água/rocha
+	# perto do horizonte e logo VOLTA a uma célula andável dentro de um raio do
+	# animal? Então o destino não é a água — é a continuação do desenho. Mira a
+	# continuação e libera o MESMO leque do tronco para contornar. Se a rota
+	# termina dentro do bloqueio (ou a continuação está longe demais), não há
+	# contorno: para na fronteira e só o PULO atravessa.
+	var contorno := false
+	var s_terra := -1.0
+	var contorno_alcance := maxf(float(rota_cfg.get("contorno_alcance_px", 260.0)), 8.0)
+	var contorno_raio := maxf(float(rota_cfg.get("contorno_raio_px", 128.0)), 8.0)
+	var horizonte := minf(rota_t + olhar_px + 24.0, total_rota)
+	var s_t := minf(rota_t + 2.0, total_rota)
+	var achou_terreno := false
+	while s_t <= horizonte:
+		if mundo.bloqueio(mundo.celula_de(_ponto_em_rota(s_t)), camada) == "terreno":
+			achou_terreno = true
+			break
+		s_t += PASSO_TERRENO
+	if achou_terreno:
+		var fim_t := minf(rota_t + contorno_alcance, total_rota)
+		var s_v := s_t + PASSO_TERRENO
+		while s_v <= fim_t:
+			var p_t := _ponto_em_rota(s_v)
+			if mundo.bloqueio(mundo.celula_de(p_t), camada) == "" \
+					and p_t.distance_to(base) <= contorno_raio:
+				s_terra = s_v
+				contorno = true
+				break
+			s_v += PASSO_TERRENO
+	if contorno:
+		s_nom = s_terra
 	var tang_agora := _tangente_em_rota(rota_t)
 	if tang_agora.length() < 0.01:
 		tang_agora = olhar if olhar.length() > 0.01 else Vector2.RIGHT
@@ -952,9 +997,11 @@ func _alvo_visivel(base: Vector2, mundo: RefCounted) -> Dictionary:
 		melhor = s_nom  # não há visão: tenta o nominal; o desvio/barreira decide
 	# durante o desvio de um tronco, mantém o alvo ALÉM dele: trocar entre o
 	# ponto visível de cá e o de lá fazia o lado do desvio piscar a cada quadro.
-	if _desvios > 0 and s_nom > melhor:
+	if contorno:
+		melhor = s_nom  # mira a CONTINUAÇÃO, mesmo que a corda cruze a água
+	elif _desvios > 0 and s_nom > melhor:
 		melhor = s_nom
-	return {"s": melhor, "beyond": melhor > s_nom + 1.0}
+	return {"s": melhor, "beyond": melhor > s_nom + 1.0, "contorno": contorno}
 
 
 ## Índice do segmento que contém o arco `s`.
@@ -1008,7 +1055,8 @@ func _desvio_organico(s: float) -> float:
 ## pular por cima da barreira e seguir a rota. No chão, OBJETO (tronco) pode
 ## ser contornado com um pequeno desvio angular; TERRENO (água, rocha, altura)
 ## para a criatura.
-func _passo_com_desvio(base: Vector2, dir: Vector2, passo: float, alvo: Vector2, mundo: RefCounted) -> Vector2:
+func _passo_com_desvio(base: Vector2, dir: Vector2, passo: float, alvo: Vector2,
+		mundo: RefCounted, permitir_terreno := false) -> Vector2:
 	var ideal := base + dir * passo
 	if no_ar():
 		if mundo.dentro(mundo.celula_de(ideal)):
@@ -1031,11 +1079,15 @@ func _passo_com_desvio(base: Vector2, dir: Vector2, passo: float, alvo: Vector2,
 			_desvios = 0
 			_desvio_lado = 0.0
 			_desvio_ref = 0.0
+			_desvio_inicio_s = 0.0
 		return fim
 	var bloq: Dictionary = _primeiro_bloqueio(base, ideal, mundo)
-	if bloq.is_empty() or str(bloq.get("tipo", "")) != "objeto":
-		return base
-	return _desvio_leque(base, dir, passo, alvo, mundo)
+	var tipo := str(bloq.get("tipo", ""))
+	# no meio de um contorno ele CONTINUA mesmo que a leitura do alvo já não
+	# veja o lago à frente (a projeção passou dele): senão pararia no meio.
+	if tipo == "objeto" or (tipo == "terreno" and (permitir_terreno or _desvios > 0)):
+		return _desvio_leque(base, dir, passo, alvo, mundo)
+	return base
 
 
 ## O LEQUE de desvios de objeto (v0.6/v0.11.1): mantém o LADO escolhido
@@ -1044,6 +1096,12 @@ func _passo_com_desvio(base: Vector2, dir: Vector2, passo: float, alvo: Vector2,
 ## contorno ainda está comprometido).
 func _desvio_leque(base: Vector2, dir: Vector2, passo: float, alvo: Vector2, mundo: RefCounted) -> Vector2:
 	if _desvios >= int(rota_cfg.get("desvios_max", 80)):
+		return base
+	# TEIMOSIA (v0.11.2): se o contorno rodeia sem a rota andar (muro de água/
+	# rocha sem volta), PARA na fronteira em vez de ficar indo e voltando. Um
+	# pulo atravessa; um caminho novo reinicia.
+	if _desvios >= int(rota_cfg.get("desvio_teimoso_apos", 36)) \
+			and rota_t - _desvio_inicio_s < float(rota_cfg.get("desvio_teimoso_px", 6.0)):
 		return base
 	var angulos: Array = rota_cfg.get("desvio_angulos", [20.0, -20.0, 40.0, -40.0, 60.0, -60.0, 80.0, -80.0, 100.0, -100.0, 120.0, -120.0])
 	var tentativas: Array = [angulos]
@@ -1072,6 +1130,8 @@ func _desvio_leque(base: Vector2, dir: Vector2, passo: float, alvo: Vector2, mun
 			break
 	if melhor == base:
 		return base
+	if _desvios == 0:
+		_desvio_inicio_s = rota_t
 	_desvio_lado = signf(escolhido)
 	_desvio_ref = rota_t
 	_desvios += 1
@@ -1144,6 +1204,7 @@ func _terminar_rota(alvos: Array) -> Vector2:
 	_desvios = 0
 	_desvio_lado = 0.0
 	_desvio_ref = 0.0
+	_desvio_inicio_s = 0.0
 	_sprint = false
 	marcas = []
 	_auto_destino = fim
@@ -1372,6 +1433,7 @@ func _atualizar_escavar(dt: float, mundo: RefCounted) -> void:
 		_desvios = 0
 		_desvio_lado = 0.0
 		_desvio_ref = 0.0
+		_desvio_inicio_s = 0.0
 		marcas = []
 		mira_final_id = ""
 		_perseguindo = false

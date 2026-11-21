@@ -206,3 +206,9 @@
   área; a **frenagem virou INÉRCIA DEPOIS do fim** (16 px, ×1,6 no sprint) —
   o animal chega na velocidade normal; e o **TIRO ficou HÍBRIDO** — sem marca,
   na **direção do toque** (sem auto-mira); com marca, automirado no alvo.
+- **Ajustes (v0.11.2):** **água e rocha** ganharam o **mesmo desvio dos
+  troncos** quando a rota **volta à terra** perto do animal (`contorno_*`): a
+  linha pode entrar 100 px no lago e continuar na terra — o destino não é a
+  água, ela contorna. Se a rota **termina** no bloqueio, para na fronteira e o
+  **pulo** atravessa; o contorno desiste depois de 36 passos sem progresso
+  (`desvio_teimoso_*`), em vez de ficar indo e voltando no muro.

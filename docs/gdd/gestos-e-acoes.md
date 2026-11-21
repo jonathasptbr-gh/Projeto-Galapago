@@ -1,7 +1,7 @@
 # Gestos e ações — como a criatura se move e age
 
 > Regra toda em `sim/` (testada) e nas tabelas `dados/gestos.json` +
-> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.11.1.**
+> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.11.2.**
 
 ## O fluxo
 
@@ -53,7 +53,7 @@ Defesa também saiu (não há gesto para ela).
    fica marcado (e a marca **anda com ele**, ligada a este caminho).
 5. **Sensibilidade**: `desenho.ganho` (1,6) multiplica o traço.
 
-### Estrada, caminho orgânico e inércia (v0.9.1+ / v0.11.1)
+### Estrada, caminho orgânico e inércia (v0.9.1+ / v0.11.2)
 
 A linha desenhada é o **eixo de uma ESTRADA**, não a risca que a criatura pisa:
 
@@ -79,6 +79,27 @@ A linha desenhada é o **eixo de uma ESTRADA**, não a risca que a criatura pisa
 Um tronco no caminho: o alvo à frente **pula** o ponto que cai dentro dele e a
 criatura contorna com o leque de desvios; o **lado** é mantido (histerese), mas
 se aquele lado não passar ela **tenta o outro** — nunca fica presa na beirada.
+
+### Água e rocha também são contornadas (v0.11.2)
+
+A mesma regra do tronco vale para **terreno** (água, rocha) **quando a rota
+volta à terra**:
+
+- se a rota entra na água/rocha **perto do horizonte** (`olhar_px` + 24 px) e
+  encontra uma célula andável **de volta**, a criatura entende que o destino
+  não é a água: **mira a continuação** e usa o **mesmo leque de desvios** para
+  contornar. O lago/rocha é desviado, não atravessado;
+- a continuação precisa estar a **`contorno_raio_px` = 128 px** do animal (raio
+  x próximo, ~4 células) e a **`contorno_alcance_px` = 260 px** de arco — um
+  rio largo demais ou um trecho de água sem volta fica de fora;
+- **se a rota termina dentro da água/rocha**, não há continuação em terra:
+  para na fronteira, como antes. O **PULO** é o que atravessa (e enquanto está
+  no ar a checagem do chão é ignorada, como já era);
+- **teimosia limitada:** um contorno que roda `desvio_teimoso_apos` = 36
+  passos sem a rota andar 6 px para na fronteira em vez de ficar indo e
+  voltando no muro. Um caminho novo ou um pulo reinicia.
+- **altura (planalto/rampa)** continua sendo barreira de altura (`pode_andar`
+  não é `terreno`): a criatura para e espera; não entra no contorno de água.
 
 ### Amontoados e laços minúsculos (v0.11.1)
 
@@ -131,11 +152,12 @@ anulavam e a criatura nunca chegava a fazer o espinho).
 
 A criatura procura a rota **em ordem**, mirando o ponto mais longe que a visão
 alcança. Em **objetos** (troncos) ela contorna com um leque de pequenos desvios
-(com o lado mantido; se não passar, troca de lado); **terreno** (água, rocha,
-altura) é barreira de verdade: para e espera, mas a rota **não é apagada** — um
-pulo passa por cima e retoma. O que mudou na v0.11.1 é que a criatura **não
-corta mais a curva** da rota: se a linha passa perto da água e faz a volta, ela
-segue a linha, não a corda.
+(com o lado mantido; se não passar, troca de lado); **terreno** (água/rocha)
+também é contornado **quando a rota volta à terra perto** (v0.11.2); se a rota
+termina no bloqueio — ou a continuação está longe/fora do raio — é barreira de
+verdade: para e espera, e a rota **não é apagada** (um pulo passa por cima e
+retoma). A criatura **não corta a curva** da rota: se a linha passa perto da
+água e faz a volta, ela segue a linha, não a corda.
 
 ### A LINHA do caminho (v0.9.2)
 
@@ -197,7 +219,7 @@ O **toque simples** atira **sempre**, de duas formas:
   leva a batida, porque não se move).
 - **Alvo final / perseguição:** com alvo marcado, no fim do caminho o animal
   **vai atrás dele** (perseguição final, `embalo.perseguir_s` 3 s de teto, sem
-  a zona de freio) e só dá o **golpe físico** quando chega perto
+  freio antes do fim) e só dá o **golpe físico** quando chega perto
   (`ataque.alcance` + raio + 10 px). Se o alvo estiver inalcançável/tempo
   esgotar, a marca se perde (`mira_final:perde`). A marca **sai no golpe**.
   (v0.10 tirou a "automira perdida se ele andar > 48 px": o animal persegue.)
@@ -254,7 +276,7 @@ depois **ronda** ao redor. Cada passo é cortado pelo mundo.
 | `formas` | limiares do laço (tabela abaixo) |
 | `sprint` | aceleração do segurar no caminho (tabela abaixo) |
 | `combate` | onda/tiro/batida/alvo final (tabela abaixo) |
-| `rota` | `simplificar_px` 10 · `desconto_raio_px` 44 · `desconto_janela_px` 140 · `amontoado_raio_px` 24 · `amontoado_janela_px` 100 · `chegada_px` 12 · `desvio_angulos` · `desvios_max` 80 · **estrada/inércia** abaixo |
+| `rota` | `simplificar_px` 10 · `desconto_raio_px` 44 · `desconto_janela_px` 140 · `amontoado_raio_px` 24 · `amontoado_janela_px` 100 · `contorno_alcance_px` 260 · `contorno_raio_px` 128 · `desvio_teimoso_*` 36/6 · **estrada/inércia** abaixo |
 
 ### `embalo` — a aceleração dos golpes físicos (v0.9.2)
 
@@ -271,7 +293,7 @@ desacelerando depois da batida; a marcação dá um puxão curto na direção do
 final. O cooldown de 1 s segura a marca do especial (ela fica **pendente** e
 acende quando a recarga termina).
 
-### `rota` — estrada, visão e inércia (v0.9.1+ / v0.11.1)
+### `rota` — estrada, visão, contorno e inércia (v0.9.1+ / v0.11.2)
 
 | chave | valor | o quê |
 |---|---|---|
@@ -279,6 +301,8 @@ acende quando a recarga termina).
 | `alvo_pulo_objeto_px` | 56 | quanto o alvo nominal pode pular um tronco para o desvio trabalhar |
 | `projecao_peso` | 0,25 | peso do desvio de ARCO na projeção (continuidade no laço/bico) |
 | `amontoado_raio_px` / `amontoado_janela_px` | 24 / 100 | zona do amontoado e arco máximo do corte |
+| `contorno_alcance_px` / `contorno_raio_px` | 260 / 128 | arco máximo e raio do contorno de **água/rocha** até a terra |
+| `desvio_teimoso_apos` / `desvio_teimoso_px` | 36 / 6 | passos de contorno sem progresso antes de parar na fronteira |
 | `estrada_largura_px` | 30 | largura da estrada (±15 px) |
 | `estrada_desvio_px` | 9 | amplitude do desvio orgânico lateral |
 | `estrada_onda_px` / `estrada_onda2_px` | 120 / 47 | os dois períodos da onda do desvio |

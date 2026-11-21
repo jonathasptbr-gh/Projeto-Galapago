@@ -180,13 +180,74 @@ func test_autonomia_nao_sai_do_mundo() -> void:
 
 # ---------------------------------------------------------------- mundo
 
-func test_mover_respeita_o_mundo() -> void:
+## v0.11.2: a ROTA entra na água mas VOLTA à terra perto do animal — o destino
+## não é a água. A criatura contorna o lago (mesmo desvio do tronco) e segue.
+func test_rota_atravessa_agua_contornando_quando_ha_continuacao() -> void:
 	var s := _setup(AGUA)
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
-	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(300, 48)])}, m, [])
+	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(300, 48)])}, m, []).begins_with("ok"), "rota")
+	var t := 0.0
+	var invadiu := 0
+	while c.em_rota() and t < 12.0:
+		c.passo(1.0 / 30.0, m, [])
+		c.drenar_eventos()
+		if m.bloqueio(m.celula_de(c.pos), M.SUPERFICIE) == "terreno":
+			invadiu += 1
+		t += 1.0 / 30.0
+	checar(not c.em_rota(), "atravessou/contornou a água em %.1f s" % t)
+	checar(not c.barrado(), "não ficou parada na fronteira")
+	checar(invadiu == 0, "nunca tentou ENTRAR na água (%d quadros)" % invadiu)
+	checar(c.pos.x > 250.0, "chegou ao fim depois da água (x=%.0f)" % c.pos.x)
+
+
+## Se a rota TERMINA dentro da água, não há continuação em terra: para na
+## fronteira. (O pulo é o que atravessa, como antes.)
+func test_rota_que_termina_na_agua_para_na_fronteira() -> void:
+	var s := _setup(AGUA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(96, 48)])}, m, [])
 	_rodar(c, m, 3.0)
-	checar(c.pos.x < 96.0, "parou antes da água (x=%s)" % c.pos.x)
+	checar(c.barrado(), "parou na fronteira")
+	checar(c.pos.x < 96.0, "não entrou na água (x=%s)" % c.pos.x)
+
+
+## ROCHA é o mesmo TERRENO: com uma continuação em terra perto, contorna.
+func test_rota_contorna_rocha_quando_ha_continuacao() -> void:
+	var s := _setup([",,,,,,,,,,,,", ",,##,,,,,,,,", ",,,,,,,,,,,,"])
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(300, 48)])}, m, [])
+	var t := 0.0
+	while c.em_rota() and t < 12.0:
+		c.passo(1.0 / 30.0, m, [])
+		c.drenar_eventos()
+		t += 1.0 / 30.0
+	checar(not c.em_rota(), "contornou a rocha em %.1f s" % t)
+	checar(not c.barrado(), "não ficou parada na pedra")
+	checar(c.pos.x > 250.0, "seguiu depois da rocha (x=%.0f)" % c.pos.x)
+
+
+## A linha ENTRA na água, sai na terra e continua: o vai-e-volta dentro do
+## lago não é o destino; a criatura contorna e segue pelo trecho de terra.
+func test_linha_que_entra_na_agua_e_sai_na_terra_e_contornada() -> void:
+	var celulas := [
+		",,,,,,,,", ",,,~~,,,", ",,,~~,,,", ",,,,,,,,", ",,,,,,,,", ",,,,,,,,",
+	]
+	var s := _setup(celulas)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([
+		Vector2(112, 48), Vector2(112, 140), Vector2(240, 140)])}, m, [])
+	var t := 0.0
+	while c.em_rota() and t < 12.0:
+		c.passo(1.0 / 30.0, m, [])
+		c.drenar_eventos()
+		t += 1.0 / 30.0
+	checar(not c.em_rota(), "saiu do vai-e-volta na água em %.1f s" % t)
+	checar(not c.barrado(), "não ficou presa no muro")
+	checar(c.pos.x > 200.0, "seguiu pela terra depois da água (x=%.0f)" % c.pos.x)
 
 
 func test_escavar_desce_anda_no_tunel_e_sobe() -> void:
