@@ -29,6 +29,7 @@ em código: mudar o design não exige mexer na lógica.
 
 ```
 toque → gesto de TELA + caminho AO VIVO (sim/gestos)
+      → FORMA do desenho (sim/formas: laço → onda em área; bico → tiro)
       → pontos de referência (sim/trajetoria: desconto inicial + Douglas-Peucker)
       → INTENÇÃO
       → decisão da criatura (sim/afinidade: afinidade × temperamento × humor)

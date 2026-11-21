@@ -3,16 +3,18 @@ extends Node
 ## comandos — e os entrega pelo MESMO caminho de um toque de verdade
 ## (main.dedo_* → sim/gestos → sim/comandos → sim/corpo).
 ##
-## Roteiro da v0.8 (MULTITOUCH):
-## 1. caminho com UM dedo: a criatura anda AO VIVO atrás do traço, a tela
-##    escurece e o mundo desacelera enquanto o dedo desenha;
-## 2. ataque = DOIS dedos: o dedo extra desliza para cima e a criatura NÃO anda;
-## 3. especial = DOIS dedos abrindo para fora;
-## 4. defesa = DOIS dedos: o extra desliza para baixo e fica (sustentada);
-## 5. toque duplo = pulo; toque na árvore trava a mira; ataque vai no alvo;
-## 6. ataque DURANTE o desenho: o segundo dedo sobe enquanto o primeiro desenha.
+## Roteiro da v0.9 — o ataque nasce da FORMA do desenho:
+## 1. caminho com LAÇO: a criatura anda atrás do traço e, ao passar pelo nó, a
+##    ONDA em área cresce do centro do laço;
+## 2. caminho com BICO (ida e volta brusca): dispara o TIRO na direção do bico;
+## 3. caminho até a AREIA e SEGURAR parado: habilidade (cavar) — e de novo para
+##    subir;
+## 4. toque duplo = pulo;
+## 5. caminho por CIMA do adversário: travessia → BATIDA/empurrão;
+## 6. caminho que TERMINA EM CIMA dele: alvo final e GOLPE físico na chegada.
 ##
 ## O tempo é o `main.tempo_ms` (real); o tempo lento muda o MUNDO, não o roteiro.
+## Os caminhos são em px de MUNDO, relativos à criatura no instante da descida.
 
 var main: Node
 var _passos: Array = []
@@ -22,16 +24,14 @@ var _curso: Array = []
 func _init(m: Node) -> void:
 	main = m
 	_passos = [
-		{"t": 0.4, "tipo": "caminho", "ate": [[10, 13], [14, 13]], "dur": 1.2},
-		{"t": 2.2, "tipo": "ataque"},
-		{"t": 3.4, "tipo": "especial"},
-		{"t": 4.6, "tipo": "defesa"},
-		{"t": 6.4, "tipo": "toque_duplo"},                       # pulo
-		{"t": 7.4, "tipo": "toque", "celula": [15, 13]},         # trava mira na árvore
-		{"t": 8.2, "tipo": "ataque"},                           # ataque na direção do alvo
-		{"t": 9.4, "tipo": "caminho", "ate": [[12, 10], [14, 10]], "dur": 1.8},
-		{"t": 10.0, "tipo": "ataque_extra"},                    # ataque DURANTE o desenho
-		{"t": 11.8, "tipo": "toque", "celula": [16, 9]},         # trava no adversário
+		{"t": 0.5, "tipo": "caminho", "rel": [[0, 0], [70, 0], [70, -50], [20, -50], [20, 15]], "dur": 1.4},
+		{"t": 4.4, "tipo": "caminho", "rel": [[0, 0], [80, 0], [20, 0]], "dur": 0.7},
+		{"t": 5.8, "tipo": "caminho", "cel": [2, 12], "dur": 0.8},
+		{"t": 8.2, "tipo": "segurar"},
+		{"t": 10.0, "tipo": "segurar"},
+		{"t": 11.6, "tipo": "toque_duplo"},
+		{"t": 12.6, "tipo": "perto", "passa": true, "dur": 2.0},
+		{"t": 15.6, "tipo": "perto", "fim": true, "dur": 0.7},
 	]
 
 
@@ -58,54 +58,58 @@ func _process(_delta: float) -> void:
 func _disparar(p: Dictionary, agora: float) -> void:
 	print("demo: %.1f s · %s" % [agora, p["tipo"]])
 	var tela: Vector2 = main.get_viewport_rect().size
-	var centro := Vector2(tela.x * 0.5, tela.y * 0.72)
 	match p["tipo"]:
 		"caminho":
-			var ancora := Vector2(tela.x * 0.18, tela.y * 0.80)
-			var cria: Vector2 = main.tela_de(main.corpo.pos)
-			# o GANHO de sensibilidade amplia o traço: para o roteiro cobrir as
-			# mesmas células, o dedo anda a menos (divide pelo ganho)
-			var ganho := maxf(float(main.cfg_gestos.get("desenho", {}).get("ganho", 1.0)), 0.01)
-			var pts := PackedVector2Array([ancora])
-			for c in p["ate"]:
-				var alvo: Vector2 = main.tela_de(main.mundo.centro(Vector2i(c[0], c[1])))
-				pts.append(ancora + (alvo - cria) / ganho)
 			_curso.append({"t0": agora, "t1": agora + float(p.get("dur", 1.2)), "hold": 0.0,
-				"trilhas": [{"dedo": 0, "pts": pts}], "desceu": {}})
-		"ataque":
-			# dois dedos: o primeiro fica parado, o EXTRA sobe
-			_curso.append({"t0": agora, "t1": agora + 0.18, "hold": 0.0, "desceu": {}, "trilhas": [
-				{"dedo": 0, "pts": PackedVector2Array([centro])},
-				{"dedo": 1, "pts": PackedVector2Array([centro + Vector2(0, 120), centro + Vector2(0, 10)])},
-			]})
-		"ataque_extra":
-			# só o dedo EXTRA: o primeiro já está desenhando o caminho
-			_curso.append({"t0": agora, "t1": agora + 0.18, "hold": 0.0, "desceu": {}, "trilhas": [
-				{"dedo": 1, "pts": PackedVector2Array([centro + Vector2(0, 120), centro + Vector2(0, 10)])},
-			]})
-		"especial":
-			# dois dedos abrindo para fora (o extra afasta-se do primeiro)
-			_curso.append({"t0": agora, "t1": agora + 0.30, "hold": 0.0, "desceu": {}, "trilhas": [
-				{"dedo": 0, "pts": PackedVector2Array([centro])},
-				{"dedo": 1, "pts": PackedVector2Array([centro + Vector2(0, 90), centro + Vector2(90, 160)])},
-			]})
-		"defesa":
-			# dois dedos: o extra desliza para baixo e FICA (sustentada)
-			_curso.append({"t0": agora, "t1": agora + 0.30, "hold": 1.2, "desceu": {}, "trilhas": [
-				{"dedo": 0, "pts": PackedVector2Array([centro + Vector2(0, -60)])},
-				{"dedo": 1, "pts": PackedVector2Array([centro + Vector2(0, -180), centro + Vector2(0, -80)])},
-			]})
+				"trilhas": [{"dedo": 0, "pts": _pontos(p)}], "desceu": {}})
+		"segurar":
+			# parado SEM arrastar: o gesto vira a habilidade em si mesmo
+			var alvo := Vector2(tela.x * 0.5, tela.y * 0.9)
+			_curso.append({"t0": agora, "t1": agora + 0.05, "hold": 0.5, "desceu": {},
+				"trilhas": [{"dedo": 0, "pts": PackedVector2Array([alvo])}]})
 		"toque_duplo":
 			var alvo := Vector2(tela.x * 0.5, tela.y * 0.86)
-			_curso.append({"t0": agora, "t1": agora + 0.10, "hold": 0.0, "desceu": {},
+			_curso.append({"t0": agora, "t1": agora + 0.08, "hold": 0.0, "desceu": {},
 				"trilhas": [{"dedo": 0, "pts": PackedVector2Array([alvo, alvo])}]})
-			_curso.append({"t0": agora + 0.26, "t1": agora + 0.36, "hold": 0.0, "desceu": {},
+			_curso.append({"t0": agora + 0.25, "t1": agora + 0.33, "hold": 0.0, "desceu": {},
 				"trilhas": [{"dedo": 0, "pts": PackedVector2Array([alvo, alvo])}]})
-		"toque":
-			var c: Array = p["celula"]
-			var ponto: Vector2 = main.tela_de(main.mundo.centro(Vector2i(c[0], c[1])))
-			_curso.append({"t0": agora, "t1": agora + 0.10, "hold": 0.0, "desceu": {},
-				"trilhas": [{"dedo": 0, "pts": PackedVector2Array([ponto, ponto])}]})
+		"perto":
+			# em cima do ADVERSÁRIO: passa por cima (batida) ou termina nele (golpe final)
+			var adv := Vector2(main.adversarios[0].pos)
+			var cria := Vector2(main.corpo.pos)
+			var dir := (adv - cria)
+			if dir.length() < 1.0:
+				dir = Vector2.RIGHT
+			dir = dir.normalized()
+			var rel: Array = [[0, 0]]
+			if p.get("passa", false):
+				rel.append([(adv - cria - dir * 12.0).x, (adv - cria - dir * 12.0).y])
+				rel.append([(adv - cria + dir * 34.0).x, (adv - cria + dir * 34.0).y])
+			else:
+				rel.append([(adv - cria).x, (adv - cria).y])
+			_curso.append({"t0": agora, "t1": agora + float(p.get("dur", 1.0)), "hold": 0.0,
+				"trilhas": [{"dedo": 0, "pts": _pontos({"rel": rel})}], "desceu": {}})
+
+
+## Pontos de TELA do desenho: o traço é em MUNDO, a partir da criatura AGORA.
+## Se `cel` existe, o último ponto é o centro daquela célula.
+func _pontos(p: Dictionary) -> PackedVector2Array:
+	var cria_w: Vector2 = main.corpo.pos
+	var cria_t: Vector2 = main.tela_de(cria_w)
+	var zoom: float = main.camera.zoom.x
+	var ganho := maxf(float(main.cfg_gestos.get("desenho", {}).get("ganho", 1.0)), 0.01)
+	var rel: Array = []
+	if p.has("cel"):
+		var c: Array = p["cel"]
+		var alvo: Vector2 = main.mundo.centro(Vector2i(c[0], c[1]))
+		rel.append([0.0, 0.0])
+		rel.append([alvo.x - cria_w.x, alvo.y - cria_w.y])
+	else:
+		rel = p.get("rel", [])
+	var pts := PackedVector2Array()
+	for r in rel:
+		pts.append(cria_t + Vector2(r[0], r[1]) * zoom / ganho)
+	return pts
 
 
 func _em(pts: PackedVector2Array, u: float) -> Vector2:

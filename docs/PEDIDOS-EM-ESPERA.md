@@ -19,7 +19,8 @@
 | P11 | Movimento por rota + overlays, alvos/mira, adversário e autonomia | P3 | **feito (v0.5.0)** |
 | P12 | Retrato + gestos de tela + caminho por âncora (tempo lento, desconto, desvio de objetos) | P11 | **feito (v0.6.0)** |
 | P13 | Caminho ao vivo (sem espera) + ações em paralelo + véu/rampa + sensibilidade | P12 | **feito (v0.7.0/0.7.1)** |
-| P14 | Gestos de AÇÃO com dois dedos (ataque ↑, defesa ↓, especial abrindo) | P13 | **feito (v0.8.0)** |
+| P14 | Gestos de AÇÃO com dois dedos (ataque ↑, defesa ↓, especial abrindo) | P13 | **feito (v0.8.0)** — **substituído no P15** |
+| P15 | Ataque pela FORMA do desenho: laço (área), bico (tiro), travessia, alvo final, segurar = habilidade | P14 | **feito (v0.9.0)** |
 
 ---
 
@@ -151,3 +152,29 @@
   `jogo/demo.gd` (trilhas por dedo), `jogo/hud.gd`, `dados/gestos.json`.
   **Pendente de design:** a `esquiva` ficou sem gesto (o "para baixo" virou
   defesa) e o espalhamento vertical é lido como ataque/defesa.
+
+## P15 — O ataque nasce do DESENHO (v0.9)
+
+- **Operador (2026-11-21):** (1) **laço** fechando/cruzando o caminho =
+  **ataque em área** com centro no centro estimado do laço, ativado no **nó**
+  (onde o laço fecha na primeira linha) quando o animal passa por ele — só um
+  círculo em expansão, sem depender de ir ao centro; (2) **bico** (ida e volta
+  brusca) durante o caminho = **tiro** na direção do bico, saindo do ponto do
+  caminho ANTES dele (bico a partir da posição inicial dispara sem se mover);
+  (3) **segurar parado** sem desenhar = **habilidade em si mesmo** com duração
+  (efeito de teste: **cavar**, decidido na conversa); (4) dois toques pulam,
+  parados ou em caminho, sem interromper a rota; (5) **cruzar a linha sobre**
+  adversário/alvo = **batida ou empurrão**; (6) **terminar o caminho em cima**
+  do adversário = alvo final de um **golpe físico**, com a marca **no inimigo**
+  (perde-se se ele andar demais); (7) **esquiva é o próprio caminhar** (tempo
+  lento do desenho), sem efeito especial.
+- **Decisões do operador:** **nenhum gesto de dois dedos** (saem ataque ↑,
+  defesa ↓, especial abrindo); golpe no adversário = **empurrão + piscada, sem
+  vida**; a habilidade de teste é **cavar**, ativável **em qualquer lugar**.
+- **Feito em v0.9.0:** `sim/formas.gd` (laço/bico), `sim/trajetoria.gd`
+  (distância ao segmento preserva a ponta do bico), `sim/gestos.gd` (um dedo),
+  `sim/comandos.gd` (tabela nova), `sim/corpo.gd` (marcas, onda, tiro, batida,
+  alvo final, habilidade; sem esquiva/defesa/desvio), `sim/adversario.gd`
+  (empurrão + piscada), `sim/alvos.gd` (`empurrar`/`reage`), `jogo/` (efeitos,
+  mira do alvo final, HUD, demo), `dados/*.json`. Detalhe em
+  [`gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md).

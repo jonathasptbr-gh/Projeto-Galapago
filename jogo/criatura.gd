@@ -1,12 +1,14 @@
 extends Node2D
 ## A criatura na TELA (mockup 64×64 em xadrez). Só LÊ o corpo (sim/corpo.gd):
-## posição (já com o desvio da esquiva), altura do terreno, z do pulo, olhar,
-## camada, ataque/defesa/escavação. Desenha:
+## posição, altura do terreno, z do pulo, olhar, camada, golpe e habilidade.
+## Desenha:
 ## - sombra que encolhe no pulo; corpo que sobe no arco;
 ## - nariz (olhar);
-## - golpe: cone na direção do alvo/rota (não para o movimento);
-## - defesa: anel azul; escavação: terra voando; esquiva: rastro;
+## - golpe: cone na direção do golpe (o ataque final vai no inimigo marcado);
+## - habilidade: terra voando quando cava; anel quando é outra habilidade;
 ## - subsolo: apagada, por cima da camada escura.
+## v0.9: não há mais rastro de esquiva nem anel de defesa — a esquiva é o
+## próprio caminhar e não existe gesto de defesa.
 
 const Mock := preload("res://jogo/mock.gd")
 const V := preload("res://sim/visibilidade.gd")
@@ -51,9 +53,6 @@ func _draw() -> void:
 	draw_set_transform(chao, 0.0, Vector2(s, s * 0.35))
 	draw_circle(Vector2.ZERO, 20.0, Color(0, 0, 0, 0.3), true, -1.0, true)
 	draw_set_transform(Vector2.ZERO)
-	# rastro da esquiva (o desvio é lateral e volta)
-	if corpo.desvio.length() > 1.0:
-		draw_texture_rect(_sprite, Rect2(chao + Vector2(-32, -52) - corpo.desvio * 0.6, Vector2(64, 64)), false, Color(1, 1, 1, 0.25))
 	var cor := Color(0.45, 0.45, 0.55, 0.85) if subsolo else Color.WHITE
 	draw_texture_rect(_sprite, Rect2(meu + Vector2(-32, -52), Vector2(64, 64)), false, cor)
 	var c := meu + Vector2(0, -20)
@@ -77,9 +76,11 @@ func _desenhar_acoes(c: Vector2) -> void:
 		var cor_linha := Color(0.6, 0.9, 1.0, 0.95) if especial else Color(1.0, 0.85, 0.4, 0.95)
 		draw_colored_polygon(pts, cor_cone)
 		draw_polyline(pts.slice(1), cor_linha, 2.0, true)
-	if corpo.defendendo:
-		draw_arc(c, 32.0, 0.0, TAU, 40, Color(0.4, 0.75, 1.0, 0.9), 3.0, true)
-		draw_circle(c, 32.0, Color(0.4, 0.75, 1.0, 0.15), true, -1.0, true)
+	if corpo.habilidade_ativa() and not corpo.escavando:
+		# habilidade de si mesmo que não é a cavar: anel pulsando em volta
+		var raio := 30.0 + 4.0 * sin(_tempo * 10.0)
+		draw_arc(c, raio, 0.0, TAU, 40, Color(0.55, 1.0, 0.6, 0.9), 3.0, true)
+		draw_circle(c, raio, Color(0.55, 1.0, 0.6, 0.12), true, -1.0, true)
 	if corpo.escavando:
 		for i in 6:
 			var a := _tempo * 9.0 + i * TAU / 6.0

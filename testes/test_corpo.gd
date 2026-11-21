@@ -2,6 +2,7 @@ extends "res://testes/caso.gd"
 
 const M := preload("res://sim/mundo.gd")
 const Corpo := preload("res://sim/corpo.gd")
+const Adversario := preload("res://sim/adversario.gd")
 
 var terrenos: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://dados/terrenos.json"))
 var acoes: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://dados/acoes.json"))
@@ -81,23 +82,6 @@ func test_ataque_nao_cancela_a_rota() -> void:
 	_rodar(c, m, 0.5)
 	checar(c.pos.x > x0 + 30.0, "seguiu andando durante o golpe (x %s → %s)" % [x0, c.pos.x])
 
-
-func test_esquiva_desloca_para_o_lado_e_volta_sem_perder_a_rota() -> void:
-	var s := _setup(MAPA)
-	var m: RefCounted = s[0]
-	var c: RefCounted = s[1]
-	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(400, 48)])}, m, [])
-	_rodar(c, m, 0.2)
-	c.olhar = Vector2.RIGHT
-	checar(c.comandar({"acao": "esquiva", "lado": -1.0}, m, []).begins_with("ok"), "esquivou")
-	_rodar(c, m, 0.09)
-	checar(c.desvio.length() > 8.0, "saiu para o lado (%s)" % c.desvio.length())
-	checar(c.em_rota(), "rota continua")
-	_rodar(c, m, 0.4)
-	perto(c.desvio.length(), 0.0, 0.5, "voltou para a rota")
-	checar(c.em_rota(), "e segue na rota")
-
-
 func test_pulo_e_arco_sem_cancelar_a_rota() -> void:
 	var s := _setup(MAPA)
 	var m: RefCounted = s[0]
@@ -112,22 +96,6 @@ func test_pulo_e_arco_sem_cancelar_a_rota() -> void:
 	checar(zmax > 12.0, "subiu no ar (z máx %s)" % zmax)
 	perto(c.z, 0.0, 0.01, "voltou ao chão")
 	checar(c.em_rota(), "rota continua depois do pulo")
-
-
-func test_defesa_para_a_rota_e_soltar_retoma() -> void:
-	var s := _setup(MAPA)
-	var m: RefCounted = s[0]
-	var c: RefCounted = s[1]
-	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(400, 48)])}, m, [])
-	_rodar(c, m, 0.3)
-	c.comandar({"acao": "defender"}, m, [])
-	var t0: float = c.rota_t
-	_rodar(c, m, 0.5)
-	perto(c.rota_t, t0, 0.01, "parou durante a defesa")
-	c.comandar({"acao": "soltar"}, m, [])
-	_rodar(c, m, 0.4)
-	checar(c.rota_t > t0 + 30.0, "retomou ao soltar (%s → %s)" % [t0, c.rota_t])
-
 
 func test_nova_rota_substitui_a_anterior() -> void:
 	var s := _setup(MAPA)
@@ -226,13 +194,13 @@ func test_escavar_desce_anda_no_tunel_e_sobe() -> void:
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
 	c.pos = Vector2(16, 48)  # célula (0,1) = terra fofa
-	checar(c.comandar({"acao": "escavar"}, m, []).begins_with("ok"), "escava")
+	checar(c.comandar({"acao": "habilidade"}, m, []).begins_with("ok"), "escava")
 	_rodar(c, m, 1.2)
 	igual(c.camada, M.SUBSOLO, "no subsolo")
 	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(144, 48)])}, m, []).begins_with("ok"), "rota no túnel")
 	_seguir_ate_fim(c, m)
 	igual(m.celula_de(c.pos), Vector2i(4, 1), "andou no túnel até a saída (pos %s)" % c.pos)
-	checar(c.comandar({"acao": "escavar"}, m, []).begins_with("ok"), "escava para subir")
+	checar(c.comandar({"acao": "habilidade"}, m, []).begins_with("ok"), "escava para subir")
 	_rodar(c, m, 1.2)
 	igual(c.camada, M.SUPERFICIE, "voltou à superfície")
 
@@ -302,34 +270,6 @@ func test_rota_passa_pelos_pontos_na_ordem() -> void:
 	igual(vistos, ["a", "b", "c"], "ordem dos pontos (%s)" % [vistos])
 
 
-# ---------------------------------------------------------------- v0.6: especiais e esquiva de tela
-
-func test_especial_sai_para_o_lado_do_gesto() -> void:
-	var s := _setup(MAPA)
-	var m: RefCounted = s[0]
-	var c: RefCounted = s[1]
-	checar(c.comandar({"acao": "especial", "direcao": Vector2.RIGHT}, m, []).begins_with("ok"), "especial")
-	igual(c.ataque, "especial", "golpe especial em curso")
-	checar(c.ataque_dir.x > 0.9, "para a direita (%s)" % c.ataque_dir)
-	_rodar(c, m, 0.7)
-	igual(c.ataque, "", "especial terminou")
-
-
-func test_esquiva_vai_para_a_direcao_do_gesto() -> void:
-	var s := _setup(MAPA)
-	var m: RefCounted = s[0]
-	var c: RefCounted = s[1]
-	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(400, 48)])}, m, [])
-	_rodar(c, m, 0.2)
-	checar(c.comandar({"acao": "esquiva", "direcao": Vector2.DOWN}, m, []).begins_with("ok"), "esquivou")
-	_rodar(c, m, 0.09)
-	checar(c.desvio.y > 8.0, "para baixo (%s)" % c.desvio)
-	checar(absf(c.desvio.x) < 1.0, "sem lado")
-	checar(c.em_rota(), "rota continua")
-	_rodar(c, m, 0.4)
-	perto(c.desvio.length(), 0.0, 0.5, "voltou")
-
-
 ## Pulo curto não atravessa canal largo: cai na água, a rota para, e é preciso
 ## OUTRO pulo. É a regra "sem pular, para na barreira; pulando, segue".
 func test_pulo_curto_cai_na_agua_e_precisa_de_outro() -> void:
@@ -380,30 +320,154 @@ func test_traco_comeca_onde_ela_estava_na_descida() -> void:
 	var origem := Vector2(48, 48)
 	c.pos = Vector2(96, 48)  # ela andou 48 px antes de o traço começar
 	checar(c.tracar(PackedVector2Array([origem, Vector2(176, 48)]), m, true).begins_with("ok"), "a rota nasce")
-	perto_v(c.rota[0], c.pos - c.desvio, 1.0, "o 1º ponto é ONDE ELA ESTÁ")
+	perto_v(c.rota[0], c.pos, 1.0, "o 1º ponto é ONDE ELA ESTÁ")
 	checar(c.rota[1].distance_to(origem) < 1.0, "o 2º é o começo do traço (%s)" % [c.rota])
 	_rodar(c, m, 0.2)
 	checar(c.pos.x < 96.0, "voltou para o começo (x=%s)" % c.pos.x)
 
 
-## Cancelar o traço que virou AÇÃO: a rota anterior volta INTEIRA (com o
-## progresso) — é o que faz "ataque não ser passo" durante a caminhada.
-func test_voltar_rota_desfaz_o_traco_que_virou_acao() -> void:
+# ---------------------------------------------------------------- v0.9: formas do desenho
+
+## Adversário parado (só reage ao golpe) e o alvo que a lista de alvos usa.
+func _adv(lugar: Vector2) -> RefCounted:
+	var a := Adversario.new(3)
+	a.pos = lugar
+	a.velocidade = 0.0
+	return a
+
+
+func _alvo_adv(id: String, adv: RefCounted) -> Dictionary:
+	return {"id": id, "tipo": "adversario", "pos": adv.pos, "raio": adv.raio,
+		"travavel": true, "interativo": false, "dados": adv}
+
+
+## Avança corpo e adversário juntos, mantendo a lista de alvos sincronizada.
+func _rodar_com(c: RefCounted, m: RefCounted, alvos: Array, adv: RefCounted, segundos: float) -> Array:
+	var evs: Array = []
+	var t := 0.0
+	var dt := 1.0 / 30.0
+	while t < segundos:
+		adv.passo(dt, m)
+		if not alvos.is_empty():
+			alvos[0]["pos"] = adv.pos
+		c.passo(dt, m, alvos)
+		evs.append_array(c.drenar_eventos())
+		t += dt
+	return evs
+
+
+## LAÇO: o traço fecha em cima de si mesmo. A onda nasce no CENTRO do laço
+## quando a criatura passa pelo nó, e varre (empurra) quem está lá.
+func test_laco_vira_onda_em_area_no_centro() -> void:
 	var s := _setup(MAPA)
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
-	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(400, 48)])}, m, [])
-	_rodar(c, m, 0.3)
-	var guardado: Dictionary = c.guardar_rota()
-	var t0: float = c.rota_t
-	var fim: Vector2 = c.rota[c.rota.size() - 1]
-	# o dedo começa um traço ao vivo (para baixo) e ele vira AÇÃO: cancela
-	checar(c.tracar(PackedVector2Array([c.pos - c.desvio, c.pos - c.desvio + Vector2(0, 90)]), m, true).begins_with("ok"), "o traço entrou")
-	checar(c.rota[c.rota.size() - 1].y > 100.0, "a rota agora vai para baixo")
-	c.voltar_rota(guardado)
-	perto(c.rota_t, t0, 0.001, "o progresso voltou")
-	perto_v(c.rota[c.rota.size() - 1], fim, 0.001, "a rota anterior voltou inteira")
-	checar(c.em_rota(), "e ela continua em rota")
-	_rodar(c, m, 0.4)
-	checar(c.pos.x > 80.0, "segue andando na rota antiga (x=%s)" % c.pos.x)
-	checar(absf(c.pos.y - 48.0) < 20.0, "e não desceu pelo traço cancelado (y=%s)" % c.pos.y)
+	var adv := _adv(Vector2(175, 119))  # centro do laço
+	var alvos := [_alvo_adv("adversario:0", adv)]
+	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([
+		Vector2(240, 48), Vector2(240, 190), Vector2(110, 190), Vector2(110, 30)])}, m, alvos).begins_with("ok"), "rota com laço")
+	checar(not c.marcas.is_empty(), "o laço foi lido")
+	var tipo := ""
+	var centro := Vector2.ZERO
+	for mm in c.marcas:
+		if str(mm["tipo"]) == "laco":
+			tipo = "laco"
+			centro = Vector2(mm["centro"])
+	igual(tipo, "laco", "tem marca de laço")
+	perto_v(centro, Vector2(175, 119), 12.0, "centro estimado do laço")
+	var evs := _rodar_com(c, m, alvos, adv, 8.0)
+	checar("laco:onda" in evs, "a onda disparou ao passar pelo nó")
+	checar("acerto:adversario:0" in evs, "varreu o inimigo no centro (%s)" % [evs])
+	checar(adv.pos.distance_to(Vector2(175, 119)) > 5.0, "o empurrão moveu o inimigo (%s)" % adv.pos)
+
+
+## BICO: ida e volta brusca. O tiro sai da BASE (o ponto antes do bico), na
+## direção da ponta — e acerta o alvo que estiver nessa linha.
+func test_bico_dispara_tiro_na_direcao_do_bico() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	var adv := _adv(Vector2(200, 48))
+	var alvos := [_alvo_adv("adversario:0", adv)]
+	# bico a partir da POSIÇÃO INICIAL: 48 → 150 → 70
+	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([
+		Vector2(150, 48), Vector2(70, 48)])}, m, alvos).begins_with("ok"), "rota com bico")
+	var evs := _rodar_com(c, m, alvos, adv, 1.5)
+	checar("bico:tiro" in evs, "o bico disparou (%s)" % [evs])
+	checar("acerto:adversario:0" in evs, "o tiro acertou quem estaba na linha (%s)" % [evs])
+	checar(adv.pos.distance_to(Vector2(200, 48)) > 5.0, "e empurrou (%s)" % adv.pos)
+
+
+## O gatilho do bico é a BASE: com a main line antes, o tiro só sai quando a
+## criatura chega no ponto ANTERIOR ao bico.
+func test_bico_no_meio_dispara_na_base() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	# caminho reto até 150; o bico vai a 250 e VOLTA a 150; segue a 300
+	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([
+		Vector2(150, 48), Vector2(250, 48), Vector2(150, 48), Vector2(300, 48)])}, m, []).begins_with("ok"), "rota")
+	checar("bico:tiro" not in c.drenar_eventos(), "não disparou parada")
+	var disparou := false
+	var x_no_disparo := 0.0
+	var t := 0.0
+	while t < 1.6 and not disparou:
+		c.passo(1.0 / 30.0, m, [])
+		for e in c.drenar_eventos():
+			if e == "bico:tiro":
+				disparou = true
+				x_no_disparo = c.pos.x
+		t += 1.0 / 30.0
+	checar(disparou, "disparou durante a caminhada")
+	checar(x_no_disparo > 120.0 and x_no_disparo < 176.0, "disparou na base (x=%s)" % x_no_disparo)
+
+
+
+## TRAVESSIA: a linha passa POR CIMA do adversário. Ao passar, a criatura dá a
+## batida e o empurra.
+func test_travessia_empurra_o_adversario() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	var adv := _adv(Vector2(150, 48))
+	var alvos := [_alvo_adv("adversario:0", adv)]
+	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(250, 48)])}, m, alvos).begins_with("ok"), "rota por cima")
+	var evs := _rodar_com(c, m, alvos, adv, 2.5)
+	checar("batida:adversario:0" in evs, "deu a batida ao passar (%s)" % [evs])
+	checar(adv.pos.x > 155.0, "empurrou o inimigo (%s)" % adv.pos)
+
+
+## FIM EM CIMA: o adversário fica marcado como alvo final do golpe físico — a
+## marca vai NELE (e é ele que é golpeado na chegada).
+func test_fim_em_cima_marca_o_alvo_e_golpeia() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	var adv := _adv(Vector2(200, 200))
+	var alvos := [_alvo_adv("adversario:0", adv)]
+	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(200, 200)])}, m, alvos).begins_with("ok"), "rota até o inimigo")
+	checar(c.finalizar_rota(alvos).begins_with("ok"), "marcou o alvo final")
+	igual(c.mira_final_id, "adversario:0", "marca no inimigo")
+	var evs := _rodar_com(c, m, alvos, adv, 4.0)
+	checar("golpe_final:adversario:0" in evs, "deu o golpe final (%s)" % [evs])
+	checar(adv.pos.distance_to(Vector2(200, 200)) > 5.0, "o golpe empurrou (%s)" % adv.pos)
+
+
+## Se o inimigo ANDAR DEMAIS até a criatura chegar, a automira final se perde
+## (o golpe sai no vazio).
+func test_alvo_final_se_perde_se_o_inimigo_andar() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	var adv := _adv(Vector2(200, 200))
+	var alvos := [_alvo_adv("adversario:0", adv)]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(200, 200)])}, m, alvos)
+	c.finalizar_rota(alvos)
+	igual(c.mira_final_id, "adversario:0", "marcou")
+	# ele foge para longe da marca
+	adv.pos = Vector2(48, 200)
+	alvos[0]["pos"] = adv.pos
+	var evs := _rodar_com(c, m, alvos, adv, 4.0)
+	checar("mira_final:perde" in evs, "a mira se perdeu (%s)" % [evs])
+	checar("golpe_final:adversario:0" not in evs, "não golpeou o alvo perdido")
+	checar(c.mira_final_id == "", "e a marca foi limpa")

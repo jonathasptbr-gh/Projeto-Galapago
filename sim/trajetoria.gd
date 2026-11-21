@@ -22,9 +22,15 @@ static func amostrar(pontos: PackedVector2Array, dist_min: float) -> PackedVecto
 	return out
 
 
-## Douglas-Peucker: mantém os pontos que fazem a forma se afastar da reta em
-## mais de `tolerancia` px. Numa reta sobram só as pontas; uma curva ou um canto
-## continuam com alguns pontos. O primeiro e o último sempre ficam.
+## Douglas-Peucker: mantém os pontos que fazem a forma se afastar do SEGMENTO
+## entre as pontas em mais de `tolerancia` px. Numa reta sobram só as pontas;
+## uma curva ou um canto continuam com alguns pontos. O primeiro e o último
+## sempre ficam.
+##
+## v0.9: a distância é ao SEGMENTO, não à reta infinita. Um ponto que passa da
+## PONTA do segmento conta como fora — é o que preserva a ponta de um BICO
+## (ida e volta brusca) na rota: sem isso, a ida e a volta se anulavam na reta
+## e a criatura nunca chegava a fazer o bico.
 static func simplificar(pontos: PackedVector2Array, tolerancia: float) -> PackedVector2Array:
 	if pontos.size() < 3 or tolerancia <= 0.0:
 		return pontos
@@ -53,9 +59,12 @@ static func _rdp(pontos: PackedVector2Array, ini: int, fim: int, tolerancia: flo
 
 static func _distancia_reta(p: Vector2, a: Vector2, b: Vector2) -> float:
 	var ab := b - a
-	if ab.length() < 0.001:
+	var l2 := ab.length_squared()
+	if l2 < 0.000001:
 		return p.distance_to(a)
-	return absf((p - a).cross(ab)) / ab.length()
+	# distância ao SEGMENTO: fora das pontas, vale a distância à ponta mais perto
+	var t := clampf((p - a).dot(ab) / l2, 0.0, 1.0)
+	return p.distance_to(a + ab * t)
 
 
 ## O "desconto inicial": tira o pequeno vai-e-volta que o dedo faz no ponto de

@@ -4,12 +4,23 @@
 
 | versão | onde | o quê | tamanho |
 |---|---|---|---|
-| v0.8.0 | `dados/acoes.json` | a `esquiva` ficou **sem gesto** (o "para baixo" agora é defesa); ela continua no corpo para uso futuro | decidir com o operador |
-| v0.8.0 | `sim/gestos.gd` | um espalhamento VERTICAL (dedos subindo/descendo) é lido como ataque/defesa, não especial: o especial pede o dedo extra indo para o lado | design |
-| v0.8.0 | `jogo/main.gd` | uma ação durante o desenho devolve o tempo na hora e o resto do desenho segue sem tempo lento/véu | decisão |
-| v0.8.0 | `sim/gestos.gd` | a ação é lida só no dedo EXTRA: se o dedo do caminho andar e o extra ficar parado, nada dispara (é o desenho) | — |
+| v0.9.0 | `sim/formas.gd` | a base do bico é o ponto onde a VOLTA reencontra o caminho (ou a partida, se o traço acaba na volta): num bico desenhado no MEIO de uma reta, a base pode sair alguns px antes do ponto exato | design |
+| v0.9.0 | `sim/formas.gd` | um laço é lido no traço reduzido (RDP 3 px) e um bico no traço amostrado (6 px): desenhos minúsculos (laço < 700 px², espinho < 18 px) não contam — limiares em `formas` | pequeno |
+| v0.9.0 | `sim/corpo.gd` | a onda e o tiro só atingem ADVERSÁRIO (quem sabe reagir); árvore leva a batida de travessia mas não reage | design |
+| v0.9.0 | `sim/corpo.gd` | o laço acende na passagem pelo nó; se a criatura já estiver DEPOIS do nó quando a forma é reconhecida, ele acende na volta (é o mesmo ponto) — e a onda não espera a criatura chegar ao centro | decisão |
+| v0.9.0 | `sim/corpo.gd` | o bico acende na base; se a forma só é reconhecida com a criatura já DENTRO do espinho, ela acende ali (por isso o tiro pode sair ~30 px depois da base) | decisão |
+| v0.9.0 | `sim/corpo.gd` | `_checar_marcas` dispara por PROXIMIDADE: se a rota for barrada antes da marca, o ataque não acontece | design |
+| v0.9.0 | `sim/corpo.gd` | as formas são lidas a cada ~5 pontos do traço; num traço muito curto o laço/bico pode ser lido um quadro depois (sem prejuízo de regra) | pequeno |
+| v0.9.0 | `sim/corpo.gd` | o golpe final divide a máquina de golpe com a batida: se um golpe já está em curso, o empurrão sai mas o arco não aparece | pequeno |
+| v0.9.0 | demo | o roteiro é um SHOWCASE, não teste: se o adversário andar muito, a marca do alvo final do demo pode se perder (o log mostra `mira_final:perde`) | — |
+| v0.9.0 | oráculo | 150 quadros 720×1280 em ~3 min 50 s (~1,5 s/quadro) neste celular; a demo completa (~17 s) pede ~510 quadros (~13 min) | operador |
+| v0.9.0 | `docs/HISTORICO.md` | a nota do lote cita a demo; números de quadros medidos localmente, não no CI | — |
+| v0.8.0 | `dados/acoes.json` | ~~a `esquiva` ficou sem gesto~~ — **removida na v0.9** (esquivar é andar) | — |
+| v0.8.0 | `sim/gestos.gd` | ~~espalhamento vertical lido como ataque/defesa~~ — **não há mais gesto de dois dedos na v0.9** | — |
+| v0.8.0 | `jogo/main.gd` | ~~ação durante o desenho devolve o tempo~~ — **não há mais ação de dois dedos na v0.9** | — |
+| v0.8.0 | `sim/gestos.gd` | ~~ação lida no dedo extra~~ — **fora na v0.9** | — |
 | v0.7.1 | `jogo/main.gd` | ~~linha da rota pisca no começo de um risco~~ — **o risco deixou de existir na v0.8** (dois dedos) | — |
-| v0.7.1 | `sim/corpo.gd` | `voltar_rota` devolve rota/progresso/autonomia, mas NÃO a posição: a criatura fica onde andou nos ~2 quadros dois-dedos (2–3 px) | pequeno |
+| v0.7.1 | `sim/corpo.gd` | ~~`voltar_rota` não devolve a posição~~ — **função removida na v0.9** (não há cancelamento de traço) | — |
 | v0.7.0 | `dados/gestos.json` | `desenho.ganho` 1,6, véu 0,22 e rampa 0,45 s são pontos de partida — ajustar com o operador no aparelho | pequeno |
 | v0.7.0 | `sim/gestos.gd` | ~~risco rápido disparava ação~~ — **substituído na v0.8** (ataque é 2 dedos) | — |
 | v0.7.0 | `jogo/main.gd` | o traço ao vivo refaz a rota (desconto + Douglas-Peucker) a cada quadro; custo não medido no aparelho | pequeno |

@@ -60,3 +60,27 @@ func test_adversario_nao_entra_na_agua() -> void:
 	for i in 600:
 		adv.passo(1.0 / 30.0, m)
 		checar(m.andavel(m.celula_de(adv.pos), M.SUPERFICIE), "nunca na água (pos %s)" % adv.pos)
+
+
+## v0.9: o adversário leva empurrão e PISCA (sem vida ainda).
+func test_empurrao_move_e_pisca() -> void:
+	var m := _mundo()
+	var adv := Adversario.new(3)
+	adv.pos = Vector2(100, 48)
+	var out := Alvos.montar([], [adv], m)
+	checar(Alvos.reage(out[0]), "adversário reage a golpe")
+	checar(Alvos.empurrar(out, "adversario:0", Vector2.RIGHT, 30.0), "empurrou")
+	checar(adv.piscando(), "pisca no acerto")
+	for i in 20:
+		adv.passo(1.0 / 30.0, m)
+	checar(adv.pos.x > 115.0, "saiu empurrado (%s)" % adv.pos)
+	checar(not adv.empurrado(), "o empurrão acaba")
+	checar(not adv.piscando(), "a piscada acaba")
+
+
+func test_arvore_e_bau_nao_reagem() -> void:
+	var m := _mundo()
+	var objetos := [{"tipo": "arvore", "celula": [2, 2]}, {"tipo": "bau", "celula": [8, 2]}]
+	var out := Alvos.montar(objetos, [], m)
+	checar(not Alvos.reage(out[0]), "árvore não reage")
+	checar(not Alvos.empurrar(out, "arvore:2,2", Vector2.RIGHT, 20.0), "árvore não é empurrada")

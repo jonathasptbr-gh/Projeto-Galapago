@@ -62,3 +62,22 @@ static func por_id(out: Array, id: String) -> Dictionary:
 static func pos_de(out: Array, id: String) -> Vector2:
 	var a := por_id(out, id)
 	return a["pos"] if not a.is_empty() else Vector2.ZERO
+
+
+## O alvo leva um golpe: empurra se ele souber reagir (`empurrar` nos dados —
+## adversário sabe, árvore/baú não). `true` = empurrou.
+static func empurrar(out: Array, id: String, dir: Vector2, forca: float) -> bool:
+	var a := por_id(out, id)
+	if a.is_empty():
+		return false
+	var dados: Variant = a.get("dados", null)
+	if not (dados is Object) or not dados.has_method("empurrar"):
+		return false
+	dados.empurrar(dir, forca)
+	return true
+
+
+## É um alvo que reage a golpe (adversário)? O que decide a ONDA e o TIRO.
+static func reage(a: Dictionary) -> bool:
+	var dados: Variant = a.get("dados", null)
+	return dados is Object and dados.has_method("empurrar")

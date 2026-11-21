@@ -3,6 +3,78 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.9.0 — o ataque nasce do DESENHO: laço, bico, travessia e alvo final (2026-11-21)
+
+- **Pedido do operador:** ajustar o sistema de gestos e ações — (1) **laço** no
+  caminho = **ataque em área** com centro no centro estimado do laço, ativado
+  no **nó** (onde o laço fecha na primeira linha) quando o animal passa por
+  ele, sem depender de ir ao centro; (2) **bico** (ida e volta brusca) = **tiro**
+  na direção do bico, saindo do ponto do caminho **antes** dele (um bico a
+  partir da posição inicial dispara sem se mover); (3) **segurar parado** =
+  **habilidade em si mesmo** com duração; (4) dois toques pulam sem
+  interromper o caminho; (5) **cruzar a linha sobre** um alvo = **batida/
+  empurrão**; (6) **terminar o caminho em cima** do adversário = **golpe
+  físico**, com a marca **no inimigo** (se ele andar demais, a automira se
+  perde); (7) **esquiva é o próprio caminhar** + tempo lento, sem efeito.
+- **Decisões do operador na mesma conversa:** **nenhum gesto de dois dedos**
+  (saem ataque ↑, defesa ↓ e especial abrindo); o efeito do golpe no
+  adversário é **empurrão + piscada, sem vida**; a habilidade de teste do
+  segurar é **cavar** (não a cor piscando), valendo **em qualquer lugar** da
+  tela, não só em cima do animal.
+- **`sim/formas.gd` (novo, puro):** lê o traço CRU e devolve MARCAS.
+  **Laço:** cruzamento entre segmentos (`cruzamento`), área/centroide por
+  shoelace, raio `√(área/π)` limitado, direção do fechamento; lido no traço
+  reduzido (RDP 3 px). **Bico:** REVERSÕES (~180° numa janela de 10 px de
+  arco) — a ponta e a base (onde a volta reencontra o caminho); volta
+  estreita, altura ≥ 18 px; lido no traço **amostrado a cada 6 px** (uma ida e
+  volta na MESMA reta tem desvio zero e o RDP comeria a ponta).
+- **`sim/trajetoria.gd`:** a distância do Douglas-Peucker agora é ao
+  **SEGMENTO** (não à reta infinita): a **ponta do bico** que passa além da
+  corda deixa de ser engolida, e a criatura **anda o espinho**.
+- **`sim/gestos.gd` (reescrito):** um dedo só; **segurar parado em qualquer
+  lugar** = `segurar_inicio` (habilidade); segundo dedo **não é ação** (o
+  caminho continua; toque/toque duplo/segurar ficam desarmados). Saem
+  `_acao_dedos`, `defendendo`, `deslize`, `especial`, `caminho_cancelar`.
+- **`sim/comandos.gd`:** tabela nova (`toque` → travar, `toque_duplo` → pular,
+  `segurar` → habilidade, `trajetoria` → mover); saem `setor` e o `deslize`.
+- **`sim/corpo.gd`:** o ataque saiu dos gestos e foi para as FORMAS —
+  `tracar` guarda o traço cru, lê as formas (a cada ~5 pontos, e no soltar) e
+  monta as **marcas**; o gatilho é a passagem da criatura pelo ponto da marca
+  (`gatilho_raio_px` 24; o laço exige a direção do fechamento). **Onda**
+  (círculo que cresce do centro e empurra quem varre), **tiro** (projétil na
+  direção do bico, para no primeiro alvo), **batida** de travessia,
+  **alvo final** marcado no inimigo (golpe físico na chegada; perdido se ele
+  andar > 48 px), **habilidade** genérica com `cavar` como primeira. Saem
+  `esquiva`, `defesa`, `especial`, `desvio` e `guardar_rota`/`voltar_rota`.
+  A rota ao vivo continua igual (pontos de referência, desconto, desvio de
+  objeto, barreira e pulo).
+- **`sim/adversario.gd`:** `empurrar(dir, px)` — desliza (260 px/s) até gastar
+  o empurrão, cortado pelo mundo, e **pisca** 0,24 s; `piscando()`/`empurrado()`.
+  **`sim/alvos.gd`:** `empurrar` (só quem sabe reagir) e `reage`.
+- **`jogo/`:** `efeitos.gd` (novo: onda/tiro); `mira.gd` desenha o **"X"
+  amarelo do alvo final no inimigo**; `criatura.gd` perde rastro de esquiva e
+  anel de defesa, ganha anel de habilidade; `adversario_mock.gd` pisca no
+  acerto; `hud.gd` com a legenda/estado novos e a **nota** do último golpe;
+  `main.gd` sem cancelamento de traço (não há gesto de dois dedos), com o
+  fechamento do caminho chamando `finalizar_rota` e o nó dos efeitos.
+  `demo.gd` reescrito: laço → onda; bico → tiro; segurar → cavar (desce e
+  sobe); toque duplo; travessia; fim em cima (golpe final).
+- **Dados:** `gestos.json` só com toque/toque duplo/segurar/trajetória;
+  `acoes.json` ganha `formas`, `combate`, `habilidade` + `cavar` e `batida`;
+  saem `esquiva`, `especial`, `defender`, `escavar` (virou `cavar`).
+- **Verificação:** **82 testes, 0 falhas**, 38 scripts (parser limpo).
+  **Sonda headless da demo inteira** (2.400 quadros, `--demo`): `laco:onda` em
+  ~3 s, `bico:tiro` em ~4,6 s, `habilidade:on` + `camada:subsolo` (8,2 s) e
+  `camada:superficie` (10,0 s), `mira_final:adversario:0` (12,6 s), `batida` +
+  `acerto` + `golpe_final:adversario:0` (15,6 s). **Oráculo de quadros**
+  (`tools/quadros.sh`, 150 quadros 720×1280 em ~3 min 50 s, ~1,5 s/quadro):
+  caminho com **laço** desenhado, **onda azul saindo do centro** do laço em
+  3,1 s, HUD v0.9 e o **bico** desenhado em 4,6 s — abri os PNG. Uma segunda
+  gravação (520 quadros, a demo inteira) mostrou a **cavada** (terra voando e
+  `subsolo` na HUD), o **alvo final** e o **"X" amarelo pulsando NO INIMIGO**
+  em 16,7 s — abri os PNG. Detalhe de projeto em
+  [`gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md).
+
 ## v0.8.0 — gestos de ação com DOIS dedos (2026-11-20)
 
 - **Pedido do operador:** os gestos de ação conflitavam com o movimento

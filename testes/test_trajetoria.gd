@@ -61,3 +61,13 @@ func test_desconto_inicial_nao_mexe_em_reta() -> void:
 func test_desconto_inicial_nao_corta_loop_que_termina_no_raio() -> void:
 	var p := PackedVector2Array([Vector2(0, 0), Vector2(-20, 0), Vector2(0, 0)])
 	igual(T.descontar_inicio(p, 44.0, 140.0), p, "sem destino fora do raio, não corta")
+
+
+## v0.9: a PONTA de um bico passa da ponta do segmento; ela FICA na rota (senão
+## a criatura nunca chegaria a fazer a ida e volta).
+func test_simplificar_preserva_a_ponta_do_bico() -> void:
+	var p := PackedVector2Array([Vector2(0, 0), Vector2(90, 0), Vector2(30, 0)])
+	var s := T.simplificar(p, 10.0)
+	igual(s.size(), 3, "a ponta do bico fica (%s)" % [s])
+	if s.size() == 3:
+		perto_v(s[1], Vector2(90, 0), 0.001, "ponta")

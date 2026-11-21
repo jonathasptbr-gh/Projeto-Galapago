@@ -1,8 +1,9 @@
 extends CanvasLayer
 ## HUD de desenvolvimento: título (versão/build), legenda dos gestos (gerada da
 ## tabela), estado do corpo (rota/waypoints, barreira, alvo, camada,
-## planejamento), última relação gesto → ação, e o ESTADO DA ATUALIZAÇÃO com
-## botão de verificar à mão. Layout pensado para a tela em RETRATO (720×1280).
+## habilidade, alvo final, planejamento), última relação gesto → ação, nota do
+## último golpe/ataque, e o ESTADO DA ATUALIZAÇÃO com botão de verificar à mão.
+## Layout pensado para a tela em RETRATO (720×1280).
 
 const Atualizador := preload("res://jogo/atualizador.gd")
 const Alvos := preload("res://sim/alvos.gd")
@@ -12,6 +13,8 @@ var atualizador: Control
 var _gesto: Label
 var _estado: Label
 var _status: Label
+var _nota: Label
+var _nota_t := 0.0
 
 
 func _ready() -> void:
@@ -24,6 +27,7 @@ func _ready() -> void:
 	leg.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	leg.position.y += 34
 	_status = _rotulo("", Vector2(20, 46), 16)
+	_nota = _rotulo("", Vector2(20, 72), 18)
 	_gesto = _rotulo("gesto: —", Vector2.ZERO, 20)
 	_gesto.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 18)
 	_gesto.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -45,30 +49,38 @@ func _ready() -> void:
 		add_child(b)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if atualizador and _status:
 		_status.text = atualizador.texto_status()
+	if _nota_t > 0.0:
+		_nota_t = maxf(0.0, _nota_t - delta)
+		if _nota_t <= 0.0 and _nota:
+			_nota.text = ""
 
 
 func _legenda() -> String:
 	var m: Dictionary = cfg.get("mapa", {})
-	var linhas := PackedStringArray(["v0.8.0 · GESTOS"])
+	var linhas := PackedStringArray(["v0.9.0 · GESTOS"])
 	linhas.append("1 dedo arrastando → caminho")
-	linhas.append("2 dedos ↑ → %s" % m.get("deslize", [{}])[0].get("acao", "ataque"))
-	linhas.append("2 dedos ↓ → %s" % m.get("segurar", "defender"))
-	linhas.append("2 dedos abrindo → %s" % m.get("especial", "especial"))
+	linhas.append("laço no caminho → ataque em área")
+	linhas.append("bico (ida e volta) → tiro")
+	linhas.append("passar por cima do alvo → batida")
+	linhas.append("terminar em cima → golpe final")
+	linhas.append("segurar parado → %s" % m.get("segurar", "habilidade"))
 	linhas.append("toque → %s" % m.get("toque", "—"))
 	linhas.append("toque duplo → %s" % m.get("toque_duplo", "—"))
-	linhas.append("segurar nela → %s" % m.get("segurar_na_criatura", "—"))
-	linhas.append("2º dedo durante o desenho → ação")
 	return "\n".join(linhas)
 
 
 func gesto(ev: Dictionary, cmd: Dictionary, resultado: String) -> void:
-	var extra := ""
-	if cmd.has("setor") and cmd["setor"] != "":
-		extra = " (%s, %d°)" % [cmd["setor"], roundi(cmd.get("angulo", 0.0))]
-	_gesto.text = "gesto: %s%s → %s · %s" % [ev["gesto"], extra, cmd.get("acao", "nada"), resultado]
+	_gesto.text = "gesto: %s → %s · %s" % [ev["gesto"], cmd.get("acao", "nada"), resultado]
+
+
+## Nota do último golpe/ataque (onda, tiro, batida, acerto, alvo final).
+func nota(texto: String) -> void:
+	if _nota:
+		_nota.text = texto
+		_nota_t = 2.4
 
 
 func estado(corpo: RefCounted, alvos: Array, planejando := false, escala := 1.0) -> void:
@@ -86,8 +98,13 @@ func estado(corpo: RefCounted, alvos: Array, planejando := false, escala := 1.0)
 	var extra := ""
 	if planejando:
 		extra = " · DESENHANDO %d%%" % roundi(escala * 100.0)
-	_estado.text = "estado: %s · alvo: %s · %s%s%s%s" % [modo, alvo, corpo.camada,
-		(" · defendendo" if corpo.defendendo else ""), (" · no ar" if corpo.no_ar() else ""), extra]
+	var final := ""
+	if corpo.mira_final_id != "":
+		final = " · ALVO FINAL %s" % corpo.mira_final_id
+	_estado.text = "estado: %s · alvo: %s · %s%s%s%s%s%s" % [modo, alvo, corpo.camada,
+		(" · habilidade" if corpo.habilidade_ativa() else ""),
+		(" · golpe: %s" % corpo.ataque if corpo.ataque != "" else ""),
+		(" · no ar" if corpo.no_ar() else ""), final, extra]
 
 
 func _rotulo(texto: String, pos: Vector2, tamanho: int) -> Label:

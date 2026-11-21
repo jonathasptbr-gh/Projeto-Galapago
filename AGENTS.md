@@ -71,13 +71,15 @@ a arte fica) é do operador: o agente propõe com opções, não decide calado.
 ```
 project.godot         configuração (720x1280 canvas_items, arte nearest, RETRATO, ETC2/ASTC)
 export_presets.cfg    preset Android (arm64, sem Gradle)
-sim/                  lógica pura: gestos (multitouch: 1 dedo caminho, 2 dedos
-                       ação) · comandos · corpo (traço ao vivo+waypoints+
-                       overlays+autonomia) · alvos · adversario · mundo ·
-                       trajetoria (desconto+RDP) · visibilidade · atualizacao ·
-                       mapa (Wang, parado)
-jogo/                 main · criatura · adversario_mock · mira · trilha · hud · demo ·
-                       mock · atualizador · camadas/ (chao, subsolo, copa, parallax,
+sim/                  lógica pura: gestos (1 dedo: caminho, toque, toque duplo,
+                       segurar=habilidade) · formas (laço/bico do desenho) ·
+                       comandos · corpo (traço ao vivo+waypoints+overlays+
+                       marcas de ataque+autonomia) · alvos · adversario (empurrão+
+                       piscada) · mundo · trajetoria (desconto+RDP) ·
+                       visibilidade · atualizacao · mapa (Wang, parado)
+jogo/                 main · criatura · adversario_mock · mira (mira+alvo final) ·
+                       trilha · efeitos (onda/tiro) · hud · demo · mock ·
+                       atualizador · camadas/ (chao, subsolo, copa, parallax,
                        objeto_mock)
 dados/                gestos.json · acoes.json · terrenos.json · mapas/
 testes/               run.gd (executor), caso.gd (base), test_*.gd

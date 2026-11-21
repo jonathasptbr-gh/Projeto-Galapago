@@ -15,7 +15,7 @@ Regras (testadas em `testes/test_mundo.gd`):
 
 - **ANDAR** só vence diferença de altura de até 0,5 nível; a **rampa** (`altura` 1,5) liga o chão (1) ao planalto (2).
 - **PULAR** pousa em célula andável até 1 nível ACIMA (descer, qualquer altura) e passa por cima de água e obstáculos no caminho; sem pouso válido, pula no lugar.
-- **ESCAVAR** em célula escavável desce ao subsolo; escavar de novo sob uma célula escavável (ou já aberta) sobe. No subsolo não dá para pular.
+- **ESCAVAR** em célula escavável desce ao subsolo; escavar de novo sob uma célula escavável (ou já aberta) sobe. No subsolo não dá para pular. Desde a v0.9 cavar é a **habilidade do segurar parado** (o gesto não precisa ser em cima do animal).
 - **Objetos com tronco** (árvore) bloqueiam a célula deles.
 
 Posições em **pixels de mundo** (célula = 32 px); a conversão célula↔pixel é do `sim/mundo.gd`.

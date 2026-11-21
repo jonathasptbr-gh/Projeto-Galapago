@@ -1,20 +1,22 @@
 extends Node2D
-## Cena principal (v0.7): a FUNDAÇÃO em RETRATO, com caminho desenhado AO VIVO.
+## Cena principal (v0.9): a FUNDAÇÃO em RETRATO, com caminho desenhado AO VIVO
+## e o ataque nascendo da FORMA do desenho.
 ##
 ## Camadas de desenho (z_index), de trás para frente:
 ##   −20 parallax fundo · 0 chão · 1 trilha/rota · 2 objetos (y-sort: troncos,
-##   baú, adversário, criatura) · 15 subsolo · 25 marca de mira · 30 copas ·
-##   40 parallax frente · HUD.
+##   baú, adversário, criatura) · 15 subsolo · 24 efeitos (onda/tiro) ·
+##   25 marca de mira/alvo final · 30 copas · 40 parallax frente · HUD.
 ##
-## Fluxo: dedo → sim/gestos (caminho sem espera + gestos de tela) →
-## sim/comandos → sim/corpo (traço ao vivo + desvio + overlays + autonomia).
-## O tempo é SIMULADO (tempo_ms): demo e oráculo são determinísticos.
+## Fluxo: dedo → sim/gestos (um dedo: caminho ao vivo, toque, toque duplo,
+## segurar) → sim/comandos → sim/corpo (traço ao vivo + formas do caminho +
+## overlays + autonomia). O tempo é SIMULADO (tempo_ms): demo e oráculo são
+## determinísticos.
 ##
-## v0.7 — a ORIGEM do caminho é congelada no `dedo_desceu` (posição da criatura
-## naquele instante): o traço é traduzido tela→mundo com essa origem e com o
-## GANHO de sensibilidade (`desenho.ganho`), então a linha não anda junto com o
-## animal enquanto o dedo desenha. Enquanto desenha (ou defende), o mundo roda
-## em tempo lento e a tela escurece; ao soltar, o tempo ACELERA numa rampa.
+## v0.9 — a ORIGEM do caminho é congelada no `dedo_desceu` (posição da criatura
+## naquele instante). A FORMA do traço vira ataque dentro do `sim/corpo.gd`
+## (laço → onda em área; bico → tiro; travessia → batida; fim em cima do
+## adversário → golpe final marcado nele). Enquanto desenha, o mundo roda em
+## tempo lento e a tela escurece; ao soltar, o tempo ACELERA numa rampa.
 
 const Mundo := preload("res://sim/mundo.gd")
 const Corpo := preload("res://sim/corpo.gd")
@@ -32,6 +34,7 @@ const Criatura := preload("res://jogo/criatura.gd")
 const AdversarioMock := preload("res://jogo/adversario_mock.gd")
 const Mira := preload("res://jogo/mira.gd")
 const Trilha := preload("res://jogo/trilha.gd")
+const Efeitos := preload("res://jogo/efeitos.gd")
 const Hud := preload("res://jogo/hud.gd")
 const Demo := preload("res://jogo/demo.gd")
 
@@ -49,26 +52,21 @@ var subsolo: Node2D
 var criatura: Node2D
 var mira: Node2D
 var trilha: Node2D
+var efeitos: Node2D
 var camera: Camera2D
 var hud: CanvasLayer
 var copas: Array = []
 var veu: ColorRect
 var _dedos := {}  # índice do dedo -> pressionado (multitouch)
-var _abertos := {}
 # a ORIGEM do gesto (congelada na descida do dedo): a linha não anda com ela
 var _gesto_tela := Vector2.ZERO
 var _gesto_origem := Vector2.ZERO
 var _gesto_inv := Transform2D.IDENTITY
 var _traco_iniciado := false
-# a rota de ANTES do gesto: dois dedos cancelam o traço e a devolvem
-var _rota_antes := {}
-var _cancelou := false
 # tempo lento do desenho e a rampa de aceleração da saída
 var _escala := 1.0
 var _retomada := 0.0
 var _veu_alfa := 0.0
-# uma AÇÃO durante o desenho devolve o tempo na hora (o golpe não fica lento)
-var _plano_liberado := false
 
 
 func _ready() -> void:
@@ -133,6 +131,11 @@ func _ready() -> void:
 	subsolo.visible = false
 	no.add_child(subsolo)
 
+	efeitos = Efeitos.new()
+	efeitos.corpo = corpo
+	efeitos.z_index = 24
+	no.add_child(efeitos)
+
 	mira = Mira.new()
 	mira.corpo = corpo
 	mira.alvos = alvos
@@ -172,14 +175,14 @@ func _process(delta: float) -> void:
 	# TRAÇO AO VIVO: enquanto o dedo desenha, a rota é refeita e a criatura já
 	# anda por ela. O relógio do GESTO é real; quem desacelera é o MUNDO.
 	if reconhecedor.desenhando():
-		corpo.tracar(_pontos_gesto(), mundo, not _traco_iniciado)
+		corpo.tracar(_pontos_gesto(), mundo, not _traco_iniciado, alvos)
 		_traco_iniciado = true
-	# PLANEJAMENTO: desenhando/defendendo o mundo desacelera; ao soltar, uma
-	# RAMPA de aceleração devolve o tempo normal (dá tempo de reagir).
+	# PLANEJAMENTO: desenhando, o mundo desacelera; ao soltar, uma RAMPA de
+	# aceleração devolve o tempo normal (dá tempo de reagir).
 	var plano: Dictionary = cfg_gestos.get("planejamento", {})
 	var lento := float(plano.get("escala_tempo", 0.35))
 	var retomada_s := maxf(float(plano.get("retomada_ms", 450)) / 1000.0, 0.001)
-	var planejando: bool = reconhecedor.planejando() and not _plano_liberado
+	var planejando: bool = reconhecedor.planejando()
 	if planejando:
 		_retomada = retomada_s
 		_escala = lento
@@ -199,7 +202,7 @@ func _process(delta: float) -> void:
 	for cp in copas:
 		cp.atualizar(corpo.pos, delta, corpo.camada == Mundo.SUBSOLO)
 	# a rota (a mesma que o dedo desenhou) fica VISÍVEL durante os gestos de
-	# ação: ataque, esquiva e pulo acontecem POR CIMA dela, sem movê-la.
+	# ação: o ataque acontece POR CIMA dela, sem movê-la.
 	if corpo.em_rota():
 		trilha.mostrar(corpo.rota)
 	else:
@@ -210,7 +213,7 @@ func _process(delta: float) -> void:
 
 
 ## VÉU: escurece enquanto desenha e clareia junto com a rampa de aceleração.
-## Suavizado para não piscar num gesto de ação que mal começou.
+## Suavizado para não piscar num gesto que mal começou.
 func _escurecer(planejando: bool, plano: Dictionary, retomada_s: float, delta: float) -> void:
 	var forca := float(plano.get("escurecer", 0.22))
 	# 1 enquanto planeja; ao soltar, 1 → 0 junto com a rampa
@@ -226,12 +229,31 @@ func _evento(e: String) -> void:
 		subsolo.queue_redraw()
 	elif e.begins_with("interagir:"):
 		var id := e.substr(10)
-		_abertos[id] = true
 		for n in get_node(".").find_children("*", "", true, false):
 			if n is ObjetoMock and n.id_objeto == id:
 				n.aberto = true
 	elif e == "rota:fim":
 		trilha.mostrar(PackedVector2Array())
+	elif e.begins_with("laco:"):
+		print("evento: ", e)
+		hud.nota("LAÇO: onda em área")
+	elif e.begins_with("bico:"):
+		print("evento: ", e)
+		hud.nota("BICO: tiro disparado")
+	elif e.begins_with("batida:"):
+		print("evento: ", e)
+		hud.nota("BATIDA em %s" % e.substr(7))
+	elif e.begins_with("acerto:"):
+		print("evento: ", e)
+		hud.nota("ACERTO em %s" % e.substr(7))
+	elif e.begins_with("golpe_final:"):
+		print("evento: ", e)
+		hud.nota("GOLPE FINAL em %s" % e.substr(12))
+	elif e == "mira_final:perde":
+		hud.nota("alvo final fugiu: a mira se perdeu")
+	elif e.begins_with("mira_final:"):
+		print("evento: ", e)
+		hud.nota("ALVO FINAL marcado em %s" % e.substr(11))
 
 
 # ---------- o dedo (toque real e demo passam por aqui) ----------
@@ -254,12 +276,9 @@ func dedo_desceu(dedo: int, p: Vector2) -> void:
 		# tela→mundo deste instante traduz o desenho (a linha não anda com o
 		# animal nem com a câmera).
 		_gesto_tela = p
-		_gesto_origem = corpo.pos - corpo.desvio
+		_gesto_origem = corpo.pos
 		_gesto_inv = get_viewport().get_canvas_transform().affine_inverse()
 		_traco_iniciado = false
-		_rota_antes = corpo.guardar_rota()
-		_cancelou = false
-		_plano_liberado = false
 	_entregar(reconhecedor.iniciar(dedo, p, tempo_ms, tela_de(criatura.ponto_visual() + Vector2(0, -20))))
 
 
@@ -274,21 +293,14 @@ func dedo_subiu(dedo: int, p: Vector2) -> void:
 
 func _entregar(evs: Array) -> void:
 	for ev in evs:
-		# Dois dedos ANTES de o caminho desenhar: o traço cai (o gesto é de ação).
-		if ev["gesto"] == "caminho_cancelar":
-			_cancelar_traco()
-			continue
-		# AÇÃO: o golpe não fica em câmera lenta — o tempo volta na hora (o
-		# desenho continua, se havia um).
-		if ev["gesto"] == "deslize" or ev["gesto"] == "especial" \
-				or (ev["gesto"] == "segurar_inicio" and ev.get("defesa", false)):
-			_plano_liberado = true
-			_retomada = 0.0
 		if ev["gesto"] == "trajetoria":
 			# O caminho já foi desenhado AO VIVO: aqui só se fecha a rota com o
-			# último trecho (nada de recomeçar do zero).
-			var res := str(corpo.tracar(_pontos_gesto(), mundo, not _traco_iniciado))
+			# último trecho (nada de recomeçar do zero) e se marca o alvo final.
+			var res := str(corpo.tracar(_pontos_gesto(), mundo, not _traco_iniciado, alvos))
 			_traco_iniciado = false
+			var marca := str(corpo.finalizar_rota(alvos))
+			if marca != "":
+				res += " · " + marca
 			hud.gesto(ev, Comandos.traduzir(ev, cfg_gestos.get("mapa", {})), res)
 			continue
 		var pm := PackedVector2Array()
@@ -299,17 +311,6 @@ func _entregar(evs: Array) -> void:
 		var cmd := Comandos.traduzir(ev, cfg_gestos.get("mapa", {}))
 		var res := "não reconhecido" if cmd.is_empty() else str(corpo.comandar(cmd, mundo, alvos))
 		hud.gesto(ev, cmd, res)
-
-
-## Cancela o caminho riscado por este gesto: devolve a rota (e o progresso)
-## que existia antes do dedo descer. É o que faz um gesto de DOIS dedos não
-## deixar passo para trás.
-func _cancelar_traco() -> void:
-	if _cancelou:
-		return
-	_cancelou = true
-	corpo.voltar_rota(_rota_antes)
-	_traco_iniciado = false
 
 
 ## O desenho do dedo em MUNDO, a partir da origem congelada e com o GANHO de

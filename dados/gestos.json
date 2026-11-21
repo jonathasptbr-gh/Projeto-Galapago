@@ -1,5 +1,5 @@
 {
- "_leia": "Gestos -> ações. v0.8 — MULTITOUCH: UM DEDO É CAMINHO, DOIS SÃO AÇÃO. O primeiro dedo desenha a rota AO VIVO (sem espera, ganho de sensibilidade, origem congelada na descida). Um dedo EXTRA é a ação, lido só nele (o dedo do caminho desconta): para cima = ataque, para baixo = defesa (sustentada até soltar), abrindo para fora (≥ especial_abre_px) = especial. Dá para desenhar e atacar ao mesmo tempo; se o segundo dedo chega antes de o caminho desenhar (`desenho_min_ms`), o traço é cancelado e o gesto é só ação. Sozinho, o dedo do caminho faz toque (travar), toque duplo (pular) e segurar nela (escavar). Ver docs/gdd/gestos-e-acoes.md.",
+ "_leia": "Gestos -> ações. v0.9 — UM DEDO FAZ TUDO. O primeiro dedo desenha a rota AO VIVO (sem espera, ganho de sensibilidade, origem congelada na descida). A FORMA do desenho vira ataque (sim/formas.gd): laço = ataque em área no centro do laço, bico (ida e volta brusca) = tiro na direção do bico. Soltar sem arrastar = toque (travar a mira); dois toques = pulo; SEGURAR parado = habilidade em si mesmo (cavar). Nenhum gesto de dois dedos. Ver docs/gdd/gestos-e-acoes.md.",
  "limiares": {
   "toque_max_px": 16,
   "toque_max_ms": 260,
@@ -7,12 +7,7 @@
   "toque_duplo_dist_px": 70,
   "segurar_min_ms": 380,
   "desenho_min_px": 16,
-  "desenho_min_ms": 150,
-  "acao_min_px": 44,
-  "acao_max_ms": 700,
-  "especial_abre_px": 70,
-  "na_criatura_raio_px": 70,
-  "alvo_raio_px": 110
+  "desenho_min_ms": 150
  },
  "desenho": {
   "ganho": 1.6
@@ -25,12 +20,7 @@
  "mapa": {
   "toque": "travar",
   "toque_duplo": "pular",
-  "segurar": "defender",
-  "segurar_na_criatura": "escavar",
-  "trajetoria": "mover",
-  "especial": "especial",
-  "deslize": [
-   {"nome": "cima", "de": -135, "ate": -45, "acao": "ataque"}
-  ]
+  "segurar": "habilidade",
+  "trajetoria": "mover"
  }
 }

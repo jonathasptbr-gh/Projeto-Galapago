@@ -1,6 +1,7 @@
 extends Node2D
 ## ADVERSÁRIO de teste na tela (mockup roxo). Só desenha o que a
-## sim/adversario.gd faz: ele vagueia, não reage, não machuca, não colide.
+## sim/adversario.gd faz: ele vagueia e, quando leva um golpe (v0.9), PISCA e
+## sai empurrado — dano ainda não existe.
 
 const Mock := preload("res://jogo/mock.gd")
 
@@ -26,7 +27,10 @@ func _draw() -> void:
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, 0.35))
 	draw_circle(Vector2.ZERO, 16.0, Color(0, 0, 0, 0.28), true, -1.0, true)
 	draw_set_transform(Vector2.ZERO)
-	draw_texture_rect(_sprite, Rect2(Vector2(-16, -30 - pulo), Vector2(32, 30)), false)
+	var cor := Color(1.0, 0.55, 0.45) if adv.piscando() else Color.WHITE
+	draw_texture_rect(_sprite, Rect2(Vector2(-16, -30 - pulo), Vector2(32, 30)), false, cor)
+	if adv.piscando():
+		draw_arc(Vector2(0, -15), 20.0, 0.0, TAU, 24, Color(1.0, 0.7, 0.5, 0.9), 2.0, true)
 	var o: Vector2 = adv.olhar if adv.olhar.length() > 0.01 else Vector2.RIGHT
 	draw_circle(Vector2(-6, -30 - pulo) + o * 4.0, 2.0, Color("#22113f"))
 	draw_circle(Vector2(6, -30 - pulo) + o * 4.0, 2.0, Color("#22113f"))
