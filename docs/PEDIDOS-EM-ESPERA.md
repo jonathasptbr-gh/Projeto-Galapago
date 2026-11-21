@@ -23,6 +23,7 @@
 | P15 | Ataque pela FORMA do desenho: laço (área), bico (tiro), travessia, alvo final, segurar = habilidade | P14 | **feito (v0.9.0)** |
 | P16 | Ajustes de sensação (21/11): marca na ponta, câmera mais distante, pulo emendado, cauda do sprint | P15 | **feito (v0.11.4)** |
 | P17 | Desligar o ataque em área do laço (desenho de círculo) | P16 | **feito (v0.11.5)** |
+| P18 | Extensão de parkour a leste (desníveis, plataformas e trilhas) | P17 | **feito (v0.12.0)** |
 
 ---
 
@@ -255,3 +256,19 @@
   rebuildar). Sem a linha "laço perto → ataque em área" na HUD.
 - **Pendente de design:** se o laço deve ganhar **outro** efeito (ou sumir de
   vez, com o código e os dados apagados), é decisão do operador.
+
+
+## P18 — Extensão de parkour a leste (v0.12.0)
+
+- **Operador (2026-11-21):** "Crie mais uma extensão para o mapa do projeto
+  Galápago, focado em parkour, com desníveis, plataformas e trilhas para
+  testar a movimentação."
+- **Feito em v0.12.0:** `fundacao.json` de 40 para **64 colunas** (o resto do
+  mapa não mudou); ligação pela ilha leste em `x = 38..39, y = 11..12`;
+  peças novas `p` trilha, `b` passarela, `r` rampa alta e `q` plataforma em
+  `dados/terrenos.json`; ida com pátio, vão de 1, passarela, vão de 2,
+  plataforma de 3, pescoço com rampa alta e pátio final; volta em `y = 16`
+  com degraus 1→2→3→2→1 e um vão de 2. Detalhe em
+  [`gdd/mapa.md`](gdd/mapa.md) e no [`HISTORICO`](HISTORICO.md).
+- **Pendente de ajuste (no aparelho):** se o vão de 2 células está confortável
+  com pulo emendado/sprint; se a área merece um atalho a partir do início.

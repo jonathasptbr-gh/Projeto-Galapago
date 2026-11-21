@@ -3,6 +3,42 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.12.0 — a extensão de parkour a leste (2026-11-21)
+
+- **Pedido do operador (2026-11-21):** "Crie mais uma extensão para o mapa do
+  projeto Galápago, focado em parkour, com desníveis, plataformas e trilhas
+  para testar a movimentação."
+- **O que é:** o `dados/mapas/fundacao.json` cresceu de **40 para 64 colunas**
+  (24 a leste). O mapa antigo **não mudou** — a extensão é uma área nova,
+  ligada à ilha leste por uma trilha de 2 células em `x = 38..39, y = 11..12`
+  (antes era água). Não há código novo de movimento: a área só combina
+  alturas e vãos com as regras de `sim/mundo.gd`.
+- **Peças novas em `dados/terrenos.json`:** `p` **trilha** (altura 1), `b`
+  **passarela** (2), `r` **rampa alta** (2,5 — liga 2 e 3 andando, como a `/`
+  faz com 1 e 2) e `q` **plataforma** (3). Cores de mockup; a arte de verdade
+  (P6) ainda não existe.
+- **O percurso (ver `docs/gdd/mapa.md`):** pátio de trilha → vão de 1 célula →
+  passarela (pulo de 1 nível, com rampa `/` ao lado para ir andando) →
+  passarela estreita de 1 célula → vão de 2 células (pulo emendado ou sprint)
+  → plataforma de 3 → pescoço com rampa alta e degrau de 2 → rampa `/` e pátio
+  final. A **volta** em `y = 16` desce em degraus 1→2→3→2→1 com vãos de 1
+  célula e um de 2, fechando o laço no pátio inicial.
+- **O que testa:** andar em xadrez/ladeira, pulo simples (1 célula), pulo
+  emendado/sprint (2 células), subir e descer 1 nível (andar não vence; o pulo
+  sim), rampas no lugar do pulo, e caminhar em plataforma com a câmera
+  acompanhando.
+- **Testes novos (3, `testes/test_mundo.gd`):**
+  `test_extensao_parkour_e_valida_e_ligada`,
+  `test_extensao_parkour_rampas_ligam_os_niveis` e
+  `test_extensao_parkour_vaos_e_pulos` — validam a legenda, a largura 64, a
+  ligação pela ilha leste, as alturas 1/2/2,5/3, as duas rampas e os vãos de
+  1 e 2 células (o pulo sobe 1 nível, não 2). Suíte: **114 testes, 0 falhas**.
+- **Oráculo:** a área foi aberta em PNG com o início temporário em (42,11),
+  (50,11), (55,16) e (61,12) e depois o `inicio` foi restaurado — os quadros
+  mostram a trilha, a passarela, a plataforma e a volta.
+- **Para voltar atrás:** apagar as 24 colunas de cada linha (voltar a 40) e as
+  quatro peças `p/b/r/q` da legenda; nada mais depende delas.
+
 ## v0.11.5 — o ataque em área do laço desligado (2026-11-21)
 
 - **Pedido do operador (2026-11-21):** "Vamos desativar o ataque em área feito
