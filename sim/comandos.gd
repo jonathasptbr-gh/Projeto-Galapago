@@ -3,12 +3,13 @@ extends RefCounted
 ## de dados/gestos.json. Quem decide se a criatura obedece é a camada de
 ## afinidade (P4); hoje ela obedece.
 ##
-## v0.6 — SETORES DE TELA: o ângulo é o do vetor do dedo na TELA (0° = direita,
+## v0.7 — SETORES DE TELA: o ângulo é o do vetor do dedo na TELA (0° = direita,
 ## -90° = cima, +90° = baixo). Não depende do olhar da criatura. A tabela
-## `deslize` de dados/gestos.json decide a ação: cima → ataque físico; lados →
-## especiais; baixo → esquiva. O caminho (trajetoria) vem da âncora; segurar em
-## cima dela (sem `defesa`) → escavar; segurar depois de um deslize para baixo
-## (`defesa: true`) → defender.
+## `deslize` de dados/gestos.json decide a ação de um RISCO rápido: cima →
+## ataque físico; lados → especiais; baixo → esquiva. O caminho (trajetoria)
+## não passa por aqui: `jogo/main.gd` o desenha ao vivo em `corpo.tracar`.
+## Segurar nela sem arrastar (sem `defesa`) → escavar; segurar depois de um
+## deslize para baixo (`defesa: true`) → defender.
 ##
 ## Comando: {acao, lado, alcance, alvo, pontos, setor, angulo, direcao, gesto}.
 

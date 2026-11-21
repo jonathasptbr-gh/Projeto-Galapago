@@ -17,7 +17,8 @@ por software, grava N quadros PNG (Movie Maker do Godot, `--write-movie`,
   funciona: OpenGL 3.3 Core. O script já usa `softpipe` por padrão. Tempo: 60
   quadros 320×180 em ~22 s (v0.1); 60 quadros 1280×720 com a ilha em ~40 s
   (v0.3); **v0.6 em retrato: 60 quadros 720×1280 em ~1 min 46 s** (cena nova,
-  demo com âncora e tempo lento).
+  demo com âncora e tempo lento); **v0.7: 96 quadros em ~2,5 s/quadro** (traço
+  ao vivo, véu e rampa).
 - **`opengl3_es` não carrega aqui** (sem EGL).
 - **No CI (x86_64)** o workflow usa `llvmpipe` e publica os quadros como
   artefato `quadros` (7 dias).

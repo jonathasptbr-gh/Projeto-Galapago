@@ -7,7 +7,7 @@ extends RefCounted
 ##   toque · toque_duplo · segurar_inicio · segurar_fim · deslize ·
 ##   trajetoria · nada
 ## Cada evento: {gesto, inicio, fim, vetor, pontos, duracao_ms, na_criatura,
-## ancora, defesa}. Posições em pixels de TELA.
+## defesa}. Posições em pixels de TELA.
 ##
 ## v0.7 — SEM ESPERA: assim que o dedo anda mais que `desenho_min_px` o gesto
 ## JÁ É caminho (o jogo desenha a rota ao vivo, quadro a quadro). Acabou o
@@ -217,7 +217,7 @@ func _evento(gesto: String, t_ms: float) -> Dictionary:
 	return {
 		"gesto": gesto, "inicio": ini, "fim": fim, "vetor": fim - ini,
 		"pontos": _pontos.duplicate(), "duracao_ms": t_ms - _t0,
-		"na_criatura": _na_criatura, "ancora": ini, "defesa": _defendendo,
+		"na_criatura": _na_criatura, "defesa": _defendendo,
 	}
 
 
