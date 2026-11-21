@@ -235,3 +235,115 @@ func test_escavar_desce_anda_no_tunel_e_sobe() -> void:
 	checar(c.comandar({"acao": "escavar"}, m, []).begins_with("ok"), "escava para subir")
 	_rodar(c, m, 1.2)
 	igual(c.camada, M.SUPERFICIE, "voltou à superfície")
+
+
+# ---------------------------------------------------------------- v0.6: rota por waypoints
+
+func _setup_objeto(objetos: Array, semente := 5) -> Array:
+	var m := M.criar({"celula_px": 32, "celulas": MAPA, "subsolo": [], "objetos": objetos}, terrenos)
+	var c := Corpo.new(acoes)
+	c.rng.seed = semente
+	c.pos = Vector2(48, 48)
+	return [m, c]
+
+
+## A criatura contorna um TRONCO (desvio local) e continua a rota.
+func test_rota_desvia_de_objeto_e_continua() -> void:
+	var s := _setup_objeto([{"tipo": "arvore", "celula": [3, 1]}])
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(240, 48)])}, m, []).begins_with("ok"), "rota")
+	var evs := _seguir_ate_fim(c, m, [], 10.0)
+	checar("rota:fim" in evs, "terminou a rota")
+	checar(c.pos.x > 200.0, "passou do tronco (x=%s)" % c.pos.x)
+
+
+## Água é BARREIRA: para, mas a rota fica guardada. Um pulo durante a rota
+## passa por cima e retoma o percurso.
+func test_barreira_para_a_rota_e_pulo_retoma() -> void:
+	var s := _setup([",,~,,,"])
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.pos = Vector2(16, 16)
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(176, 16)])}, m, [])
+	_rodar(c, m, 2.0)
+	checar(c.em_rota(), "rota continua guardada")
+	checar(c.barrado(), "parada na barreira")
+	checar(c.pos.x < 96.0, "antes da água (x=%s)" % c.pos.x)
+	checar(c.comandar({"acao": "pular"}, m, []).begins_with("ok"), "pulou")
+	_rodar(c, m, 1.2)
+	checar(c.pos.x > 96.0, "passou da água (x=%s)" % c.pos.x)
+
+
+## O desconto inicial: a ida e volta do começo do traço não é obedecida.
+func test_desconto_inicial_nao_volta_no_comeco() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(28, 48), Vector2(48, 48), Vector2(160, 48)])}, m, [])
+	igual(c.rota.size(), 2, "cortou o vai-e-volta (%s)" % [c.rota])
+	checar(c.rota.size() == 2 and c.rota[1].x > 48.0, "segue para a frente")
+
+
+func test_rota_passa_pelos_pontos_na_ordem() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(200, 48), Vector2(200, 200), Vector2(48, 200)])}, m, [])
+	var vistos: Array = []
+	var t := 0.0
+	while c.em_rota() and t < 10.0:
+		c.passo(1.0 / 30.0, m, [])
+		c.drenar_eventos()
+		t += 1.0 / 30.0
+		for par in [["a", Vector2(200, 48)], ["b", Vector2(200, 200)], ["c", Vector2(48, 200)]]:
+			if not par[0] in vistos and c.pos.distance_to(par[1]) < 24.0:
+				vistos.append(par[0])
+	igual(vistos, ["a", "b", "c"], "ordem dos pontos (%s)" % [vistos])
+
+
+# ---------------------------------------------------------------- v0.6: especiais e esquiva de tela
+
+func test_especial_sai_para_o_lado_do_gesto() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	checar(c.comandar({"acao": "especial", "direcao": Vector2.RIGHT}, m, []).begins_with("ok"), "especial")
+	igual(c.ataque, "especial", "golpe especial em curso")
+	checar(c.ataque_dir.x > 0.9, "para a direita (%s)" % c.ataque_dir)
+	_rodar(c, m, 0.7)
+	igual(c.ataque, "", "especial terminou")
+
+
+func test_esquiva_vai_para_a_direcao_do_gesto() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(400, 48)])}, m, [])
+	_rodar(c, m, 0.2)
+	checar(c.comandar({"acao": "esquiva", "direcao": Vector2.DOWN}, m, []).begins_with("ok"), "esquivou")
+	_rodar(c, m, 0.09)
+	checar(c.desvio.y > 8.0, "para baixo (%s)" % c.desvio)
+	checar(absf(c.desvio.x) < 1.0, "sem lado")
+	checar(c.em_rota(), "rota continua")
+	_rodar(c, m, 0.4)
+	perto(c.desvio.length(), 0.0, 0.5, "voltou")
+
+
+## Pulo curto não atravessa canal largo: cai na água, a rota para, e é preciso
+## OUTRO pulo. É a regra "sem pular, para na barreira; pulando, segue".
+func test_pulo_curto_cai_na_agua_e_precisa_de_outro() -> void:
+	var s := _setup([",,~~,,"])
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.pos = Vector2(16, 16)
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(176, 16)])}, m, [])
+	_rodar(c, m, 2.0)
+	checar(c.comandar({"acao": "pular"}, m, []).begins_with("ok"), "1º pulo")
+	_rodar(c, m, 0.6)
+	checar(c.pos.x > 64.0 and c.pos.x < 128.0, "caiu na água (x=%s)" % c.pos.x)
+	checar(c.barrado(), "parada na água")
+	_rodar(c, m, 0.4)
+	checar(c.comandar({"acao": "pular"}, m, []).begins_with("ok"), "2º pulo")
+	_rodar(c, m, 0.8)
+	checar(c.pos.x > 128.0, "saiu da água (x=%s)" % c.pos.x)

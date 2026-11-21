@@ -281,15 +281,16 @@ func _mostrar(texto: String, botoes: Array) -> void:
 		var coluna := VBoxContainer.new()
 		coluna.add_theme_constant_override("separation", 10)
 		_painel.add_child(coluna)
-		var linha := HBoxContainer.new()
-		linha.add_theme_constant_override("separation", 16)
-		coluna.add_child(linha)
+		# RETRATO: texto em cima (com quebra de linha), botões embaixo — na
+		# paisagem o texto e os botões ficavam lado a lado e estouravam a tela.
 		_texto = Label.new()
-		_texto.add_theme_font_size_override("font_size", 24)
-		linha.add_child(_texto)
+		_texto.add_theme_font_size_override("font_size", 22)
+		_texto.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_texto.custom_minimum_size = Vector2(320, 0)
+		coluna.add_child(_texto)
 		_botoes = HBoxContainer.new()
 		_botoes.add_theme_constant_override("separation", 12)
-		linha.add_child(_botoes)
+		coluna.add_child(_botoes)
 		_barra = ProgressBar.new()
 		_barra.custom_minimum_size = Vector2(0, 26)
 		_barra.visible = false

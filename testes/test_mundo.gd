@@ -68,3 +68,20 @@ func test_alfa_da_copa() -> void:
 	perto(V.alfa_cobertura(200.0, 40.0), 1.0, 0.001, "longe: opaca")
 	var meio: float = V.alfa_cobertura(52.0, 40.0)
 	checar(meio > 0.28 and meio < 1.0, "transição suave (%s)" % meio)
+
+
+## v0.6: o corpo distingue OBJETO (dá para desviar) de TERRENO (barreira; só
+## o pulo passa) para decidir entre contornar e parar.
+func test_bloqueio_distingue_objeto_de_terreno() -> void:
+	var m := _mundo([",~,#,"], [], [{"tipo": "arvore", "celula": [4, 0]}])
+	igual(m.bloqueio(Vector2i(0, 0), M.SUPERFICIE), "", "livre")
+	igual(m.bloqueio(Vector2i(1, 0), M.SUPERFICIE), "terreno", "água")
+	igual(m.bloqueio(Vector2i(3, 0), M.SUPERFICIE), "terreno", "rocha")
+	igual(m.bloqueio(Vector2i(4, 0), M.SUPERFICIE), "objeto", "tronco")
+	igual(m.bloqueio(Vector2i(0, 0), M.SUBSOLO), "terreno", "sem túnel no subsolo")
+
+
+func test_caminho_livre() -> void:
+	var m := _mundo([",,,~~,,"])
+	checar(m.caminho_livre(_c(0, 0), _c(2, 0), M.SUPERFICIE), "até a beira da água")
+	checar(not m.caminho_livre(_c(0, 0), _c(4, 0), M.SUPERFICIE), "atravessar a água não")

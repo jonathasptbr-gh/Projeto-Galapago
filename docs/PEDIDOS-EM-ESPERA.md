@@ -17,6 +17,7 @@
 | P9 | Atualização automática do app (método do IASD, repo público) | P2 | **feito (v0.3.1)** — falta o operador reinstalar uma vez e confirmar |
 | P10 | Mapa básico de cima com profundidade + tela em alta resolução | P1 | **feito (v0.4.0)** — camadas lógicas + mockup |
 | P11 | Movimento por rota + overlays, alvos/mira, adversário e autonomia | P3 | **feito (v0.5.0)** |
+| P12 | Retrato + gestos de tela + caminho por âncora (tempo lento, desconto, desvio de objetos) | P11 | **feito (v0.6.0)** |
 
 ---
 
@@ -43,7 +44,7 @@
 
 - Job `apk` no `ci.yml`: Godot + export templates 4.7.2
   (`Godot_v4.7.2-stable_export_templates.tpz`), Java 17, Android SDK do runner,
-  `export_presets.cfg` com preset Android (arm64-v8a, paisagem).
+  `export_presets.cfg` com preset Android (arm64-v8a; na época em paisagem — hoje retrato pela P12).
 - Keystore de release em *secret* do repositório (gerar e guardar a senha fora
   do repositório); debug keystore no CI enquanto isso.
 - Release por tag `v*` com o APK anexo.
@@ -85,3 +86,19 @@
 ## P8 — GDD do loop diário
 
 - Conversa de design com o operador → `docs/gdd/loop-diario.md`.
+
+
+## P12 — Retrato e caminho por âncora
+
+- **Operador (2026-11-20):** gestos relativos à TELA (cima = ataque físico,
+  lados = especiais, baixo = esquiva; baixo + segurar = defesa); tela em
+  retrato; caminho desenhado a partir de uma **âncora** segurada longe da
+  criatura (o dedo não tapa a visão), com **tempo lento** durante o desenho;
+  **desconto inicial** do vai-e-volta; caminho como pontos de referência com
+  **pequenos desvios de objetos**; barreira sem pulo = para, com pulo = segue.
+- **Feito em v0.6.0:** `sim/gestos.gd` (âncora, setores de tela, defesa por
+  baixo+segurar), `sim/trajetoria.gd` (desconto + Douglas-Peucker),
+  `sim/corpo.gd` (waypoints, desvio local, barreira/pulo), `jogo/` (prévia
+  transladada, tempo lento, HUD retrato), `project.godot` 720×1280 orientação 1.
+- **Pendente de design:** o que cada **especial** faz (hoje é um golpe lateral
+  genérico) e o ajuste fino de `escala_tempo`/`desconto_raio_px` pelo operador.

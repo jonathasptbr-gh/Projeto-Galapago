@@ -1,13 +1,16 @@
 extends Node2D
-## Cena principal (v0.5): a FUNDAÇÃO com movimento e alvos.
+## Cena principal (v0.6): a FUNDAÇÃO em RETRATO, com caminho por ÂNCORA.
 ##
 ## Camadas de desenho (z_index), de trás para frente:
 ##   −20 parallax fundo · 0 chão · 1 trilha/rota · 2 objetos (y-sort: troncos,
 ##   baú, adversário, criatura) · 15 subsolo · 25 marca de mira · 30 copas ·
 ##   40 parallax frente · HUD.
 ##
-## Fluxo: dedo → sim/gestos → sim/comandos → sim/corpo (rota + overlays +
+## Fluxo: dedo → sim/gestos (âncora do caminho + gestos de tela) →
+## sim/comandos → sim/corpo (pontos de referência + desvio + overlays +
 ## autonomia). O tempo é SIMULADO (tempo_ms): demo e oráculo são determinísticos.
+## Enquanto a âncora existe, o MUNDO roda em tempo lento (`planejamento`);
+## o relógio do gesto continua real, senão o desenho ficaria arrastado.
 
 const Mundo := preload("res://sim/mundo.gd")
 const Corpo := preload("res://sim/corpo.gd")
@@ -46,7 +49,6 @@ var camera: Camera2D
 var hud: CanvasLayer
 var copas: Array = []
 var _dedo := -1
-var _bruto := PackedVector2Array()
 var _abertos := {}
 
 
@@ -139,19 +141,32 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	tempo_ms += delta * 1000.0
-	for adv in adversarios:
-		adv.passo(delta, mundo)
-	Alvos.sincronizar(alvos, adversarios)
 	_entregar(reconhecedor.tick(tempo_ms))
-	corpo.passo(delta, mundo, alvos)
+	# PLANEJAMENTO: com a âncora viva, o mundo desacelera; o dedo continua em
+	# tempo real (é o que dá tempo de desenhar e de planejar).
+	var plano: Dictionary = cfg_gestos.get("planejamento", {})
+	var escala := 1.0
+	if reconhecedor.ancorado():
+		escala = float(plano.get("escala_tempo", 0.35))
+	var dt := delta * escala
+	for adv in adversarios:
+		adv.passo(dt, mundo)
+	Alvos.sincronizar(alvos, adversarios)
+	corpo.passo(dt, mundo, alvos)
 	for e in corpo.drenar_eventos():
 		_evento(e)
 	for cp in copas:
 		cp.atualizar(corpo.pos, delta, corpo.camada == Mundo.SUBSOLO)
-	if corpo.em_rota() and _dedo == -1:
+	# a rota continua VISÍVEL durante um gesto de ação; só a prévia da âncora
+	# substitui a linha enquanto o jogador desenha.
+	if reconhecedor.ancorado():
+		_atualizar_previa()
+	elif corpo.em_rota():
 		trilha.mostrar(corpo.rota)
+	else:
+		trilha.mostrar(PackedVector2Array())
 	camera.position = criatura.ponto_visual()
-	hud.estado(corpo, alvos)
+	hud.estado(corpo, alvos, reconhecedor.ancorado(), escala)
 
 
 func _evento(e: String) -> void:
@@ -184,31 +199,49 @@ func _unhandled_input(ev: InputEvent) -> void:
 
 
 func dedo_desceu(p: Vector2) -> void:
-	_bruto = PackedVector2Array([mundo_de(p)])
+	if _dedo == -1:
+		_dedo = 0  # o demo chama direto, sem InputEvent
 	_entregar(reconhecedor.iniciar(p, tempo_ms, tela_de(criatura.ponto_visual() + Vector2(0, -20))))
 
 
 func dedo_moveu(p: Vector2) -> void:
-	_bruto.append(mundo_de(p))
-	if corpo.alvo_id == "":
-		trilha.mostrar(_bruto)
 	_entregar(reconhecedor.mover(p, tempo_ms))
 
 
 func dedo_subiu(p: Vector2) -> void:
 	_entregar(reconhecedor.soltar(p, tempo_ms))
+	_dedo = -1
 
 
 func _entregar(evs: Array) -> void:
 	for ev in evs:
-		ev["alvo"] = mundo_de(ev["fim"])
+		var pts_tela: PackedVector2Array = ev["pontos"]
+		var desloc := Vector2.ZERO
+		if ev["gesto"] == "trajetoria":
+			# A ÂNCORA é o "animal virtual": o desenho inteiro é transladado
+			# para que ela caia em cima da criatura — o dedo fica longe dela.
+			desloc = tela_de(corpo.pos) - Vector2(ev.get("ancora", ev["fim"]))
 		var pm := PackedVector2Array()
-		for q in ev["pontos"]:
-			pm.append(mundo_de(q))
+		for q in pts_tela:
+			pm.append(mundo_de(q + desloc))
 		ev["pontos_mundo"] = pm
-		var cmd := Comandos.traduzir(ev, corpo.olhar, cfg_gestos.get("mapa", {}))
+		ev["alvo"] = pm[pm.size() - 1] if not pm.is_empty() else corpo.pos
+		var cmd := Comandos.traduzir(ev, cfg_gestos.get("mapa", {}))
 		var res := "não reconhecido" if cmd.is_empty() else str(corpo.comandar(cmd, mundo, alvos))
 		hud.gesto(ev, cmd, res)
+
+
+## Prévia do caminho durante a âncora: desenha o traço TRANSLADADO para a
+## criatura (o dedo não tapa a visão) e marca onde está o "animal virtual".
+func _atualizar_previa() -> void:
+	if not reconhecedor.ancorado():
+		trilha.mostrar(PackedVector2Array())
+		return
+	var desloc: Vector2 = tela_de(corpo.pos) - reconhecedor.ancora()
+	var prev := PackedVector2Array()
+	for q in reconhecedor.pontos():
+		prev.append(mundo_de(q + desloc))
+	trilha.mostrar(prev, mundo_de(reconhecedor.ancora()), true)
 
 
 func mundo_de(tela: Vector2) -> Vector2:

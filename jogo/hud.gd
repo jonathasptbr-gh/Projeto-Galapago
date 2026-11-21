@@ -1,7 +1,8 @@
 extends CanvasLayer
 ## HUD de desenvolvimento: título (versão/build), legenda dos gestos (gerada da
-## tabela), estado do corpo (rota/autonomia, alvo, camada), última relação
-## gesto → ação, e o ESTADO DA ATUALIZAÇÃO com botão de verificar à mão.
+## tabela), estado do corpo (rota/waypoints, barreira, alvo, camada,
+## planejamento), última relação gesto → ação, e o ESTADO DA ATUALIZAÇÃO com
+## botão de verificar à mão. Layout pensado para a tela em RETRATO (720×1280).
 
 const Atualizador := preload("res://jogo/atualizador.gd")
 const Alvos := preload("res://sim/alvos.gd")
@@ -16,7 +17,7 @@ var _status: Label
 func _ready() -> void:
 	var versao: String = ProjectSettings.get_setting("application/config/version", "local")
 	var build := int(ProjectSettings.get_setting("galapago/build", 0))
-	_rotulo("Projeto Galápago  ·  %s  ·  fundação (mockup)" % ("build local" if versao == "local" else "v" + versao), Vector2(20, 14), 22)
+	_rotulo("Projeto Galápago  ·  %s  ·  retrato (mockup)" % ("build local" if versao == "local" else "v" + versao), Vector2(20, 14), 22)
 	var leg := _rotulo(_legenda(), Vector2.ZERO, 16)
 	leg.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
 	leg.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -39,7 +40,7 @@ func _ready() -> void:
 		b.add_theme_font_size_override("font_size", 16)
 		b.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
 		b.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-		b.position.y += 210
+		b.position.y += 330
 		b.pressed.connect(func(): atualizador.verificar())
 		add_child(b)
 
@@ -51,15 +52,16 @@ func _process(_delta: float) -> void:
 
 func _legenda() -> String:
 	var m: Dictionary = cfg.get("mapa", {})
-	var linhas := PackedStringArray(["v0.5 · GESTOS"])
-	linhas.append("arrasto PERTO dela → mover (rota)")
+	var linhas := PackedStringArray(["v0.6 · GESTOS (TELA)"])
+	linhas.append("segurar parado e arrastar → caminho")
 	for s in m.get("deslize", []):
-		var l := "longe, %s → %s" % [s["nome"], s["acao"]]
+		var seta: String = {"cima": "↑", "baixo": "↓", "esquerda": "←", "direita": "→"}.get(s["nome"], "?")
+		var l := "%s %s → %s" % [seta, s["nome"], s["acao"]]
 		if not l in linhas:
 			linhas.append(l)
+	linhas.append("↓ + segurar → %s" % m.get("segurar", "—"))
 	linhas.append("toque → %s" % m.get("toque", "—"))
 	linhas.append("toque duplo → %s" % m.get("toque_duplo", "—"))
-	linhas.append("segurar → %s" % m.get("segurar", "—"))
 	linhas.append("segurar nela → %s" % m.get("segurar_na_criatura", "—"))
 	return "\n".join(linhas)
 
@@ -71,13 +73,23 @@ func gesto(ev: Dictionary, cmd: Dictionary, resultado: String) -> void:
 	_gesto.text = "gesto: %s%s → %s · %s" % [ev["gesto"], extra, cmd.get("acao", "nada"), resultado]
 
 
-func estado(corpo: RefCounted, alvos: Array) -> void:
-	var modo := "rota (%d%%)" % roundi(100.0 * corpo.rota_t / maxf(corpo.total_rota, 0.001)) if corpo.em_rota() else "autonomia: %s" % corpo.autonomia
+func estado(corpo: RefCounted, alvos: Array, planejando := false, escala := 1.0) -> void:
+	var modo := ""
+	if corpo.em_rota():
+		var pct := roundi(100.0 * minf(corpo.rota_t, corpo.total_rota) / maxf(corpo.total_rota, 0.001))
+		modo = "rota (%d%%)" % pct
+		if corpo.barrado():
+			modo = "rota PARADA na barreira (%d%%)" % pct
+	else:
+		modo = "autonomia: %s" % corpo.autonomia
 	var alvo := "—"
 	if corpo.alvo_id != "":
 		alvo = "%s%s" % [corpo.alvo_tipo, (" a %d px" % roundi(corpo.pos.distance_to(Alvos.pos_de(alvos, corpo.alvo_id))))]
-	_estado.text = "estado: %s · alvo: %s · %s%s%s" % [modo, alvo, corpo.camada,
-		(" · defendendo" if corpo.defendendo else ""), (" · no ar" if corpo.no_ar() else "")]
+	var extra := ""
+	if planejando:
+		extra = " · PLANEJANDO %d%%" % roundi(escala * 100.0)
+	_estado.text = "estado: %s · alvo: %s · %s%s%s%s" % [modo, alvo, corpo.camada,
+		(" · defendendo" if corpo.defendendo else ""), (" · no ar" if corpo.no_ar() else ""), extra]
 
 
 func _rotulo(texto: String, pos: Vector2, tamanho: int) -> Label:

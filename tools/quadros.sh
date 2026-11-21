@@ -14,8 +14,8 @@ case "$SAIDA" in ""|/|"$HOME"|.) echo "saída perigosa: '$SAIDA'" >&2; exit 2;; 
 rm -rf "${SAIDA:?}"; mkdir -p "$SAIDA"
 export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER="${GALLIUM_DRIVER:-softpipe}" GODOT_SILENCE_ROOT_WARNING=1
 "$G" --headless --path . --import >/dev/null 2>&1 || true
-xvfb-run -a -s "-screen 0 1280x720x24" "$G" --path . --rendering-driver opengl3 \
-  --audio-driver Dummy --resolution 1280x720 --write-movie "$SAIDA/q.png" \
+xvfb-run -a -s "-screen 0 720x1280x24" "$G" --path . --rendering-driver opengl3 \
+  --audio-driver Dummy --resolution 720x1280 --write-movie "$SAIDA/q.png" \
   --fixed-fps "${QUADROS_FPS:-30}" --quit-after "$N" -- --demo >"$SAIDA/log.txt" 2>&1 || true
 rm -f "$SAIDA"/q*.wav
 

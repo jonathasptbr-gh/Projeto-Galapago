@@ -3,53 +3,56 @@ extends RefCounted
 ## de dados/gestos.json. Quem decide se a criatura obedece é a camada de
 ## afinidade (P4); hoje ela obedece.
 ##
-## Regras (v0.5):
-## - arrasto começando PERTO da criatura = ROTA (vem como "trajetoria");
-## - gesto de ação só FORA da área dela; o SETOR é relativo ao OLHAR:
-##   frente → ataque (a direção do golpe é do alvo/rota, não do dedo),
-##   esquerda/direita → esquiva para aquele lado;
-## - toque = travar a mira (ou interagir); toque duplo = pular;
-##   segurar = defender (para a rota); segurar nela = escavar.
+## v0.6 — SETORES DE TELA: o ângulo é o do vetor do dedo na TELA (0° = direita,
+## -90° = cima, +90° = baixo). Não depende do olhar da criatura. A tabela
+## `deslize` de dados/gestos.json decide a ação: cima → ataque físico; lados →
+## especiais; baixo → esquiva. O caminho (trajetoria) vem da âncora; segurar em
+## cima dela (sem `defesa`) → escavar; segurar depois de um deslize para baixo
+## (`defesa: true`) → defender.
 ##
-## Comando: {acao, lado, alcance, alvo, pontos, setor, direcao, gesto}.
+## Comando: {acao, lado, alcance, alvo, pontos, setor, angulo, direcao, gesto}.
 
 const AO_ALCANCE := 110.0
 
 
-## Ângulo do vetor em relação ao olhar, em graus, em (-180, 180].
-static func angulo_relativo(vetor: Vector2, olhar: Vector2) -> float:
-	var a := rad_to_deg(wrapf(vetor.angle() - olhar.angle(), -PI, PI))
-	return 180.0 if is_equal_approx(a, -180.0) else a
-
-
-## Setor do deslize pela tabela; {} se nenhum casar.
+## Setor do deslize pela tabela; {} se nenhum casar. A tabela é de ângulos de
+## tela e pode ter mais de uma faixa para o mesmo setor (esquerda em ±180°).
 static func setor(angulo: float, tabela: Array) -> Dictionary:
 	for s in tabela:
-		if angulo >= float(s["de"]) and angulo <= float(s["ate"]):
+		# tolerância: o ângulo de uma diagonal pode chegar como -135,00001
+		if angulo >= float(s["de"]) - 0.01 and angulo <= float(s["ate"]) + 0.01:
 			return s
 	return {}
 
 
 ## Traduz um evento (já com "alvo"/"pontos" em mundo) num comando; {} = nada.
-static func traduzir(ev: Dictionary, olhar: Vector2, mapa: Dictionary) -> Dictionary:
+static func traduzir(ev: Dictionary, mapa: Dictionary) -> Dictionary:
 	var g: String = ev.get("gesto", "")
 	var cmd := {"gesto": g, "alvo": ev.get("alvo", Vector2.ZERO), "pontos": ev.get("pontos_mundo", PackedVector2Array()),
-		"direcao": Vector2(ev.get("vetor", Vector2.ZERO)).normalized(), "setor": "", "lado": 0.0, "alcance": AO_ALCANCE}
+		"direcao": Vector2(ev.get("vetor", Vector2.ZERO)).normalized(), "setor": "", "angulo": 0.0,
+		"lado": 0.0, "alcance": AO_ALCANCE}
 	match g:
 		"toque", "toque_duplo", "trajetoria":
 			cmd["acao"] = mapa.get(g, "")
 		"segurar_inicio":
-			cmd["acao"] = mapa.get("segurar_na_criatura" if ev.get("na_criatura", false) else "segurar", "")
+			if ev.get("defesa", false):
+				cmd["acao"] = mapa.get("segurar", "")
+			else:
+				cmd["acao"] = mapa.get("segurar_na_criatura" if ev.get("na_criatura", false) else "segurar", "")
 		"segurar_fim":
 			cmd["acao"] = "soltar"
 		"deslize":
-			var ang := angulo_relativo(ev["vetor"], olhar)
+			var vetor: Vector2 = ev.get("vetor", Vector2.ZERO)
+			if vetor.length() < 0.01:
+				return {}
+			var ang := rad_to_deg(vetor.angle())
 			var s := setor(ang, mapa.get("deslize", []))
 			if s.is_empty():
 				return {}
 			cmd["acao"] = s["acao"]
 			cmd["setor"] = s["nome"]
 			cmd["angulo"] = ang
+			cmd["direcao"] = vetor.normalized()
 			if s.has("lado"):
 				cmd["lado"] = float(s["lado"])
 		_:

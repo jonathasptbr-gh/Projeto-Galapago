@@ -3,6 +3,59 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.6.0 — retrato, gestos de tela, caminho por âncora e desvio de objetos (2026-11-20)
+
+- **Pedido do operador:** os gestos de ação não são mais relativos ao animal
+  (não existe "para a frente dele"): são da TELA — para cima é ataque físico,
+  lados são especiais, para baixo é esquiva; arrastar para trás e continuar
+  segurando é defesa. Tela em **retrato**. O caminho passa a ser desenhado a
+  partir de uma **âncora segurada** longe da criatura (o dedo não tapa a
+  visão), com **retardo de tempo** durante o desenho/planejamento; **desconto
+  inicial** do vai-e-volta; caminho contado como **pontos de referência** com
+  **pequenos desvios de objetos**; barreira sem pulo = para, com pulo = segue.
+- **Gestos (`sim/gestos.gd`):** setores de tela (0° = direita, -90° = cima);
+  segurar parado 0,38 s cria a âncora; arrastar a partir dela = `trajetoria`;
+  baixo + segurar (parado 0,18 s) = `segurar_inicio` de defesa; segurar nela
+  sem arrastar = escavar (só no soltar, e só se não arrastou além de 16 px).
+  Toque, toque duplo e os demais limiares continuam em `dados/gestos.json`.
+- **Comandos (`sim/comandos.gd`):** a tabela `mapa.deslize` agora é de ângulos
+  de TELA: cima → ataque; direita/esquerda → especial com lado; baixo →
+  esquiva com direção. A defesa (`defesa: true`) vence o "nela".
+- **Caminho (`sim/trajetoria.gd` + `sim/corpo.gd`):** o traço é cortado no
+  início (`descontar_inicio`: só se houve volta ≥ 6 px, janela de 140 px e
+  reta andável) e reduzido por Douglas-Peucker (`simplificar`, 10 px) a pontos
+  de referência. O corpo procura um ponto por vez; tronco é contornado por um
+  leque de até ±120° (`desvio_angulos`, teto de 80 passos); água/rocha/altura
+  são barreira: a criatura **para** (`barrado()`), a rota fica guardada e um
+  **pulo** durante a rota atravessa e retoma. Caiu na água? Não anda sobre ela:
+  precisa de outro pulo.
+- **Especial:** ação nova em `dados/acoes.json` (fases 0,14/0,22/0,26; alcance
+  56; arco 120°; recarga 0,55), um golpe lateral genérico — o conteúdo por
+  criatura fica para P4/P5. O ataque físico continua mirando no alvo/rota, não
+  no ângulo do dedo.
+- **Retrato:** `project.godot` 720×1280, `window/handheld/orientation=1`;
+  oráculo em 720×1280; HUD e painel de atualização reorganizados para a tela
+  alta (texto do aviso em cima, botões embaixo); botão "Verificar atualização"
+  desceu para não colidir com a legenda.
+- **Tempo lento:** enquanto a âncora existe, o MUNDO roda a 0,35×
+  (`planejamento.escala_tempo`); o relógio do gesto e o dedo continuam reais.
+  A HUD mostra `PLANEJANDO 35%`.
+- **Prévia:** o traço é desenhado transladado sobre a criatura (a âncora vira
+  o "animal virtual") com um anel ciano no ponto segurado; ao soltar, a rota
+  começa na posição atual dela.
+- **Testes:** 66 verdes (gestos de tela/âncora/defesa, desconto, RDP, ordem dos
+  waypoints, desvio de tronco, barreira + pulo, pulo curto na água, especial,
+  esquiva de tela). Parser: 35 scripts limpos. Oráculo: 60 quadros 720×1280
+  sem erro de script, âncora e prévia conferidas por imagem.
+- Dois defeitos encontrados no caminho: a célula bloqueada era testada 3 px à
+  frente e caía na célula de baixo (o desvio nunca começava) — agora o primeiro
+  bloqueio é amostrado ao longo do passo; e a criatura conseguia **andar para
+  fora da água** depois de um pulo curto — agora a célula atual de terreno
+  bloqueia o passo normal.
+- **Fica para depois:** especiais por criatura, ajuste fino de
+  `escala_tempo`/`desconto_raio_px` com o operador, física de pouso/natação e
+  a afinidade (P4).
+
 ## v0.5.0 — movimento com rota + autonomia, alvos e atualizador consertado (2026-11-20)
 
 - **Atualização (relato do operador):** só funcionou baixando à mão. Medido: o

@@ -98,6 +98,26 @@ func pode_andar(a: Vector2i, b: Vector2i, camada: String) -> bool:
 	return camada == SUBSOLO or absf(altura(a) - altura(b)) <= 0.5
 
 
+## O que impede a célula: "objeto" (tronco — dá para desviar um pouco),
+## "terreno" (água, rocha, fora do mapa) ou "" (livre). A diferença de ALTURA
+## não aparece aqui: a célula é andável, mas `pode_andar` a recusa; o corpo
+## trata isso como terreno (para e espera o pulo).
+func bloqueio(c: Vector2i, camada: String) -> String:
+	if not dentro(c):
+		return "terreno"
+	if camada == SUBSOLO:
+		return "" if andavel(c, camada) else "terreno"
+	if _bloqueadas.has(c):
+		return "objeto"
+	return "" if andavel(c, camada) else "terreno"
+
+
+## O segmento a→b é andável de ponta a ponta? (usado para validar o corte do
+## desconto inicial: a criatura não pode encurtar o caminho atravessando parede)
+func caminho_livre(a: Vector2, b: Vector2, camada: String) -> bool:
+	return limitar_segmento(a, b, camada).distance_to(b) < 0.5
+
+
 ## Corta um trajeto desenhado no primeiro passo impossível. Devolve o trecho
 ## andável (pelo menos o ponto de partida).
 func limitar_caminho(pontos: PackedVector2Array, camada: String) -> PackedVector2Array:

@@ -1,17 +1,20 @@
 {
- "_leia": "Gestos -> ações. Distâncias em pixels de TELA (1280x720 lógicos); tempos em ms. Ângulos do deslize são RELATIVOS ao olhar da criatura: 0 = frente, positivo = à DIREITA dela. v0.5: arrasto começando PERTO da criatura é sempre ROTA; gesto de ação só fora; ataque mira no alvo marcado (ou na direção da rota); esquiva é lateral. Ver docs/gdd/gestos-e-acoes.md.",
+ "_leia": "Gestos -> ações. v0.6: os setores são RELATIVOS À TELA (não ao olhar): 0° = direita, -90° = cima, +90° = baixo. O caminho exige SEGURAR parado: o ponto segurado vira a âncora e o arrasto a partir dela desenha a rota; o jogo entra em tempo lento enquanto a âncora existe (`planejamento.escala_tempo`). Deslizar para baixo e continuar segurando = defesa; segurar nela sem arrastar = escavar. Ver docs/gdd/gestos-e-acoes.md.",
  "limiares": {
   "toque_max_px": 16,
   "toque_max_ms": 260,
   "toque_duplo_janela_ms": 340,
   "toque_duplo_dist_px": 70,
   "segurar_min_ms": 380,
+  "segurar_estavel_ms": 180,
   "deslize_min_px": 44,
   "deslize_max_ms": 380,
-  "trajetoria_raio_inicio_px": 110,
   "trajetoria_min_px": 40,
   "na_criatura_raio_px": 70,
   "alvo_raio_px": 110
+ },
+ "planejamento": {
+  "escala_tempo": 0.35
  },
  "mapa": {
   "toque": "travar",
@@ -20,9 +23,11 @@
   "segurar_na_criatura": "escavar",
   "trajetoria": "mover",
   "deslize": [
-   {"nome": "frente", "de": -70, "ate": 70, "acao": "ataque"},
-   {"nome": "esquerda", "de": -180, "ate": -70, "acao": "esquiva", "lado": -1},
-   {"nome": "direita", "de": 70, "ate": 180, "acao": "esquiva", "lado": 1}
+   {"nome": "cima", "de": -135, "ate": -45, "acao": "ataque"},
+   {"nome": "direita", "de": -45, "ate": 45, "acao": "especial", "lado": 1},
+   {"nome": "baixo", "de": 45, "ate": 135, "acao": "esquiva"},
+   {"nome": "esquerda", "de": 135, "ate": 180, "acao": "especial", "lado": -1},
+   {"nome": "esquerda", "de": -180, "ate": -135, "acao": "especial", "lado": -1}
   ]
  }
 }

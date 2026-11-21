@@ -28,11 +28,12 @@ em código: mudar o design não exige mexer na lógica.
 ## Pipeline previsto da criatura (pacotes P3–P6)
 
 ```
-toque → gesto/trajetória (sim/gestos, sim/trajetoria)
+toque → gesto de TELA + âncora do caminho (sim/gestos)
+      → pontos de referência (sim/trajetoria: desconto inicial + Douglas-Peucker)
       → INTENÇÃO
       → decisão da criatura (sim/afinidade: afinidade × temperamento × humor)
         → obedece | hesita | reinterpreta | desobedece
-      → ação na arena (jogo/)
+      → ação na arena (jogo/): waypoints + desvio de objetos + overlays
 vivência acumulada (sim/vivencia) → perfil de traços → evolução → troca de PEÇAS
 ```
 
@@ -42,10 +43,10 @@ separados.
 ## Renderização
 
 `gl_compatibility` (OpenGL 3.3 / GLES 3): roda em celular modesto e é o único
-que o oráculo de quadros renderiza sem GPU. **Tela em alta resolução**
-(1280×720, `canvas_items`, `expand`) com **arte pixelada** (filtro *nearest*,
-câmera com zoom inteiro 2): linhas, sombras, efeitos e texto são lisos.
-Detalhes em [`GODOT.md`](GODOT.md#6-pixel-art-no-godot).
+que o oráculo de quadros renderiza sem GPU. **Tela em alta resolução e
+RETRATO** (720×1280, `canvas_items`, `expand`) com **arte pixelada** (filtro
+*nearest*, câmera com zoom inteiro 2): linhas, sombras, efeitos e texto são
+lisos. Detalhes em [`GODOT.md`](GODOT.md#6-pixel-art-no-godot).
 
 ## Mundo e mapa
 

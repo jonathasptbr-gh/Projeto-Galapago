@@ -69,11 +69,12 @@ a arte fica) é do operador: o agente propõe com opções, não decide calado.
 ## Estrutura
 
 ```
-project.godot         configuração (1280x720 canvas_items, arte nearest, paisagem, ETC2/ASTC)
+project.godot         configuração (720x1280 canvas_items, arte nearest, RETRATO, ETC2/ASTC)
 export_presets.cfg    preset Android (arm64, sem Gradle)
-sim/                  lógica pura: gestos · comandos · corpo (rota+overlays+autonomia) ·
-                       alvos · adversario · mundo · trajetoria · visibilidade ·
-                       atualizacao · mapa (Wang, parado)
+sim/                  lógica pura: gestos (tela+âncora) · comandos · corpo (waypoints+
+                       overlays+autonomia) · alvos · adversario · mundo ·
+                       trajetoria (desconto+RDP) · visibilidade · atualizacao ·
+                       mapa (Wang, parado)
 jogo/                 main · criatura · adversario_mock · mira · trilha · hud · demo ·
                        mock · atualizador · camadas/ (chao, subsolo, copa, parallax,
                        objeto_mock)

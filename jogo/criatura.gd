@@ -72,8 +72,11 @@ func _desenhar_acoes(c: Vector2) -> void:
 		var pts := PackedVector2Array([c])
 		for i in 17:
 			pts.append(c + Vector2.from_angle(meio - arco + 2.0 * arco * i / 16.0) * alcance)
-		draw_colored_polygon(pts, Color(1.0, 0.5, 0.12, 0.45))
-		draw_polyline(pts.slice(1), Color(1.0, 0.85, 0.4, 0.95), 2.0, true)
+		var especial: bool = corpo.ataque == "especial"
+		var cor_cone := Color(0.4, 0.6, 1.0, 0.45) if especial else Color(1.0, 0.5, 0.12, 0.45)
+		var cor_linha := Color(0.6, 0.9, 1.0, 0.95) if especial else Color(1.0, 0.85, 0.4, 0.95)
+		draw_colored_polygon(pts, cor_cone)
+		draw_polyline(pts.slice(1), cor_linha, 2.0, true)
 	if corpo.defendendo:
 		draw_arc(c, 32.0, 0.0, TAU, 40, Color(0.4, 0.75, 1.0, 0.9), 3.0, true)
 		draw_circle(c, 32.0, Color(0.4, 0.75, 1.0, 0.15), true, -1.0, true)

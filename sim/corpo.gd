@@ -5,11 +5,20 @@ extends RefCounted
 ##
 ## - a **ROTA** (o traço riscado): a criatura segue até o fim. Só perde a rota
 ##   se o jogador riscar OUTRA, se defender (que a PARA, sem apagar) ou se
-##   escavar (troca de camada, e a rota não vale mais lá);
-## - os **OVERLAYS** (ataque, esquiva, pulo), que acontecem POR CIMA da rota
-##   sem cancelá-la: a esquiva desloca para o lado e volta (corrige a rota); o
-##   pulo é um arco enquanto ela continua andando; o ataque vira para o alvo (ou
-##   para a direção da rota) e NÃO para o movimento.
+##   escavar (troca de camada, e a rota não vale mais lá). v0.6: a rota é uma
+##   SÉRIE DE PONTOS de referência (sim/trajetoria.simplificar) procurados na
+##   ordem; a criatura pode se desviar um pouco para contornar OBJETOS. Água,
+##   rocha e altura são BARREIRAS: ela para e a rota continua guardada — um
+##   pulo durante a rota passa por cima e retoma o percurso;
+## - os **OVERLAYS** (ataque, especial, esquiva, pulo), que acontecem POR CIMA
+##   da rota sem cancelá-la: a esquiva desloca para a direção do gesto e volta;
+##   o pulo é um arco enquanto ela continua andando; o ataque vira para o alvo
+##   (ou para a direção da rota) e NÃO para o movimento; o especial sai para o
+##   lado do gesto (esquerda/direita da TELA).
+##
+## O **DESCONTO INICIAL** (sim/trajetoria.descontar_inicio) tira o vai-e-volta
+## do começo do traço antes de a rota existir: a criatura se alinha a uma
+## distância do início e só então obedece o desenho.
 ##
 ## Sem rota, entra em **AUTONOMIA**: parada, vagueando devagar, indo até o alvo
 ## marcado ou rondando ao redor dele. A escolha é sorteio com semente
@@ -24,16 +33,20 @@ const Alvos := preload("res://sim/alvos.gd")
 
 # --- estado ---
 var defs: Dictionary = {}
+var rota_cfg: Dictionary = {}
 var pos := Vector2.ZERO          # posição no chão, já com o desvio da esquiva
 var z := 0.0                     # altura no ar (pulo)
 var olhar := Vector2.RIGHT
 var camada := Mundo.SUPERFICIE
 var velocidade := 110.0
 
-# rota
+# rota (pontos de referência; `_rota_i` = o próximo que ela procura)
 var rota := PackedVector2Array()
 var rota_t := 0.0
 var total_rota := 0.0
+var _rota_i := 0
+var _barrado := false
+var _desvios := 0
 
 # overlays
 var desvio := Vector2.ZERO
@@ -66,16 +79,23 @@ var eventos: Array[String] = []
 func _init(definicoes: Dictionary = {}) -> void:
 	defs = definicoes
 	velocidade = float(defs.get("mover", {}).get("velocidade", 110.0))
+	var rc: Dictionary = defs.get("rota", {})
+	rota_cfg = rc
 
 
 # ---------------------------------------------------------------- consultas
 
 func em_rota() -> bool:
-	return rota.size() >= 2 and rota_t < total_rota - 0.01
+	return rota.size() >= 2 and _rota_i < rota.size()
 
 
 func em_autonomia() -> bool:
 	return not em_rota()
+
+
+## Está parada numa barreira de terreno (a rota continua guardada)?
+func barrado() -> bool:
+	return _barrado
 
 
 ## Golpe valendo agora (fase ativa)? A apresentação usa para desenhar o arco.
@@ -121,6 +141,8 @@ func comandar(cmd: Dictionary, mundo: RefCounted, alvos: Array = []) -> String:
 			return _cmd_travar(cmd, alvos)
 		"ataque":
 			return _cmd_ataque(cmd, alvos)
+		"especial":
+			return _cmd_especial(cmd)
 		"esquiva":
 			return _cmd_esquiva(cmd)
 		"pular":
@@ -144,12 +166,29 @@ func comandar(cmd: Dictionary, mundo: RefCounted, alvos: Array = []) -> String:
 func _cmd_mover(cmd: Dictionary, mundo: RefCounted) -> String:
 	var pts := PackedVector2Array([pos - desvio])
 	pts.append_array(cmd.get("pontos", PackedVector2Array()))
-	var lim: PackedVector2Array = mundo.limitar_caminho(Trajetoria.amostrar(pts, 3.0), camada)
-	if lim.size() < 2 or Trajetoria.comprimento(lim) < 6.0:
-		return "recusado: caminho bloqueado"
-	rota = lim
+	if pts.size() < 2:
+		return "recusado: caminho vazio"
+	# DESCONTO INICIAL: o pequeno vai-e-volta do começo não é obedecido. A
+	# criatura se alinha a uma distância do começo e segue o resto do desenho.
+	var cortado := Trajetoria.descontar_inicio(pts, float(rota_cfg.get("desconto_raio_px", 44.0)),
+		float(rota_cfg.get("desconto_janela_px", 140.0)))
+	if cortado.size() < pts.size() and cortado.size() >= 2:
+		# se a reta até o ponto de alinhamento atravessa parede, o desvio
+		# inicial era necessário: não corta.
+		if mundo.caminho_livre(pts[0], cortado[1], camada):
+			pts = cortado
+	# PONTOS DE REFERÊNCIA, não o traço inteiro: reta vira duas pontas, curva e
+	# canto continuam com alguns pontos. O corpo procura um por um e pode se
+	# desviar um pouco para contornar objetos.
+	var nova := Trajetoria.simplificar(pts, float(rota_cfg.get("simplificar_px", 10.0)))
+	if nova.size() < 2 or Trajetoria.comprimento(nova) < 6.0:
+		return "recusado: caminho curto"
+	rota = nova
+	_rota_i = 1
 	rota_t = 0.0
-	total_rota = Trajetoria.comprimento(lim)
+	total_rota = Trajetoria.comprimento(rota)
+	_barrado = false
+	_desvios = 0
 	autonomia = ""
 	_auto_destino = Vector2.ZERO
 	eventos.append("rota:nova")
@@ -183,46 +222,68 @@ func _cmd_travar(cmd: Dictionary, alvos: Array) -> String:
 
 
 func _cmd_ataque(cmd: Dictionary, alvos: Array) -> String:
-	if not defs.has("ataque"):
-		return "recusado: sem ataque definido"
-	if float(_recargas.get("ataque", 0.0)) > 0.0:
-		return "recusado: recarga"
-	if ataque != "":
-		return "recusado: golpe em curso"
-	var d: Dictionary = defs["ataque"]
+	var dir: Vector2 = olhar
 	# a direção do golpe NÃO vem do gesto: é o alvo marcado; sem alvo, a rota
 	if alvo_id != "":
 		var ap := alvo_pos(alvos)
 		if ap != Vector2.ZERO and ap.distance_to(pos) > 1.0:
-			ataque_dir = (ap - pos).normalized()
-		else:
-			ataque_dir = cmd.get("direcao", olhar)
+			dir = (ap - pos).normalized()
+		elif em_rota():
+			dir = (rota[_rota_i] - (pos - desvio)).normalized()
 	else:
-		ataque_dir = Trajetoria.ponto_em(rota, minf(rota_t + 8.0, total_rota)) - Trajetoria.ponto_em(rota, rota_t) if em_rota() else olhar
-		if ataque_dir.length() < 0.01:
-			ataque_dir = olhar
-		ataque_dir = ataque_dir.normalized()
-	olhar = ataque_dir
-	ataque = "ataque"
+		if em_rota():
+			dir = (rota[_rota_i] - (pos - desvio)).normalized()
+		else:
+			dir = olhar
+	return _cmd_golpe("ataque", dir)
+
+
+func _cmd_especial(cmd: Dictionary) -> String:
+	# o especial sai para o LADO do gesto na tela (esquerda/direita)
+	var dir: Vector2 = cmd.get("direcao", olhar)
+	if dir.length() < 0.01:
+		dir = olhar
+	return _cmd_golpe("especial", dir)
+
+
+## Golpe genérico (ataque físico ou especial): mesma máquina de fases, mesma
+## recarga por nome. O `ataque` guarda QUAL golpe está em curso.
+func _cmd_golpe(nome: String, dir: Vector2) -> String:
+	if not defs.has(nome):
+		return "recusado: sem %s definido" % nome
+	if float(_recargas.get(nome, 0.0)) > 0.0:
+		return "recusado: recarga"
+	if ataque != "":
+		return "recusado: golpe em curso"
+	if dir.length() < 0.01:
+		dir = olhar
+	ataque = nome
 	ataque_t = 0.0
-	eventos.append("golpe:" + ("alvo" if alvo_id != "" else "rota"))
-	return "ok: atacando %s" % ("o alvo" if alvo_id != "" else "em frente")
+	ataque_dir = dir.normalized()
+	olhar = ataque_dir
+	eventos.append("golpe:" + nome)
+	return "ok: %s" % ("atacando" if nome == "ataque" else "especial")
 
 
 func _cmd_esquiva(cmd: Dictionary) -> String:
 	if float(_recargas.get("esquiva", 0.0)) > 0.0:
 		return "recusado: recarga"
 	var d: Dictionary = defs.get("esquiva", {"fases": [0.0, 0.18, 0.12], "deslocamento": 34.0})
-	var lado := float(cmd.get("lado", 0.0))
-	if lado == 0.0:
-		return "recusado: esquiva sem lado"
-	var frente: Vector2 = olhar if olhar.length() > 0.01 else Vector2.RIGHT
-	_esquiva_lado = Vector2(-frente.y, frente.x) * signf(lado)
+	# v0.6: a esquiva vai para a direção do GESTO na tela (para baixo = para
+	# trás). O `lado` continua aceito para comandos antigos/testes.
+	var dir: Vector2 = cmd.get("direcao", Vector2.ZERO)
+	if dir.length() < 0.01:
+		var lado := float(cmd.get("lado", 0.0))
+		if lado == 0.0:
+			return "recusado: esquiva sem direção"
+		var frente: Vector2 = olhar if olhar.length() > 0.01 else Vector2.RIGHT
+		dir = Vector2(-frente.y, frente.x) * signf(lado)
+	_esquiva_lado = dir.normalized()
 	_esquiva_amplitude = float(d.get("deslocamento", 34.0))
 	_esquiva_dur = maxf(float(d.get("fases", [0.0, 0.18, 0.12])[1]), 0.05)
 	_esquiva_t = _esquiva_dur
-	eventos.append("esquiva:esq" if lado < 0.0 else "esquiva:dir")
-	return "ok: esquiva para %s" % ("a esquerda" if lado < 0.0 else "a direita")
+	eventos.append("esquiva:on")
+	return "ok: esquiva"
 
 
 func _cmd_pular(cmd: Dictionary) -> String:
@@ -280,27 +341,129 @@ func passo(dt: float, mundo: RefCounted, alvos: Array = []) -> void:
 		_autonomia(dt, mundo, alvos)
 
 
-## Avança a rota e devolve a posição no CHÃO (sem o desvio). Quando a rota
-## termina, a posição final vira o ponto de partida da autonomia — nunca
-## Vector2.ZERO (era o defeito: limpar `rota` antes de ler a posição).
+## Avança a rota e devolve a posição no CHÃO (sem o desvio). A rota é uma
+## série de pontos de referência: procura o próximo, avança até ele e passa
+## para o seguinte. Se um passo for barrado, a rota NÃO é apagada: ela para
+## (`barrado()`) e espera — um pulo durante a rota passa por cima e retoma.
 func _avancar_rota(dt: float, mundo: RefCounted) -> Vector2:
-	rota_t = minf(rota_t + velocidade * dt, total_rota)
-	var a := Trajetoria.ponto_em(rota, rota_t)
-	var b := Trajetoria.ponto_em(rota, minf(rota_t + 10.0, total_rota))
-	var d := b - a
-	if d.length() > 0.01:
-		olhar = d.normalized()
-	if rota_t >= total_rota - 0.001:
-		var fim := Trajetoria.ponto_em(rota, total_rota)
-		rota = PackedVector2Array()
-		rota_t = 0.0
-		total_rota = 0.0
-		_auto_destino = fim
-		_auto_t = 3.3  # decide JÁ no primeiro passo de autonomia
-		_auto_espera = 0.0
-		eventos.append("rota:fim")
+	if rota.is_empty() or _rota_i >= rota.size():
+		return _terminar_rota()
+	var base := pos - desvio
+	var restante := velocidade * dt
+	var voltas := 0
+	while restante > 0.001 and _rota_i < rota.size() and voltas < 4:
+		voltas += 1
+		var alvo := rota[_rota_i]
+		var para := alvo - base
+		var dist := para.length()
+		var chegada := float(rota_cfg.get("chegada_px", 12.0))
+		# um ponto de referência DENTRO de um tronco não é alcançável no centro;
+		# chegar perto dele já conta (a criatura contorna o objeto e segue).
+		if mundo.bloqueio(mundo.celula_de(alvo), camada) == "objeto":
+			chegada = maxf(chegada, 24.0)
+		if dist <= chegada:
+			_rota_i += 1
+			_desvios = 0
+			if _rota_i >= rota.size():
+				return _terminar_rota()
+			continue
+		var dir := para / dist
+		var passo := minf(restante, dist)
+		var novo := _passo_com_desvio(base, dir, passo, alvo, mundo)
+		var andado := novo.distance_to(base)
+		if andado < 0.001:
+			_barrado = true
+			return base
+		_barrado = false
+		rota_t += andado
+		restante -= andado
+		olhar = (novo - base).normalized() if andado > 0.001 else olhar
+		base = novo
+		if base.distance_to(alvo) <= chegada:
+			_rota_i += 1
+			_desvios = 0
+			if _rota_i >= rota.size():
+				return _terminar_rota()
+	return base
+
+
+## Um passo em direção a `dir`. No ar (pulo) ignora o chão — é o que permite
+## pular por cima da barreira e seguir a rota. No chão, OBJETO (tronco) pode
+## ser contornado com um pequeno desvio angular; TERRENO (água, rocha, altura)
+## para a criatura.
+func _passo_com_desvio(base: Vector2, dir: Vector2, passo: float, alvo: Vector2, mundo: RefCounted) -> Vector2:
+	var ideal := base + dir * passo
+	if no_ar():
+		if mundo.dentro(mundo.celula_de(ideal)):
+			return ideal
+		return base
+	# caiu na água/rocha? só outro pulo sai de lá; andar não atravessa a barreira
+	if mundo.bloqueio(mundo.celula_de(base), camada) == "terreno":
+		return base
+	var fim: Vector2 = mundo.limitar_segmento(base, ideal, camada)
+	if fim.distance_to(ideal) < 0.01:
+		_desvios = 0
 		return fim
-	return a
+	var bloq: Dictionary = _primeiro_bloqueio(base, ideal, mundo)
+	if bloq.is_empty() or str(bloq.get("tipo", "")) != "objeto":
+		return base
+	if _desvios >= int(rota_cfg.get("desvios_max", 80)):
+		return base
+	# leque de pequenos desvios: escolhe o que chega mais perto do alvo
+	var melhor := base
+	var melhor_d := INF
+	var angulos: Array = rota_cfg.get("desvio_angulos", [20.0, -20.0, 40.0, -40.0, 60.0, -60.0, 80.0, -80.0, 100.0, -100.0, 120.0, -120.0])
+	for a in angulos:
+		var cand_ideal := base + dir.rotated(deg_to_rad(float(a))) * passo
+		var cand: Vector2 = mundo.limitar_segmento(base, cand_ideal, camada)
+		if cand.distance_to(cand_ideal) > 0.01:
+			continue
+		var d: float = cand.distance_to(alvo)
+		if d < melhor_d:
+			melhor = cand
+			melhor_d = d
+	if melhor == base:
+		return base
+	_desvios += 1
+	return melhor
+
+
+## A primeira célula DIFERENTE da atual que o passo encontraria e que está
+## bloqueada: devolve {"tipo": "objeto"|"terreno", "celula": ...}. É o que
+## decide entre contornar (objeto) e parar (terreno/altura).
+func _primeiro_bloqueio(base: Vector2, ideal: Vector2, mundo: RefCounted) -> Dictionary:
+	var dist := base.distance_to(ideal)
+	if dist < 0.01:
+		return {}
+	var passos := maxi(1, ceili(dist))
+	var c0: Vector2i = mundo.celula_de(base)
+	for i in range(1, passos + 1):
+		var p := base.lerp(ideal, float(i) / passos)
+		var c: Vector2i = mundo.celula_de(p)
+		if c == c0:
+			continue
+		var b: String = mundo.bloqueio(c, camada)
+		if b != "":
+			return {"tipo": b, "celula": c}
+		if not mundo.pode_andar(c0, c, camada):
+			return {"tipo": "terreno", "celula": c}
+	return {}
+
+## Fim da rota: guarda o destino para a autonomia e limpa a rota — a posição
+## final é calculada ANTES de limpar (era o defeito da v0.5).
+func _terminar_rota() -> Vector2:
+	var fim: Vector2 = rota[rota.size() - 1] if not rota.is_empty() else (pos - desvio)
+	rota = PackedVector2Array()
+	_rota_i = 0
+	rota_t = 0.0
+	total_rota = 0.0
+	_barrado = false
+	_desvios = 0
+	_auto_destino = fim
+	_auto_t = 3.3  # decide JÁ no primeiro passo de autonomia
+	_auto_espera = 0.0
+	eventos.append("rota:fim")
+	return fim
 
 
 func _autonomia(dt: float, mundo: RefCounted, alvos: Array) -> void:
@@ -402,12 +565,13 @@ func _atualizar_ataque(dt: float) -> void:
 	if ataque == "":
 		return
 	ataque_t += dt
-	var f: Array = defs.get("ataque", {}).get("fases", [0.1, 0.15, 0.2])
+	var f: Array = defs.get(ataque, {}).get("fases", [0.1, 0.15, 0.2])
 	var total := float(f[0]) + float(f[1]) + float(f[2])
 	if ataque_t >= total:
+		var nome := ataque
 		ataque = ""
 		ataque_t = 0.0
-		_recargas["ataque"] = float(defs.get("ataque", {}).get("recarga", 0.15))
+		_recargas[nome] = float(defs.get(nome, {}).get("recarga", 0.15))
 		eventos.append("golpe:fim")
 
 
@@ -421,7 +585,10 @@ func _atualizar_escavar(dt: float, mundo: RefCounted) -> void:
 		camada = mundo.escavar(_escavar_celula, camada)
 		pos = mundo.centro(_escavar_celula) + desvio
 		rota = PackedVector2Array()
+		_rota_i = 0
 		rota_t = 0.0
 		total_rota = 0.0
+		_barrado = false
+		_desvios = 0
 		_recargas["escavar"] = float(d.get("recarga", 0.4))
 		eventos.append("camada:" + camada)

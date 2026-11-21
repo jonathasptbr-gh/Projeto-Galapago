@@ -1,7 +1,7 @@
 # Mapa e camadas — a fundação
 
 > Como o mundo é organizado em camadas LÓGICAS (regra) e de DESENHO
-> (apresentação). v0.4.0: tudo em MOCKUP de xadrez — a estrutura é o produto;
+> (apresentação). v0.6: tudo em MOCKUP de xadrez — a estrutura é o produto;
 > a arte entra depois no lugar das cores.
 
 ## Camadas lógicas (sim/mundo.gd)
@@ -61,5 +61,6 @@ arte de verdade voltar; a fundação não depende dele.
 
 ## Ainda não existe
 
-- Inimigos e alvos; ciclo dia/noite; animação de água/vegetação.
+- Ciclo dia/noite; animação de água/vegetação.
 - Afinidade alterando o movimento (P4).
+- Pulo com física de pouso (hoje cair na água é só "precisa de outro pulo").

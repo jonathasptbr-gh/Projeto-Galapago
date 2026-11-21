@@ -1,8 +1,9 @@
 ; Projeto Galápago — configuração do Godot 4.7.
-; Tela em ALTA resolução (1280x720 base, `canvas_items`, aspecto `expand` para
-; preencher telas largas de celular); a ARTE é pixelada (filtro nearest, câmera
-; com zoom inteiro), mas linhas, sombras e efeitos são lisos (desenho
-; antialiasing na resolução da tela). Decisão do operador, 2026-11-20 (v0.3.0).
+; Tela em ALTA resolução e RETRATO (720x1280 base, `canvas_items`, aspecto
+; `expand` para preencher telas altas de celular); a ARTE é pixelada (filtro
+; nearest, câmera com zoom inteiro), mas linhas, sombras e efeitos são lisos
+; (desenho antialiasing na resolução da tela). Decisão do operador, 2026-11-20
+; (v0.6.0; era paisagem 1280x720 até a v0.5).
 ; Renderizador de compatibilidade: roda em celular modesto e no oráculo.
 
 config_version=5
@@ -16,11 +17,11 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [display]
 
-window/size/viewport_width=1280
-window/size/viewport_height=720
+window/size/viewport_width=720
+window/size/viewport_height=1280
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-window/handheld/orientation=0
+window/handheld/orientation=1
 
 [galapago]
 

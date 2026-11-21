@@ -1,11 +1,20 @@
 {
- "_leia": "Ações da criatura (v0.5). fases = [antecipação, ativa, recuperação] em segundos; deslocamento/alcance em px de mundo (célula = 32). ATAQUE, ESQUIVA e PULO são OVERLAYS: acontecem por cima da rota e NÃO a cancelam. defender PARA a rota sem apagá-la. escavar troca a camada. Lido por sim/corpo.gd.",
+ "_leia": "Ações da criatura (v0.6). fases = [antecipação, ativa, recuperação] em segundos; deslocamento/alcance em px de mundo (célula = 32). ATAQUE, ESPECIAL, ESQUIVA e PULO são OVERLAYS: acontecem por cima da rota e NÃO a cancelam. defender PARA a rota sem apagá-la. escavar troca a camada. ROTA: pontos de referência esparsos (`simplificar_px`), desconto do vai-e-volta inicial, desvio local de OBJETOS. Lido por sim/corpo.gd.",
  "mover": {"velocidade": 110},
  "olhar": {},
  "travar": {},
  "ataque": {"fases": [0.10, 0.14, 0.18], "alcance": 40, "arco": 90, "recarga": 0.15},
+ "especial": {"fases": [0.14, 0.22, 0.26], "alcance": 56, "arco": 120, "recarga": 0.55},
  "esquiva": {"fases": [0.0, 0.20, 0.0], "deslocamento": 34, "recarga": 0.30},
  "pular": {"fases": [0.06, 0.42, 0.06], "altura": 26, "recarga": 0.30},
  "defender": {"sustentada": true},
- "escavar": {"fases": [0.15, 0.55, 0.15], "recarga": 0.40}
+ "escavar": {"fases": [0.15, 0.55, 0.15], "recarga": 0.40},
+ "rota": {
+  "simplificar_px": 10,
+  "desconto_raio_px": 44,
+  "desconto_janela_px": 140,
+  "chegada_px": 12,
+  "desvio_angulos": [20, -20, 40, -40, 60, -60, 80, -80, 100, -100, 120, -120],
+  "desvios_max": 80
+ }
 }

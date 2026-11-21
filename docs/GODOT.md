@@ -50,7 +50,7 @@ o binário local, `config/features` do `project.godot` e o nome
 
 | arquivo | regra |
 |---|---|
-| `project.godot` | texto INI; editar à mão é normal. Chaves que **decidimos** (v0.3.0): 1280×720, `stretch/mode="canvas_items"`, `aspect="expand"`, filtro `0` (nearest), snap 2D **desligado**, `config/version` + `galapago/build` (o export grava os reais), `gl_compatibility` (também no mobile), `emulate_touch_from_mouse`, `import_etc2_astc=true` (**o export Android recusa sem ele**) |
+| `project.godot` | texto INI; editar à mão é normal. Chaves que **decidimos** (v0.6.0): **720×1280 em retrato** (`window/handheld/orientation=1`), `stretch/mode="canvas_items"`, `aspect="expand"`, filtro `0` (nearest), snap 2D **desligado**, `config/version` + `galapago/build` (o export grava os reais), `gl_compatibility` (também no mobile), `emulate_touch_from_mouse`, `import_etc2_astc=true` (**o export Android recusa sem ele**) |
 | `*.tscn` / `*.tres` | cena/recurso em texto (`format=3`). Editar à mão: cada `[ext_resource]` com `id` único referenciado por `ExtResource("id")`; nós com `parent="."`/caminho. Cenas grandes: preferir montar em código (`_ready`) a escrever `.tscn` gigantes à mão |
 | `*.gd.uid` | id estável do script (Godot ≥ 4.4) — **versionar** |
 | `*.import` | configuração de import de cada asset — **versionar** |
@@ -74,9 +74,10 @@ o binário local, `config/features` do `project.godot` e o nome
 
 ## 6. Pixel art no Godot
 
-- **Arte pixelada, tela não** (decisão do operador, v0.3.0): a tela é 1280×720
-  (`canvas_items`, `expand`); a arte usa filtro *nearest* e a câmera tem **zoom
-  inteiro** (2 → cada pixel de arte vira 2×2), então os sprites ficam nítidos.
+- **Arte pixelada, tela não** (decisão do operador, v0.3.0; **retrato desde a
+  v0.6.0**): a tela é 720×1280 (`canvas_items`, `expand`, orientação 1 =
+  retrato); a arte usa filtro *nearest* e a câmera tem **zoom inteiro** (2 →
+  cada pixel de arte vira 2×2), então os sprites ficam nítidos.
   Linhas, sombras, efeitos e texto são desenhados na resolução da tela, lisos:
   `draw_polyline(..., antialiased=true)`, `draw_circle(..., antialiased=true)`,
   `draw_arc(..., antialiased=true)`. Snap 2D desligado: movimento em subpixel.
@@ -108,6 +109,11 @@ o binário local, `config/features` do `project.godot` e o nome
 - `emulate_touch_from_mouse=true`: no PC/oráculo o mouse vira toque.
 - Toque roteirizado (oráculo/testes de cena): `Input.parse_input_event(ev)`.
 - A classificação de gestos é da `sim/` (P3), testada com traços gravados.
+- **v0.6:** os setores são da TELA (cima = ataque, lados = especiais, baixo =
+  esquiva). O caminho usa **âncora**: segurar parado cria o ponto, arrastar
+  desenha a rota transladada sobre a criatura; enquanto a âncora existe, o
+  **mundo** roda em tempo lento (`planejamento.escala_tempo`) e o relógio do
+  toque continua real. A prévia e a âncora são desenhadas em `jogo/trilha.gd`.
 
 ## 8. Exportar para Android (P2) — como funciona e o que quebra
 

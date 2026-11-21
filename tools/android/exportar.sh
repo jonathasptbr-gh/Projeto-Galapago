@@ -67,6 +67,8 @@ fi
 BT=$(ls -d "$ANDROID_HOME"/build-tools/* 2>/dev/null | sort -V | tail -1)
 if [ -n "$BT" ]; then
   "$BT/aapt" dump badging "$APK" 2>/dev/null | grep -E "^package:|^launchable-activity:|^sdkVersion|^targetSdkVersion" || true
+  # orientação do manifesto: 0 = paisagem, 1 = retrato (v0.6)
+  "$BT/aapt" dump xmltree "$APK" AndroidManifest.xml 2>/dev/null | grep -i 'screenOrientation' | head -1 || true
   "$BT/apksigner" verify --print-certs "$APK" | grep -E "Signer #1 certificate DN|Verified" || true
 fi
 echo "APK: $APK · versão $NOME · $(du -h "$APK" | cut -f1)"
