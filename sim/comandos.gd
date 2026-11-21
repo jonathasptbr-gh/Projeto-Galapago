@@ -3,13 +3,12 @@ extends RefCounted
 ## de dados/gestos.json. Quem decide se a criatura obedece é a camada de
 ## afinidade (P4); hoje ela obedece.
 ##
-## v0.7 — SETORES DE TELA: o ângulo é o do vetor do dedo na TELA (0° = direita,
-## -90° = cima, +90° = baixo). Não depende do olhar da criatura. A tabela
-## `deslize` de dados/gestos.json decide a ação de um RISCO rápido: cima →
-## ataque físico; lados → especiais; baixo → esquiva. O caminho (trajetoria)
-## não passa por aqui: `jogo/main.gd` o desenha ao vivo em `corpo.tracar`.
-## Segurar nela sem arrastar (sem `defesa`) → escavar; segurar depois de um
-## deslize para baixo (`defesa: true`) → defender.
+## v0.8 — MULTITOUCH: as ações vêm dos DEDOS EXTRAS (o primeiro dedo é o
+## caminho, que não passa por aqui: `jogo/main.gd` o desenha ao vivo em
+## `corpo.tracar`). A ação é lida no vetor do dedo extra, relativo à TELA:
+## cima → ataque físico (tabela `deslize`); o `especial` (dois dedos abrindo)
+## tem gesto próprio; o `segurar_inicio` com `defesa` → defender; sem `defesa`,
+## segurar nela sem arrastar → escavar.
 ##
 ## Comando: {acao, lado, alcance, alvo, pontos, setor, angulo, direcao, gesto}.
 
@@ -42,6 +41,11 @@ static func traduzir(ev: Dictionary, mapa: Dictionary) -> Dictionary:
 				cmd["acao"] = mapa.get("segurar_na_criatura" if ev.get("na_criatura", false) else "segurar", "")
 		"segurar_fim":
 			cmd["acao"] = "soltar"
+		"especial":
+			cmd["acao"] = mapa.get("especial", "especial")
+			var v: Vector2 = ev.get("vetor", Vector2.ZERO)
+			if v.length() > 0.01:
+				cmd["direcao"] = v.normalized()
 		"deslize":
 			var vetor: Vector2 = ev.get("vetor", Vector2.ZERO)
 			if vetor.length() < 0.01:

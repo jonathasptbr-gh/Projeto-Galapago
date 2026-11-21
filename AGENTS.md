@@ -71,9 +71,9 @@ a arte fica) é do operador: o agente propõe com opções, não decide calado.
 ```
 project.godot         configuração (720x1280 canvas_items, arte nearest, RETRATO, ETC2/ASTC)
 export_presets.cfg    preset Android (arm64, sem Gradle)
-sim/                  lógica pura: gestos (tela + caminho ao vivo, risco) ·
-                       comandos · corpo (traço ao vivo+waypoints+overlays+
-                       autonomia) · alvos · adversario · mundo ·
+sim/                  lógica pura: gestos (multitouch: 1 dedo caminho, 2 dedos
+                       ação) · comandos · corpo (traço ao vivo+waypoints+
+                       overlays+autonomia) · alvos · adversario · mundo ·
                        trajetoria (desconto+RDP) · visibilidade · atualizacao ·
                        mapa (Wang, parado)
 jogo/                 main · criatura · adversario_mock · mira · trilha · hud · demo ·

@@ -109,13 +109,13 @@ o binário local, `config/features` do `project.godot` e o nome
 - `emulate_touch_from_mouse=true`: no PC/oráculo o mouse vira toque.
 - Toque roteirizado (oráculo/testes de cena): `Input.parse_input_event(ev)`.
 - A classificação de gestos é da `sim/` (P3), testada com traços gravados.
-- **v0.7:** os setores são da TELA (cima = ataque, lados = especiais, baixo =
-  esquiva) e um **risco rápido** os dispara no meio do arrasto. O caminho é
-  desenhado **ao vivo**: na descida do dedo `jogo/main.gd` congela a origem
-  (`_gesto_origem` + `canvas_transform` inverso), converte cada ponto com
-  `desenho.ganho` e alimenta `corpo.tracar` a cada quadro; enquanto desenha, o
-  **mundo** roda em tempo lento (`planejamento`) e um véu escurece a tela. A
-  rota é desenhada em `jogo/trilha.gd`.
+- **v0.8 (multitouch):** `_unhandled_input` guarda os dedos por `ev.index` e
+  chama `main.dedo_*`; o PRIMEIRO dedo é o caminho (origem congelada na
+  descida: `_gesto_origem` + `canvas_transform` inverso; cada ponto convertido
+  com `desenho.ganho` e alimentando `corpo.tracar` a cada quadro) e os dedos
+  EXTRAS fazem a ação (cima = ataque, baixo = defesa, abrindo = especial).
+  Enquanto desenha, o **mundo** roda em tempo lento (`planejamento`) e um véu
+  escurece a tela. A rota é desenhada em `jogo/trilha.gd`.
 
 ## 8. Exportar para Android (P2) — como funciona e o que quebra
 

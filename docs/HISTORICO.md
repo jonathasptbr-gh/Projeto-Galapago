@@ -3,6 +3,45 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.8.0 — gestos de ação com DOIS dedos (2026-11-20)
+
+- **Pedido do operador:** os gestos de ação conflitavam com o movimento
+  contínuo. Agora: **mover = 1 dedo arrastando** (como está, sem espera);
+  **ataque = 2 dedos para cima**; **defesa = 2 dedos para baixo**; **especial =
+  2 dedos abrindo** (do centro para a borda, como um zoom). O dedo que desenha
+  o caminho **desconta**: com o segundo dedo dá para atacar **durante** o
+  desenho, sem parar o traço.
+- **`sim/gestos.gd` (multitouch, reescrito):** o PRIMEIRO dedo é o do caminho;
+  os dedos EXTRAS formam o ponteiro da ação (média dos deslocamentos) — cima
+  (`acao_min_px` 44 px em até `acao_max_ms` 0,7 s) → `deslize` (ataque);
+  baixo → `segurar_inicio` com `defesa` (sustentada até soltar); lateral +
+  afastamento do dedo do caminho ≥ `especial_abre_px` (70 px) → `especial`.
+  Um disparo por gesto; soltar e tocar de novo abre outro. Se o segundo dedo
+  chega antes de o caminho desenhar (`desenho_min_ms` 150 ms), o gesto é só
+  ação: `caminho_cancelar` (o motor devolve a rota anterior). Toque, toque
+  duplo e escavar continuam no dedo do caminho sozinho.
+- **`sim/comandos.gd`:** evento `especial` próprio (ação + direção de fora).
+  A tabela `deslize` ficou só com "cima" — o "baixo" agora é DEFESA, não
+  esquiva.
+- **`jogo/main.gd`:** entrada multitouch (`_dedos` por índice, origem congelada
+  no PRIMEIRO dedo); `caminho_cancelar` restaura a rota; uma AÇÃO devolve o
+  tempo na hora (`_plano_liberado`), o golpe não fica em câmera lenta. **Bug
+  meu da v0.7 corrigido:** a fórmula do véu estava invertida (alfa cheio FORA
+  do desenho); agora é 0 parado, 0,22 desenhando e cai junto com a rampa
+  (medido nos quadros: brilho médio 110 desenhando × 135–140 parado).
+- **`jogo/demo.gd`:** roteiro reescrito com TRILHAS por dedo (caminho de 1
+  dedo; ataque/especial/defesa de 2 dedos; ataque com o dedo extra no meio de
+  um caminho em curso); `jogo/hud.gd` com a legenda nova.
+- **Dados (`dados/gestos.json`):** entram `desenho_min_ms`, `acao_min_px`,
+  `acao_max_ms`, `especial_abre_px`; saem os `flick_*` e o `segurar_estavel_ms`.
+- **Verificação:** **73 testes, 0 falhas**, 35 scripts. Sonda headless da demo
+  inteira (400 quadros): caminho ao vivo (véu 0,22 · 0,35×), ataque de 2 dedos
+  em 2,2 s **sem andar** (célula estável, rota seguindo), especial em 3,4 s,
+  defesa em 4,6 s (rota parada, `soltar` retoma), pulo, mira, ataque no alvo, e
+  **ataque com o 2º dedo em 10,0 s com o caminho ainda sendo desenhado**
+  (`desenhando` segue, a rota continua, o tempo volta na hora). Quadros do
+  oráculo (96) abertos: legenda, véu e ataque sem véu.
+
 ## v0.7.1 — o gesto de AÇÃO não é passo (2026-11-20)
 
 - **Correção do operador sobre a v0.7.0:** "em paralelo" queria dizer poder

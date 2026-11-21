@@ -4,10 +4,14 @@
 
 | versão | onde | o quê | tamanho |
 |---|---|---|---|
-| v0.7.1 | `jogo/main.gd` | a linha da rota (e o % na HUD) pode piscar ~1–2 quadros no começo de um risco: o traço nasce ao vivo e é cancelado no disparo; o véu já não pisca | pequeno |
-| v0.7.1 | `sim/corpo.gd` | `voltar_rota` devolve rota/progresso/autonomia, mas NÃO a posição: a criatura fica onde andou nos ~2 quadros do risco (2–3 px) | pequeno |
+| v0.8.0 | `dados/acoes.json` | a `esquiva` ficou **sem gesto** (o "para baixo" agora é defesa); ela continua no corpo para uso futuro | decidir com o operador |
+| v0.8.0 | `sim/gestos.gd` | um espalhamento VERTICAL (dedos subindo/descendo) é lido como ataque/defesa, não especial: o especial pede o dedo extra indo para o lado | design |
+| v0.8.0 | `jogo/main.gd` | uma ação durante o desenho devolve o tempo na hora e o resto do desenho segue sem tempo lento/véu | decisão |
+| v0.8.0 | `sim/gestos.gd` | a ação é lida só no dedo EXTRA: se o dedo do caminho andar e o extra ficar parado, nada dispara (é o desenho) | — |
+| v0.7.1 | `jogo/main.gd` | ~~linha da rota pisca no começo de um risco~~ — **o risco deixou de existir na v0.8** (dois dedos) | — |
+| v0.7.1 | `sim/corpo.gd` | `voltar_rota` devolve rota/progresso/autonomia, mas NÃO a posição: a criatura fica onde andou nos ~2 quadros dois-dedos (2–3 px) | pequeno |
 | v0.7.0 | `dados/gestos.json` | `desenho.ganho` 1,6, véu 0,22 e rampa 0,45 s são pontos de partida — ajustar com o operador no aparelho | pequeno |
-| v0.7.0 | `sim/gestos.gd` | o começo RETO de um desenho rápido ainda pode disparar uma ação; curva já não dispara (é heurística) | design |
+| v0.7.0 | `sim/gestos.gd` | ~~risco rápido disparava ação~~ — **substituído na v0.8** (ataque é 2 dedos) | — |
 | v0.7.0 | `jogo/main.gd` | o traço ao vivo refaz a rota (desconto + Douglas-Peucker) a cada quadro; custo não medido no aparelho | pequeno |
 | v0.7.0 | demo | ~~cada risco também vira caminho e empurra a criatura~~ — **corrigido na v0.7.1** (o risco cancela o traço) | — |
 | v0.7.0 | `sim/corpo.tracar` | a "volta ao começo" só entra no 1º quadro do traço; depois disso ela segue a rota e não volta | design |

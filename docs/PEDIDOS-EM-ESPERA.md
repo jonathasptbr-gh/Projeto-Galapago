@@ -19,6 +19,7 @@
 | P11 | Movimento por rota + overlays, alvos/mira, adversário e autonomia | P3 | **feito (v0.5.0)** |
 | P12 | Retrato + gestos de tela + caminho por âncora (tempo lento, desconto, desvio de objetos) | P11 | **feito (v0.6.0)** |
 | P13 | Caminho ao vivo (sem espera) + ações em paralelo + véu/rampa + sensibilidade | P12 | **feito (v0.7.0/0.7.1)** |
+| P14 | Gestos de AÇÃO com dois dedos (ataque ↑, defesa ↓, especial abrindo) | P13 | **feito (v0.8.0)** |
 
 ---
 
@@ -135,3 +136,18 @@
   `guardar_rota`/`voltar_rota`: o instantâneo da rota é tirado na descida do
   dedo e devolvido quando o gesto vira ação, então o golpe acontece por cima
   da caminhada. Defesa idem. Um gesto = uma intenção.
+
+## P14 — Gestos de ação com dois dedos (v0.8)
+
+- **Operador (2026-11-20):** os gestos de ação conflitavam com o movimento
+  contínuo. Trocar para: **mover = 1 dedo** (arrasto contínuo, sem delay);
+  **ataque = 2 dedos ↑**; **defesa = 2 dedos ↓**; **especial = 2 dedos
+  abrindo** (zoom). O dedo que desenha o caminho **desconta**: com o segundo
+  dedo dá para atacar **durante** o desenho.
+- **Feito em v0.8.0:** `sim/gestos.gd` multitouch (dedo do caminho + ponteiro
+  dos dedos extras; `desenho_min_ms` cancela o traço quando os dois dedos descem
+  juntos), `sim/comandos.gd` (evento `especial`), `jogo/main.gd` (dedos por
+  índice, `caminho_cancelar`, tempo volta na hora numa ação, véu corrigido),
+  `jogo/demo.gd` (trilhas por dedo), `jogo/hud.gd`, `dados/gestos.json`.
+  **Pendente de design:** a `esquiva` ficou sem gesto (o "para baixo" virou
+  defesa) e o espalhamento vertical é lido como ataque/defesa.

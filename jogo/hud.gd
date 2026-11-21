@@ -52,17 +52,15 @@ func _process(_delta: float) -> void:
 
 func _legenda() -> String:
 	var m: Dictionary = cfg.get("mapa", {})
-	var linhas := PackedStringArray(["v0.7.1 · GESTOS (TELA)"])
-	linhas.append("arraste → caminho (ao vivo)")
-	for s in m.get("deslize", []):
-		var seta: String = {"cima": "↑", "baixo": "↓", "esquerda": "←", "direita": "→"}.get(s["nome"], "?")
-		var l := "%s risco rápido → %s" % [seta, s["acao"]]
-		if not l in linhas:
-			linhas.append(l)
-	linhas.append("↓ parado → %s" % m.get("segurar", "—"))
+	var linhas := PackedStringArray(["v0.8.0 · GESTOS"])
+	linhas.append("1 dedo arrastando → caminho")
+	linhas.append("2 dedos ↑ → %s" % m.get("deslize", [{}])[0].get("acao", "ataque"))
+	linhas.append("2 dedos ↓ → %s" % m.get("segurar", "defender"))
+	linhas.append("2 dedos abrindo → %s" % m.get("especial", "especial"))
 	linhas.append("toque → %s" % m.get("toque", "—"))
 	linhas.append("toque duplo → %s" % m.get("toque_duplo", "—"))
 	linhas.append("segurar nela → %s" % m.get("segurar_na_criatura", "—"))
+	linhas.append("2º dedo durante o desenho → ação")
 	return "\n".join(linhas)
 
 

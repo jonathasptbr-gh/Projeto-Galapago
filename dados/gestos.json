@@ -1,19 +1,16 @@
 {
- "_leia": "Gestos -> ações. v0.7: os setores são RELATIVOS À TELA (0° = direita, -90° = cima, +90° = baixo). O CAMINHO não espera: qualquer arrasto além de `desenho_min_px` já é rota, desenhada AO VIVO e partindo da posição da criatura na descida do dedo (a linha não anda com ela). As AÇÕES são gestos próprios: um RISCO rápido (`flick_*`) dispara o setor no meio do arrasto, no máximo uma vez por gesto, e NÃO vira caminho (o traço é cancelado e a rota anterior volta) — é o ataque durante a caminhada. Enquanto desenha, o mundo roda em `planejamento.escala_tempo` e a tela escurece `planejamento.escurecer`; ao soltar, `planejamento.retomada_ms` acelera de volta. `desenho.ganho` é a sensibilidade: dedo menor cobre mais tela. Deslizar para baixo e continuar parado = defesa; segurar nela sem arrastar = escavar. Ver docs/gdd/gestos-e-acoes.md.",
+ "_leia": "Gestos -> ações. v0.8 — MULTITOUCH: UM DEDO É CAMINHO, DOIS SÃO AÇÃO. O primeiro dedo desenha a rota AO VIVO (sem espera, ganho de sensibilidade, origem congelada na descida). Um dedo EXTRA é a ação, lido só nele (o dedo do caminho desconta): para cima = ataque, para baixo = defesa (sustentada até soltar), abrindo para fora (≥ especial_abre_px) = especial. Dá para desenhar e atacar ao mesmo tempo; se o segundo dedo chega antes de o caminho desenhar (`desenho_min_ms`), o traço é cancelado e o gesto é só ação. Sozinho, o dedo do caminho faz toque (travar), toque duplo (pular) e segurar nela (escavar). Ver docs/gdd/gestos-e-acoes.md.",
  "limiares": {
   "toque_max_px": 16,
   "toque_max_ms": 260,
   "toque_duplo_janela_ms": 340,
   "toque_duplo_dist_px": 70,
   "segurar_min_ms": 380,
-  "segurar_estavel_ms": 180,
   "desenho_min_px": 16,
-  "deslize_min_px": 44,
-  "flick_vel_min_px_s": 700,
-  "flick_max_ms": 260,
-  "flick_reta_px": 24,
-  "flick_janela_px": 170,
-  "flick_vel_janela_ms": 90,
+  "desenho_min_ms": 150,
+  "acao_min_px": 44,
+  "acao_max_ms": 700,
+  "especial_abre_px": 70,
   "na_criatura_raio_px": 70,
   "alvo_raio_px": 110
  },
@@ -31,12 +28,9 @@
   "segurar": "defender",
   "segurar_na_criatura": "escavar",
   "trajetoria": "mover",
+  "especial": "especial",
   "deslize": [
-   {"nome": "cima", "de": -135, "ate": -45, "acao": "ataque"},
-   {"nome": "direita", "de": -45, "ate": 45, "acao": "especial", "lado": 1},
-   {"nome": "baixo", "de": 45, "ate": 135, "acao": "esquiva"},
-   {"nome": "esquerda", "de": 135, "ate": 180, "acao": "especial", "lado": -1},
-   {"nome": "esquerda", "de": -180, "ate": -135, "acao": "especial", "lado": -1}
+   {"nome": "cima", "de": -135, "ate": -45, "acao": "ataque"}
   ]
  }
 }

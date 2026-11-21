@@ -28,12 +28,12 @@
   criatura estava quando o dedo desceu (a linha não anda com ela). O tempo
   desacelera e a tela escurece durante o desenho; ao soltar, uma rampa de
   aceleração devolve o ritmo.
-- **Gestos relativos à TELA** (v0.6): para cima = ataque físico; lados =
-  especiais; para baixo = esquiva; para baixo e continuar parado = defesa;
-  toque duplo = pulo. Um **risco rápido** (v0.7.1) é uma AÇÃO: dispara no meio
-  do arrasto, cancela o traço que ele mesmo riscou e **não move** a criatura —
-  dá para atacar **durante** a caminhada. O detalhe fica em
-  [`gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md).
+- **Multitouch (v0.8): um dedo é caminho, dois são ação.** Arrastar com um dedo
+  desenha a rota; **dois dedos para cima** = ataque físico, **dois dedos para
+  baixo** = defesa (sustentada), **dois dedos abrindo** = especial. O dedo do
+  caminho "desconta": com o segundo dedo dá para **atacar durante o desenho**,
+  sem parar o traço. Toque duplo = pulo; toque = travar a mira. O detalhe fica
+  em [`gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md).
 - **Afinidade como mecânica de controle:**
   - baixa: o comando é sugestão — a criatura hesita, reinterpreta ou desobedece
     por temperamento ou falta de sintonia;

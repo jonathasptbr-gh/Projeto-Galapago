@@ -53,20 +53,22 @@ var camera: Camera2D
 var hud: CanvasLayer
 var copas: Array = []
 var veu: ColorRect
-var _dedo := -1
+var _dedos := {}  # índice do dedo -> pressionado (multitouch)
 var _abertos := {}
 # a ORIGEM do gesto (congelada na descida do dedo): a linha não anda com ela
 var _gesto_tela := Vector2.ZERO
 var _gesto_origem := Vector2.ZERO
 var _gesto_inv := Transform2D.IDENTITY
 var _traco_iniciado := false
-# a rota de ANTES do gesto: um risco de ação cancela o traço e a devolve
+# a rota de ANTES do gesto: dois dedos cancelam o traço e a devolvem
 var _rota_antes := {}
 var _cancelou := false
 # tempo lento do desenho e a rampa de aceleração da saída
 var _escala := 1.0
 var _retomada := 0.0
 var _veu_alfa := 0.0
+# uma AÇÃO durante o desenho devolve o tempo na hora (o golpe não fica lento)
+var _plano_liberado := false
 
 
 func _ready() -> void:
@@ -177,7 +179,7 @@ func _process(delta: float) -> void:
 	var plano: Dictionary = cfg_gestos.get("planejamento", {})
 	var lento := float(plano.get("escala_tempo", 0.35))
 	var retomada_s := maxf(float(plano.get("retomada_ms", 450)) / 1000.0, 0.001)
-	var planejando: bool = reconhecedor.planejando()
+	var planejando: bool = reconhecedor.planejando() and not _plano_liberado
 	if planejando:
 		_retomada = retomada_s
 		_escala = lento
@@ -211,7 +213,8 @@ func _process(delta: float) -> void:
 ## Suavizado para não piscar num gesto de ação que mal começou.
 func _escurecer(planejando: bool, plano: Dictionary, retomada_s: float, delta: float) -> void:
 	var forca := float(plano.get("escurecer", 0.22))
-	var alvo := 1.0 if planejando else 1.0 - _retomada / retomada_s
+	# 1 enquanto planeja; ao soltar, 1 → 0 junto com a rampa
+	var alvo := 1.0 if planejando else _retomada / retomada_s
 	_veu_alfa = lerpf(_veu_alfa, clampf(alvo, 0.0, 1.0), clampf(delta * 9.0, 0.0, 1.0))
 	veu.color = Color(0, 0, 0, forca * _veu_alfa)
 
@@ -235,49 +238,52 @@ func _evento(e: String) -> void:
 
 func _unhandled_input(ev: InputEvent) -> void:
 	if ev is InputEventScreenTouch:
-		if ev.pressed and _dedo == -1:
-			_dedo = ev.index
-			dedo_desceu(ev.position)
-		elif not ev.pressed and ev.index == _dedo:
-			_dedo = -1
-			dedo_subiu(ev.position)
-	elif ev is InputEventScreenDrag and ev.index == _dedo:
-		dedo_moveu(ev.position)
+		if ev.pressed and not _dedos.has(ev.index):
+			dedo_desceu(ev.index, ev.position)
+		elif not ev.pressed and _dedos.has(ev.index):
+			dedo_subiu(ev.index, ev.position)
+	elif ev is InputEventScreenDrag and _dedos.has(ev.index):
+		dedo_moveu(ev.index, ev.position)
 
 
-func dedo_desceu(p: Vector2) -> void:
-	if _dedo == -1:
-		_dedo = 0  # o demo chama direto, sem InputEvent
-	# CONGELA a origem: a posição dela AGORA é o começo do traço, e o mapa
-	# tela→mundo deste instante é o que traduz o desenho (a linha não anda com
-	# o animal nem com a câmera).
-	_gesto_tela = p
-	_gesto_origem = corpo.pos - corpo.desvio
-	_gesto_inv = get_viewport().get_canvas_transform().affine_inverse()
-	_traco_iniciado = false
-	_rota_antes = corpo.guardar_rota()
-	_cancelou = false
-	_entregar(reconhecedor.iniciar(p, tempo_ms, tela_de(criatura.ponto_visual() + Vector2(0, -20))))
+func dedo_desceu(dedo: int, p: Vector2) -> void:
+	var primeiro := _dedos.is_empty()
+	_dedos[dedo] = true
+	if primeiro:
+		# CONGELA a origem: a posição dela AGORA é o começo do traço, e o mapa
+		# tela→mundo deste instante traduz o desenho (a linha não anda com o
+		# animal nem com a câmera).
+		_gesto_tela = p
+		_gesto_origem = corpo.pos - corpo.desvio
+		_gesto_inv = get_viewport().get_canvas_transform().affine_inverse()
+		_traco_iniciado = false
+		_rota_antes = corpo.guardar_rota()
+		_cancelou = false
+		_plano_liberado = false
+	_entregar(reconhecedor.iniciar(dedo, p, tempo_ms, tela_de(criatura.ponto_visual() + Vector2(0, -20))))
 
 
-func dedo_moveu(p: Vector2) -> void:
-	_entregar(reconhecedor.mover(p, tempo_ms))
+func dedo_moveu(dedo: int, p: Vector2) -> void:
+	_entregar(reconhecedor.mover(dedo, p, tempo_ms))
 
 
-func dedo_subiu(p: Vector2) -> void:
-	_entregar(reconhecedor.soltar(p, tempo_ms))
-	_dedo = -1
+func dedo_subiu(dedo: int, p: Vector2) -> void:
+	_dedos.erase(dedo)
+	_entregar(reconhecedor.soltar(dedo, p, tempo_ms))
 
 
 func _entregar(evs: Array) -> void:
 	for ev in evs:
-		# AÇÃO de um risco (ataque, especial, esquiva) ou defesa: o gesto NÃO é
-		# caminho — o traço que o dedo chegou a riscar é cancelado e a rota
-		# anterior volta, então dá para atacar DURANTE a caminhada sem movê-la.
-		if ev["gesto"] in ["deslize", "segurar_inicio"]:
+		# Dois dedos ANTES de o caminho desenhar: o traço cai (o gesto é de ação).
+		if ev["gesto"] == "caminho_cancelar":
 			_cancelar_traco()
-			if ev["gesto"] == "deslize":
-				_retomada = 0.0  # ação não fica em câmera lenta
+			continue
+		# AÇÃO: o golpe não fica em câmera lenta — o tempo volta na hora (o
+		# desenho continua, se havia um).
+		if ev["gesto"] == "deslize" or ev["gesto"] == "especial" \
+				or (ev["gesto"] == "segurar_inicio" and ev.get("defesa", false)):
+			_plano_liberado = true
+			_retomada = 0.0
 		if ev["gesto"] == "trajetoria":
 			# O caminho já foi desenhado AO VIVO: aqui só se fecha a rota com o
 			# último trecho (nada de recomeçar do zero).
@@ -296,7 +302,8 @@ func _entregar(evs: Array) -> void:
 
 
 ## Cancela o caminho riscado por este gesto: devolve a rota (e o progresso)
-## que existia antes do dedo descer. É o que faz "ataque não ser passo".
+## que existia antes do dedo descer. É o que faz um gesto de DOIS dedos não
+## deixar passo para trás.
 func _cancelar_traco() -> void:
 	if _cancelou:
 		return
