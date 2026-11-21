@@ -4,6 +4,14 @@
 
 | versão | onde | o quê | tamanho |
 |---|---|---|---|
+| v0.11.1 | `sim/corpo.gd` | o **desvio de tronco** é guloso (leque de ângulos + lado mantido): num **bolsão de 3+ troncos em quina** ainda pode ficar indo e volta na beirada; uma busca BFS local foi tentada e ficou fora (o resultado era pior e mais caro) | design |
+| v0.11.1 | `sim/corpo.gd` | o **TIRO sem marca** vai na direção do toque **sem assistência**: toque atrás do animal atira para trás; toque em cima usa o olhar | decisão |
+| v0.11.1 | `sim/corpo.gd` | o avanço da projeção tem teto por quadro (`esperado×4`, mínimo 24 px): em dt muito grande (travada de FPS) a criatura pode "segurar" o progresso por 1 quadro — não perde a rota | pequeno |
+| v0.11.1 | `sim/corpo.gd` | a ponta do bico é arredondada em ~3 px (o passo de 3,7 px passa da ponta antes de a projeção virar) — não trava, mas não é um canto perfeito | pequeno |
+| v0.11.1 | `sim/trajetoria.gd` | o amontoado é medido por 24 px/100 px de arco: um **bico de até ~48 px** e um laço de ~15 px de raio são cortados (decisão: nessa escala é tremida, não desenho) | design |
+| v0.11.1 | `sim/corpo.gd` | a INÉRCIA passa do último ponto (`freio_extra_px` 16 px; 26 px no sprint): o animal termina um pouco além da ponta do traço | decisão |
+| v0.11.1 | `dados/acoes.json` | `freio_extra_px` 16, `freio_sprint_x` 1,6, `amontoado_*` 24/100 e os mínimos do laço (2200/160/28) são pontos de partida — ajustar no aparelho | pequeno |
+| v0.11.1 | `sim/formas.gd` | o laço pequeno não acende a área, mas o traço ainda é lido (custa o RDP dos laços a cada ~5 pontos); não foi medido no aparelho | pequeno |
 | v0.11.0 | `sim/formas.gd` | o **bico** não é mais reconhecido: o espinho é andado como qualquer traço (sem ataque próprio) — se o operador quiser um efeito no bico, é conteúdo novo | decisão |
 | v0.11.0 | `sim/gestos.gd` | o **toque simples (tiro) fica pendente** até a janela do duplo (280 ms): o tiro sai ~0,28 s depois do toque | decisão |
 | v0.11.0 | `sim/corpo.gd` | o **SPRINT só existe dentro de um caminho**: na perseguição final (sem rota) o segurar cava (se a célula for escavável) em vez de acelerar | decisão |

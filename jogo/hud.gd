@@ -81,7 +81,7 @@ func _legenda() -> String:
 	linhas.append("1 dedo arrastando → caminho")
 	linhas.append("laço perto → ataque em área")
 	linhas.append("fim do caminho no alvo → marca")
-	linhas.append("toque → tiro no alvo marcado")
+	linhas.append("toque → tiro (no alvo marcado ou na direção do toque)")
 	linhas.append("toque duplo → pulo")
 	linhas.append("passar por cima → batida")
 	linhas.append("segurar no caminho → sprint")

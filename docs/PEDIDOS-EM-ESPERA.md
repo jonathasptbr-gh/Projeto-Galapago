@@ -197,3 +197,12 @@
   duplo** e **TIRO no toque simples**; o **SEGURAR ativa no limiar** — com
   caminho = **SPRINT** (barra de **energia**), sem caminho = habilidade
   (**cavar**).
+- **Ajustes (v0.11.1):** a **ESTRADA** deixou de cortar caminho — a **projeção
+  com continuidade** anda o **laço** e a **ponta do bico** (não pula de braço
+  no cruzamento nem trava no retorno); o **alvo pela visão** contorna a curva
+  em vez de cortar por dentro da **pedra/beira de mar**; o **desvio de tronco**
+  troca de lado se o primeiro não passar; **AMONTOADOS** de até 24 px/100 px de
+  arco são cortados da rota e **laços pequenos** (< 2200 px²) não acendem a
+  área; a **frenagem virou INÉRCIA DEPOIS do fim** (16 px, ×1,6 no sprint) —
+  o animal chega na velocidade normal; e o **TIRO ficou HÍBRIDO** — sem marca,
+  na **direção do toque** (sem auto-mira); com marca, automirado no alvo.

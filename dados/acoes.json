@@ -1,5 +1,5 @@
 {
- "_leia": "Ações da criatura (v0.11). fases = [antecipação, ativa, recuperação] em segundos; alcance/raio em px de mundo (célula = 32). ATAQUE é o golpe físico (usado no golpe final do caminho); BATIDA é a pancada de passagem por cima de um alvo. PULAR e as HABILIDADES acontecem POR CIMA da rota e NÃO a cancelam. As formas do caminho (`formas`) dizem o que é laço (o BICO é andado como desenhado); `combate`, o que cada ataque faz (onda do laço, tiro no toque simples, empurrão) e as distâncias de gatilho; `sprint`, a aceleração do segurar dentro de um caminho. ROTA: pontos de referência esparsos (`simplificar_px`), desconto do vai-e-volta inicial, desvio local de OBJETOS; v0.9.1: ESTRADA larga (o animal anda dentro da faixa, com desvio orgânico), alvo À FRENTE e ZONA DE FREIO no fim; v0.10: sem freio quando há ALVO MARCADO (perseguição final) e a marca vem do fim do caminho; v0.11: o BICO é andado (nada é ignorado), o toque atira, o toque duplo pula e o SEGURAR dá SPRINT (barra de energia) ou a habilidade. Lido por sim/formas.gd e sim/corpo.gd. v0.9.2: os especiais têm RECARGA (`combate.onda_recarga_s`/`tiro_recarga_s` 1 s) e os golpes físicos EMBALAM (`embalo`).",
+ "_leia": "Ações da criatura (v0.11.1). fases = [antecipação, ativa, recuperação] em segundos; alcance/raio em px de mundo (célula = 32). ATAQUE é o golpe físico (usado no golpe final do caminho); BATIDA é a pancada de passagem por cima de um alvo. PULAR e as HABILIDADES acontecem POR CIMA da rota e NÃO a cancelam. As formas do caminho (`formas`) dizem o que é laço (o BICO é andado como desenhado) e o TAMANHO MÍNIMO de laço para acender a área; `combate`, o que cada ataque faz (onda do laço, tiro no toque simples, empurrão) e as distâncias de gatilho; `sprint`, a aceleração do segurar dentro de um caminho. ROTA: pontos de referência esparsos (`simplificar_px`), desconto do vai-e-volta inicial, limpeza de AMONTOADOS (`amontoado_*`), desvio local de OBJETOS; v0.9.1: ESTRADA larga (o animal anda dentro da faixa, com desvio orgânico) e alvo À FRENTE; v0.10: sem freio quando há ALVO MARCADO (perseguição final) e a marca vem do fim do caminho; v0.11: o BICO é andado (nada é ignorado), o toque atira, o toque duplo pula e o SEGURAR dá SPRINT (barra de energia) ou a habilidade; v0.11.1: a ESTRADA segue pela VISÃO (alvo à frente alcançável), a projeção não pula de braço em laço/bico (`projecao_peso`) e a frenagem é INÉRCIA DEPOIS do fim (`freio_extra_px`, maior no sprint em `freio_sprint_x`). Lido por sim/formas.gd e sim/corpo.gd. v0.9.2: os especiais têm RECARGA (`combate.onda_recarga_s`/`tiro_recarga_s` 1 s) e os golpes físicos EMBALAM (`embalo`).",
  "mover": {"velocidade": 110},
  "olhar": {},
  "travar": {},
@@ -10,9 +10,9 @@
  "cavar": {"fases": [0.15, 0.55, 0.15]},
  "formas": {
   "gatilho_raio_px": 24,
-  "laco_arco_min": 90,
-  "laco_area_min": 700,
-  "laco_raio_min": 24,
+  "laco_arco_min": 160,
+  "laco_area_min": 2200,
+  "laco_raio_min": 28,
   "laco_raio_max": 120,
   "laco_dedupe_px": 26
  },
@@ -51,16 +51,21 @@
   "simplificar_px": 10,
   "desconto_raio_px": 44,
   "desconto_janela_px": 140,
+  "amontoado_raio_px": 24,
+  "amontoado_janela_px": 100,
   "chegada_px": 12,
   "desvio_angulos": [20, -20, 40, -40, 60, -60, 80, -80, 100, -100, 120, -120],
   "desvios_max": 80,
+  "desvio_folga_px": 14,
   "olhar_px": 22,
+  "alvo_pulo_objeto_px": 56,
+  "projecao_peso": 0.25,
   "estrada_largura_px": 30,
   "estrada_desvio_px": 9,
   "estrada_onda_px": 120,
   "estrada_onda2_px": 47,
-  "freio_px": 44,
-  "freio_min": 0.12,
+  "freio_extra_px": 16,
+  "freio_sprint_x": 1.6,
   "parada_px": 4
  }
 }

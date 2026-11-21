@@ -3,6 +3,79 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.11.1 — estrada que anda o laço, contorna a barreira e freia depois do fim (2026-11-21)
+
+- **Pedido do operador:** (1) não travar perto de **pedra/beira de mar** quando
+  a rota desenhada tem caminho; **tronco** não bloqueia se dá para contornar;
+  (2) o **retorno/bico** travava na **ponta** e o **laço** era **cortado** (não
+  fazia a volta) — o laço deve ser **andado**; (3) ignorar **amontoados** de
+  movimentos numa zona do tamanho do animal (vai-e-volta, cruzamento) e
+  **laços pequenos** que acendem a área por engano; (4) **sem freio antes do
+  fim**: chegar na velocidade normal e frear **depois**, numa **mini inércia**,
+  um pouco maior no **sprint manual**; (5) **tiro híbrido**: sem marca, na
+  direção do **toque em relação ao animal**; com marca, automirado no alvo.
+- **`sim/corpo.gd` — projeção:** `_projetar` custa
+  `distância + projecao_peso × |arco − esperado|` e varre a rota inteira (a
+  busca local de ±12 segmentos saiu). No cruzamento do laço (e no bico, cujos
+  braços são a mesma linha) ela continua o braço andado em vez de pular para a
+  volta; um teto de avanço por quadro fecha a porta do "teleporte".
+- **`sim/corpo.gd` — alvo:** `_alvo_visivel` mira o ponto mais longe do traço
+  (horizonte `olhar_px` 22, amostras de 2 px) que a linha reta **alcança
+  andando** e que está **à frente** no sentido atual. A corda de uma curva não
+  entra mais na pedra/água; no bico, o braço de volta fica atrás e é rejeitado
+  até cruzar a ponta. O desvio orgânico lateral só é aplicado se o ponto
+  desviado também for alcançável. O desvio de tronco mantém o lado e **cai para
+  o outro** se o primeiro não passar (antes ficava presa).
+- **`sim/corpo.gd` — fim:** saiu a **zona de freio** antes do fim
+  (`freio_px`/`freio_min`); o corpo chega na velocidade normal e
+  `_terminar_rota` inicia a **INÉRCIA** (`_inercia_*`): desaceleração linear na
+  tangente do último trecho, `freio_extra_px` 16 px fora da rota (~0,3 s),
+  ×`freio_sprint_x` 1,6 no sprint. Sem alvo marcado, claro: com alvo, continua
+  a perseguição final.
+- **`sim/trajetoria.gd`:** `limpar_amontoados(pontos, raio, janela, livre)` —
+  corta o trecho que **retorna** para dentro de 24 px em até 100 px de arco
+  (laço minúsculo, cruzamento de passagem, vai-e-volta nervoso); o critério é
+  `arco ≥ d·1,8 + 12` (reta/curva não são tocadas) e o atalho precisa ser
+  andável (`mundo.caminho_livre`, via Callable). Remove também o **ponto de
+  entrada** do amontoado (senão sobrava um espinho).
+- **`sim/formas.gd` / `dados/acoes.json`:** tamanho MÍNIMO do laço para a área
+  — `laco_area_min` 2200 px² (era 700), `laco_arco_min` 160 (era 90),
+  `laco_raio_min` 28 (era 24). Bloco `rota` novo: `amontoado_raio_px` 24,
+  `amontoado_janela_px` 100, `alvo_pulo_objeto_px` 56, `projecao_peso` 0,25,
+  `freio_extra_px` 16, `freio_sprint_x` 1,6; saem `freio_px` e `freio_min`.
+- **`sim/corpo.gd` — TIRO HÍBRIDO (v0.11.1):** `_cmd_tiro(cmd, alvos)` não
+  exige mais marca. **Com** `mira_final_id` continua a automira da v0.10 (o
+  toque não muda a direção); **sem marca**, a direção é `cmd.alvo − pos` — o
+  ponto do **toque na tela convertido para mundo** pelo `jogo/main.gd`; toque
+  em cima dela usa o `olhar`. Se o alvo marcado sumir, a marca cai
+  (`mira_final:perde`) e o tiro sai livre. Recarga/pausa iguais nos dois.
+  `jogo/main.gd`/`jogo/hud.gd`: a nota vira "TIRO" e a legenda explica as duas
+  formas.
+- **Testes (99, 0 falhas; parser 38 scripts, 0 erros):** novos —
+  `test_limpar_amontoados_*` (corta o laço pequeno, preserva o bico grande, não
+  mexe em curva, respeita o caminho livre), `test_laco_pequeno_nao_acende_a_area`
+  e `test_laco_de_tamanho_util_acende_a_area`, `test_laco_e_andado_sem_cortar_a_volta`,
+  `test_bico_e_andado_ate_a_ponta_e_continua`,
+  `test_beira_de_agua_nao_trava_quando_a_rota_contorna`,
+  `test_amontoado_curto_e_cortado_da_rota`,
+  `test_laco_pequeno_nao_acende_a_area` (no corpo),
+  `test_inercia_depois_do_fim_do_caminho` (substitui o antigo teste de freio) e
+  `test_inercia_do_sprint_e_um_pouco_maior`,
+  `test_toque_sem_marca_atira_na_direcao_do_toque` e
+  `test_toque_com_alvo_marcado_mira_no_alvo` (o teste antigo "sem marca não
+  atira" foi substituído). Sonda headless da rota desenhada
+  AO VIVO (laço e bico em passos de 8 px, tempo lento 0,35×): o laço passa por
+  baixo e pela direita e termina em (112, 16), em 5,8 s; o bico chega a y > 150
+  e termina em (297, 47), em 4,4 s; 0 quadros `barrado`; inércia 17,9 px
+  (normal) × 28,8 px (sprint). TIRO: sem marca, toque abaixo → `dir` (0, 1);
+  com marca, toque ao lado oposto → `dir` (0,71, 0,71) (mirou no alvo).
+- **Verificação visual:** oráculo de quadros (`tools/quadros.sh`, **75
+  quadros** 720×1280, ~103 s de render) — os PNG foram abertos: a HUD mostra a
+  legenda nova ("toque → tiro (no alvo marcado ou na direção do toque)"), a
+  linha pontilhada do laço aparece inteira e o evento `laco:onda` imprime; a
+  criatura segue o traço sem salto para a volta. Detalhe em
+  [`gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md).
+
 ## v0.11.0 — bico andado, PULO no toque duplo, TIRO no toque simples e SPRINT com energia no segurar (2026-11-21)
 
 - **Pedido do operador:** (1) **não ignorar mais o bico** (v0.10 ele era

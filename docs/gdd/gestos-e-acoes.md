@@ -1,7 +1,7 @@
 # Gestos e ações — como a criatura se move e age
 
 > Regra toda em `sim/` (testada) e nas tabelas `dados/gestos.json` +
-> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.11.**
+> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.11.1.**
 
 ## O fluxo
 
@@ -25,9 +25,9 @@ Tempo **simulado** (`tempo_ms`): teste, demo e oráculo são determinísticos.
 | **bico** (ida e volta brusca, em "T" ou "V") | **v0.11: o bico é ANDADO** — o traço é obedecido como foi desenhado, nada é ignorado |
 | **levar o fim do caminho até o alvo** | ele fica **MARCADO** (um "X" amarelo que anda com ele); a marca vale para o **tiro** e para o **golpe físico** — e está ligada ao caminho |
 | **passar por cima** de um alvo com a linha | **batida/empurrão** ao chegar naquele ponto (embalo longo) |
-| **terminar o caminho** com alvo marcado | o animal **vai atrás** (perseguição final, sem a zona de freio) e só bate **ao chegar perto** |
+| **terminar o caminho** com alvo marcado | o animal **vai atrás** (perseguição final) e só bate **ao chegar perto** |
 | **segurar** | **com um caminho em curso → SPRINT** (acelera e gasta a **barra de energia**); **sem caminho → habilidade em si mesmo** (cavar). Ativa no **limiar** do segurar, sem esperar soltar |
-| **toque simples** | **TIRO** mirado no **alvo marcado** (1 s de recarga; o animal **para** para atirar e segue o caminho). Sai ~0,28 s depois, para não atirar no 1º toque de um duplo |
+| **toque simples** | **TIRO** HÍBRIDO: **com alvo marcado**, mirado nele; **sem marca**, na **direção do toque em relação ao animal** (1 s de recarga; o animal **para** para atirar e segue o caminho). Sai ~0,28 s depois, para não atirar no 1º toque de um duplo |
 | **toque duplo** | **PULO** |
 
 **Não há gesto de dois dedos** (v0.9 tirou ataque ↑, defesa ↓ e especial
@@ -53,7 +53,7 @@ Defesa também saiu (não há gesto para ela).
    fica marcado (e a marca **anda com ele**, ligada a este caminho).
 5. **Sensibilidade**: `desenho.ganho` (1,6) multiplica o traço.
 
-### Estrada, caminho orgânico e zona de freio (v0.9.1+)
+### Estrada, caminho orgânico e inércia (v0.9.1+ / v0.11.1)
 
 A linha desenhada é o **eixo de uma ESTRADA**, não a risca que a criatura pisa:
 
@@ -62,18 +62,53 @@ A linha desenhada é o **eixo de uma ESTRADA**, não a risca que a criatura pisa
 - o desvio lateral é uma **onda suave** (`estrada_desvio_px` = 9 px, dois
   períodos de `estrada_onda_px` 120 e `estrada_onda2_px` 47, com fases
   sorteadas pela semente): o caminho do animal **não fica retilíneo**;
-- ela **mira um ponto À FRENTE** (`olhar_px` = 22 px) da estrada + o desvio:
-  o percurso vira uma curva, em vez de ir reto de ponto em ponto;
-- os **pontos de referência** continuam sendo o eixo da estrada (a rota), não a
-  obrigação de pisar neles;
-- no fim há uma **ZONA DE FREIO** (`freio_px` = 44 px, mínimo `freio_min` =
-  0,12): a velocidade cai suave (`smoothstep`) e a criatura **para onde está**,
-  sem salto para o último ponto (`parada_px` = 4). **v0.10: com ALVO MARCADO
-  não há freio** — o animal chega em velocidade cheia para perseguir/bater.
+- ela **mira o ponto mais LONGE da estrada que a VISÃO alcança andando**
+  (`olhar_px` = 22 px de horizonte, amostras de 2 px) e só aceita o que está
+  **NA FRENTE** do sentido atual. É o que faz a criatura **contornar** a curva
+  em vez de cortar a corda por dentro de uma pedra/beira de mar — e o que faz
+  ela **chegar na ponta do bico** em vez de virar antes;
+- o **desvio orgânico lateral** só vale se o ponto desviado também for
+  alcançável: perto da barreira ele volta ao eixo da estrada;
+- a criatura vai até o **fim na velocidade normal**. A frenagem é uma
+  **INÉRCIA curta DEPOIS do fim** (`freio_extra_px` = 16 px, ~0,3 s), fora da
+  rota: ela passa do último ponto e para logo adiante. No **SPRINT manual** a
+  frenagem é um pouco maior (`freio_sprint_x` = 1,6×, ~26 px). `parada_px` = 4
+  é a folga para virar `rota:fim`;
+- **v0.10+:** com ALVO MARCADO o fim não freia: começa a perseguição/golpe.
 
 Um tronco no caminho: o alvo à frente **pula** o ponto que cai dentro dele e a
-criatura contorna por um lado, **mantendo o lado** até passar (sem ficar
-oscilando na beirada).
+criatura contorna com o leque de desvios; o **lado** é mantido (histerese), mas
+se aquele lado não passar ela **tenta o outro** — nunca fica presa na beirada.
+
+### Amontoados e laços minúsculos (v0.11.1)
+
+O traço tem ruído: um laço de 20 px, um cruzamento de passagem, um vai-e-volta
+nervoso. Andar isso não parece intenção — parece tremida, e ainda pode acender
+a área por engano. Depois do Douglas-Peucker:
+
+- **`Trajetoria.limpar_amontoados`** corta o trecho que sai e **volta para
+  dentro de `amontoado_raio_px` = 24 px** em menos de
+  `amontoado_janela_px` = 100 px de arco (a **zona do tamanho do animal**); a
+  rota liga o ponto anterior direto ao ponto de retorno. O corte só é aceito se
+  o atalho for **andável** (`mundo.caminho_livre`);
+- o teste é o **RETORNO**, não a proximidade: o arco precisa ser bem maior do
+  que a distância líquida (`arco ≥ d·1,8 + 12`) — reta e curva de verdade não
+  são tocadas;
+- **laço mínimo para a ÁREA:** `laco_area_min` 2200 px², `laco_arco_min` 160 px
+  e `laco_raio_min` 28 px (≈1,4× a área do corpo de 40×40). Abaixo disso o
+  traço não vira marca de ataque; um laço desenhado de propósito, sim.
+
+### O laço e o bico são ANDADOS (v0.11.1)
+
+Duas peças garantem que o traço não seja "cortado" no cruzamento:
+
+- **projeção com continuidade**: o ponto da rota onde a criatura está custa
+  `distância + 0,25 × |arco − arco_esperado|`; num cruzamento (ou num bico,
+  cujos dois braços são a MESMA linha) ela continua o braço que já andava em
+  vez de pular para a volta. Um teto de segurança limita o avanço por quadro;
+- **alvo na frente**: o alvo da estrada precisa estar no sentido do trecho
+  atual; no bico, o braço de volta fica atrás e é rejeitado até ela cruzar a
+  ponta. Na volta, a projeção já está do outro lado e ela segue.
 
 ### Desconto inicial
 
@@ -94,10 +129,13 @@ infinita — um ponto que passa da PONTA do segmento conta como desvio. É o que
 mantém a **ponta de um bico** na rota (na reta infinita a ida e a volta se
 anulavam e a criatura nunca chegava a fazer o espinho).
 
-A criatura procura **um ponto por vez, na ordem**. Em **objetos** (troncos) ela
-contorna com um leque de pequenos desvios; **terreno** (água, rocha, altura) é
-barreira: para e espera, mas a rota **não é apagada** — um pulo passa por cima
-e retoma.
+A criatura procura a rota **em ordem**, mirando o ponto mais longe que a visão
+alcança. Em **objetos** (troncos) ela contorna com um leque de pequenos desvios
+(com o lado mantido; se não passar, troca de lado); **terreno** (água, rocha,
+altura) é barreira de verdade: para e espera, mas a rota **não é apagada** — um
+pulo passa por cima e retoma. O que mudou na v0.11.1 é que a criatura **não
+corta mais a curva** da rota: se a linha passa perto da água e faz a volta, ela
+segue a linha, não a corda.
 
 ### A LINHA do caminho (v0.9.2)
 
@@ -118,7 +156,7 @@ Tudo em `sim/formas.gd` (puro). O traço CRU é lido antes de virar rota:
 
 | forma | como é reconhecida | o que a marca guarda |
 |---|---|---|
-| **laço** | o traço volta e **cruza** a si mesmo; a área fechada tem `laco_area_min` (700 px²) e o arco `laco_arco_min` (90 px) | o **nó**, o **centro** (centroide da área), o **raio** (`√area/π`, limitado a 24–120 px) e a direção do fechamento |
+| **laço** | o traço volta e **cruza** a si mesmo; a área fechada tem `laco_area_min` (2200 px²) e o arco `laco_arco_min` (160 px) — tamanho mínimo v0.11.1 | o **nó**, o **centro** (centroide da área), o **raio** (`√area/π`, limitado a 28–120 px) e a direção do fechamento |
 
 - **Laço → onda em área.** A marca acende quando a **distância da criatura ao
   CENTRO** do laço é ≤ `area_gatilho_px` (224 px ≈ 7× o corpo de ~32 px) — não
@@ -130,20 +168,25 @@ Tudo em `sim/formas.gd` (puro). O traço CRU é lido antes de virar rota:
 - **Sem "desenho certo":** as marcas são lidas a cada ~5 pontos do traço; o
   que já acendeu não volta, e a marca é a mesma mesmo redesenhando por cima.
 
-## A MARCA do alvo e o TIRO (v0.10/v0.11)
+## A MARCA do alvo e o TIRO HÍBRIDO (v0.10/v0.11.1)
 
 O jogador **leva o fim do caminho até o alvo** (durante o desenho ou a
 caminhada): quando a ponta do traço alcança um adversário, ele fica **marcado**
-("X" amarelo no inimigo, andando com ele). A marca é **ligada ao caminho**:
+("X" amarelo no inimigo, andando com ele). A marca é **ligada ao caminho**.
 
-- vale para o **TIRO** (toque simples): a criatura **para** `tiro_pausa_s`
-  (0,25 s), atira **mirada no alvo marcado**, tem `tiro_recarga_s` (1 s) e
-  **segue o caminho**;
+O **toque simples** atira **sempre**, de duas formas:
+
+- **com alvo marcado**: automira nele (como na v0.10). O ponto do toque **não**
+  muda a direção;
+- **sem marca**: **não é auto-mirado** — a direção é do **animal para o ponto
+  tocado na tela** (`cmd.alvo`, convertido para mundo). Tocar em cima dela usa
+  o olhar;
+- nos dois: a criatura **para** `tiro_pausa_s` (0,25 s), tem
+  `tiro_recarga_s` (1 s) e **segue o caminho**;
 - **não sai** com o disparo — dá para atirar de novo após a recarga;
-- **sai** quando o animal faz o **golpe físico** (chegar no alvo) ou quando um
-  **novo caminho** começa;
-- sem alvo marcado, o toque simples **não dispara** (a HUD diz "sem alvo
-  marcado").
+- a marca **sai** quando o animal faz o **golpe físico** (chegar no alvo) ou
+  quando um **novo caminho** começa. Se o alvo marcado sumir, a marca cai e o
+  toque vira um tiro livre.
 
 ## Travessia e alvo final (no `sim/corpo.gd`)
 
@@ -187,7 +230,7 @@ numa rampa de `planejamento.retomada_ms` (0,45 s). Segurar para a habilidade
 | overlay | o que faz | efeito na rota |
 |---|---|---|
 | **onda** (laço) | círculo que cresce do centro do laço e empurra quem varre | nenhum: continua andando |
-| **tiro** (toque simples) | projétil mirado no alvo marcado, para no primeiro alvo | nenhum: o animal PAUSA para atirar e segue |
+| **tiro** (toque simples) | projétil no alvo marcado (automira) ou na direção do toque (sem marca); para no primeiro alvo | nenhum: o animal PAUSA para atirar e segue |
 | **golpe** (`ataque`/`batida`) | arco de fases (antecipação → ativa → recuperação) | nenhum |
 | **pulo** | arco no ar enquanto segue; atravessa barreira | nenhum |
 | **habilidade** | em si mesmo, com duração; cavar troca de camada | cavar apaga a rota (outra camada) |
@@ -211,7 +254,7 @@ depois **ronda** ao redor. Cada passo é cortado pelo mundo.
 | `formas` | limiares do laço (tabela abaixo) |
 | `sprint` | aceleração do segurar no caminho (tabela abaixo) |
 | `combate` | onda/tiro/batida/alvo final (tabela abaixo) |
-| `rota` | `simplificar_px` 10 · `desconto_raio_px` 44 · `desconto_janela_px` 140 · `chegada_px` 12 · `desvio_angulos` · `desvios_max` 80 · **estrada/freio** abaixo |
+| `rota` | `simplificar_px` 10 · `desconto_raio_px` 44 · `desconto_janela_px` 140 · `amontoado_raio_px` 24 · `amontoado_janela_px` 100 · `chegada_px` 12 · `desvio_angulos` · `desvios_max` 80 · **estrada/inércia** abaixo |
 
 ### `embalo` — a aceleração dos golpes físicos (v0.9.2)
 
@@ -228,25 +271,28 @@ desacelerando depois da batida; a marcação dá um puxão curto na direção do
 final. O cooldown de 1 s segura a marca do especial (ela fica **pendente** e
 acende quando a recarga termina).
 
-### `rota` — estrada e freio (v0.9.1)
+### `rota` — estrada, visão e inércia (v0.9.1+ / v0.11.1)
 
 | chave | valor | o quê |
 |---|---|---|
-| `olhar_px` | 22 | o ponto à frente que a criatura mira (curva o percurso) |
+| `olhar_px` | 22 | horizonte do alvo (o ponto mais longe **visível e à frente**) |
+| `alvo_pulo_objeto_px` | 56 | quanto o alvo nominal pode pular um tronco para o desvio trabalhar |
+| `projecao_peso` | 0,25 | peso do desvio de ARCO na projeção (continuidade no laço/bico) |
+| `amontoado_raio_px` / `amontoado_janela_px` | 24 / 100 | zona do amontoado e arco máximo do corte |
 | `estrada_largura_px` | 30 | largura da estrada (±15 px) |
 | `estrada_desvio_px` | 9 | amplitude do desvio orgânico lateral |
 | `estrada_onda_px` / `estrada_onda2_px` | 120 / 47 | os dois períodos da onda do desvio |
-| `freio_px` / `freio_min` | 44 / 0,12 | zona de freio e velocidade mínima |
-| `parada_px` | 4 | a que distância do fim ela para |
+| `freio_extra_px` / `freio_sprint_x` | 16 / 1,6× | INÉRCIA depois do fim; no sprint ×1,6 |
+| `parada_px` | 4 | folga para virar `rota:fim` (a inércia continua) |
 
 ### `formas`
 
 | chave | valor | o quê |
 |---|---|---|
 | `gatilho_raio_px` | 24 | distância da marca que acende o gatilho |
-| `laco_arco_min` | 90 | arco mínimo do laço |
-| `laco_area_min` | 700 | área mínima (px²) |
-| `laco_raio_min` / `laco_raio_max` | 24 / 120 | raio da onda |
+| `laco_arco_min` | 160 | arco mínimo do laço (tamanho mínimo v0.11.1) |
+| `laco_area_min` | 2200 | área mínima (px²) — abaixo disso não acende a área |
+| `laco_raio_min` / `laco_raio_max` | 28 / 120 | raio da onda |
 | `laco_dedupe_px` | 26 | laços repetidos |
 
 ### `sprint` — a aceleração do segurar no caminho (v0.11)
@@ -306,8 +352,8 @@ acende quando a recarga termina).
   espinho pode deixar o caminho mais longo.
 - **Baú e mira vermelha**: sem gesto desde a v0.10 (o toque é o pulo) — o baú
   precisa de um gatilho novo.
-- **Estrada**: a largura, a amplitude/onda e o freio são pontos de partida —
-  ajustar no aparelho com o operador.
+- **Estrada**: a largura, a amplitude/onda e a inércia (`freio_extra_px`,
+  `freio_sprint_x`) são pontos de partida — ajustar no aparelho com o operador.
 - **Linha**: mostra o traço CRU do dedo (inclusive o beco e o tremor inicial);
   se o operador preferir a linha do **caminho andado** (o rastro do animal), é
   outra decisão.

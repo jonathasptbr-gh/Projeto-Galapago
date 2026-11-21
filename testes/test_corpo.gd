@@ -481,8 +481,9 @@ func test_estrada_organica_nao_e_reta() -> void:
 	checar(max_desvio <= 17.0 and minimo >= -17.0, "ficou na estrada (%.1f a %.1f px)" % [minimo, max_desvio])
 
 
-## ZONA DE FREIO: o fim do caminho é mais lento que o meio.
-func test_freio_no_fim_do_caminho() -> void:
+## v0.11.1: NÃO há mais freio antes do fim. A criatura chega no último ponto
+## na velocidade NORMAL e a frenagem é a INÉRCIA depois dele (pedaço curto).
+func test_inercia_depois_do_fim_do_caminho() -> void:
 	var s := _setup(MAPA)
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
@@ -502,7 +503,18 @@ func test_freio_no_fim_do_caminho() -> void:
 			fim = maxf(fim, v)
 		t += 1.0 / 30.0
 	checar(meio > 70.0, "andou no meio (%.0f px/s)" % meio)
-	checar(fim < 35.0, "freou no fim (%.0f px/s)" % fim)
+	checar(fim > 90.0, "chegou no fim na velocidade normal (%.0f px/s)" % fim)
+	checar(not c.em_rota(), "a rota terminou")
+	checar(c.em_inercia(), "entrou na inércia")
+	var p0: Vector2 = c.pos
+	var t2 := 0.0
+	while c.em_inercia() and t2 < 1.0:
+		c.passo(1.0 / 30.0, m, [])
+		c.drenar_eventos()
+		t2 += 1.0 / 30.0
+	checar(c.pos.x > p0.x + 6.0, "passou um pouco do fim (+%.0f px)" % (c.pos.x - p0.x))
+	checar(c.pos.x < p0.x + 32.0, "não foi longe no freio (+%.0f px)" % (c.pos.x - p0.x))
+	checar(not c.em_inercia(), "parou depois do freio")
 
 
 # ---------------------------------------------------------------- v0.9.2: recarga e embalo
@@ -596,19 +608,38 @@ func test_marcacao_embala_curto() -> void:
 
 # ---------------------------------------------------------------- v0.10: tiro no alvo marcado
 
-## O TIRO (toque simples) só sai com ALVO MARCADO, mira nele, tem recarga e
-## NÃO tira a marca; o animal para para atirar.
-func test_toque_atira_no_alvo_marcado() -> void:
+## v0.11.1: o TIRO é HÍBRIDO. SEM marca ele NÃO é auto-mirado: sai na direção
+## do TOQUE em relação ao animal (o comando traz `alvo` = toque em mundo).
+func test_toque_sem_marca_atira_na_direcao_do_toque() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	var toque: Vector2 = c.pos + Vector2(0, 100)  # para baixo (o olhar padrão é +x)
+	checar(c.comandar({"acao": "tiro", "alvo": toque}, m, []).begins_with("ok"), "atirou sem marca")
+	igual(c.mira_final_id, "", "continua sem marca")
+	checar(float(c._recargas.get("tiro", 0.0)) > 0.7, "entrou em recarga")
+	checar(c._pausa_t > 0.0, "parou para atirar")
+	var dir := Vector2.ZERO
+	for ef in c.efeitos:
+		if str(ef["tipo"]) == "tiro":
+			dir = Vector2(ef["dir"])
+	checar(dir.dot((toque - c.pos).normalized()) > 0.99, "tiro na direção do toque (%s)" % dir)
+	igual(c.comandar({"acao": "tiro", "alvo": toque}, m, []), "recusado: recarga", "recarga segura o 2º tiro")
+
+
+## COM ALVO MARCADO continua a automira da v0.10: o toque em OUTRO lugar não
+## muda a direção do tiro. A marca NÃO sai no disparo e o animal para para atirar.
+func test_toque_com_alvo_marcado_mira_no_alvo() -> void:
 	var s := _setup(MAPA)
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
 	var adv := _adv(Vector2(200, 200))
 	var alvos := [_alvo_adv("adversario:0", adv)]
-	igual(c.comandar({"acao": "tiro"}, m, alvos), "recusado: sem alvo marcado", "sem marca não atira")
 	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(200, 200)])}, m, alvos).begins_with("ok"), "rota até o alvo")
 	c.finalizar_rota(alvos)
 	igual(c.mira_final_id, "adversario:0", "marcou")
-	checar(c.comandar({"acao": "tiro"}, m, alvos).begins_with("ok"), "atirou")
+	var toque: Vector2 = c.pos + Vector2(-150, 0)  # toque do lado OPOSTO ao alvo
+	checar(c.comandar({"acao": "tiro", "alvo": toque}, m, alvos).begins_with("ok"), "atirou")
 	checar(float(c._recargas.get("tiro", 0.0)) > 0.7, "entrou em recarga")
 	checar(c._pausa_t > 0.0, "parou para atirar")
 	igual(c.mira_final_id, "adversario:0", "a marca FICA após o disparo")
@@ -616,7 +647,7 @@ func test_toque_atira_no_alvo_marcado() -> void:
 	for ef in c.efeitos:
 		if str(ef["tipo"]) == "tiro":
 			mirado = Vector2(ef["dir"]).dot((Vector2(adv.pos) - c.pos).normalized()) > 0.95
-	checar(mirado, "tiro mirado no alvo")
+	checar(mirado, "tiro mirado no alvo (não no toque)")
 	igual(c.comandar({"acao": "tiro"}, m, alvos), "recusado: recarga", "recarga segura o 2º tiro")
 	var evs := _rodar_com(c, m, alvos, adv, 1.2)
 	checar("acerto:adversario:0" in evs, "acertou o alvo (%s)" % [evs])
@@ -666,3 +697,164 @@ func test_segurar_sem_caminho_cava() -> void:
 	checar(c.escavando, "cavando já")
 	_rodar(c, m, 1.2)
 	igual(c.camada, M.SUBSOLO, "desceu")
+
+
+# ---------------------------------------------------------------- v0.11.1: estrada que não corta
+
+## O LAÇO é ANDADO: a criatura passa pelo lado direito e pelo fundo do laço
+## (em vez de "pular" no cruzamento para a continuação) e termina no fim.
+func test_laco_e_andado_sem_cortar_a_volta() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([
+		Vector2(240, 48), Vector2(240, 190), Vector2(110, 190), Vector2(110, 30)])}, m, [])
+	var direita := false
+	var fundo := false
+	var barrado := 0
+	var t := 0.0
+	while c.em_rota() and t < 10.0:
+		c.passo(1.0 / 30.0, m, [])
+		c.drenar_eventos()
+		if c.barrado():
+			barrado += 1
+		if c.pos.x > 210.0 and c.pos.y > 150.0:
+			direita = true
+		if c.pos.y > 170.0 and c.pos.x < 150.0:
+			fundo = true
+		t += 1.0 / 30.0
+	checar(direita, "passou pelo lado direito do laço (%s)" % c.pos)
+	checar(fundo, "passou pelo fundo do laço (%s)" % c.pos)
+	checar(not c.em_rota(), "a rota terminou (não cortou para a volta)")
+	checar(barrado == 0, "não parou na barreira (%d quadros)" % barrado)
+	while c.em_inercia():
+		c.passo(1.0 / 30.0, m, [])
+	var d: float = c.pos.distance_to(Vector2(110, 30))
+	checar(d < 40.0, "terminou perto do fim do laço (d=%.0f)" % d)
+
+
+## O BICO (ida e volta sobre a mesma linha) é andado ATÉ A PONTA e continua:
+## a criatura não fica oscilando/travada na ponta do retorno.
+func test_bico_e_andado_ate_a_ponta_e_continua() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([
+		Vector2(150, 48), Vector2(150, 160), Vector2(150, 48), Vector2(280, 48)])}, m, [])
+	var fundo := false
+	var barrado := 0
+	var t := 0.0
+	while c.em_rota() and t < 10.0:
+		c.passo(1.0 / 30.0, m, [])
+		c.drenar_eventos()
+		if c.barrado():
+			barrado += 1
+		if c.pos.y > 150.0:
+			fundo = true
+		t += 1.0 / 30.0
+	checar(fundo, "chegou na ponta do bico (%s)" % c.pos)
+	checar(not c.em_rota(), "saiu do bico (não travou na ponta) em %.1f s" % t)
+	checar(barrado == 0, "não parou na barreira (%d quadros)" % barrado)
+	while c.em_inercia():
+		c.passo(1.0 / 30.0, m, [])
+	checar(c.pos.x > 260.0, "continuou o caminho depois do bico (x=%.0f)" % c.pos.x)
+
+
+## BEIRA DE ÁGUA: a rota corre a 1 px da água; o desvio orgânico lateral NÃO
+## pode empurrar o alvo para dentro do mar nem travar a caminhada.
+const COSTA := [
+	"~~~~~~~~~~~~", "~~~~~~~~~~~~",
+	",,,,,,,,,,,,", ",,,,,,,,,,,,", ",,,,,,,,,,,,", ",,,,,,,,,,,,", ",,,,,,,,,,,,", ",,,,,,,,,,,,",
+]
+
+func test_beira_de_agua_nao_trava_quando_a_rota_contorna() -> void:
+	var s := _setup(COSTA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.pos = Vector2(48, 65)  # 1 px abaixo da linha da água
+	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(340, 65)])}, m, []).begins_with("ok"), "rota pela beira")
+	var barrado := 0
+	var t := 0.0
+	while c.em_rota() and t < 6.0:
+		c.passo(1.0 / 30.0, m, [])
+		c.drenar_eventos()
+		if c.barrado():
+			barrado += 1
+		t += 1.0 / 30.0
+	checar(barrado == 0, "não travou na beira (%d quadros)" % barrado)
+	checar(not c.em_rota(), "percorreu a beira toda")
+	while c.em_inercia():
+		c.passo(1.0 / 30.0, m, [])
+	checar(c.pos.x > 320.0, "chegou ao fim da beirada (x=%.0f)" % c.pos.x)
+
+
+## AMONTOADO no meio do traço: um laço de 20×22 px não é andado; a rota corta
+## direto e o animal segue.
+func test_amontoado_curto_e_cortado_da_rota() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([
+		Vector2(120, 48), Vector2(140, 48), Vector2(140, 70), Vector2(120, 70),
+		Vector2(120, 48), Vector2(240, 48)])}, m, [])
+	checar(c.rota.size() <= 4, "a rota ficou curta (%s)" % [c.rota])
+	for p in c.rota:
+		checar(p.y < 60.0, "não sobrou o laço na rota (%s)" % [c.rota])
+	checar(c.total_rota < 220.0, "comprimento sem o amontoado (%.0f)" % c.total_rota)
+	var t := 0.0
+	while c.em_rota() and t < 5.0:
+		c.passo(1.0 / 30.0, m, [])
+		c.drenar_eventos()
+		t += 1.0 / 30.0
+	while c.em_inercia():
+		c.passo(1.0 / 30.0, m, [])
+	checar(c.pos.x > 235.0, "seguiu ao fim (x=%.0f)" % c.pos.x)
+
+
+## LAÇO PEQUENO não acende a área: o traço do amontoado passa pelo leitor de
+## formas, mas fica abaixo do tamanho mínimo (não vira marca).
+func test_laco_pequeno_nao_acende_a_area() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([
+		Vector2(120, 48), Vector2(140, 48), Vector2(140, 70), Vector2(120, 70),
+		Vector2(120, 48), Vector2(240, 48)])}, m, [])
+	var lacos := 0
+	for marca in c.marcas:
+		if str(marca["tipo"]) == "laco":
+			lacos += 1
+	igual(lacos, 0, "laço pequeno não marcou a área")
+	var evs := _rodar(c, m, 1.0)
+	checar("laco:onda" not in evs, "não disparou a onda (%s)" % [evs])
+
+
+## INÉRCIA maior no SPRINT manual: o pedaço de frenagem fora da rota cresce um
+## pouco quando a criatura chega acelerada.
+func _frenagem(sprint: bool) -> float:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(340, 48)])}, m, [])
+	if sprint:
+		c.comandar({"acao": "segurar"}, m, [])
+	var t := 0.0
+	while c.em_rota() and t < 8.0:
+		c.passo(1.0 / 30.0, m, [])
+		c.drenar_eventos()
+		t += 1.0 / 30.0
+	var p0: Vector2 = c.pos
+	var t2 := 0.0
+	while c.em_inercia() and t2 < 2.0:
+		c.passo(1.0 / 30.0, m, [])
+		c.drenar_eventos()
+		t2 += 1.0 / 30.0
+	return c.pos.distance_to(p0)
+
+
+func test_inercia_do_sprint_e_um_pouco_maior() -> void:
+	var normal := _frenagem(false)
+	var sprint := _frenagem(true)
+	checar(normal > 8.0 and normal < 24.0, "frenagem normal curta (%.1f px)" % normal)
+	checar(sprint > normal + 3.0, "frenagem do sprint um pouco maior (%.1f vs %.1f px)" % [sprint, normal])
+	checar(sprint < normal + 20.0, "não exagera no sprint (%.1f px)" % sprint)

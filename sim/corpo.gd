@@ -13,6 +13,24 @@ extends RefCounted
 ## - os **OVERLAYS** (pulo, golpes, onda de área, tiros e habilidade), que
 ##   acontecem POR CIMA da rota sem cancelá-la.
 ##
+## v0.11.1 — a ESTRADA deixou de CORTAR CAMINHO:
+##
+## - **projeção com continuidade**: o ponto da rota onde a criatura está é
+##   escolhido pelo avanço esperado, não só pela distância; num cruzamento ou
+##   num bico (ida e volta sobre a mesma linha) ela não "pula" para o braço de
+##   volta — o laço e a ponta do bico são ANDADOS;
+## - **alvo pela VISÃO**: o ponto à frente é o mais LONGE que a linha reta
+##   alcança andando (pedaços de 2 px); assim a criatura contorna a curva da
+##   rota em vez de cortar a corda por dentro de uma pedra/beira de mar. O
+##   desvio orgânico lateral só vale se o alvo desviado também for alcançável;
+## - **desvio de tronco** conserva o lado, mas cai para o outro lado se o
+##   primeiro não passar (nunca fica presa na beirada);
+## - **AMONTOADOS** (`sim/trajetoria.limpar_amontoados`): um laço/cruzamento/
+##   vai-e-volta dentro de uma zona do tamanho do animal é cortado da rota;
+## - **INÉRCIA no fim**: a criatura vai até o fim da rota em velocidade NORMAL e
+##   só freia DEPOIS de chegar, num pedaço curto fora do caminho (maior quando
+##   está no SPRINT manual). A zona de freio antes do fim não existe mais.
+##
 ## v0.9 — O ATAQUE NASCE DO DESENHO (`sim/formas.gd`), não de um gesto de dois
 ## dedos; v0.9.1 afinou as três pontas:
 ##
@@ -21,7 +39,8 @@ extends RefCounted
 ##   laço que fecha com ela em cima já dispara;
 ## - **bico** (o "T"/"V" que sai da estrada e volta) → **v0.11: o bico é
 ##   andado** (o traço é obedecido como foi desenhado; nada é ignorado);
-## - **toque simples** → TIRO no alvo marcado; **toque duplo** → PULO;
+## - **toque simples** → TIRO híbrido (com marca: automira; sem marca: direção do
+##   toque); **toque duplo** → PULO;
 ## - **segurar** durante um caminho → SPRINT (gasta a barra de ENERGIA); sem
 ##   caminho → habilidade em si mesmo (cavar), ativada no limiar do segurar;
 ## - **travessia** de um alvo → BATIDA/empurrão ao passar por cima;
@@ -70,6 +89,7 @@ var _rota_i := 0
 var _barrado := false
 var _desvios := 0
 var _desvio_lado := 0.0            # lado do desvio em curso (histerese no tronco)
+var _desvio_ref := 0.0             # arco do último desvio (só encerra depois de folga)
 
 # overlays
 var _pulo_t := 0.0
@@ -110,6 +130,12 @@ var _turbo_fator := 1.0
 var _embalo_final_feito := false
 var _disparadas := {}            # chaves de marcas que já acenderam
 var _traco_lido := 0             # pontos do traço já lidos (economia)
+# INÉRCIA do fim (v0.11.1): o corpo passa do último ponto em velocidade normal
+# e desacelera FORA da rota (pedaço curto; maior no sprint manual)
+var _inercia_t := 0.0
+var _inercia_dur := 0.0
+var _inercia_dir := Vector2.ZERO
+var _inercia_v0 := 0.0
 
 # alvo e autonomia
 var alvo_id := ""
@@ -139,8 +165,13 @@ func em_rota() -> bool:
 	return rota.size() >= 2 and _rota_i < rota.size()
 
 
+## Está FREANDO depois do fim da rota (a mini inércia da v0.11.1)?
+func em_inercia() -> bool:
+	return _inercia_t > 0.0
+
+
 func em_autonomia() -> bool:
-	return not em_rota()
+	return not em_rota() and not em_inercia()
 
 
 ## Está parada numa barreira de terreno (a rota continua guardada)?
@@ -201,7 +232,7 @@ func comandar(cmd: Dictionary, mundo: RefCounted, alvos: Array = []) -> String:
 		"habilidade":
 			return _cmd_habilidade(mundo)
 		"tiro":
-			return _cmd_tiro(alvos)
+			return _cmd_tiro(cmd, alvos)
 		"segurar":
 			return _cmd_segurar(mundo)
 		"soltar_segurar":
@@ -263,7 +294,8 @@ func _adotar_traco(pontos: PackedVector2Array, mundo: RefCounted, inicio: bool, 
 
 
 ## O traço vira PONTOS DE REFERÊNCIA: DESCONTO INICIAL (o vai-e-volta do
-## começo não é obedecido) e Douglas-Peucker. O traço é o desenho inteiro.
+## começo não é obedecido), Douglas-Peucker e a LIMPEZA DOS AMONTOADOS
+## (v0.11.1: laço/cruzamento minúsculo e vai-e-volta nervoso não são andados).
 func _pontos_de_rota(pts: PackedVector2Array, mundo: RefCounted) -> PackedVector2Array:
 	if pts.size() < 2:
 		return PackedVector2Array()
@@ -275,6 +307,13 @@ func _pontos_de_rota(pts: PackedVector2Array, mundo: RefCounted) -> PackedVector
 		if mundo.caminho_livre(pts[0], cortado[1], camada):
 			pts = cortado
 	var nova := Trajetoria.simplificar(pts, float(rota_cfg.get("simplificar_px", 10.0)))
+	# AMONTOADO: retorno a uma zona do tamanho do animal em poucos px de arco.
+	# O atalho só vale se for andável (não pula para o outro lado de um tronco).
+	var livre := func(a: Vector2, b: Vector2) -> bool:
+		return mundo.caminho_livre(a, b, camada)
+	nova = Trajetoria.limpar_amontoados(nova,
+		float(rota_cfg.get("amontoado_raio_px", 24.0)),
+		float(rota_cfg.get("amontoado_janela_px", 100.0)), livre)
 	if nova.size() < 2 or Trajetoria.comprimento(nova) < 6.0:
 		return PackedVector2Array()
 	return nova
@@ -287,6 +326,7 @@ func _guardar_rota(nova: PackedVector2Array, reiniciar: bool) -> void:
 	rota = nova
 	total_rota = Trajetoria.comprimento(rota)
 	_arcos_rota = Formas.arcos(rota)
+	_inercia_t = 0.0  # caminho novo cancela a inércia do antigo
 	_barrado = false
 	autonomia = ""
 	_auto_destino = Vector2.ZERO
@@ -295,6 +335,7 @@ func _guardar_rota(nova: PackedVector2Array, reiniciar: bool) -> void:
 		rota_t = 0.0
 		_desvios = 0
 		_desvio_lado = 0.0
+		_desvio_ref = 0.0
 		_sprint = false
 		marcas = []
 		_disparadas = {}
@@ -627,21 +668,35 @@ func _cmd_pular(cmd: Dictionary) -> String:
 	return "ok: pulando"
 
 
-## TIRO (v0.10): o TOQUE DUPLO dispara no ALVO MARCADO (a marca vem do fim do
-## caminho). O animal PARA para atirar (`tiro_pausa_s`) e depois segue a rota;
-## a marca NÃO sai no disparo. Tem recarga (`tiro_recarga_s`, 1 s).
-func _cmd_tiro(alvos: Array) -> String:
-	if mira_final_id == "":
-		return "recusado: sem alvo marcado"
+## TIRO (v0.10/v0.11.1): HÍBRIDO.
+##
+## - COM **alvo marcado** (o fim do caminho alcançou um adversário): mira NELE,
+##   como na v0.10 (automira);
+## - SEM marca: **não é auto-mirado** — sai na direção do **TOQUE na tela em
+##   relação ao animal** (`cmd.alvo` é o toque em mundo; a HUD/main converte).
+##   Se o toque veio em cima dela, usa o olhar.
+##
+## O animal PARA para atirar (`tiro_pausa_s`) e depois segue a rota; a marca
+## (se houver) NÃO sai no disparo. Recarga `tiro_recarga_s` (1 s) nos dois.
+func _cmd_tiro(cmd: Dictionary, alvos: Array) -> String:
 	if float(_recargas.get("tiro", 0.0)) > 0.0:
 		return "recusado: recarga"
-	var a := Alvos.por_id(alvos, mira_final_id)
-	if a.is_empty():
-		mira_final_id = ""
-		return "recusado: o alvo sumiu"
-	var dir: Vector2 = (Vector2(a["pos"]) - pos)
+	var dir := Vector2.ZERO
+	if mira_final_id != "":
+		var a := Alvos.por_id(alvos, mira_final_id)
+		if not a.is_empty():
+			dir = Vector2(a["pos"]) - pos
+		else:
+			# o alvo sumiu: a marca sai e o tiro LIVRE vale (direção do toque)
+			mira_final_id = ""
+			eventos.append("mira_final:perde")
+	if mira_final_id == "":
+		# SEM automira: a direção é o toque em relação ao animal.
+		dir = Vector2(cmd.get("alvo", pos)) - pos
 	if dir.length() < 0.5:
 		dir = olhar
+	if dir.length() < 0.01:
+		dir = Vector2.RIGHT
 	dir = dir.normalized()
 	olhar = dir
 	_atirar(dir)
@@ -748,6 +803,8 @@ func passo(dt: float, mundo: RefCounted, alvos: Array = []) -> void:
 		return
 	if em_rota():
 		pos = _avancar_rota(dt, mundo, alvos)
+	elif em_inercia():
+		_avancar_inercia(dt, mundo)
 	elif _perseguindo:
 		_perseguir(dt, mundo, alvos)
 	else:
@@ -755,18 +812,28 @@ func passo(dt: float, mundo: RefCounted, alvos: Array = []) -> void:
 	_checar_marcas(alvos)
 
 
-## Avança a rota como uma ESTRADA (v0.9.1): a criatura segue o traço por
-## dentro de uma FAIXA (pode ir mais à esquerda, à direita ou no centro), mira
-## um ponto À FRENTE (o caminho fica curvo, não retilíneo) e FREIA nos últimos
-## `freio_px` (zona de freio), para parar macio. Se um passo for barrado, a rota
-## NÃO é apagada: para (`barrado()`) e espera — um pulo passa por cima e retoma.
+## Avança a rota como uma ESTRADA (v0.9.1/v0.11.1): a criatura segue o traço
+## por dentro de uma FAIXA (pode ir mais à esquerda, à direita ou no centro),
+## mira o ponto mais LONGE que a VISÃO alcança andando (a curva é contornada,
+## não cortada por dentro de uma pedra/água) e vai até o FIM na velocidade
+## normal. Não há mais freio antes do fim: a frenagem é a INÉRCIA
+## (`_iniciar_inercia`), fora da rota. Se um passo for barrado, a rota NÃO é
+## apagada: para (`barrado()`) e espera — um pulo passa por cima e retoma.
 func _avancar_rota(dt: float, mundo: RefCounted, alvos: Array) -> Vector2:
 	if rota.is_empty() or total_rota <= 0.001:
 		return _terminar_rota(alvos)
 	var base := pos
-	var proj := _projetar(base)
-	rota_t = float(proj["s"])
-	_rota_i = int(proj["i"])
+	var fator_sprint := 1.0
+	if _sprint and energia > 0.0:
+		fator_sprint = float(_sprint_cfg.get("fator", 1.7))
+	# o avanço que ela DEVERIA ter neste quadro: é o que desempata a projeção
+	# num cruzamento/bico (dois braços no mesmo lugar) e impede o "pulo".
+	var esperado := maxf(velocidade * fator_sprint * _fator_embalo() * dt * 2.0, 2.0)
+	var proj := _projetar(base, esperado)
+	# teto de segurança do avanço: um cruzamento/laço não pode "teleportar" a
+	# criatura para o fim do braço; no máximo o que ela andaria em ~4 quadros.
+	rota_t = minf(float(proj["s"]), rota_t + maxf(esperado * 4.0, 24.0))
+	_rota_i = _indice_em(rota_t)
 	if rota_t >= total_rota - float(rota_cfg.get("parada_px", 4.0)):
 		return _terminar_rota(alvos)
 	# EMBALO CURTO da marcação: ao chegar perto do alvo final, acelera para o
@@ -776,37 +843,31 @@ func _avancar_rota(dt: float, mundo: RefCounted, alvos: Array) -> Vector2:
 		if alvo_f != Vector2.ZERO and pos.distance_to(alvo_f) <= float(_embalo.get("gatilho_px", 70.0)):
 			_iniciar_embalo(float(_embalo.get("curto_s", 0.25)), float(_embalo.get("curto_fator", 1.7)))
 			_embalo_final_feito = true
-	# FREIO: perde velocidade perto do fim
-	var restante := total_rota - rota_t
-	var freio_px := maxf(float(rota_cfg.get("freio_px", 44.0)), 1.0)
-	var f := clampf(restante / freio_px, 0.0, 1.0)
-	f = f * f * (3.0 - 2.0 * f)
-	f = maxf(f, float(rota_cfg.get("freio_min", 0.12)))
-	# v0.10: com ALVO MARCADO não há zona de freio no fim — o animal segue em
-	# velocidade cheia para perseguir/bater no alvo.
-	if mira_final_id != "":
-		f = 1.0
-	var fator_sprint := 1.0
-	if _sprint and energia > 0.0:
-		fator_sprint = float(_sprint_cfg.get("fator", 1.7))
-	var passo := velocidade * f * _fator_embalo() * fator_sprint * dt
-	# ALVO: um ponto À FRENTE na estrada + o desvio orgânico lateral
-	var olhar_px := maxf(float(rota_cfg.get("olhar_px", 22.0)), 1.0)
-	var s_alvo := minf(rota_t + olhar_px, total_rota)
-	# um ponto de referência DENTRO de um tronco não é alcançável: mira ADIANTE
-	# (a criatura contorna o objeto e a rota segue)
-	var pulos := 0
-	while pulos < 8 and s_alvo < total_rota - 0.01 \
-			and mundo.bloqueio(mundo.celula_de(_ponto_em_rota(s_alvo)), camada) == "objeto":
-		s_alvo = minf(s_alvo + 18.0, total_rota)
-		pulos += 1
+	var passo := velocidade * _fator_embalo() * fator_sprint * dt
+	# ALVO: o ponto MAIS LONGE da estrada que a linha reta alcança andando.
+	# Sem isso, a criatura corta a corda de uma curva e bate na pedra/beira.
+	var alvo := _alvo_visivel(base, mundo)
+	var s_alvo := float(alvo["s"])
 	var centro := _ponto_em_rota(s_alvo)
 	var tang := _tangente_em_rota(s_alvo)
 	if tang.length() < 0.01:
 		tang = olhar if olhar.length() > 0.01 else Vector2.RIGHT
 	var meia := maxf(float(rota_cfg.get("estrada_largura_px", 30.0)) * 0.5, 0.0)
 	var desvio := clampf(_desvio_organico(s_alvo), -meia, meia)
-	var destino := centro + tang.orthogonal() * desvio
+	var destino := centro
+	var para_centro := centro - base
+	if absf(desvio) > 0.01 and para_centro.length() > 0.5:
+		# a onda lateral encolhe quando o alvo está PERTO (numa curva fechada a
+		# distância em linha reta é bem menor que o arco) e nunca puxa para
+		# trás: o desvio é só enfeite, não pode virar a criatura de lado.
+		var escal := clampf(para_centro.length() / maxf(float(rota_cfg.get("olhar_px", 22.0)), 1.0), 0.0, 1.0)
+		var desviado := centro + tang.orthogonal() * desvio * escal
+		var dc := para_centro.normalized()
+		var dd := desviado - base
+		if dd.length() > 0.5 and dd.normalized().dot(dc) >= 0.5 \
+				and mundo.caminho_livre(base, desviado, camada) \
+				and mundo.bloqueio(mundo.celula_de(desviado), camada) == "":
+			destino = desviado
 	var para := destino - base
 	if para.length() < 0.01:
 		para = tang
@@ -820,17 +881,20 @@ func _avancar_rota(dt: float, mundo: RefCounted, alvos: Array) -> Vector2:
 	return novo
 
 
-## Projeta a criatura na rota (busca LOCAL em volta do segmento atual, para um
-## laço não "pular" de braço). Devolve {s, i, d}.
-func _projetar(q: Vector2) -> Dictionary:
+## Projeta a criatura na rota. Em vez de só a menor distância (que num
+## cruzamento ou num bico aponta para o outro braço), o custo soma um desvio de
+## ARCO em relação ao avanço esperado: o ponto certo é o que fica perto DESTA
+## criatura e na CONTINUAÇÃO do trecho que ela já andou. Devolve {s, i, d}.
+func _projetar(q: Vector2, esperado: float = -1.0) -> Dictionary:
 	if rota.size() < 2 or _arcos_rota.size() < 2:
 		return {"s": 0.0, "i": 0, "d": INF}
+	var alvo_s := rota_t if esperado < 0.0 else rota_t + esperado
+	var peso := float(rota_cfg.get("projecao_peso", 0.25))
+	var melhor_custo := INF
 	var melhor_s := 0.0
 	var melhor_d := INF
 	var melhor_i := 0
-	var i0 := maxi(0, _rota_i - 2)
-	var i1 := mini(rota.size() - 1, _rota_i + 12)
-	for i in range(i0, i1):
+	for i in range(rota.size() - 1):
 		var a := rota[i]
 		var b := rota[i + 1]
 		var ab := b - a
@@ -840,11 +904,67 @@ func _projetar(q: Vector2) -> Dictionary:
 			t = clampf((q - a).dot(ab) / l2, 0.0, 1.0)
 		var p := a + ab * t
 		var d := p.distance_to(q)
-		if d < melhor_d:
+		var s := _arcos_rota[i] + ab.length() * t
+		var custo := d + peso * absf(s - alvo_s)
+		if custo < melhor_custo:
+			melhor_custo = custo
 			melhor_d = d
 			melhor_i = i
-			melhor_s = _arcos_rota[i] + ab.length() * t
+			melhor_s = s
 	return {"s": melhor_s, "i": melhor_i, "d": melhor_d}
+
+
+## O ALVO da estrada: o ponto mais LONGE (até o nominal `olhar_px`) que a linha
+## reta de `base` alcança ANDANDO (amostras de 2 px). Dois freios evitam cortar
+## o desenho: o ponto precisa estar NA FRENTE do sentido atual (num bico, o
+## braço de volta fica atrás e é rejeitado — é o que faz a criatura CHEGAR na
+## ponta) e o alvo nominal dentro de um tronco é pulado (o desvio de objeto
+## trabalha). Devolve {s, beyond}.
+func _alvo_visivel(base: Vector2, mundo: RefCounted) -> Dictionary:
+	var olhar_px := maxf(float(rota_cfg.get("olhar_px", 22.0)), 1.0)
+	var s_ini := minf(rota_t + 1.0, total_rota)
+	var s_nom := minf(rota_t + olhar_px, total_rota)
+	var pulo := 0.0
+	var pulo_max := maxf(float(rota_cfg.get("alvo_pulo_objeto_px", 56.0)), 0.0)
+	while s_nom < total_rota - 0.01 and pulo < pulo_max \
+			and mundo.bloqueio(mundo.celula_de(_ponto_em_rota(s_nom)), camada) == "objeto":
+		s_nom = minf(s_nom + 6.0, total_rota)
+		pulo += 6.0
+	var tang_agora := _tangente_em_rota(rota_t)
+	if tang_agora.length() < 0.01:
+		tang_agora = olhar if olhar.length() > 0.01 else Vector2.RIGHT
+	var limite := maxf(s_nom, s_ini)
+	var melhor := -1.0
+	var s := s_ini
+	while s <= limite + 0.01:
+		var p := _ponto_em_rota(s)
+		var para := p - base
+		# só o que está NA FRENTE: num bico (ida e volta sobre a mesma linha)
+		# o braço de volta fica para trás e seria um "corte" da ponta.
+		if para.length() > 0.5 and para.normalized().dot(tang_agora) < -0.05:
+			s += 2.0
+			continue
+		if mundo.bloqueio(mundo.celula_de(p), camada) == "" \
+				and mundo.caminho_livre(base, p, camada):
+			melhor = s
+		s += 2.0
+	if melhor < 0.0:
+		melhor = s_nom  # não há visão: tenta o nominal; o desvio/barreira decide
+	# durante o desvio de um tronco, mantém o alvo ALÉM dele: trocar entre o
+	# ponto visível de cá e o de lá fazia o lado do desvio piscar a cada quadro.
+	if _desvios > 0 and s_nom > melhor:
+		melhor = s_nom
+	return {"s": melhor, "beyond": melhor > s_nom + 1.0}
+
+
+## Índice do segmento que contém o arco `s`.
+func _indice_em(s: float) -> int:
+	if _arcos_rota.size() < 2:
+		return 0
+	var i := 0
+	while i < _arcos_rota.size() - 2 and _arcos_rota[i + 1] < s:
+		i += 1
+	return i
 
 
 ## Ponto da rota a `s` px de arco do começo.
@@ -899,30 +1019,45 @@ func _passo_com_desvio(base: Vector2, dir: Vector2, passo: float, alvo: Vector2,
 		return base
 	var fim: Vector2 = mundo.limitar_segmento(base, ideal, camada)
 	if fim.distance_to(ideal) < 0.01:
-		_desvios = 0
-		_desvio_lado = 0.0  # o caminho está livre: o desvio acabou
+		# o passo direto ESTÁ livre. Enquanto o contorno não ANDOU uma folga na
+		# rota, ele não "volta" para a reta (senão, num canto de troncos, a
+		# criatura fica indo e voltando na quina): continua o contorno e, se o
+		# leque não der passo, aceita a reta.
+		if _desvios > 0 and rota_t - _desvio_ref < float(rota_cfg.get("desvio_folga_px", 14.0)):
+			var contorno := _desvio_leque(base, dir, passo, alvo, mundo)
+			if contorno != base:
+				return contorno
+		else:
+			_desvios = 0
+			_desvio_lado = 0.0
+			_desvio_ref = 0.0
 		return fim
 	var bloq: Dictionary = _primeiro_bloqueio(base, ideal, mundo)
 	if bloq.is_empty() or str(bloq.get("tipo", "")) != "objeto":
 		return base
+	return _desvio_leque(base, dir, passo, alvo, mundo)
+
+
+## O LEQUE de desvios de objeto (v0.6/v0.11.1): mantém o LADO escolhido
+## (histerese) e troca de lado se aquele não passar. Devolve `base` se nada
+## passar. Só é chamado quando o passo direto está bloqueado (ou quando o
+## contorno ainda está comprometido).
+func _desvio_leque(base: Vector2, dir: Vector2, passo: float, alvo: Vector2, mundo: RefCounted) -> Vector2:
 	if _desvios >= int(rota_cfg.get("desvios_max", 80)):
 		return base
-	# leque de pequenos desvios: escolhe o que chega mais perto do alvo. O LADO
-	# escolhido uma vez é mantido (histerese): sem isso a criatura fica
-	# oscilando de um lado para o outro na beirada do tronco.
 	var angulos: Array = rota_cfg.get("desvio_angulos", [20.0, -20.0, 40.0, -40.0, 60.0, -60.0, 80.0, -80.0, 100.0, -100.0, 120.0, -120.0])
-	var lados: Array = [angulos]
+	var tentativas: Array = [angulos]
 	if _desvio_lado != 0.0:
 		var mesmo: Array = []
 		for a in angulos:
 			if signf(float(a)) == _desvio_lado:
 				mesmo.append(a)
 		if not mesmo.is_empty():
-			lados = [mesmo]
+			tentativas = [mesmo, angulos]
 	var melhor := base
 	var melhor_d := INF
 	var escolhido := 0.0
-	for lista in lados:
+	for lista in tentativas:
 		for a in lista:
 			var cand_ideal := base + dir.rotated(deg_to_rad(float(a))) * passo
 			var cand: Vector2 = mundo.limitar_segmento(base, cand_ideal, camada)
@@ -938,6 +1073,7 @@ func _passo_com_desvio(base: Vector2, dir: Vector2, passo: float, alvo: Vector2,
 	if melhor == base:
 		return base
 	_desvio_lado = signf(escolhido)
+	_desvio_ref = rota_t
 	_desvios += 1
 	return melhor
 
@@ -961,20 +1097,44 @@ func _primeiro_bloqueio(base: Vector2, ideal: Vector2, mundo: RefCounted) -> Dic
 			return {"tipo": b, "celula": c}
 		if not mundo.pode_andar(c0, c, camada):
 			return {"tipo": "terreno", "celula": c}
+		# mesma regra da DIAGONAL do `Mundo.limitar_segmento`: passar na
+		# quina exige uma das duas vizinhas ortogonais livre. Sem isto o
+		# primeiro bloqueio dizia "nada" enquanto o limitador parava — e a
+		# criatura congelava na quina de dois troncos sem tentar o desvio.
+		if c.x != c0.x and c.y != c0.y:
+			var h := Vector2i(c.x, c0.y)
+			var v := Vector2i(c0.x, c.y)
+			if not (mundo.pode_andar(c0, h, camada) or mundo.pode_andar(c0, v, camada)):
+				var bh: String = mundo.bloqueio(h, camada)
+				var bv: String = mundo.bloqueio(v, camada)
+				var tipo := "objeto" if (bh == "objeto" or bv == "objeto") else "terreno"
+				return {"tipo": tipo, "celula": h if bh != "" else v}
 	return {}
 
 
-## Fim da rota: o GOLPE FINAL (se o fim caiu em cima de um adversário) e a
-## autonomia. O fim é calculado ANTES de limpar; a criatura PARA onde está (a
-## zona de freio já a desacelerou — não há salto para o último ponto).
+## Fim da rota: o GOLPE FINAL (se o fim caiu em cima de um adversário) ou a
+## INÉRCIA (v0.11.1): a criatura passou o último ponto em velocidade normal e
+## agora freia num pedaço curto FORA do caminho. O fim é calculado ANTES de
+## limpar; não há salto para o último ponto.
 func _terminar_rota(alvos: Array) -> Vector2:
 	var fim: Vector2 = rota[rota.size() - 1] if not rota.is_empty() else pos
 	# a rota pode acabar DURANTE o desenho (traço ao vivo): a marca é feita
 	# aqui também, com o adversário onde ele está agora.
 	if mira_final_id == "" and not rota.is_empty():
 		_marcar_alvo_no_fim(alvos, fim)
-	if mira_final_id != "":
-		_iniciar_final(alvos)
+	var mirado := mira_final_id != ""
+	# o sentido e a velocidade do FIM (antes de a rota ser limpa): a inércia
+	# continua na tangente do último trecho. No sprint manual ela é maior.
+	var dir := _tangente_em_rota(total_rota)
+	if dir.length() < 0.01:
+		dir = olhar
+	var fator := 1.0
+	if _sprint and energia > 0.0:
+		fator = float(_sprint_cfg.get("fator", 1.7))
+	var v0 := velocidade * _fator_embalo() * fator
+	var freio := maxf(float(rota_cfg.get("freio_extra_px", 16.0)), 0.0)
+	if fator > 1.0:
+		freio *= maxf(float(rota_cfg.get("freio_sprint_x", 1.6)), 1.0)
 	rota = PackedVector2Array()
 	_arcos_rota = PackedFloat32Array()
 	_rota_i = 0
@@ -983,13 +1143,57 @@ func _terminar_rota(alvos: Array) -> Vector2:
 	_barrado = false
 	_desvios = 0
 	_desvio_lado = 0.0
+	_desvio_ref = 0.0
 	_sprint = false
 	marcas = []
 	_auto_destino = fim
 	_auto_t = 3.3  # decide JÁ no primeiro passo de autonomia
 	_auto_espera = 0.0
 	eventos.append("rota:fim")
+	if mirado:
+		_iniciar_final(alvos)
+	else:
+		_iniciar_inercia(dir, v0, freio)
 	return pos
+
+
+## INÉRCIA (v0.11.1): um "passo extra" fora da rota. A velocidade começa na
+## mesma do fim e cai linearmente até parar em `v0 * dur / 2` px (poucos px).
+func _iniciar_inercia(dir: Vector2, v0: float, distancia: float) -> void:
+	_inercia_t = 0.0
+	if distancia <= 0.01 or v0 <= 1.0:
+		return
+	if dir.length() < 0.01:
+		dir = olhar
+	if dir.length() < 0.01:
+		return
+	_inercia_dir = dir.normalized()
+	_inercia_v0 = v0
+	_inercia_dur = maxf(2.0 * distancia / v0, 0.05)
+	_inercia_t = _inercia_dur
+
+
+## Anda o pedaço de inércia (desacelerando) e para. Se a barreira chegar antes
+## do fim, para ali (não atravessa água/rocha e não "cava" um tronco).
+func _avancar_inercia(dt: float, mundo: RefCounted) -> void:
+	var u := clampf(1.0 - _inercia_t / maxf(_inercia_dur, 0.0001), 0.0, 1.0)
+	var velocidade_agora := _inercia_v0 * (1.0 - u)
+	var passo := velocidade_agora * dt
+	_inercia_t = maxf(_inercia_t - dt, 0.0)
+	if passo <= 0.001:
+		return
+	var ideal := pos + _inercia_dir * passo
+	var novo := ideal
+	if no_ar():
+		if not mundo.dentro(mundo.celula_de(ideal)):
+			novo = pos
+	else:
+		novo = mundo.limitar_segmento(pos, ideal, camada)
+	if novo.distance_to(pos) < 0.001:
+		_inercia_t = 0.0
+		return
+	olhar = (novo - pos).normalized()
+	pos = novo
 
 
 ## O alcance de um golpe físico no alvo `a` (a criatura precisa CHEGAR perto).
@@ -1163,8 +1367,11 @@ func _atualizar_escavar(dt: float, mundo: RefCounted) -> void:
 		_rota_i = 0
 		rota_t = 0.0
 		total_rota = 0.0
+		_inercia_t = 0.0
 		_barrado = false
 		_desvios = 0
+		_desvio_lado = 0.0
+		_desvio_ref = 0.0
 		marcas = []
 		mira_final_id = ""
 		_perseguindo = false

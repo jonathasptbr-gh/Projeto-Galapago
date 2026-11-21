@@ -12,6 +12,10 @@ extends RefCounted
 ##   mesmo ponto, mas em direções diferentes).
 ## v0.11: o BICO não é mais lido aqui — o traço é obedecido como foi desenhado
 ## (o animal anda o espinho; o "beco" não é ignorado).
+## v0.11.1: o LAÇO tem TAMANHO MÍNIMO para valer (`laco_area_min`,
+## `laco_arco_min`): um laço/cruzamento do tamanho do animal que nasce sem
+## querer (o dedo tremendo, duas linhas que se cruzam de passagem) não acende a
+## onda em área; o laço desenhado de propósito, sim.
 ##
 ## Toda marca: {tipo, ponto, centro, raio, dir, chave}. `ponto` é o nó.
 ## O LAÇO é lido no traço reduzido (RDP de 3 px — a forma sobrevive).
@@ -39,9 +43,11 @@ static func lacos(p: PackedVector2Array, cfg: Dictionary = {}) -> Array:
 	if n < 4:
 		return []
 	var arco := arcos(p)
-	var arco_min := float(cfg.get("laco_arco_min", 90.0))
-	var area_min := float(cfg.get("laco_area_min", 700.0))
-	var raio_min := float(cfg.get("laco_raio_min", 24.0))
+	# MÍNIMOS do laço (v0.11.1): um risco minúsculo que se cruza não é ataque.
+	# A área ~1,4× o corpo (40×40) e o arco ~4× o corpo são pontos de partida.
+	var arco_min := float(cfg.get("laco_arco_min", 160.0))
+	var area_min := float(cfg.get("laco_area_min", 2200.0))
+	var raio_min := float(cfg.get("laco_raio_min", 28.0))
 	var raio_max := float(cfg.get("laco_raio_max", 120.0))
 	var dedupe := float(cfg.get("laco_dedupe_px", 26.0))
 	var out: Array = []

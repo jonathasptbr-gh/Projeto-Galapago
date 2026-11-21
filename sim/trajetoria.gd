@@ -10,6 +10,12 @@ extends RefCounted
 ## (2) reduzido a POUCOS pontos de referência (`simplificar`, Douglas-Peucker):
 ## o corpo procura cada ponto na ordem e pode se desviar um pouco para
 ## contornar objetos. Ver docs/gdd/gestos-e-acoes.md.
+##
+## v0.11.1: `limpar_amontoados` corta os trechos que voltam para dentro de uma
+## ZONA DO TAMANHO DO ANIMAL (um laço/cruzamento minúsculo, uma ida e volta
+## nervosa): a rota conecta o começo do amontoado direto ao ponto onde ele
+## retorna — o animal não fica "remexendo" ali. Laços e bicos GRANDES não são
+## tocados (o traço desenhado é obedecido).
 
 ## Distância mínima entre pontos amostrados; o ponto final é sempre preservado.
 static func amostrar(pontos: PackedVector2Array, dist_min: float) -> PackedVector2Array:
@@ -95,6 +101,68 @@ static func descontar_inicio(pontos: PackedVector2Array, raio: float, janela: fl
 	var out := PackedVector2Array([p0])
 	for i in range(ultimo_perto + 1, pontos.size()):
 		out.append(pontos[i])
+	return out
+
+
+## AMONTOADOS (v0.11.1): corta o trecho que sai e VOLTA para dentro de `raio`
+## px em menos de `janela` px de arco. É o laço minúsculo, o cruzamento sem
+## intenção e o vai-e-volta nervoso que não devem ser andados (nem acender a
+## habilidade de área). A rota passa a ligar `p[i]` direto ao ponto `p[j]` onde
+## o traço retorna à zona; o desenho grande (laço, bico, curva) fica intacto.
+##
+## O teste do "amontoado" é o RETORNO, não a proximidade: exige que o arco
+## gasto seja bem maior que a distância líquida (`arco >= d*1.8 + 12`) — numa
+## reta ou numa curva de verdade o arco e a distância são quase iguais, e nada
+## é cortado.
+##
+## `livre` (opcional) é `func(a, b) -> bool`: só corta se o atalho for andável
+## (o corpo passa `mundo.caminho_livre`, para não pular um tronco/água).
+static func limpar_amontoados(pontos: PackedVector2Array, raio: float, janela: float,
+		livre := Callable()) -> PackedVector2Array:
+	if pontos.size() < 3 or raio <= 0.0 or janela <= 0.0:
+		return pontos
+	var arco := arcos_pontos(pontos)
+	var out := PackedVector2Array([pontos[0]])
+	var i := 0
+	var n := pontos.size()
+	while i < n - 1:
+		var melhor_j := -1
+		var j := i + 2
+		while j < n and arco[j] - arco[i] <= janela:
+			var d := pontos[i].distance_to(pontos[j])
+			var gasto := arco[j] - arco[i]
+			if d <= raio and gasto >= d * 1.8 + 12.0:
+				if not livre.is_valid() or bool(livre.call(pontos[i], pontos[j])):
+					melhor_j = j
+			j += 1
+		if melhor_j > i + 1:
+			# o vai-e-volta COMEÇA em `p[i]`: liga o ponto ANTERIOR direto ao
+			# ponto onde o traço retorna — sem isso sobrava o "espinho" de
+			# entrada do amontoado na rota.
+			var corta_ancora := out.size() >= 2 and out[out.size() - 1] == pontos[i]
+			if corta_ancora and livre.is_valid():
+				corta_ancora = bool(livre.call(out[out.size() - 2], pontos[melhor_j]))
+			if corta_ancora:
+				out.remove_at(out.size() - 1)
+			if out[out.size() - 1] != pontos[melhor_j]:
+				out.append(pontos[melhor_j])
+			i = melhor_j
+		else:
+			i += 1
+			if out[out.size() - 1] != pontos[i]:
+				out.append(pontos[i])
+	return out
+
+
+## Comprimento de arco acumulado em cada ponto (arcos_pontos[0] = 0). Igual ao
+## `sim/formas.arcos`, repetido aqui para a trajetória não depender das formas.
+static func arcos_pontos(pontos: PackedVector2Array) -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	if pontos.is_empty():
+		return out
+	out.append(0.0)
+	for i in range(1, pontos.size()):
+		out.append(out[i - 1] + pontos[i - 1].distance_to(pontos[i]))
 	return out
 
 

@@ -239,7 +239,7 @@ func _evento(e: String) -> void:
 		hud.nota("LAÇO: onda em área")
 	elif e.begins_with("tiro:"):
 		print("evento: ", e)
-		hud.nota("TIRO no alvo marcado")
+		hud.nota("TIRO")
 	elif e.begins_with("batida:"):
 		print("evento: ", e)
 		hud.nota("BATIDA em %s" % e.substr(7))

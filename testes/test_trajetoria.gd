@@ -71,3 +71,42 @@ func test_simplificar_preserva_a_ponta_do_bico() -> void:
 	igual(s.size(), 3, "a ponta do bico fica (%s)" % [s])
 	if s.size() == 3:
 		perto_v(s[1], Vector2(90, 0), 0.001, "ponta")
+
+
+## v0.11.1: AMONTOADOS. Um laço minúsculo no meio da reta (aqui 20×22 px)
+## some da rota: o traço liga a entrada do laço direto ao ponto de retorno.
+func test_limpar_amontoados_corta_um_laco_minusculo() -> void:
+	var p := PackedVector2Array([
+		Vector2(0, 0), Vector2(60, 0), Vector2(80, 0), Vector2(80, 30),
+		Vector2(60, 30), Vector2(60, 0), Vector2(120, 0)])
+	var limpo := T.limpar_amontoados(p, 24.0, 100.0)
+	igual(limpo, PackedVector2Array([Vector2(0, 0), Vector2(60, 0), Vector2(120, 0)]),
+		"laço minúsculo cortado (%s)" % [limpo])
+
+
+## Um BICO grande (volta a 60 px da base) NÃO é amontoado: o traço é andado.
+func test_limpar_amontoados_preserva_bico_grande() -> void:
+	var p := PackedVector2Array([
+		Vector2(0, 0), Vector2(40, 0), Vector2(40, 60), Vector2(40, 0), Vector2(100, 0)])
+	var limpo := T.limpar_amontoados(p, 24.0, 100.0)
+	igual(limpo, p, "bico grande intacto (%s)" % [limpo])
+
+
+## Reta e curva de verdade não são amontoado (o arco é ~igual à distância).
+func test_limpar_amontoados_nao_mexe_em_curva() -> void:
+	var p := PackedVector2Array()
+	for i in 30:
+		var a := PI * 0.5 * i / 29.0
+		p.append(Vector2(cos(a), sin(a)) * 80.0)
+	var limpo := T.limpar_amontoados(p, 24.0, 100.0)
+	igual(limpo, p, "curva intacta")
+
+
+## O atalho só é cortado se for ANDÁVEL: com o callback recusando, o amontoado
+## fica (não se pula para o outro lado de uma parede).
+func test_limpar_amontoados_respeita_o_caminho_livre() -> void:
+	var p := PackedVector2Array([
+		Vector2(0, 0), Vector2(60, 0), Vector2(80, 0), Vector2(80, 30),
+		Vector2(60, 30), Vector2(60, 0), Vector2(120, 0)])
+	var recusa := func(_a: Vector2, _b: Vector2) -> bool: return false
+	igual(T.limpar_amontoados(p, 24.0, 100.0, recusa), p, "atalho bloqueado mantém o traço")
