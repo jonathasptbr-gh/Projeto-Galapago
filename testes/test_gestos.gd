@@ -74,16 +74,18 @@ func test_planejando_so_depois_do_desenho_confirmado() -> void:
 # ---------------------------------------------------------------- segurar = habilidade
 
 ## SEGURAR parado (em QUALQUER lugar da tela) ativa a habilidade em si mesmo.
+## v0.11: o SEGURAR ativa NO LIMIAR (não espera soltar). Quem decide o que ele
+## faz é o corpo: sem caminho = habilidade (cavar); com caminho = sprint.
 func test_segurar_parado_e_habilidade() -> void:
 	var r := _r()
 	var p := Vector2(120, 200)  # longe da criatura: não importa
 	r.iniciar(0, p, 0, CRIA)
 	igual(r.tick(200), [], "antes do tempo")
-	r.tick(400)
-	var evs: Array = r.soltar(0, p, 500)
-	igual(_nomes(evs), ["segurar_inicio"], "habilidade")
+	var evs: Array = r.tick(400)
+	igual(_nomes(evs), ["segurar_inicio"], "ativou no limiar")
 	var cmd := C.traduzir(evs[0], cfg["mapa"])
-	igual(cmd["acao"], "habilidade", "segurar parado = habilidade")
+	igual(cmd["acao"], "segurar", "segurar parado = segurar (o corpo decide)")
+	igual(_nomes(r.soltar(0, p, 500)), ["segurar_fim"], "soltar fecha o segurar")
 	checar(not r.planejando(), "segurar não desacelera o mundo")
 
 
@@ -92,8 +94,8 @@ func test_segurar_precisa_de_um_dedo() -> void:
 	var p := Vector2(120, 200)
 	r.iniciar(0, p, 0, CRIA)
 	r.iniciar(1, p + Vector2(80, 0), 20, CRIA)
-	r.tick(500)
-	igual(_nomes(r.soltar(0, p, 560)), [], "com dois dedos não vira habilidade")
+	igual(r.tick(500), [], "com dois dedos não vira segurar")
+	igual(_nomes(r.soltar(0, p, 560)), [], "e soltar não fecha nada")
 
 
 # ---------------------------------------------------------------- dois dedos não são ação
@@ -128,9 +130,10 @@ func test_dois_dedos_nunca_viram_toque() -> void:
 
 func test_traduz_os_gestos() -> void:
 	var m: Dictionary = cfg["mapa"]
-	igual(C.traduzir({"gesto": "toque"}, m)["acao"], "pular", "toque = pular")
-	igual(C.traduzir({"gesto": "toque_duplo"}, m)["acao"], "tiro", "toque duplo = tiro")
-	igual(C.traduzir({"gesto": "segurar_inicio"}, m)["acao"], "habilidade", "segurar = habilidade")
+	igual(C.traduzir({"gesto": "toque"}, m)["acao"], "tiro", "toque = tiro")
+	igual(C.traduzir({"gesto": "toque_duplo"}, m)["acao"], "pular", "toque duplo = pular")
+	igual(C.traduzir({"gesto": "segurar_inicio"}, m)["acao"], "segurar", "segurar = segurar")
+	igual(C.traduzir({"gesto": "segurar_fim"}, m)["acao"], "soltar_segurar", "soltar o segurar")
 	igual(C.traduzir({"gesto": "trajetoria"}, m)["acao"], "mover", "trajetória = mover")
 	igual(C.traduzir({"gesto": "nada"}, m), {}, "nada")
 	igual(C.traduzir({"gesto": "deslize", "vetor": Vector2(0, -100)}, m), {}, "não há mais gesto de dois dedos")

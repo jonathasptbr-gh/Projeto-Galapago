@@ -15,6 +15,9 @@ var _estado: Label
 var _status: Label
 var _nota: Label
 var _nota_t := 0.0
+var _energia_bg: ColorRect
+var _energia: ColorRect
+var _energia_largura := 180.0
 
 
 func _ready() -> void:
@@ -36,6 +39,20 @@ func _ready() -> void:
 	_estado.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 18)
 	_estado.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_estado.position.y -= 34
+	# BARRA DE ENERGIA do sprint (v0.11)
+	_energia_bg = ColorRect.new()
+	_energia_bg.color = Color(0, 0, 0, 0.45)
+	_energia_bg.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 18)
+	_energia_bg.position.y -= 104
+	_energia_bg.size = Vector2(_energia_largura, 8)
+	_energia_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_energia_bg)
+	_energia = ColorRect.new()
+	_energia.color = Color(0.45, 0.85, 1.0, 0.9)
+	_energia.position = Vector2.ZERO
+	_energia.size = Vector2(_energia_largura, 8)
+	_energia.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_energia_bg.add_child(_energia)
 	atualizador = Atualizador.new()
 	add_child(atualizador)
 	if build > 0 and atualizador.estado != "dev":
@@ -64,11 +81,11 @@ func _legenda() -> String:
 	linhas.append("1 dedo arrastando → caminho")
 	linhas.append("laço perto → ataque em área")
 	linhas.append("fim do caminho no alvo → marca")
-	linhas.append("toque duplo → tiro no alvo marcado")
+	linhas.append("toque → tiro no alvo marcado")
+	linhas.append("toque duplo → pulo")
 	linhas.append("passar por cima → batida")
-	linhas.append("terminar em cima → golpe final")
-	linhas.append("segurar parado → %s" % m.get("segurar", "habilidade"))
-	linhas.append("toque → %s" % m.get("toque", "—"))
+	linhas.append("segurar no caminho → sprint")
+	linhas.append("segurar parado → habilidade")
 	return "\n".join(linhas)
 
 
@@ -101,6 +118,10 @@ func estado(corpo: RefCounted, alvos: Array, planejando := false, escala := 1.0)
 	var final := ""
 	if corpo.mira_final_id != "":
 		final = " · ALVO MARCADO %s" % corpo.mira_final_id
+	if _energia:
+		var e := clampf(float(corpo.energia), 0.0, 1.0)
+		_energia.size.x = _energia_largura * e
+		_energia.color = Color(0.95, 0.5, 0.3, 0.95) if e < 0.25 else Color(0.45, 0.85, 1.0, 0.9)
 	_estado.text = "estado: %s · alvo: %s · %s%s%s%s%s%s" % [modo, alvo, corpo.camada,
 		(" · habilidade" if corpo.habilidade_ativa() else ""),
 		(" · golpe: %s" % corpo.ataque if corpo.ataque != "" else ""),

@@ -3,9 +3,9 @@ extends RefCounted
 ## de dados/gestos.json. Quem decide se a criatura obedece é a camada de
 ## afinidade (P4); hoje ela obedece.
 ##
-## v0.9 — UM DEDO SÓ. O caminho é desenhado ao vivo pelo `jogo/main.gd` em
-## `corpo.tracar`; aqui passam os gestos que viram comando: toque (travar a
-## mira), toque duplo (pular), segurar parado (habilidade em si mesmo) e a
+## v0.11 — UM DEDO SÓ. O caminho é desenhado ao vivo pelo `jogo/main.gd` em
+## `corpo.tracar`; aqui passam os gestos que viram comando: toque (tiro),
+## toque duplo (pulo), segurar (sprint no caminho / habilidade sem caminho) e a
 ## trajetória (mover, já desenhada).
 ##
 ## O ATAQUE NÃO PASSA POR AQUI: ele nasce da FORMA do caminho (laço → área,
@@ -29,7 +29,9 @@ static func traduzir(ev: Dictionary, mapa: Dictionary) -> Dictionary:
 		"toque", "toque_duplo", "trajetoria":
 			cmd["acao"] = mapa.get(g, "")
 		"segurar_inicio":
-			cmd["acao"] = mapa.get("segurar", "")
+			cmd["acao"] = mapa.get("segurar", "segurar")
+		"segurar_fim":
+			cmd["acao"] = "soltar_segurar"
 		_:
 			return {}
 	if cmd["acao"] == "":

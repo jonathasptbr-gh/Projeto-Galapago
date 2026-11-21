@@ -3,6 +3,51 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.11.0 — bico andado, PULO no toque duplo, TIRO no toque simples e SPRINT com energia no segurar (2026-11-21)
+
+- **Pedido do operador:** (1) **não ignorar mais o bico** (v0.10 ele era
+  cortado da rota); (2) **inverter os toques**: PULO no toque duplo e TIRO no
+  toque simples; (3) a **habilidade de escavar** só vale **sem um caminho** e
+  deve ativar **no momento em que o tempo mínimo de segurar passa** (não no
+  soltar); (4) o **tiro usa o toque simples**, mas **segurar durante uma
+  caminhada sem mover o dedo** (com alvo marcado ou não) faz o animal dar um
+  **SPRINT**, que **gasta uma barra de energia**.
+- **`sim/formas.gd`:** o **BICO saiu** do leitor de formas — o traço é a rota
+  inteira, do jeito que foi desenhado (o espinho é andado). A análise agora
+  devolve só **laços**; `bicos`, os índices `i`/`j` do corte e os limiares do
+  bico saíram.
+- **`sim/corpo.gd`:** sem `_bicos`/`_sem_bicos` (nada é cortado). **SEGURAR**
+  virou `_cmd_segurar`: **com um caminho em curso → SPRINT** (`sprint.fator`
+  1,7×, gasta `gasto_s` 0,45/s da barra `energia`, para ao soltar ou ao zerar;
+  recupera `recarga_s` 0,22/s); **sem caminho → habilidade (cavar)**, que agora
+  é chamada no limiar. O sprint entra na velocidade de `_avancar_rota` e no
+  `passo` (gasto/recuperação), com reset no fim/novo caminho.
+- **`sim/gestos.gd`:** o **toque simples fica PENDENTE** até a janela do duplo
+  fechar (o `tick` solta "toque" = TIRO); o **segundo toque** vira
+  "toque_duplo" = PULO; o **SEGURAR ativa no limiar** (`tick` emite
+  "segurar_inicio") e o soltar emite "segurar_fim" (não é mais no soltar que a
+  habilidade nasce).
+- **`sim/comandos.gd` / `dados/gestos.json`:** mapa novo — `toque` → `tiro`,
+  `toque_duplo` → `pular`, `segurar` → `segurar` (o corpo decide sprint ×
+  habilidade), `segurar_fim` → `soltar_segurar`.
+- **Dados (`dados/acoes.json`):** bloco novo `sprint` (1,7× · 0,45/s · 0,22/s ·
+  mínimo 0,08); saem as chaves `bico_*` de `formas`.
+- **`jogo/hud.gd`:** a **barra de ENERGIA** embaixo, à esquerda (fica laranja
+  com menos de 25%) e a legenda nova: toque = tiro, toque duplo = pulo,
+  segurar no caminho = sprint, segurar parado = habilidade.
+- **`jogo/demo.gd`:** o pulo usa o **toque duplo**, o tiro o **toque simples**
+  (dois tiros, com a recarga de 1 s); a cavada continua nos `segurar` sem
+  caminho; o caminho em "L" leva ao adversário e o golpe final fecha.
+- **Verificação:** **86 testes, 0 falhas**, 38 scripts (parser limpo); novos:
+  o segurar ativando no limiar, o sprint acelerando/gastando/recuperando a
+  energia, o segurar sem caminho cavando, e o bico **andado** (na rota).
+  Sonda headless da demo: `laco:onda`, `mira_final`, dois
+  `tiro:disparo`+`acerto` e `golpe_final`. **Oráculo de quadros**
+  (`tools/quadros.sh`, 45 quadros 720×1280 em ~3 min): HUD com a legenda nova
+  (toque = tiro, toque duplo = pulo, segurar no caminho = sprint) e a **barra
+  de energia** cheia embaixo, à esquerda — abri os PNG. Detalhe em
+  [`gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md).
+
 ## v0.10.0 — marca ligada ao caminho, TIRO no toque duplo, PULO no toque e perseguição final (2026-11-21)
 
 - **Pedido do operador:** (1) **sem a desaceleração final** quando o caminho

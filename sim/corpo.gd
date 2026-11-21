@@ -19,9 +19,11 @@ extends RefCounted
 ## - **laço** desenhado → onda em ÁREA, com centro no centro do laço. Acende
 ##   quando a criatura está em qualquer parte da CIRCUNFERÊNCIA (o anel) —
 ##   laço que fecha com ela em cima já dispara;
-## - **bico** (o "T"/"V" que sai da estrada e volta) → o BECO é CORTADO da rota:
-##   o animal não entra no beco (v0.10: o TIRO não sai mais daqui — ele é o
-##   TOQUE DUPLO, mirado no alvo marcado);
+## - **bico** (o "T"/"V" que sai da estrada e volta) → **v0.11: o bico é
+##   andado** (o traço é obedecido como foi desenhado; nada é ignorado);
+## - **toque simples** → TIRO no alvo marcado; **toque duplo** → PULO;
+## - **segurar** durante um caminho → SPRINT (gasta a barra de ENERGIA); sem
+##   caminho → habilidade em si mesmo (cavar), ativada no limiar do segurar;
 ## - **travessia** de um alvo → BATIDA/empurrão ao passar por cima;
 ## - **fim do caminho em cima do adversário** → ele é marcado como alvo do
 ##   GOLPE FINAL (a marca vai NELE, não no lugar final). Se ele andar demais
@@ -92,11 +94,14 @@ var habilidade_dur := 0.0
 var _formas_cfg: Dictionary = {}
 var _combate: Dictionary = {}
 var _embalo: Dictionary = {}
-var _bicos: Array = []              # bicos lidos do traço (i/j: trecho a cortar)
 var _arcos_rota := PackedFloat32Array()  # arco acumulado em cada ponto da rota
 var _fase1 := 0.0                   # fases do desvio orgânico (semente da rota)
 var _fase2 := 0.0
 var _pausa_t := 0.0                 # pausa curta ao disparar o tiro
+# SPRINT (v0.11): segurar DURANTE um caminho acelera e gasta a ENERGIA
+var energia := 1.0
+var _sprint := false
+var _sprint_cfg: Dictionary = {}
 # EMBALO dos golpes físicos (v0.9.2): acelera curto na marcação e longo no
 # empurrão, passando mais rápido pelo alvo e desacelerando depois
 var _turbo_t := 0.0
@@ -125,6 +130,7 @@ func _init(definicoes: Dictionary = {}) -> void:
 	_formas_cfg = defs.get("formas", {})
 	_combate = defs.get("combate", {})
 	_embalo = defs.get("embalo", {})
+	_sprint_cfg = defs.get("sprint", {})
 
 
 # ---------------------------------------------------------------- consultas
@@ -196,6 +202,13 @@ func comandar(cmd: Dictionary, mundo: RefCounted, alvos: Array = []) -> String:
 			return _cmd_habilidade(mundo)
 		"tiro":
 			return _cmd_tiro(alvos)
+		"segurar":
+			return _cmd_segurar(mundo)
+		"soltar_segurar":
+			if _sprint:
+				_sprint = false
+				eventos.append("sprint:off")
+			return "ok"
 	if not defs.has(a):
 		return "recusado: ação desconhecida (%s)" % a
 	return "recusado: nada a fazer"
@@ -224,28 +237,17 @@ func _adotar_traco(pontos: PackedVector2Array, mundo: RefCounted, inicio: bool, 
 	if pontos.size() < 2:
 		return "recusado: caminho vazio"
 	if inicio:
-		_bicos = []
 		_traco_lido = 0
 	traco = pontos.duplicate()
 	# ler as formas a cada poucos pontos (o RDP e os laços custam): a origem lê
-	# sempre. O bico é lido no traço CRU e guardado com i/j (o trecho a cortar).
+	# sempre. v0.11: o traço é obedecido COMO FOI DESENHADO (o bico anda).
 	var achadas: Array = []
 	if inicio or traco.size() - _traco_lido >= 5:
 		achadas = Formas.analisar(traco, _formas_cfg)
 		_traco_lido = traco.size()
-		for m in achadas:
-			if str(m["tipo"]) == "bico" and not _tem_bico(int(m["i"])):
-				_bicos.append(m)
-	# O bico NÃO é andado: o trecho do "beco" sai da rota (v0.9.1).
-	var limpo := _sem_bicos(traco)
-	var nova := _pontos_de_rota(limpo, mundo)
+	var nova := _pontos_de_rota(traco, mundo)
 	if nova.is_empty():
-		if _bicos.is_empty() and achadas.is_empty():
-			return "recusado: caminho curto"
-		# só havia bico (desenhado da posição inicial): a criatura fica e dispara
-		_guardar_rota(PackedVector2Array(), inicio)
-		_montar_marcas(achadas, alvos)
-		return "ok: bico"
+		return "recusado: caminho curto"
 	if inicio:
 		# ela andou enquanto o dedo descia: põe NA FRENTE o trecho que a traz de
 		# volta ao começo do traço (depois da simplificação, senão um traço reto
@@ -261,7 +263,7 @@ func _adotar_traco(pontos: PackedVector2Array, mundo: RefCounted, inicio: bool, 
 
 
 ## O traço vira PONTOS DE REFERÊNCIA: DESCONTO INICIAL (o vai-e-volta do
-## começo não é obedecido) e Douglas-Peucker. O "beco" do bico já saiu antes.
+## começo não é obedecido) e Douglas-Peucker. O traço é o desenho inteiro.
 func _pontos_de_rota(pts: PackedVector2Array, mundo: RefCounted) -> PackedVector2Array:
 	if pts.size() < 2:
 		return PackedVector2Array()
@@ -276,29 +278,6 @@ func _pontos_de_rota(pts: PackedVector2Array, mundo: RefCounted) -> PackedVector
 	if nova.size() < 2 or Trajetoria.comprimento(nova) < 6.0:
 		return PackedVector2Array()
 	return nova
-
-
-## Já existe um bico com esta base? (os i/j apontam para o MESMO traço)
-func _tem_bico(i: int) -> bool:
-	for m in _bicos:
-		if absi(int(m["i"]) - i) <= 3:
-			return true
-	return false
-
-
-## Tira do traço cru os trechos de BICO (i+1..j): a criatura não anda o beco.
-func _sem_bicos(pts: PackedVector2Array) -> PackedVector2Array:
-	if _bicos.is_empty():
-		return pts
-	var pular := {}
-	for m in _bicos:
-		for k in range(int(m["i"]) + 1, int(m["j"]) + 1):
-			pular[k] = true
-	var out := PackedVector2Array()
-	for i in pts.size():
-		if not pular.has(i):
-			out.append(pts[i])
-	return out
 
 
 ## Adota `nova` como rota. `reiniciar` zera o progresso (rota nova); sem ele o
@@ -316,6 +295,7 @@ func _guardar_rota(nova: PackedVector2Array, reiniciar: bool) -> void:
 		rota_t = 0.0
 		_desvios = 0
 		_desvio_lado = 0.0
+		_sprint = false
 		marcas = []
 		_disparadas = {}
 		mira_final_id = ""
@@ -332,13 +312,11 @@ func _guardar_rota(nova: PackedVector2Array, reiniciar: bool) -> void:
 
 # ---------------------------------------------------------------- marcas (formas)
 
-## Monta as marcas pendentes: as FORMAS do traço (laço, bico) e as TRAVESSIAS
+## Monta as marcas pendentes: as FORMAS do traço (laço) e as TRAVESSIAS
 ## de alvo na rota. O que já acendeu não volta.
 func _montar_marcas(achadas: Array, alvos: Array) -> void:
 	for m in achadas:
 		var k: String = str(m["chave"])
-		if str(m["tipo"]) == "bico":
-			continue  # o bico não atira mais (v0.10): só o beco sai da rota
 		if _disparadas.has(k) or _tem_marca(k):
 			continue
 		marcas.append(m)
@@ -468,7 +446,7 @@ func _fator_embalo() -> float:
 # ---------------------------------------------------------------- efeitos
 
 ## Ondas e tiros: a onda CRESCE do centro e empurra quem ela varre; o tiro
-## anda na direção do bico e para no primeiro alvo. Um alvo é atingido uma vez
+## anda na direção do disparo e para no primeiro alvo. Um alvo é atingido uma vez
 ## por onda.
 func _atualizar_efeitos(dt: float, alvos: Array) -> void:
 	for e in efeitos.duplicate():
@@ -519,7 +497,7 @@ func _atingidos_tem(onda: Dictionary, id: String) -> bool:
 ## como alvo do golpe final — a marca vai NELE (e anda com ele!) até a criatura
 ## chegar. Devolve o texto para a HUD.
 func finalizar_rota(alvos: Array) -> String:
-	# o último quadro pode ter fechado um laço/bico: lê tudo uma vez mais
+	# o último quadro pode ter fechado um laço: lê tudo uma vez mais
 	var achadas := Formas.analisar(traco, _formas_cfg)
 	_montar_marcas(achadas, alvos)
 	_checar_marcas(alvos)
@@ -683,6 +661,22 @@ func _atirar(dir: Vector2) -> void:
 	})
 
 
+## SEGURAR (v0.11): com um CAMINHO em curso → **SPRINT** (acelera e gasta a
+## barra de energia); **sem caminho** → a HABILIDADE em si mesmo (cavar), que
+## agora é ativada **no limiar do segurar** (não espera soltar).
+func _cmd_segurar(mundo: RefCounted) -> String:
+	if em_rota():
+		if energia <= float(_sprint_cfg.get("minimo", 0.08)):
+			return "recusado: sem energia"
+		if _sprint:
+			return "ok: já em sprint"
+		_sprint = true
+		eventos.append("sprint:on")
+		return "ok: sprint"
+	_sprint = false
+	return _cmd_habilidade(mundo)
+
+
 ## HABILIDADE EM SI MESMO (v0.9): o que era o gesto de escavar virou a
 ## habilidade do segurar parado. Ela dura um tempo e acontece sem sair do lugar.
 ## A primeira é `cavar` (a que existia); outras entram em `dados/acoes.json`
@@ -735,11 +729,19 @@ func passo(dt: float, mundo: RefCounted, alvos: Array = []) -> void:
 	_atualizar_habilidade(dt)
 	_atualizar_efeitos(dt, alvos)
 	_turbo_t = maxf(_turbo_t - dt, 0.0)
+	# ENERGIA do sprint: gasta acelerando no caminho, recupera parada/andando
+	if _sprint and em_rota() and energia > 0.0:
+		energia = maxf(0.0, energia - float(_sprint_cfg.get("gasto_s", 0.45)) * dt)
+		if energia <= 0.0:
+			_sprint = false
+			eventos.append("sprint:off")
+	else:
+		energia = minf(1.0, energia + float(_sprint_cfg.get("recarga_s", 0.22)) * dt)
 	if escavando:
 		_atualizar_escavar(dt, mundo)
 		pos = mundo.centro(_escavar_celula)
 		return
-	# pausa curta do bico: para antes do beco, dispara e depois segue
+	# pausa curta do tiro: para para atirar e depois segue
 	if _pausa_t > 0.0:
 		_pausa_t = maxf(_pausa_t - dt, 0.0)
 		_checar_marcas(alvos)
@@ -784,7 +786,10 @@ func _avancar_rota(dt: float, mundo: RefCounted, alvos: Array) -> Vector2:
 	# velocidade cheia para perseguir/bater no alvo.
 	if mira_final_id != "":
 		f = 1.0
-	var passo := velocidade * f * _fator_embalo() * dt
+	var fator_sprint := 1.0
+	if _sprint and energia > 0.0:
+		fator_sprint = float(_sprint_cfg.get("fator", 1.7))
+	var passo := velocidade * f * _fator_embalo() * fator_sprint * dt
 	# ALVO: um ponto À FRENTE na estrada + o desvio orgânico lateral
 	var olhar_px := maxf(float(rota_cfg.get("olhar_px", 22.0)), 1.0)
 	var s_alvo := minf(rota_t + olhar_px, total_rota)
@@ -978,6 +983,7 @@ func _terminar_rota(alvos: Array) -> Vector2:
 	_barrado = false
 	_desvios = 0
 	_desvio_lado = 0.0
+	_sprint = false
 	marcas = []
 	_auto_destino = fim
 	_auto_t = 3.3  # decide JÁ no primeiro passo de autonomia
@@ -1162,7 +1168,6 @@ func _atualizar_escavar(dt: float, mundo: RefCounted) -> void:
 		marcas = []
 		mira_final_id = ""
 		_perseguindo = false
-		_bicos = []
 		_arcos_rota = PackedFloat32Array()
 		_recargas["habilidade"] = float(defs.get("habilidade", {}).get("recarga", 0.4))
 		eventos.append("camada:" + camada)

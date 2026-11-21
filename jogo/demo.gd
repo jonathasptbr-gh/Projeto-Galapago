@@ -8,10 +8,10 @@ extends Node
 ##    distância ao centro, não chegar no anel);
 ## 2. caminho até a AREIA e SEGURAR parado: habilidade (cavar) — e de novo para
 ##    subir;
-## 3. TOQUE simples = PULO (o toque deixou de marcar);
+## 3. TOQUE DUPLO = PULO;
 ## 4. caminho por CIMA do adversário e terminando nele: travessia (BATIDA/
 ##    embalo) e a MARCA do alvo no fim do caminho;
-## 5. TOQUE DUPLO = TIRO mirado no alvo marcado (com 1 s de recarga);
+## 5. TOQUE simples = TIRO mirado no alvo marcado (com 1 s de recarga);
 ## 6. o caminho acaba e a criatura PERSEGUE o alvo marcado e bate (golpe).
 ##
 ## O tempo é o `main.tempo_ms` (real); o tempo lento muda o MUNDO, não o roteiro.
@@ -27,12 +27,12 @@ func _init(m: Node) -> void:
 	_passos = [
 		{"t": 0.5, "tipo": "caminho", "rel": [[0, 0], [70, 0], [70, -50], [20, -50], [20, 15]], "dur": 1.4},
 		{"t": 3.2, "tipo": "caminho", "cel": [2, 12], "dur": 0.8},
-		{"t": 5.2, "tipo": "segurar"},
-		{"t": 7.0, "tipo": "segurar"},
-		{"t": 8.6, "tipo": "toque"},
-		{"t": 9.6, "tipo": "perto", "passa": true, "dur": 2.6},
-		{"t": 13.2, "tipo": "toque_duplo"},
-		{"t": 14.6, "tipo": "toque_duplo"},
+		{"t": 6.0, "tipo": "segurar"},
+		{"t": 7.8, "tipo": "segurar"},
+		{"t": 9.4, "tipo": "toque_duplo"},
+		{"t": 10.4, "tipo": "perto", "passa": true, "dur": 2.6},
+		{"t": 14.0, "tipo": "toque"},
+		{"t": 15.4, "tipo": "toque"},
 	]
 
 

@@ -6,11 +6,12 @@ extends RefCounted
 ## - arrastar além de `desenho_min_px` já desenha a rota AO VIVO, sem espera.
 ##   A FORMA do desenho é lida por `sim/formas.gd`: laço → ataque em área,
 ##   bico → tiro. O gesto não tem de decidir isso.
-## - soltar sem arrastar = **toque** (PULO); dois toques = **toque duplo**
-##   (TIRO no alvo marcado). Para o primeiro toque de um duplo não pular, o
+## - soltar sem arrastar = **toque** (TIRO no alvo marcado); dois toques =
+##   **toque duplo** (PULO). Para o primeiro toque de um duplo não atirar, o
 ##   toque simples fica PENDENTE até a janela do duplo fechar (o `tick` solta).
-## - parado sem arrastar por `segurar_min_ms` = **segurar**: o gesto vira uma
-##   HABILIDADE em si mesmo (cavar), decidida no soltar.
+## - parado sem arrastar por `segurar_min_ms` = **segurar**: ATIVA na hora (no
+##   limiar, não no soltar). Quem decide o que ele faz é o corpo: com um
+##   caminho em curso é o SPRINT; sem caminho é a habilidade (cavar).
 ##
 ## `dados/gestos.json` guarda a tabela gesto → ação (`mapa`).
 ##
@@ -102,11 +103,11 @@ func soltar(dedo: int, pos: Vector2, t_ms: float) -> Array:
 
 
 ## Chamar a cada quadro com os dedos parados: solta o TOQUE pendente (depois
-## da janela do duplo) e arma o "segurar".
+## da janela do duplo) e ATIVA o "segurar" no limiar (não espera soltar).
 func tick(t_ms: float) -> Array:
 	_agora = t_ms
 	var out: Array = []
-	# janela do duplo fechou sem um segundo toque: era um TOQUE simples (pulo)
+	# janela do duplo fechou sem um segundo toque: era um TOQUE simples (tiro)
 	if _pendente_t >= 0.0 and t_ms - _pendente_t > float(lim["toque_duplo_janela_ms"]):
 		out.append(_pendente_ev)
 		_pendente_t = -1.0
@@ -115,6 +116,7 @@ func tick(t_ms: float) -> Array:
 	if _um_dedo and t_ms - _t0 >= float(lim["segurar_min_ms"]) \
 			and _desvio_max() <= float(lim["toque_max_px"]):
 		_segurando = true
+		out.append(_evento("segurar_inicio", t_ms))
 	return out
 
 
@@ -147,7 +149,7 @@ func _soltar_caminho(pos: Vector2, t_ms: float) -> Array:
 		return [_evento("trajetoria", t_ms)]
 	if _segurando:
 		_segurando = false
-		return [_evento("segurar_inicio", t_ms)]
+		return [_evento("segurar_fim", t_ms)]
 	if not _um_dedo:
 		return []  # dois dedos nunca viram toque
 	if _desvio_max() > float(lim["toque_max_px"]) or dur > float(lim["toque_max_ms"]):

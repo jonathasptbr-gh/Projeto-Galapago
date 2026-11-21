@@ -1,5 +1,5 @@
 {
- "_leia": "Ações da criatura (v0.10). fases = [antecipação, ativa, recuperação] em segundos; alcance/raio em px de mundo (célula = 32). ATAQUE é o golpe físico (usado no golpe final do caminho); BATIDA é a pancada de passagem por cima de um alvo. PULAR e as HABILIDADES acontecem POR CIMA da rota e NÃO a cancelam. As formas do caminho (`formas`) dizem o que é laço e o que é bico (o beco sai da rota); `combate`, o que cada ataque faz (onda do laço, tiro no toque duplo, empurrão) e as distâncias de gatilho. ROTA: pontos de referência esparsos (`simplificar_px`), desconto do vai-e-volta inicial, desvio local de OBJETOS; v0.9.1: ESTRADA larga (o animal anda dentro da faixa, com desvio orgânico), alvo À FRENTE e ZONA DE FREIO no fim; v0.10: sem freio quando há ALVO MARCADO (perseguição final) e a marca vem do fim do caminho. Lido por sim/formas.gd e sim/corpo.gd. v0.9.2: os especiais têm RECARGA (`combate.onda_recarga_s`/`tiro_recarga_s` 1 s) e os golpes físicos EMBALAM (`embalo`).",
+ "_leia": "Ações da criatura (v0.11). fases = [antecipação, ativa, recuperação] em segundos; alcance/raio em px de mundo (célula = 32). ATAQUE é o golpe físico (usado no golpe final do caminho); BATIDA é a pancada de passagem por cima de um alvo. PULAR e as HABILIDADES acontecem POR CIMA da rota e NÃO a cancelam. As formas do caminho (`formas`) dizem o que é laço (o BICO é andado como desenhado); `combate`, o que cada ataque faz (onda do laço, tiro no toque simples, empurrão) e as distâncias de gatilho; `sprint`, a aceleração do segurar dentro de um caminho. ROTA: pontos de referência esparsos (`simplificar_px`), desconto do vai-e-volta inicial, desvio local de OBJETOS; v0.9.1: ESTRADA larga (o animal anda dentro da faixa, com desvio orgânico), alvo À FRENTE e ZONA DE FREIO no fim; v0.10: sem freio quando há ALVO MARCADO (perseguição final) e a marca vem do fim do caminho; v0.11: o BICO é andado (nada é ignorado), o toque atira, o toque duplo pula e o SEGURAR dá SPRINT (barra de energia) ou a habilidade. Lido por sim/formas.gd e sim/corpo.gd. v0.9.2: os especiais têm RECARGA (`combate.onda_recarga_s`/`tiro_recarga_s` 1 s) e os golpes físicos EMBALAM (`embalo`).",
  "mover": {"velocidade": 110},
  "olhar": {},
  "travar": {},
@@ -14,14 +14,13 @@
   "laco_area_min": 700,
   "laco_raio_min": 24,
   "laco_raio_max": 120,
-  "laco_dedupe_px": 26,
-  "bico_angulo_min": 120,
-  "bico_janela_px": 10,
-  "bico_ponta_min": 18,
-  "bico_tol_px": 26,
-  "bico_base_px": 14,
-  "bico_fim_px": 40,
-  "bico_base_angulo": 45
+  "laco_dedupe_px": 26
+ },
+ "sprint": {
+  "fator": 1.7,
+  "gasto_s": 0.45,
+  "recarga_s": 0.22,
+  "minimo": 0.08
  },
  "embalo": {
   "curto_s": 0.25,

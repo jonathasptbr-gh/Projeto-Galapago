@@ -193,3 +193,7 @@
   (a marca anda com o alvo e está ligada ao caminho), **tiro no toque duplo**
   (mira no alvo, 1 s de recarga, para para atirar, a marca fica) e **pulo no
   toque simples**; o bico não atira mais.
+- **Ajustes (v0.11.0):** o **bico é andado** (nada é ignorado); **PULO no toque
+  duplo** e **TIRO no toque simples**; o **SEGURAR ativa no limiar** — com
+  caminho = **SPRINT** (barra de **energia**), sem caminho = habilidade
+  (**cavar**).

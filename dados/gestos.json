@@ -1,5 +1,5 @@
 {
- "_leia": "Gestos -> ações. v0.10 — UM DEDO FAZ TUDO. O primeiro dedo desenha a rota AO VIVO (sem espera, ganho de sensibilidade, origem congelada na descida). A FORMA do desenho vira ataque (sim/formas.gd): laço = ataque em área no centro do laço, bico (ida e volta brusca) = tiro na direção do bico. Soltar sem arrastar = TOQUE (pulo); DOIS toques = TIRO no alvo marcado (a marca vem de levar o FIM do caminho ao alvo); SEGURAR parado = habilidade em si mesmo (cavar). Nenhum gesto de dois dedos. v0.9.1: a linha é o eixo de uma ESTRADA; v0.10: o laço acende pela DISTÂNCIA ao centro, o beco do bico é CORTADO da rota e o bico NÃO atira mais. Ver docs/gdd/gestos-e-acoes.md.",
+ "_leia": "Gestos -> ações. v0.11 — UM DEDO FAZ TUDO. O primeiro dedo desenha a rota AO VIVO (sem espera, ganho de sensibilidade, origem congelada na descida). A FORMA do desenho vira ataque (sim/formas.gd): laço = ataque em área no centro do laço, bico (ida e volta brusca) = tiro na direção do bico. Soltar sem arrastar = TOQUE (tiro no alvo marcado); DOIS toques = PULO; SEGURAR: com caminho em curso = SPRINT (gasta energia), sem caminho = habilidade em si mesmo (cavar), ativada no limiar. Nenhum gesto de dois dedos. a linha é o eixo de uma ESTRADA; o laço acende pela DISTÂNCIA ao centro; o BICO é andado como desenhado (v0.11). Ver docs/gdd/gestos-e-acoes.md.",
  "limiares": {
   "toque_max_px": 16,
   "toque_max_ms": 260,
@@ -18,9 +18,9 @@
   "escurecer": 0.22
  },
  "mapa": {
-  "toque": "pular",
-  "toque_duplo": "tiro",
-  "segurar": "habilidade",
+  "toque": "tiro",
+  "toque_duplo": "pular",
+  "segurar": "segurar",
   "trajetoria": "mover"
  }
 }

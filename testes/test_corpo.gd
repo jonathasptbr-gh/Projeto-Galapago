@@ -381,9 +381,9 @@ func test_laco_vira_onda_em_area_no_centro() -> void:
 	checar(adv.pos.distance_to(Vector2(175, 119)) > 5.0, "o empurrão moveu o inimigo (%s)" % adv.pos)
 
 
-## v0.10: o BICO não atira mais (o tiro virou TOQUE DUPLO). O espinho continua
-## sendo lido: o BECO sai da rota e não há disparo.
-func test_bico_nao_atira_mais_mas_o_beco_sai_da_rota() -> void:
+## v0.11: o BICO é ANDADO — o traço é obedecido como foi desenhado (o "beco"
+## não é ignorado).
+func test_bico_e_andado() -> void:
 	var s := _setup(MAPA)
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
@@ -393,9 +393,7 @@ func test_bico_nao_atira_mais_mas_o_beco_sai_da_rota() -> void:
 	for q in c.rota:
 		if q.y > 60.0:
 			alto = true
-	checar(not alto, "o beco saiu da rota (%s)" % [c.rota])
-	var evs := _rodar(c, m, 2.0)
-	checar("bico:tiro" not in evs and "tiro:disparo" not in evs, "o bico não dispara (%s)" % [evs])
+	checar(alto, "o bico está na rota (%s)" % [c.rota])
 
 
 ## TRAVESSIA: a linha passa POR CIMA do adversário. Ao passar, a criatura dá a
@@ -598,9 +596,9 @@ func test_marcacao_embala_curto() -> void:
 
 # ---------------------------------------------------------------- v0.10: tiro no alvo marcado
 
-## O TIRO (toque duplo) só sai com ALVO MARCADO, mira nele, tem recarga e NÃO
-## tira a marca; o animal para para atirar.
-func test_toque_duplo_atira_no_alvo_marcado() -> void:
+## O TIRO (toque simples) só sai com ALVO MARCADO, mira nele, tem recarga e
+## NÃO tira a marca; o animal para para atirar.
+func test_toque_atira_no_alvo_marcado() -> void:
 	var s := _setup(MAPA)
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
@@ -633,3 +631,38 @@ func test_marca_nasce_durante_o_caminho() -> void:
 	var alvos := [_alvo_adv("adversario:0", adv)]
 	checar(c.tracar(PackedVector2Array([c.pos, c.pos + Vector2(80, 0), Vector2(200, 200)]), m, true, alvos).begins_with("ok"), "traço")
 	igual(c.mira_final_id, "adversario:0", "marcou durante o caminho")
+
+
+# ---------------------------------------------------------------- v0.11: sprint e segurar
+
+## SEGURAR durante um CAMINHO = SPRINT: acelera, gasta a barra de energia e
+## desliga ao soltar (a energia recupera depois).
+func test_sprint_durante_o_caminho_gasta_energia() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(330, 48)])}, m, [])
+	_rodar(c, m, 0.3)
+	checar(c.comandar({"acao": "segurar"}, m, []).begins_with("ok"), "sprint")
+	var e0: float = c.energia
+	var antes: Vector2 = c.pos
+	_rodar(c, m, 0.2)
+	var v: float = c.pos.distance_to(antes) / 0.2
+	checar(v > 150.0, "acelerou (%.0f px/s)" % v)
+	checar(c.energia < e0 - 0.05, "gastou energia (%.2f → %.2f)" % [e0, c.energia])
+	c.comandar({"acao": "soltar_segurar"}, m, [])
+	var e1: float = c.energia
+	_rodar(c, m, 0.3)
+	checar(c.energia > e1, "recuperou a energia (%.2f → %.2f)" % [e1, c.energia])
+
+
+## SEGURAR sem caminho = HABILIDADE (cavar), ativada na hora.
+func test_segurar_sem_caminho_cava() -> void:
+	var s := _setup(TERRA, TUNEL)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.pos = Vector2(16, 48)  # célula (0,1) = terra fofa
+	checar(c.comandar({"acao": "segurar"}, m, []).begins_with("ok"), "segurar sem caminho cava")
+	checar(c.escavando, "cavando já")
+	_rodar(c, m, 1.2)
+	igual(c.camada, M.SUBSOLO, "desceu")
