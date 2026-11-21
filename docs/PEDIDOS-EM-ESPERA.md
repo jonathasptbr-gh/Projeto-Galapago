@@ -100,5 +100,8 @@
   baixo+segurar), `sim/trajetoria.gd` (desconto + Douglas-Peucker),
   `sim/corpo.gd` (waypoints, desvio local, barreira/pulo), `jogo/` (prévia
   transladada, tempo lento, HUD retrato), `project.godot` 720×1280 orientação 1.
+- **v0.6.1:** conserto do aviso de atualização (o `Atualizador` ficava 0×0 e
+  jogava o botão `ATUALIZAR` para fora da tela; agora o painel abre sozinho).
+  A v0.5.0 instalada precisa do APK manual uma vez.
 - **Pendente de design:** o que cada **especial** faz (hoje é um golpe lateral
   genérico) e o ajuste fino de `escala_tempo`/`desconto_raio_px` pelo operador.

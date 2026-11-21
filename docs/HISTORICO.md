@@ -3,6 +3,31 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.6.1 — o aviso de atualização volta a aparecer na tela (2026-11-20)
+
+- **Relato do operador:** o app detectou a atualização (a HUD dizia "toque em
+  ATUALIZAR"), mas **não havia botão nem painel na tela** para atualizar.
+- **Causa medida:** o `Atualizador` é um `Control` filho de uma `CanvasLayer`;
+  os anchors sozinhos **não davam tamanho a ele** (ficava 0×0). O botão
+  "ATUALIZAR" era ancorado no topo-direita de um retângulo de 0×0 e caía em
+  **x = −252** (fora da tela); o painel de download tinha o mesmo problema. A
+  HUD mostrava o texto, mas o controle não.
+- **Conserto:** o `Atualizador` passou a ocupar a tela (`size` =
+  `get_viewport_rect().size`, reaplicado em `size_changed`); o botão desceu
+  para `y + 420` (abaixo da legenda) e, na **primeira detecção**, o painel
+  "Nova versão … disponível" abre **sozinho**, com "Baixar agora" e "Depois".
+  O botão continua disponível depois; o painel não reabre sozinho na mesma
+  sessão.
+- **Verificação:** sonda headless com `await` mediu o `Atualizador` em
+  720×1280 e o botão em x = 468..708 (dentro da tela); a tela real com build
+  13 contra a Release conferiu o painel. 66 testes, 35 scripts, CI e APK
+  verdes. O runner de testes síncrono não roda quadros, então o layout do
+  atualizador não tem teste unitário (ver `RESIDUOS`).
+- **Para o operador:** a **v0.5.0 instalada** tem o código antigo e não
+  consegue mostrar o botão — é preciso instalar o APK da **v0.6.1 à mão uma
+  vez** (o `ATUALIZAR` do app não aparece nela). Depois disso o aviso funciona
+  nas próximas versões. O APK 0.6.0-b14 também tem o defeito; use o 0.6.1-b15.
+
 ## v0.6.0 — retrato, gestos de tela, caminho por âncora e desvio de objetos (2026-11-20)
 
 - **Pedido do operador:** os gestos de ação não são mais relativos ao animal

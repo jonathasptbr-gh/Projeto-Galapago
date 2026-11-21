@@ -36,10 +36,19 @@ var _texto: Label
 var _barra: ProgressBar
 var _botoes: HBoxContainer
 var _botao_aviso: Button
+var _avisou := false
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# O Atualizador é um Control filho de uma CanvasLayer: os anchors sozinhos
+	# NÃO davam tamanho a ele (ficava 0×0), e o botão "ATUALIZAR" era ancorado
+	# no topo-direita de um retângulo de tamanho zero — caía fora da tela em
+	# x = −252. Por isso a HUD dizia "toque em ATUALIZAR" e não havia botão.
+	# Ancorar no topo-esquerda (anchors iguais) e dar o TAMANHO da tela: com os
+	# anchors full-rect o motor sobrescrevia o size depois do _ready.
+	set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	_ajustar_tamanho()
+	get_viewport().size_changed.connect(_ajustar_tamanho)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build = int(ProjectSettings.get_setting("galapago/build", 0))
 	if _build <= 0 or "--demo" in OS.get_cmdline_user_args():
@@ -50,6 +59,13 @@ func _ready() -> void:
 	_http.timeout = 15.0
 	add_child(_http)
 	verificar()
+
+
+## O Control precisa ocupar a tela para os filhos ancorados (botão e painel)
+## caírem dentro dela — inclusive quando a janela muda de tamanho.
+func _ajustar_tamanho() -> void:
+	size = get_viewport_rect().size
+	position = Vector2.ZERO
 
 
 ## Chamado pela HUD (botão) e por eventos: força uma checagem.
@@ -172,8 +188,15 @@ func _mostrar_aviso() -> void:
 	_botao_aviso.custom_minimum_size = Vector2(240, 56)
 	_botao_aviso.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 12)
 	_botao_aviso.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	# abaixo da legenda/verificar, mas dentro da tela nos dois formatos
+	_botao_aviso.position.y += 420
 	_botao_aviso.pressed.connect(_abrir_painel)
 	add_child(_botao_aviso)
+	# a PRIMEIRA detecção abre o painel sozinha: o aviso não pode depender de o
+	# jogador achar um botão pequeno no canto. Depois, o botão fica para voltar.
+	if not _avisou:
+		_avisou = true
+		_abrir_painel()
 
 
 func _abrir_painel() -> void:
