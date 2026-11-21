@@ -1,7 +1,7 @@
 # Gestos e ações — como a criatura se move e age
 
 > Regra toda em `sim/` (testada) e nas tabelas `dados/gestos.json` +
-> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.11.2.**
+> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.11.3.**
 
 ## O fluxo
 
@@ -53,7 +53,7 @@ Defesa também saiu (não há gesto para ela).
    fica marcado (e a marca **anda com ele**, ligada a este caminho).
 5. **Sensibilidade**: `desenho.ganho` (1,6) multiplica o traço.
 
-### Estrada, caminho orgânico e inércia (v0.9.1+ / v0.11.2)
+### Estrada, caminho orgânico e inércia (v0.9.1+ / v0.11.3)
 
 A linha desenhada é o **eixo de uma ESTRADA**, não a risca que a criatura pisa:
 
@@ -80,26 +80,45 @@ Um tronco no caminho: o alvo à frente **pula** o ponto que cai dentro dele e a
 criatura contorna com o leque de desvios; o **lado** é mantido (histerese), mas
 se aquele lado não passar ela **tenta o outro** — nunca fica presa na beirada.
 
-### Água e rocha também são contornadas (v0.11.2)
+### Água, rocha e DESNÍVEL (v0.11.2 / v0.11.3)
 
-A mesma regra do tronco vale para **terreno** (água, rocha) **quando a rota
-volta à terra**:
+A mesma regra do tronco vale para **qualquer barreira** que o traço atravesse
+— água, rocha e **encosta/desnível** — **quando a rota volta a um ponto
+alcançável**:
 
-- se a rota entra na água/rocha **perto do horizonte** (`olhar_px` + 24 px) e
-  encontra uma célula andável **de volta**, a criatura entende que o destino
-  não é a água: **mira a continuação** e usa o **mesmo leque de desvios** para
-  contornar. O lago/rocha é desviado, não atravessado;
+- a barreira é lida como **"não dá para ANDAR"** (`Mundo.caminho_livre` entre
+  as amostras da rota, de 4 px): pega água, rocha, **degrau de altura > 0,5**
+  e canto diagonal — não só o `bloqueio` de terreno;
+- se a rota entra na barreira **perto do horizonte** (`olhar_px` + 24 px) e
+  encontra um ponto **andável e de nível alcançável** (mesmo nível ±0,5, ou
+  mais baixo) **de volta**, a criatura entende que o destino não é a barreira:
+  **mira a continuação** e usa o **mesmo leque de desvios**. O topo de um
+  barranco (mais alto) não conta como continuação; a volta por baixo/rampa
+  conta;
 - a continuação precisa estar a **`contorno_raio_px` = 128 px** do animal (raio
   x próximo, ~4 células) e a **`contorno_alcance_px` = 260 px** de arco — um
-  rio largo demais ou um trecho de água sem volta fica de fora;
-- **se a rota termina dentro da água/rocha**, não há continuação em terra:
-  para na fronteira, como antes. O **PULO** é o que atravessa (e enquanto está
-  no ar a checagem do chão é ignorada, como já era);
+  rio/lago/encosta longe demais fica de fora;
+- **se a rota termina no bloqueio**, não há continuação: para na fronteira. O
+  **PULO** é o que atravessa (e enquanto está no ar a checagem do chão é
+  ignorada, como já era);
 - **teimosia limitada:** um contorno que roda `desvio_teimoso_apos` = 36
   passos sem a rota andar 6 px para na fronteira em vez de ficar indo e
   voltando no muro. Um caminho novo ou um pulo reinicia.
-- **altura (planalto/rampa)** continua sendo barreira de altura (`pode_andar`
-  não é `terreno`): a criatura para e espera; não entra no contorno de água.
+
+### Direção estável (v0.11.3)
+
+O alvo da estrada pode andar 2 px de um quadro para o outro; a criatura não
+pisca a direção por causa disso:
+
+- `_dir_suave` filtra a direção de **andar** e `_olhar_suave` a direção
+  **desenhada** (`giro_suavidade` = 10/s, `giro_max_graus_s` = 720°/s): no
+  máximo ~24° por quadro a 30 fps (12° a 60 fps);
+- o **ângulo do contorno** é mantido (`_desvio_angulo`): o leque tenta o mesmo
+  ângulo do quadro anterior antes de escolher outro, então o desvio vira uma
+  linha estável em vez de uma escolha nova a cada quadro;
+- o passo REAL continua sendo o do desvio (a segurança de não entrar na
+  barreira é do `_passo_com_desvio`); a suavização é da direção, não da
+  checagem de colisão.
 
 ### Amontoados e laços minúsculos (v0.11.1)
 
@@ -159,7 +178,7 @@ verdade: para e espera, e a rota **não é apagada** (um pulo passa por cima e
 retoma). A criatura **não corta a curva** da rota: se a linha passa perto da
 água e faz a volta, ela segue a linha, não a corda.
 
-### A LINHA do caminho (v0.9.2)
+### A LINHA do caminho (v0.9.2 / v0.11.3)
 
 A linha desenhada mostra o **traço real do dedo** — os pontos **densos** do
 desenho, não a rota simplificada (que traçava retas entre os pontos de
@@ -170,7 +189,11 @@ referência e ficava quebrada):
 - **pontilhada**, **escura e transparente** (azul-quase-preto a 55%) e **no
   chão** (`z_index` 1, embaixo dos objetos e da criatura);
 - a **rota** (a estrada) continua sendo a referência do movimento — a linha é o
-  desenho, o animal anda dentro da faixa.
+  desenho, o animal anda dentro da faixa;
+- **v0.11.3: a linha APAGA o trecho já andado.** `sim/corpo.gd` projeta a
+  criatura no traço cru (`traco_t`, contínuo e sem voltar) e `jogo/trilha.gd`
+  desenha só do corte para a frente, com um **rabinho de fade** de 22 px atrás.
+  O que já passou some; o caminho à frente fica inteiro.
 
 ## As formas (o ataque nasce do desenho)
 
@@ -293,7 +316,7 @@ desacelerando depois da batida; a marcação dá um puxão curto na direção do
 final. O cooldown de 1 s segura a marca do especial (ela fica **pendente** e
 acende quando a recarga termina).
 
-### `rota` — estrada, visão, contorno e inércia (v0.9.1+ / v0.11.2)
+### `rota` — estrada, visão, contorno e inércia (v0.9.1+ / v0.11.3)
 
 | chave | valor | o quê |
 |---|---|---|
@@ -306,6 +329,7 @@ acende quando a recarga termina).
 | `estrada_largura_px` | 30 | largura da estrada (±15 px) |
 | `estrada_desvio_px` | 9 | amplitude do desvio orgânico lateral |
 | `estrada_onda_px` / `estrada_onda2_px` | 120 / 47 | os dois períodos da onda do desvio |
+| `giro_suavidade` / `giro_max_graus_s` | 10 / 720 | filtro e teto de giro da direção (estabilidade) |
 | `freio_extra_px` / `freio_sprint_x` | 16 / 1,6× | INÉRCIA depois do fim; no sprint ×1,6 |
 | `parada_px` | 4 | folga para virar `rota:fim` (a inércia continua) |
 
@@ -376,8 +400,11 @@ acende quando a recarga termina).
   espinho pode deixar o caminho mais longo.
 - **Baú e mira vermelha**: sem gesto desde a v0.10 (o toque é o pulo) — o baú
   precisa de um gatilho novo.
-- **Estrada**: a largura, a amplitude/onda e a inércia (`freio_extra_px`,
-  `freio_sprint_x`) são pontos de partida — ajustar no aparelho com o operador.
+- **Estrada**: a largura, a amplitude/onda, a inércia (`freio_extra_px`,
+  `freio_sprint_x`) e o giro (`giro_suavidade`/`giro_max_graus_s`) são pontos
+  de partida — ajustar no aparelho com o operador.
+- **Contorno de altura**: o topo do barranco não é continuação; se a rota
+  termina lá, para (o pulo sobe/desce).
 - **Linha**: mostra o traço CRU do dedo (inclusive o beco e o tremor inicial);
   se o operador preferir a linha do **caminho andado** (o rastro do animal), é
   outra decisão.

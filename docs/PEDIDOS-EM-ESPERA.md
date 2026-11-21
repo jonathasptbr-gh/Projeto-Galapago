@@ -212,3 +212,10 @@
   água, ela contorna. Se a rota **termina** no bloqueio, para na fronteira e o
   **pulo** atravessa; o contorno desiste depois de 36 passos sem progresso
   (`desvio_teimoso_*`), em vez de ficar indo e voltando no muro.
+- **Ajustes (v0.11.3):** o contorno vale também para **desnível/encosta** — a
+  barreira é lida por `Mundo.caminho_livre` (não só `bloqueio`), e a
+  continuação precisa ser de **nível alcançável** (o topo do barranco não
+  conta). A direção ficou **estável**: `_dir_suave`/`_olhar_suave` com
+  `giro_suavidade` 10 e `giro_max_graus_s` 720, e o ângulo do contorno é
+  mantido (`_desvio_angulo`). A **linha do caminho apaga** o trecho já andado
+  (`traco_t` + fade de 22 px em `jogo/trilha.gd`).

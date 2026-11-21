@@ -204,7 +204,7 @@ func _process(delta: float) -> void:
 	# A LINHA mostra o TRAÇO CRU (os pontos densos do desenho): contínua e fiel
 	# ao movimento do dedo, não a rota simplificada (v0.9.2).
 	if corpo.em_rota() or reconhecedor.desenhando():
-		trilha.mostrar(corpo.traco)
+		trilha.mostrar(corpo.traco, corpo.traco_t)
 	else:
 		trilha.mostrar(PackedVector2Array())
 	camera.position = criatura.ponto_visual()

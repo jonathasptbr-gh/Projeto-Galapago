@@ -3,6 +3,55 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.11.3 — contorno de encostas, direção estável e linha que apaga (2026-11-21)
+
+- **Pedido do operador:** (1) o contorno de "não parada" não estava valendo
+  para **desníveis**: o animal esbarra nas encostas e fica preso — aplicar a
+  correção de rios/pedras a **encostas e barreiras no geral**; (2) o desvio de
+  obstáculos funciona, mas está **muito reativo**: a direção pisca/treme
+  enquanto ele dá pequenos passos — deixar caminho e direção mais **estáveis e
+  fluídos**; (3) a **linha do caminho apagar** o trecho que o animal já passou.
+- **`sim/corpo.gd` — barreira de ALTURA:** a varredura do contorno deixou de
+  olhar `mundo.bloqueio(...) == "terreno"` e passou a testar
+  `mundo.caminho_livre(p_antes, p_t)` entre as amostras de 4 px da rota —
+  assim **água, rocha, degrau > 0,5 e canto diagonal** contam como barreira. A
+  **continuação** precisa ser uma célula andável com **nível alcançável**
+  (`altura(c) <= altura(base) + 0,5`, ou qualquer nível no subsolo); o **topo
+  do barranco** (mais alto) não é continuação — é a volta por baixo/rampa que
+  conta. O resto é o mesmo contorno do tronco/água (`contorno_*`,
+  `desvio_teimoso_*`).
+- **`sim/corpo.gd` — direção estável:** `_dir_suave` (direção de andar) e
+  `_olhar_suave` (direção desenhada) passam por `_suavizar_direcao`
+  (mistura exponencial `giro_suavidade` 10/s + teto `giro_max_graus_s`
+  720°/s). O leque de desvio guarda o **ângulo** do quadro anterior
+  (`_desvio_angulo`) e o tenta primeiro, então o contorno vira uma linha
+  estável em vez de reescolher a cada quadro. O passo real não muda: a
+  checagem de colisão continua no `_passo_com_desvio`.
+- **`dados/acoes.json`:** `giro_suavidade` 10, `giro_max_graus_s` 720;
+  `_leia` em v0.11.3.
+- **Testes:** `test_rota_contorna_desnivel_quando_ha_continuacao` (rota por
+  cima de um planalto, contorna pelas laterais, 0 quadros no nível alto, chega
+  ao fim) e `test_direcao_estavel_ao_contornar` (giro por quadro ≤ 720°/30 +
+  0,5°). Água, rocha, dip, laço, bico e inércia continuam verdes.
+- **`sim/corpo.gd` / `jogo/trilha.gd` — a LINHA apaga o que já passou:**
+  `traco_t` é o arco ANDADO do traço cru, atualizado por projeção com
+  continuidade (nunca volta, teto de avanço por quadro) e resetado num caminho
+  novo. `trilha.mostrar(pontos, corte)` desenha do corte para a frente, com
+  fade de `APAGAR_PX` 22 px atrás; o pontinho do destino só aparece se ainda
+  falta caminho.
+- **Testes (105, 0 falhas; parser 38 scripts):** inclui
+  `test_traco_vai_apagando_o_trecho_andado` (o corte avança, nunca volta e fica
+  dentro do traço), além de `test_rota_contorna_desnivel_quando_ha_continuacao`
+  e `test_direcao_estavel_ao_contornar`.
+- **Sonda headless:** tronco/água/desnível com giro máximo por quadro de
+  **24,0°** na direção desenhada; o passo real tem 1–2 viradas de ~80–100° no
+  INÍCIO do contorno (uma vez), depois segue estável — não pisca a cada
+  quadro.
+- **Verificação visual:** oráculo de quadros (**45 quadros** 720×1280, PNG
+  abertos): a linha aparece só **à frente** da criatura — o trecho andado já
+  está apagado (fade de 22 px) — e o caminho à frente segue pontilhado; HUD e
+  cena sem quebra.
+
 ## v0.11.2 — água e rocha contornadas quando a rota volta à terra (2026-11-21)
 
 - **Pedido do operador:** aplicar o **mesmo desvio dos troncos** a **pedras e

@@ -4,6 +4,11 @@
 
 | versão | onde | o quê | tamanho |
 |---|---|---|---|
+| v0.11.3 | `jogo/trilha.gd` | o corte da linha é a projeção do corpo no **traço cru** (não na rota): no tremor inicial/amontoado e num cruzamento ele pode apagar um pouco antes/depois da passagem; nunca volta | pequeno |
+| v0.11.3 | `sim/corpo.gd` | o contorno de **desnível** exige um ponto da rota em nível **≤ base + 0,5** a até 128 px/260 px; uma rota que termina no **topo** do barranco para na fronteira (o pulo sobe/desce) | decisão |
+| v0.11.3 | `sim/corpo.gd` | a suavização **atrasa** a curva (720°/s); o bico/cantos ficam um pouco mais arredondados; o passo real ainda pode dar **1–2 viradas** de ~80–100° no início do contorno (uma vez), mas a direção desenhada não pisca | pequeno |
+| v0.11.3 | `sim/corpo.gd` | `_dir_suave`/`_olhar_suave` valem no **caminho**; a perseguição final e a autonomia continuam com a direção direta (não foram suavizadas) | design |
+| v0.11.3 | `dados/acoes.json` | `giro_suavidade` 10 e `giro_max_graus_s` 720 são pontos de partida — mais baixo = mais suave/atrasado; ajustar no aparelho | pequeno |
 | v0.11.2 | `sim/corpo.gd` | o contorno de terreno exige um ponto **andável da ROTA** a até 128 px do animal e 260 px de arco: um lago/rocha maior, ou um rio largo sem volta, ainda **para na fronteira** (o pulo atravessa) | decisão |
 | v0.11.2 | `sim/corpo.gd` | a **ALTURA** (planalto/rampa) não entra no contorno de água/rocha: continua sendo barreira que para e espera (o contorno usa `bloqueio`, e altura é `pode_andar`) | design |
 | v0.11.2 | `sim/corpo.gd` | se o desvio real precisar de mais de 36 passos **sem a projeção andar 6 px**, a teimosia para antes — um lago grande com a volta longe pode dar `barrado` cedo | pequeno |

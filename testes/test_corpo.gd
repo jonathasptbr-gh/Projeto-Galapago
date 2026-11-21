@@ -213,6 +213,28 @@ func test_rota_que_termina_na_agua_para_na_fronteira() -> void:
 	checar(c.pos.x < 96.0, "não entrou na água (x=%s)" % c.pos.x)
 
 
+## v0.11.3: DESNÍVEL (encosta/planalto) também é barreira contornável. A rota
+## passa por cima de um planalto alto; a criatura dá a volta pelas laterais e
+## segue — sem esbarrar na encosta.
+func test_rota_contorna_desnivel_quando_ha_continuacao() -> void:
+	var s := _setup([",,,,,,,,,,,,", ",,^^,,,,,,,,", ",,,,,,,,,,,,"])
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(300, 48)])}, m, []).begins_with("ok"), "rota")
+	var t := 0.0
+	var subiu := 0
+	while c.em_rota() and t < 12.0:
+		c.passo(1.0 / 30.0, m, [])
+		c.drenar_eventos()
+		if m.altura(m.celula_de(c.pos)) > 1.5:
+			subiu += 1
+		t += 1.0 / 30.0
+	checar(not c.em_rota(), "contornou a encosta em %.1f s" % t)
+	checar(not c.barrado(), "não ficou presa na encosta")
+	checar(subiu == 0, "não subiu no planalto (%d quadros)" % subiu)
+	checar(c.pos.x > 250.0, "seguiu depois da encosta (x=%.0f)" % c.pos.x)
+
+
 ## ROCHA é o mesmo TERRENO: com uma continuação em terra perto, contorna.
 func test_rota_contorna_rocha_quando_ha_continuacao() -> void:
 	var s := _setup([",,,,,,,,,,,,", ",,##,,,,,,,,", ",,,,,,,,,,,,"])
@@ -285,6 +307,29 @@ func test_rota_desvia_de_objeto_e_continua() -> void:
 	var evs := _seguir_ate_fim(c, m, [], 10.0)
 	checar("rota:fim" in evs, "terminou a rota")
 	checar(c.pos.x > 200.0, "passou do tronco (x=%s)" % c.pos.x)
+
+
+## v0.11.3: a DIREÇÃO não pisca no desvio — o giro por quadro fica limitado
+## por `giro_max_graus_s` (navegação estável, sem tremer/rodar no lugar).
+func test_direcao_estavel_ao_contornar() -> void:
+	var s := _setup_objeto([{"tipo": "arvore", "celula": [3, 1]}])
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(240, 48)])}, m, [])
+	var ang_antes: float = c.olhar.angle()
+	var maior := 0.0
+	var t := 0.0
+	while c.em_rota() and t < 10.0:
+		c.passo(1.0 / 30.0, m, [])
+		c.drenar_eventos()
+		var d: float = absf(wrapf(c.olhar.angle() - ang_antes, -PI, PI))
+		maior = maxf(maior, d)
+		ang_antes = c.olhar.angle()
+		t += 1.0 / 30.0
+	var giro := float(acoes.get("rota", {}).get("giro_max_graus_s", 720.0))
+	var limite := deg_to_rad(giro / 30.0 + 0.5)
+	checar(maior <= limite, "giro por quadro estável (%.1f° ≤ %.1f°)" % [rad_to_deg(maior), rad_to_deg(limite)])
+	checar(c.pos.x > 200.0, "contornou e seguiu (x=%.0f)" % c.pos.x)
 
 
 ## Água é BARREIRA: para, mas a rota fica guardada. Um pulo durante a rota
@@ -758,6 +803,29 @@ func test_segurar_sem_caminho_cava() -> void:
 	checar(c.escavando, "cavando já")
 	_rodar(c, m, 1.2)
 	igual(c.camada, M.SUBSOLO, "desceu")
+
+
+## v0.11.3: a LINHA apaga o trecho já andado (`corpo.traco_t` avança, nunca
+## volta e fica dentro do traço). O desenho usa esse corte em `jogo/trilha.gd`.
+func test_traco_vai_apagando_o_trecho_andado() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(240, 48)])}, m, [])
+	var ultimo := 0.0
+	var subiu := false
+	var t := 0.0
+	while c.em_rota() and t < 3.0:
+		c.passo(1.0 / 30.0, m, [])
+		c.drenar_eventos()
+		if c.traco_t > 0.1:
+			subiu = true
+		checar(c.traco_t >= ultimo - 0.01, "o corte nunca volta (%.2f < %.2f)" % [c.traco_t, ultimo])
+		ultimo = c.traco_t
+		t += 1.0 / 30.0
+	checar(subiu, "o corte avançou enquanto andava")
+	var total := preload("res://sim/trajetoria.gd").comprimento(c.traco)
+	checar(c.traco_t <= total + 0.01, "corte dentro do traço (%.1f/%.1f)" % [c.traco_t, total])
 
 
 # ---------------------------------------------------------------- v0.11.1: estrada que não corta

@@ -39,6 +39,12 @@ extends RefCounted
 ## fronteira (o PULO atravessa). Depois de `desvio_teimoso_apos` passos de
 ## contorno sem a rota andar, desiste e para — não fica indo e voltando.
 ##
+## v0.11.3 — o contorno passou a valer para DESNÍVEL (a barreira é lida por
+## `caminho_livre`, não só `bloqueio`; a continuação precisa ser de nível
+## alcançável) e a direção ficou estável (`_dir_suave`/`_olhar_suave` +
+## `_desvio_angulo`). A LINHA apaga o que já foi andado: `traco_t` é o arco
+## andado do traço cru.
+##
 ## v0.9 — O ATAQUE NASCE DO DESENHO (`sim/formas.gd`), não de um gesto de dois
 ## dedos; v0.9.1 afinou as três pontas:
 ##
@@ -102,6 +108,10 @@ var _desvios := 0
 var _desvio_lado := 0.0            # lado do desvio em curso (histerese no tronco)
 var _desvio_ref := 0.0             # arco do último desvio (só encerra depois de folga)
 var _desvio_inicio_s := 0.0        # arco onde o contorno começou (teto de teimosia)
+var _desvio_angulo := 0.0           # ângulo do contorno em curso (anti-tremor)
+# DIREÇÃO SUAVE (v0.11.3): o alvo pode mudar 2 px por quadro; a criatura não.
+var _dir_suave := Vector2.ZERO       # direção usada para ANDAR (filtrada)
+var _olhar_suave := Vector2.ZERO     # direção do desenho (filtrada, só visual)
 
 # overlays
 var _pulo_t := 0.0
@@ -115,6 +125,7 @@ var _recargas := {}
 
 # v0.9 — o desenho CRU, as marcas de ataque e os efeitos vivos
 var traco := PackedVector2Array()
+var traco_t := 0.0               # arco JÁ ANDADO do traço cru (a linha apaga)
 var marcas: Array = []           # {tipo, ponto, chave, dir, ...} a acender
 var efeitos: Array = []          # ondas e tiros vivos (o jogo desenha)
 var mira_final_id := ""          # adversário marcado pelo fim do caminho
@@ -281,6 +292,7 @@ func _adotar_traco(pontos: PackedVector2Array, mundo: RefCounted, inicio: bool, 
 		return "recusado: caminho vazio"
 	if inicio:
 		_traco_lido = 0
+		traco_t = 0.0
 	traco = pontos.duplicate()
 	# ler as formas a cada poucos pontos (o RDP e os laços custam): a origem lê
 	# sempre. v0.11: o traço é obedecido COMO FOI DESENHADO (o bico anda).
@@ -349,6 +361,9 @@ func _guardar_rota(nova: PackedVector2Array, reiniciar: bool) -> void:
 		_desvio_lado = 0.0
 		_desvio_ref = 0.0
 		_desvio_inicio_s = 0.0
+		_desvio_angulo = 0.0
+		_dir_suave = Vector2.ZERO
+		_olhar_suave = Vector2.ZERO
 		_sprint = false
 		marcas = []
 		_disparadas = {}
@@ -885,13 +900,27 @@ func _avancar_rota(dt: float, mundo: RefCounted, alvos: Array) -> Vector2:
 	var para := destino - base
 	if para.length() < 0.01:
 		para = tang
-	var dir := para.normalized()
-	var novo := _passo_com_desvio(base, dir, passo, destino, mundo, contorno)
+	var desejado := para.normalized()
+	# DIREÇÃO ESTÁVEL: filtra o alvo (mira 2 px de diferença não vira piscada)
+	# e limita o giro por quadro. `_olhar_suave` é a direção DESENHADA; o corpo
+	# ainda anda o passo real (a segurança do desvio é do `_passo_com_desvio`).
+	var suavidade := maxf(float(rota_cfg.get("giro_suavidade", 10.0)), 0.0)
+	var giro_max := maxf(float(rota_cfg.get("giro_max_graus_s", 720.0)), 0.0)
+	if _dir_suave.length() < 0.01:
+		_dir_suave = desejado
+	_dir_suave = _suavizar_direcao(_dir_suave, desejado, dt, suavidade, giro_max)
+	if _olhar_suave.length() < 0.01:
+		_olhar_suave = olhar if olhar.length() > 0.01 else desejado
+	var novo := _passo_com_desvio(base, _dir_suave, passo, destino, mundo, contorno)
 	if novo.distance_to(base) < 0.001:
 		_barrado = true
+		_atualizar_traco_t(dt, base)
 		return base
 	_barrado = false
-	olhar = (novo - base).normalized()
+	var real := (novo - base).normalized()
+	_olhar_suave = _suavizar_direcao(_olhar_suave, real, dt, suavidade, giro_max)
+	olhar = _olhar_suave
+	_atualizar_traco_t(dt, novo)
 	return novo
 
 
@@ -955,19 +984,33 @@ func _alvo_visivel(base: Vector2, mundo: RefCounted) -> Dictionary:
 	var contorno_alcance := maxf(float(rota_cfg.get("contorno_alcance_px", 260.0)), 8.0)
 	var contorno_raio := maxf(float(rota_cfg.get("contorno_raio_px", 128.0)), 8.0)
 	var horizonte := minf(rota_t + olhar_px + 24.0, total_rota)
+	var altura_base: float = mundo.altura(mundo.celula_de(base))
 	var s_t := minf(rota_t + 2.0, total_rota)
-	var achou_terreno := false
+	var p_antes := _ponto_em_rota(rota_t)
+	var achou_barreira := false
 	while s_t <= horizonte:
-		if mundo.bloqueio(mundo.celula_de(_ponto_em_rota(s_t)), camada) == "terreno":
-			achou_terreno = true
+		var p_t := _ponto_em_rota(s_t)
+		# BARREIRA = não dá para ANDAR da amostra anterior até esta: água,
+		# rocha, DESNÍVEL (encosta) ou canto diagonal. Antes só `bloqueio`
+		# era lido, então a encosta (célula andável, mas alta demais) passava
+		# batida e a criatura esbarrava nela.
+		if not mundo.caminho_livre(p_antes, p_t, camada):
+			achou_barreira = true
 			break
+		p_antes = p_t
 		s_t += PASSO_TERRENO
-	if achou_terreno:
+	if achou_barreira:
 		var fim_t := minf(rota_t + contorno_alcance, total_rota)
 		var s_v := s_t + PASSO_TERRENO
 		while s_v <= fim_t:
 			var p_t := _ponto_em_rota(s_v)
-			if mundo.bloqueio(mundo.celula_de(p_t), camada) == "" \
+			var c_t: Vector2i = mundo.celula_de(p_t)
+			# a continuação precisa ser uma célula ANDÁVEL e, fora do subsolo,
+			# de um nível alcançável a partir daqui (senão é o topo da
+			# encosta, não a volta do caminho).
+			var nivel_ok: bool = camada == Mundo.SUBSOLO \
+					or mundo.altura(c_t) <= altura_base + 0.5
+			if mundo.bloqueio(c_t, camada) == "" and nivel_ok \
 					and p_t.distance_to(base) <= contorno_raio:
 				s_terra = s_v
 				contorno = true
@@ -1051,6 +1094,56 @@ func _desvio_organico(s: float) -> float:
 	return amp * (0.68 * sin(TAU * s / o1 + _fase1) + 0.32 * sin(TAU * s / o2 + _fase2))
 
 
+
+## Suaviza uma DIREÇÃO (v0.11.3): mistura exponentialmente (tempo constante
+## `suavidade`) e limita a velocidade angular (`max_graus_s`). O alvo pode
+## oscilar 2 px por quadro; a criatura não precisa piscar a direção.
+func _suavizar_direcao(atual: Vector2, alvo: Vector2, dt: float,
+		suavidade: float, max_graus_s: float) -> Vector2:
+	if alvo.length() < 0.01:
+		return atual
+	alvo = alvo.normalized()
+	if atual.length() < 0.01:
+		return alvo
+	var ang := atual.angle()
+	var delta := wrapf(alvo.angle() - ang, -PI, PI)
+	var passo := delta * clampf(dt * maxf(suavidade, 0.0), 0.0, 1.0)
+	var maxp := deg_to_rad(maxf(max_graus_s, 0.0)) * dt
+	if maxp > 0.0:
+		passo = clampf(passo, -maxp, maxp)
+	return Vector2.from_angle(ang + passo)
+
+
+## Atualiza o arco ANDADO do traço cru (v0.11.3): a linha apaga o pedaço que a
+## criatura já passou. Projeta a posição no traço com o mesmo critério de
+## continuidade da rota (distância + arco esperado) e NUNCA volta.
+func _atualizar_traco_t(dt: float, p_atual: Vector2) -> void:
+	if traco.size() < 2:
+		return
+	var arcos := Trajetoria.arcos_pontos(traco)
+	var total := arcos[arcos.size() - 1]
+	var esperado := maxf(velocidade * maxf(dt, 0.0) * 2.0, 2.0)
+	var alvo := traco_t + esperado
+	var peso := 0.25
+	var melhor := INF
+	var melhor_s := 0.0
+	for i in range(traco.size() - 1):
+		var a := traco[i]
+		var b := traco[i + 1]
+		var ab := b - a
+		var l2 := ab.length_squared()
+		var t := 0.0
+		if l2 > 0.0001:
+			t = clampf((p_atual - a).dot(ab) / l2, 0.0, 1.0)
+		var d := (a + ab * t).distance_to(p_atual)
+		var s := arcos[i] + ab.length() * t
+		var custo := d + peso * absf(s - alvo)
+		if custo < melhor:
+			melhor = custo
+			melhor_s = s
+	traco_t = maxf(traco_t, minf(melhor_s, traco_t + maxf(esperado * 4.0, 24.0)))
+	traco_t = clampf(traco_t, 0.0, total)
+
 ## Um passo em direção a `dir`. No ar (pulo) ignora o chão — é o que permite
 ## pular por cima da barreira e seguir a rota. No chão, OBJETO (tronco) pode
 ## ser contornado com um pequeno desvio angular; TERRENO (água, rocha, altura)
@@ -1080,6 +1173,7 @@ func _passo_com_desvio(base: Vector2, dir: Vector2, passo: float, alvo: Vector2,
 			_desvio_lado = 0.0
 			_desvio_ref = 0.0
 			_desvio_inicio_s = 0.0
+			_desvio_angulo = 0.0
 		return fim
 	var bloq: Dictionary = _primeiro_bloqueio(base, ideal, mundo)
 	var tipo := str(bloq.get("tipo", ""))
@@ -1104,14 +1198,19 @@ func _desvio_leque(base: Vector2, dir: Vector2, passo: float, alvo: Vector2, mun
 			and rota_t - _desvio_inicio_s < float(rota_cfg.get("desvio_teimoso_px", 6.0)):
 		return base
 	var angulos: Array = rota_cfg.get("desvio_angulos", [20.0, -20.0, 40.0, -40.0, 60.0, -60.0, 80.0, -80.0, 100.0, -100.0, 120.0, -120.0])
-	var tentativas: Array = [angulos]
+	# primeiro o ÂNGULO do quadro anterior: o contorno vira uma linha estável,
+	# não uma escolha nova a cada quadro (era o "piscar" da direção).
+	var tentativas: Array = []
+	if absf(_desvio_angulo) > 0.01:
+		tentativas.append([_desvio_angulo])
 	if _desvio_lado != 0.0:
 		var mesmo: Array = []
 		for a in angulos:
 			if signf(float(a)) == _desvio_lado:
 				mesmo.append(a)
 		if not mesmo.is_empty():
-			tentativas = [mesmo, angulos]
+			tentativas.append(mesmo)
+	tentativas.append(angulos)
 	var melhor := base
 	var melhor_d := INF
 	var escolhido := 0.0
@@ -1133,6 +1232,7 @@ func _desvio_leque(base: Vector2, dir: Vector2, passo: float, alvo: Vector2, mun
 	if _desvios == 0:
 		_desvio_inicio_s = rota_t
 	_desvio_lado = signf(escolhido)
+	_desvio_angulo = escolhido
 	_desvio_ref = rota_t
 	_desvios += 1
 	return melhor
@@ -1205,6 +1305,7 @@ func _terminar_rota(alvos: Array) -> Vector2:
 	_desvio_lado = 0.0
 	_desvio_ref = 0.0
 	_desvio_inicio_s = 0.0
+	_desvio_angulo = 0.0
 	_sprint = false
 	marcas = []
 	_auto_destino = fim
@@ -1229,6 +1330,8 @@ func _iniciar_inercia(dir: Vector2, v0: float, distancia: float) -> void:
 	if dir.length() < 0.01:
 		return
 	_inercia_dir = dir.normalized()
+	_dir_suave = _inercia_dir
+	_olhar_suave = _inercia_dir
 	_inercia_v0 = v0
 	_inercia_dur = maxf(2.0 * distancia / v0, 0.05)
 	_inercia_t = _inercia_dur
@@ -1434,6 +1537,7 @@ func _atualizar_escavar(dt: float, mundo: RefCounted) -> void:
 		_desvio_lado = 0.0
 		_desvio_ref = 0.0
 		_desvio_inicio_s = 0.0
+		_desvio_angulo = 0.0
 		marcas = []
 		mira_final_id = ""
 		_perseguindo = false
