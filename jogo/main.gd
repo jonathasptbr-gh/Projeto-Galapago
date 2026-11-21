@@ -201,10 +201,10 @@ func _process(delta: float) -> void:
 		_evento(e)
 	for cp in copas:
 		cp.atualizar(corpo.pos, delta, corpo.camada == Mundo.SUBSOLO)
-	# a rota (a mesma que o dedo desenhou) fica VISÍVEL durante os gestos de
-	# ação: o ataque acontece POR CIMA dela, sem movê-la.
-	if corpo.em_rota():
-		trilha.mostrar(corpo.rota)
+	# A LINHA mostra o TRAÇO CRU (os pontos densos do desenho): contínua e fiel
+	# ao movimento do dedo, não a rota simplificada (v0.9.2).
+	if corpo.em_rota() or reconhecedor.desenhando():
+		trilha.mostrar(corpo.traco)
 	else:
 		trilha.mostrar(PackedVector2Array())
 	camera.position = criatura.ponto_visual()

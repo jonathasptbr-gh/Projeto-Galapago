@@ -89,11 +89,18 @@ var habilidade_t := 0.0
 var habilidade_dur := 0.0
 var _formas_cfg: Dictionary = {}
 var _combate: Dictionary = {}
+var _embalo: Dictionary = {}
 var _bicos: Array = []              # bicos lidos do traço (i/j: trecho a cortar)
 var _arcos_rota := PackedFloat32Array()  # arco acumulado em cada ponto da rota
 var _fase1 := 0.0                   # fases do desvio orgânico (semente da rota)
 var _fase2 := 0.0
 var _pausa_t := 0.0                 # pausa curta ao disparar o bico
+# EMBALO dos golpes físicos (v0.9.2): acelera curto na marcação e longo no
+# empurrão, passando mais rápido pelo alvo e desacelerando depois
+var _turbo_t := 0.0
+var _turbo_dur := 0.0
+var _turbo_fator := 1.0
+var _embalo_final_feito := false
 var _disparadas := {}            # chaves de marcas que já acenderam
 var _traco_lido := 0             # pontos do traço já lidos (economia)
 
@@ -115,6 +122,7 @@ func _init(definicoes: Dictionary = {}) -> void:
 	rota_cfg = defs.get("rota", {})
 	_formas_cfg = defs.get("formas", {})
 	_combate = defs.get("combate", {})
+	_embalo = defs.get("embalo", {})
 
 
 # ---------------------------------------------------------------- consultas
@@ -307,6 +315,8 @@ func _guardar_rota(nova: PackedVector2Array, reiniciar: bool) -> void:
 		marcas = []
 		_disparadas = {}
 		mira_final_id = ""
+		_embalo_final_feito = false
+		_turbo_t = 0.0
 		# a "estrada" ganha fases próprias (mesma semente = mesmo passeio)
 		_fase1 = rng.randf() * TAU
 		_fase2 = rng.randf() * TAU
@@ -391,11 +401,16 @@ func _checar_marcas(alvos: Array) -> void:
 		if str(m["tipo"]) == "laco":
 			# v0.9.1: acende em QUALQUER parte da circunferência do laço (não
 			# só no nó). Se o laço fechou com a criatura já andando nele, a
-			# onda sai na hora.
+			# onda sai na hora. O COOLDOWN (v0.9.2) segura a marca: ela fica
+			# pendente e acende quando a recarga termina.
+			if float(_recargas.get("onda", 0.0)) > 0.0:
+				continue
 			if Formas.distancia_polilinha(pos, m["anel"]) <= raio:
 				_disparar(m, alvos)
 			continue
 		# bico: acende na BASE (o ponto antes do beco); o beco já não está na rota
+		if float(_recargas.get("tiro", 0.0)) > 0.0:
+			continue
 		if pos.distance_to(p) <= raio:
 			_disparar(m, alvos)
 
@@ -411,6 +426,7 @@ func _disparar(m: Dictionary, alvos: Array) -> void:
 				"velocidade": float(_combate.get("onda_velocidade", 140.0)),
 				"atingidos": [],
 			})
+			_recargas["onda"] = float(_combate.get("onda_recarga_s", 1.0))
 			eventos.append("laco:onda")
 		"bico":
 			olhar = Vector2(m["dir"])
@@ -422,6 +438,7 @@ func _disparar(m: Dictionary, alvos: Array) -> void:
 				"alcance": float(_combate.get("tiro_alcance", 280.0)),
 				"velocidade": float(_combate.get("tiro_velocidade", 420.0)),
 			})
+			_recargas["tiro"] = float(_combate.get("tiro_recarga_s", 1.0))
 			eventos.append("bico:tiro")
 		"batida":
 			var id := str(m["alvo_id"])
@@ -432,8 +449,25 @@ func _disparar(m: Dictionary, alvos: Array) -> void:
 				return
 			Alvos.empurrar(alvos, id, Vector2(m["dir"]), float(_combate.get("batida_empurrao", 26.0)))
 			_cmd_golpe("batida", Vector2(m["dir"]))
+			# EMBALO LONGO do empurrão: passa mais rápido pelo alvo e desacelera
+			_iniciar_embalo(float(_embalo.get("longo_s", 0.6)), float(_embalo.get("longo_fator", 2.0)))
 			eventos.append("batida:" + id)
 			eventos.append("acerto:" + id)
+
+
+## EMBALO (v0.9.2): um "pico" de velocidade que sobe e desce suave
+## (`sin(π·u)`). Curto na marcação do alvo final; longo no empurrão.
+func _iniciar_embalo(duracao: float, fator: float) -> void:
+	_turbo_dur = maxf(duracao, 0.05)
+	_turbo_t = _turbo_dur
+	_turbo_fator = maxf(fator, 1.0)
+
+
+func _fator_embalo() -> float:
+	if _turbo_t <= 0.0 or _turbo_dur <= 0.0:
+		return 1.0
+	var u := clampf(1.0 - _turbo_t / _turbo_dur, 0.0, 1.0)
+	return 1.0 + (_turbo_fator - 1.0) * sin(PI * u)
 
 
 # ---------------------------------------------------------------- efeitos
@@ -517,6 +551,7 @@ func _marcar_alvo_no_fim(alvos: Array, fim: Vector2) -> String:
 		return "ok: alvo final"
 	mira_final_id = str(melhor["id"])
 	mira_final_pos = Vector2(melhor["pos"])
+	_embalo_final_feito = false
 	eventos.append("mira_final:" + mira_final_id)
 	return "ok: alvo final"
 
@@ -671,6 +706,7 @@ func passo(dt: float, mundo: RefCounted, alvos: Array = []) -> void:
 	_atualizar_ataque(dt)
 	_atualizar_habilidade(dt)
 	_atualizar_efeitos(dt, alvos)
+	_turbo_t = maxf(_turbo_t - dt, 0.0)
 	if escavando:
 		_atualizar_escavar(dt, mundo)
 		pos = mundo.centro(_escavar_celula)
@@ -701,13 +737,20 @@ func _avancar_rota(dt: float, mundo: RefCounted, alvos: Array) -> Vector2:
 	_rota_i = int(proj["i"])
 	if rota_t >= total_rota - float(rota_cfg.get("parada_px", 4.0)):
 		return _terminar_rota(alvos)
+	# EMBALO CURTO da marcação: ao chegar perto do alvo final, acelera para o
+	# golpe (logo antes de bater), uma vez por marca.
+	if mira_final_id != "" and not _embalo_final_feito:
+		var alvo_f := Alvos.pos_de(alvos, mira_final_id)
+		if alvo_f != Vector2.ZERO and pos.distance_to(alvo_f) <= float(_embalo.get("gatilho_px", 70.0)):
+			_iniciar_embalo(float(_embalo.get("curto_s", 0.25)), float(_embalo.get("curto_fator", 1.7)))
+			_embalo_final_feito = true
 	# FREIO: perde velocidade perto do fim
 	var restante := total_rota - rota_t
 	var freio_px := maxf(float(rota_cfg.get("freio_px", 44.0)), 1.0)
 	var f := clampf(restante / freio_px, 0.0, 1.0)
 	f = f * f * (3.0 - 2.0 * f)
 	f = maxf(f, float(rota_cfg.get("freio_min", 0.12)))
-	var passo := velocidade * f * dt
+	var passo := velocidade * f * _fator_embalo() * dt
 	# ALVO: um ponto À FRENTE na estrada + o desvio orgânico lateral
 	var olhar_px := maxf(float(rota_cfg.get("olhar_px", 22.0)), 1.0)
 	var s_alvo := minf(rota_t + olhar_px, total_rota)

@@ -563,3 +563,96 @@ func test_freio_no_fim_do_caminho() -> void:
 		t += 1.0 / 30.0
 	checar(meio > 70.0, "andou no meio (%.0f px/s)" % meio)
 	checar(fim < 35.0, "freou no fim (%.0f px/s)" % fim)
+
+
+# ---------------------------------------------------------------- v0.9.2: recarga e embalo
+
+## Os ataques especiais têm 1 s de RECARGA: uma segunda marca não dispara
+## durante o cooldown (fica pendente e acende quando a recarga termina).
+func test_recarga_de_um_segundo_nos_especiais() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([
+		Vector2(130, 48), Vector2(130, 120), Vector2(60, 120), Vector2(60, 30)])}, m, []).begins_with("ok"), "rota com laço")
+	var evs := _rodar(c, m, 0.1)
+	checar("laco:onda" in evs, "1ª onda saiu")
+	checar(float(c._recargas.get("onda", 0.0)) > 0.7, "entrou em recarga (%.2f)" % float(c._recargas.get("onda", 0.0)))
+	# uma marca de laço em cima dela NÃO acende durante o cooldown
+	var anel := PackedVector2Array([
+		c.pos + Vector2(0, -12), c.pos + Vector2(12, 0), c.pos + Vector2(0, 12),
+		c.pos + Vector2(-12, 0), c.pos + Vector2(0, -12)])
+	c.marcas.append({"tipo": "laco", "ponto": c.pos, "centro": c.pos, "raio": 30.0,
+		"anel": anel, "dir": Vector2.RIGHT, "chave": "teste:laco"})
+	var evs2 := _rodar(c, m, 0.15)
+	checar("laco:onda" not in evs2, "não disparou em recarga")
+	checar(not c._tem_marca("teste:laco") == false, "a marca ficou pendente")
+	# libera a recarga e a marca acende
+	c._recargas["onda"] = 0.0
+	c.pos = c.pos  # continua onde está
+	var evs3 := _rodar(c, m, 0.05)
+	checar("laco:onda" in evs3 or c._tem_marca("teste:laco") == false, "acendeu ao liberar (%s)" % [evs3])
+
+
+## O EMPURRÃO embala: passa mais rápido que a caminhada normal pelo alvo.
+func test_empurrao_embala_e_desacelera() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	var adv := _adv(Vector2(150, 48))
+	var alvos := [_alvo_adv("adversario:0", adv)]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(280, 48)])}, m, alvos)
+	var bateu := false
+	var vmax := 0.0
+	var t := 0.0
+	while t < 3.0 and not bateu:
+		var antes: Vector2 = c.pos
+		adv.passo(1.0 / 30.0, m)
+		alvos[0]["pos"] = adv.pos
+		c.passo(1.0 / 30.0, m, alvos)
+		for e in c.drenar_eventos():
+			if e.begins_with("batida:"):
+				bateu = true
+		if bateu:
+			break
+		t += 1.0 / 30.0
+	checar(bateu, "deu a batida")
+	checar(c._turbo_t > 0.0, "entrou no embalo")
+	# mede a velocidade logo depois da batida
+	var pos0: Vector2 = c.pos
+	_rodar(c, m, 0.15, alvos)
+	var v: float = c.pos.distance_to(pos0) / 0.15
+	checar(v > 135.0, "passou mais rápido que a caminhada (%.0f px/s)" % v)
+	# e depois volta ao normal
+	_rodar(c, m, 1.2, alvos)
+	checar(c._turbo_t <= 0.0, "o embalo acaba")
+
+
+## A MARCAÇÃO acelera CURTO perto do alvo final (embalo menor que o empurrão).
+func test_marcacao_embala_curto() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	# o alvo fica 30 px ao lado do fim (sem travessia, só a marcação)
+	var adv := _adv(Vector2(230, 200))
+	var alvos := [_alvo_adv("adversario:0", adv)]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(200, 200)])}, m, alvos)
+	c.finalizar_rota(alvos)
+	var vmax := 0.0
+	var turbo := false
+	var t := 0.0
+	while t < 4.0:
+		var antes: Vector2 = c.pos
+		var restante: float = c.pos.distance_to(Vector2(230, 200))
+		adv.passo(1.0 / 30.0, m)
+		alvos[0]["pos"] = adv.pos
+		c.passo(1.0 / 30.0, m, alvos)
+		c.drenar_eventos()
+		if restante < 80.0:
+			vmax = maxf(vmax, c.pos.distance_to(antes) * 30.0)
+		if c._turbo_t > 0.0:
+			turbo = true
+			checar(c._turbo_dur <= 0.3, "embalo CURTO (%.2f s)" % c._turbo_dur)
+		t += 1.0 / 30.0
+	checar(turbo, "embalou para a marcação")
+	checar(vmax > 130.0, "acelerou perto do alvo (%.0f px/s)" % vmax)

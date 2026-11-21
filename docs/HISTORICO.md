@@ -3,6 +3,43 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.9.2 — a linha do caminho vira traço real pontilhado; cooldown dos especiais e EMBALO dos golpes (2026-11-21)
+
+- **Pedido do operador (ajustes):** (1) a linha do caminho estava **quebrada**
+  (retas entre os pontos da rota simplificada): desenhá-la **contínua**, como o
+  desenho real do dedo, com mais pontos — e **pontilhada**, **mais escura e
+  transparente**, na posição; (2) **cooldown de 1 s** para reusar os ataques
+  especiais (área do laço e tiro do bico); (3) os golpes físicos devem
+  **acelerar o movimento**: curto na **marcação** (golpe final) e mais longo no
+  **empurrão** (embala antes, passa mais rápido que a caminhada pelo alvo e
+  desacelera depois).
+- **`jogo/trilha.gd` (reescrito):** a linha agora recebe `corpo.traco` (o traço
+  CRU do dedo, denso) e desenha **pontos a cada 9 px de arco** — a curva de
+  verdade, sem emendar retas. Estilo: `PASSO_PX` 9 · raio 2,1 · cor
+  `#0a171f` a 55% (escura e transparente) · no chão (`z_index` 1) · pontinho
+  maior no destino. `jogo/main.gd` mostra o traço enquanto desenha/anda na
+  rota, e apaga ao terminar.
+- **`sim/corpo.gd` — COOLDOWN (1 s):** os especiais usam `_recargas` ("onda" e
+  "tiro"): ao disparar, `onda_recarga_s`/`tiro_recarga_s` (1,0 s) entram; a
+  marca do especial **não é consumida** durante a recarga — fica **pendente** e
+  acende quando ela termina (se a criatura ainda estiver no anel/perto da base).
+- **`sim/corpo.gd` — EMBALO:** `_iniciar_embalo(duração, fator)` + `_fator_embalo()`
+  (pico `sin(π·u)`), aplicado à velocidade do passo da rota. O **empurrão**
+  (batida de travessia) chama o **longo** (0,6 s · 2,0×) — passa rápido pelo
+  alvo e desacelera; a **marcação** (alvo final) chama o **curto** (0,25 s ·
+  1,7×) uma vez, quando a criatura chega a `gatilho_px` (70 px) do alvo. A
+  recarga do embalo final é armada de novo a cada nova marca/rota.
+- **Dados:** `combate` ganha `onda_recarga_s` e `tiro_recarga_s` (1,0 s);
+  bloco novo `embalo` (0,25 s/1,7× · 0,6 s/2,0× · 70 px).
+- **Verificação:** **91 testes, 0 falhas**, 38 scripts (parser limpo); três
+  novos: a recarga de 1 s (marca pendente), o empurrão embalando (passa > 135
+  px/s) e a marcação com embalo CURTO (≤ 0,3 s). **Oráculo de quadros**
+  (`tools/quadros.sh`, parcial: 33 quadros em ~2,5 min — ~4,5 s/quadro neste
+  celular com a linha pontilhada; abri o quadro 30): a linha aparece
+  **PONTILHADA, escura e translúcida**, acompanhando o traço do dedo (sem as
+  retas entre pontos de referência da versão anterior). Detalhe em
+  [`gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md).
+
 ## v0.9.1 — o laço acende no anel, o bico em "T" não é andado e o caminho vira ESTRADA (2026-11-21)
 
 - **Pedido do operador (ajustes):** (1) o efeito do laço deve acender quando a

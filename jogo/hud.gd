@@ -60,7 +60,7 @@ func _process(delta: float) -> void:
 
 func _legenda() -> String:
 	var m: Dictionary = cfg.get("mapa", {})
-	var linhas := PackedStringArray(["v0.9.0 · GESTOS"])
+	var linhas := PackedStringArray(["GESTOS"])
 	linhas.append("1 dedo arrastando → caminho")
 	linhas.append("laço no caminho → ataque em área")
 	linhas.append("bico (ida e volta) → tiro")

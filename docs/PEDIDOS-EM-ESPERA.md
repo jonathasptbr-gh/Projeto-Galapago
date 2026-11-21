@@ -183,3 +183,7 @@
   é reconhecido, o **beco não é andado** (sai da rota) e a criatura **para antes
   de disparar**; o caminho virou **ESTRADA** (o animal anda dentro da largura,
   com desvio orgânico) e ganhou **zona de freio** no fim.
+- **Ajustes (v0.9.2):** a **linha do caminho** virou o **traço real do dedo**
+  (pontos densos, contínua) em estilo **pontilhado, escuro e transparente**;
+  os especiais (área/tiro) têm **1 s de recarga** (a marca fica pendente); e os
+  golpes físicos **embalam** — curto na marcação, longo no empurrão.

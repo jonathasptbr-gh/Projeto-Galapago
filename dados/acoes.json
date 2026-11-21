@@ -1,5 +1,5 @@
 {
- "_leia": "Ações da criatura (v0.9.1). fases = [antecipação, ativa, recuperação] em segundos; alcance/raio em px de mundo (célula = 32). ATAQUE é o golpe físico (usado no golpe final do caminho); BATIDA é a pancada de passagem por cima de um alvo. PULAR e as HABILIDADES acontecem POR CIMA da rota e NÃO a cancelam. As formas do caminho (`formas`) dizem o que é laço e o que é bico; `combate`, o que cada ataque faz (onda, tiro, empurrão). ROTA: pontos de referência esparsos (`simplificar_px`), desconto do vai-e-volta inicial, desvio local de OBJETOS; v0.9.1: ESTRADA larga (o animal anda dentro da faixa, com desvio orgânico), alvo À FRENTE e ZONA DE FREIO no fim. Lido por sim/formas.gd e sim/corpo.gd.",
+ "_leia": "Ações da criatura (v0.9.1). fases = [antecipação, ativa, recuperação] em segundos; alcance/raio em px de mundo (célula = 32). ATAQUE é o golpe físico (usado no golpe final do caminho); BATIDA é a pancada de passagem por cima de um alvo. PULAR e as HABILIDADES acontecem POR CIMA da rota e NÃO a cancelam. As formas do caminho (`formas`) dizem o que é laço e o que é bico; `combate`, o que cada ataque faz (onda, tiro, empurrão). ROTA: pontos de referência esparsos (`simplificar_px`), desconto do vai-e-volta inicial, desvio local de OBJETOS; v0.9.1: ESTRADA larga (o animal anda dentro da faixa, com desvio orgânico), alvo À FRENTE e ZONA DE FREIO no fim. Lido por sim/formas.gd e sim/corpo.gd. v0.9.2: os especiais têm RECARGA (`combate.onda_recarga_s`/`tiro_recarga_s` 1 s) e os golpes físicos EMBALAM (`embalo`).",
  "mover": {"velocidade": 110},
  "olhar": {},
  "travar": {},
@@ -23,13 +23,22 @@
   "bico_fim_px": 40,
   "bico_base_angulo": 45
  },
+ "embalo": {
+  "curto_s": 0.25,
+  "curto_fator": 1.7,
+  "longo_s": 0.6,
+  "longo_fator": 2.0,
+  "gatilho_px": 70
+ },
  "combate": {
   "onda_velocidade": 100,
   "onda_empurrao": 30,
+  "onda_recarga_s": 1.0,
   "tiro_velocidade": 420,
   "tiro_alcance": 280,
   "tiro_raio": 9,
   "tiro_empurrao": 24,
+  "tiro_recarga_s": 1.0,
   "batida_empurrao": 26,
   "batida_cruza_px": 8,
   "batida_tol_px": 34,

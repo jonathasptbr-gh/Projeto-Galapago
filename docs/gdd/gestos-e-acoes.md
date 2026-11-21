@@ -1,7 +1,7 @@
 # Gestos e ações — como a criatura se move e age
 
 > Regra toda em `sim/` (testada) e nas tabelas `dados/gestos.json` +
-> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.9.1.**
+> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.9.2.**
 
 ## O fluxo
 
@@ -96,6 +96,19 @@ contorna com um leque de pequenos desvios; **terreno** (água, rocha, altura) é
 barreira: para e espera, mas a rota **não é apagada** — um pulo passa por cima
 e retoma.
 
+### A LINHA do caminho (v0.9.2)
+
+A linha desenhada mostra o **traço real do dedo** — os pontos **densos** do
+desenho, não a rota simplificada (que traçava retas entre os pontos de
+referência e ficava quebrada):
+
+- **contínua**: os pontinhos seguem a curva de verdade (o espaçamento é por
+  ARCO, então não há "emenda" de retas);
+- **pontilhada**, **escura e transparente** (azul-quase-preto a 55%) e **no
+  chão** (`z_index` 1, embaixo dos objetos e da criatura);
+- a **rota** (a estrada) continua sendo a referência do movimento — a linha é o
+  desenho, o animal anda dentro da faixa.
+
 ## As formas (o ataque nasce do desenho)
 
 Tudo em `sim/formas.gd` (puro). O traço CRU é lido antes de virar rota:
@@ -181,6 +194,20 @@ depois **ronda** ao redor. Cada passo é cortado pelo mundo.
 | `combate` | onda/tiro/batida/alvo final (tabela abaixo) |
 | `rota` | `simplificar_px` 10 · `desconto_raio_px` 44 · `desconto_janela_px` 140 · `chegada_px` 12 · `desvio_angulos` · `desvios_max` 80 · **estrada/freio** abaixo |
 
+### `embalo` — a aceleração dos golpes físicos (v0.9.2)
+
+| chave | valor | o quê |
+|---|---|---|
+| `curto_s` / `curto_fator` | 0,25 s / 1,7× | EMBALO CURTO da **marcação** (golpe final) |
+| `longo_s` / `longo_fator` | 0,6 s / 2,0× | EMBALO LONGO do **empurrão** (travessia) |
+| `gatilho_px` | 70 | a que distância do alvo final a marcação embala |
+
+O embalo é um **pico de velocidade** que sobe e desce suave (`sin(π·u)`): o
+empurrão embala antes e **passa mais rápido que a caminhada normal** pelo alvo,
+desacelerando depois da batida; a marcação dá um puxão curto na direção do alvo
+final. O cooldown de 1 s segura a marca do especial (ela fica **pendente** e
+acende quando a recarga termina).
+
 ### `rota` — estrada e freio (v0.9.1)
 
 | chave | valor | o quê |
@@ -219,6 +246,7 @@ depois **ronda** ao redor. Cada passo é cortado pelo mundo.
 | `batida_cruza_px` / `batida_tol_px` | 8 / 34 px | quando a linha "passa por cima" e a tolerância na chegada |
 | `batida_empurrao` | 26 px | empurrão da batida |
 | `bico_pausa_s` | 0,25 s | a pausa antes de disparar o bico |
+| `onda_recarga_s` / `tiro_recarga_s` | 1,0 s | **cooldown** dos especiais (área/tiro) |
 | `mira_final_raio` / `mira_final_tol_px` | 34 / 48 px | onde o fim do caminho marca e quanto o inimigo pode andar |
 | `mira_final_empurrao` | 44 px | empurrão do golpe final |
 
@@ -253,3 +281,8 @@ depois **ronda** ao redor. Cada passo é cortado pelo mundo.
   volta (pode ficar alguns px dentro da boca do beco).
 - **Estrada**: a largura, a amplitude/onda e o freio são pontos de partida —
   ajustar no aparelho com o operador.
+- **Linha**: mostra o traço CRU do dedo (inclusive o beco e o tremor inicial);
+  se o operador preferir a linha do **caminho andado** (o rastro do animal), é
+  outra decisão.
+- **Embalo/cooldown**: os valores (0,25 s/1,7× e 0,6 s/2,0× · 1 s) são pontos
+  de partida.
