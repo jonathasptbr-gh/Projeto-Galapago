@@ -20,7 +20,8 @@ extends RefCounted
 ##   quando a criatura está em qualquer parte da CIRCUNFERÊNCIA (o anel) —
 ##   laço que fecha com ela em cima já dispara;
 ## - **bico** (o "T"/"V" que sai da estrada e volta) → o BECO é CORTADO da rota:
-##   a criatura para na base e atira na direção da ponta;
+##   o animal não entra no beco (v0.10: o TIRO não sai mais daqui — ele é o
+##   TOQUE DUPLO, mirado no alvo marcado);
 ## - **travessia** de um alvo → BATIDA/empurrão ao passar por cima;
 ## - **fim do caminho em cima do adversário** → ele é marcado como alvo do
 ##   GOLPE FINAL (a marca vai NELE, não no lugar final). Se ele andar demais
@@ -82,8 +83,9 @@ var _recargas := {}
 var traco := PackedVector2Array()
 var marcas: Array = []           # {tipo, ponto, chave, dir, ...} a acender
 var efeitos: Array = []          # ondas e tiros vivos (o jogo desenha)
-var mira_final_id := ""          # adversário marcado para o golpe final
-var mira_final_pos := Vector2.ZERO  # onde ele estava quando foi marcado
+var mira_final_id := ""          # adversário marcado pelo fim do caminho
+var _perseguindo := false        # perseguição final do alvo marcado
+var _perseguir_t := 0.0
 var habilidade := ""             # habilidade de si mesmo em curso ("" = nenhuma)
 var habilidade_t := 0.0
 var habilidade_dur := 0.0
@@ -94,7 +96,7 @@ var _bicos: Array = []              # bicos lidos do traço (i/j: trecho a corta
 var _arcos_rota := PackedFloat32Array()  # arco acumulado em cada ponto da rota
 var _fase1 := 0.0                   # fases do desvio orgânico (semente da rota)
 var _fase2 := 0.0
-var _pausa_t := 0.0                 # pausa curta ao disparar o bico
+var _pausa_t := 0.0                 # pausa curta ao disparar o tiro
 # EMBALO dos golpes físicos (v0.9.2): acelera curto na marcação e longo no
 # empurrão, passando mais rápido pelo alvo e desacelerando depois
 var _turbo_t := 0.0
@@ -192,6 +194,8 @@ func comandar(cmd: Dictionary, mundo: RefCounted, alvos: Array = []) -> String:
 			return _cmd_pular(cmd)
 		"habilidade":
 			return _cmd_habilidade(mundo)
+		"tiro":
+			return _cmd_tiro(alvos)
 	if not defs.has(a):
 		return "recusado: ação desconhecida (%s)" % a
 	return "recusado: nada a fazer"
@@ -315,6 +319,7 @@ func _guardar_rota(nova: PackedVector2Array, reiniciar: bool) -> void:
 		marcas = []
 		_disparadas = {}
 		mira_final_id = ""
+		_perseguindo = false
 		_embalo_final_feito = false
 		_turbo_t = 0.0
 		# a "estrada" ganha fases próprias (mesma semente = mesmo passeio)
@@ -332,6 +337,8 @@ func _guardar_rota(nova: PackedVector2Array, reiniciar: bool) -> void:
 func _montar_marcas(achadas: Array, alvos: Array) -> void:
 	for m in achadas:
 		var k: String = str(m["chave"])
+		if str(m["tipo"]) == "bico":
+			continue  # o bico não atira mais (v0.10): só o beco sai da rota
 		if _disparadas.has(k) or _tem_marca(k):
 			continue
 		marcas.append(m)
@@ -340,6 +347,9 @@ func _montar_marcas(achadas: Array, alvos: Array) -> void:
 		if str(m["tipo"]) == "batida":
 			marcas.erase(m)
 	_marcas_de_travessia(alvos)
+	# a MARCA do alvo nasce durante o caminho: quando a PONTA do traço o alcança
+	if rota.size() >= 2:
+		_marcar_alvo_no_fim(alvos, rota[rota.size() - 1])
 
 
 func _tem_marca(chave: String) -> bool:
@@ -399,18 +409,15 @@ func _checar_marcas(alvos: Array) -> void:
 	for m in marcas.duplicate():
 		var p: Vector2 = m["ponto"]
 		if str(m["tipo"]) == "laco":
-			# v0.9.1: acende em QUALQUER parte da circunferência do laço (não
-			# só no nó). Se o laço fechou com a criatura já andando nele, a
-			# onda sai na hora. O COOLDOWN (v0.9.2) segura a marca: ela fica
-			# pendente e acende quando a recarga termina.
+			# v0.10: a trava é a DISTÂNCIA da criatura ao CENTRO da área — não
+			# precisa chegar no anel: laço feito perto (até `area_gatilho_px`,
+			# ~7× o corpo) já acende. O cooldown segura a marca (pendente).
 			if float(_recargas.get("onda", 0.0)) > 0.0:
 				continue
-			if Formas.distancia_polilinha(pos, m["anel"]) <= raio:
+			if pos.distance_to(Vector2(m["centro"])) <= float(_combate.get("area_gatilho_px", 224.0)):
 				_disparar(m, alvos)
 			continue
-		# bico: acende na BASE (o ponto antes do beco); o beco já não está na rota
-		if float(_recargas.get("tiro", 0.0)) > 0.0:
-			continue
+		# batida: acende no ponto da travessia
 		if pos.distance_to(p) <= raio:
 			_disparar(m, alvos)
 
@@ -428,18 +435,6 @@ func _disparar(m: Dictionary, alvos: Array) -> void:
 			})
 			_recargas["onda"] = float(_combate.get("onda_recarga_s", 1.0))
 			eventos.append("laco:onda")
-		"bico":
-			olhar = Vector2(m["dir"])
-			# para antes de entrar no beco e dispara (v0.9.1)
-			_pausa_t = maxf(_pausa_t, float(_combate.get("bico_pausa_s", 0.25)))
-			efeitos.append({
-				"tipo": "tiro", "pos": Vector2(m["base"]), "dir": Vector2(m["dir"]),
-				"raio": float(_combate.get("tiro_raio", 9.0)), "andado": 0.0,
-				"alcance": float(_combate.get("tiro_alcance", 280.0)),
-				"velocidade": float(_combate.get("tiro_velocidade", 420.0)),
-			})
-			_recargas["tiro"] = float(_combate.get("tiro_recarga_s", 1.0))
-			eventos.append("bico:tiro")
 		"batida":
 			var id := str(m["alvo_id"])
 			var a := Alvos.por_id(alvos, id)
@@ -533,8 +528,10 @@ func finalizar_rota(alvos: Array) -> String:
 	return _marcar_alvo_no_fim(alvos, rota[rota.size() - 1])
 
 
-## O FIM do traço caiu em cima de um adversário? Ele vira alvo do golpe final.
-## A marca vai NELE (`mira_final_pos` é onde ele estava na hora).
+## A MARCA do alvo (v0.10): o FIM do caminho alcançou um adversário? Ele fica
+## marcado — a marca ANDA com ele e vale para o TIRO (toque duplo) e para o
+## GOLPE FINAL. Ela está ligada ao CAMINHO: sai no golpe físico (ou quando o
+## caminho é trocado). Chamada também a cada quadro do desenho (marca viva).
 func _marcar_alvo_no_fim(alvos: Array, fim: Vector2) -> String:
 	var melhor := {}
 	var melhor_d := float(_combate.get("mira_final_raio", 34.0))
@@ -548,37 +545,34 @@ func _marcar_alvo_no_fim(alvos: Array, fim: Vector2) -> String:
 	if melhor.is_empty():
 		return ""
 	if mira_final_id == str(melhor["id"]):
-		return "ok: alvo final"
+		return "ok: alvo marcado"
 	mira_final_id = str(melhor["id"])
-	mira_final_pos = Vector2(melhor["pos"])
 	_embalo_final_feito = false
 	eventos.append("mira_final:" + mira_final_id)
-	return "ok: alvo final"
+	return "ok: alvo marcado"
 
 
-## O golpe físico que FECHA o caminho: sai no inimigo marcado se ele ainda
-## estiver perto de onde foi marcado e ao alcance; senão, a automira se perde
-## (o golpe sai no vazio, na direção em que ela olha).
+## O golpe físico que FECHA o caminho: perto do alvo marcado, bate e empurra,
+## e a MARCA SAI (ela está ligada ao caminho). O animal só bate se chegou
+## perto — quem persegue é `_perseguir`.
 func _golpe_final(alvos: Array) -> void:
 	var id := mira_final_id
 	mira_final_id = ""
+	_perseguindo = false
 	if id == "":
 		return
 	var a := Alvos.por_id(alvos, id)
-	var alcance := float(defs.get("ataque", {}).get("alcance", 40.0)) \
-		+ float(a.get("raio", 15.0)) + 12.0
-	var ok := not a.is_empty() \
-		and Vector2(a["pos"]).distance_to(mira_final_pos) <= float(_combate.get("mira_final_tol_px", 48.0)) \
-		and pos.distance_to(Vector2(a["pos"])) <= alcance
-	if ok:
-		var dir: Vector2 = (Vector2(a["pos"]) - pos).normalized()
-		_cmd_golpe("ataque", dir)
-		Alvos.empurrar(alvos, id, dir, float(_combate.get("mira_final_empurrao", 44.0)))
-		eventos.append("acerto:" + id)
-		eventos.append("golpe_final:" + id)
-	else:
-		_cmd_golpe("ataque", olhar)
+	if a.is_empty():
 		eventos.append("mira_final:perde")
+		return
+	var dir: Vector2 = Vector2(a["pos"]) - pos
+	if dir.length() < 0.5:
+		dir = olhar
+	dir = dir.normalized()
+	_cmd_golpe("ataque", dir)
+	Alvos.empurrar(alvos, id, dir, float(_combate.get("mira_final_empurrao", 44.0)))
+	eventos.append("acerto:" + id)
+	eventos.append("golpe_final:" + id)
 
 
 func _cmd_travar(cmd: Dictionary, alvos: Array) -> String:
@@ -655,6 +649,40 @@ func _cmd_pular(cmd: Dictionary) -> String:
 	return "ok: pulando"
 
 
+## TIRO (v0.10): o TOQUE DUPLO dispara no ALVO MARCADO (a marca vem do fim do
+## caminho). O animal PARA para atirar (`tiro_pausa_s`) e depois segue a rota;
+## a marca NÃO sai no disparo. Tem recarga (`tiro_recarga_s`, 1 s).
+func _cmd_tiro(alvos: Array) -> String:
+	if mira_final_id == "":
+		return "recusado: sem alvo marcado"
+	if float(_recargas.get("tiro", 0.0)) > 0.0:
+		return "recusado: recarga"
+	var a := Alvos.por_id(alvos, mira_final_id)
+	if a.is_empty():
+		mira_final_id = ""
+		return "recusado: o alvo sumiu"
+	var dir: Vector2 = (Vector2(a["pos"]) - pos)
+	if dir.length() < 0.5:
+		dir = olhar
+	dir = dir.normalized()
+	olhar = dir
+	_atirar(dir)
+	_recargas["tiro"] = float(_combate.get("tiro_recarga_s", 1.0))
+	_pausa_t = maxf(_pausa_t, float(_combate.get("tiro_pausa_s", 0.25)))
+	eventos.append("tiro:disparo")
+	return "ok: tiro"
+
+
+## Cria o projétil. Quem chama decide a direção (o tiro vai no alvo marcado).
+func _atirar(dir: Vector2) -> void:
+	efeitos.append({
+		"tipo": "tiro", "pos": pos, "dir": dir,
+		"raio": float(_combate.get("tiro_raio", 9.0)), "andado": 0.0,
+		"alcance": float(_combate.get("tiro_alcance", 280.0)),
+		"velocidade": float(_combate.get("tiro_velocidade", 420.0)),
+	})
+
+
 ## HABILIDADE EM SI MESMO (v0.9): o que era o gesto de escavar virou a
 ## habilidade do segurar parado. Ela dura um tempo e acontece sem sair do lugar.
 ## A primeira é `cavar` (a que existia); outras entram em `dados/acoes.json`
@@ -718,6 +746,8 @@ func passo(dt: float, mundo: RefCounted, alvos: Array = []) -> void:
 		return
 	if em_rota():
 		pos = _avancar_rota(dt, mundo, alvos)
+	elif _perseguindo:
+		_perseguir(dt, mundo, alvos)
 	else:
 		_autonomia(dt, mundo, alvos)
 	_checar_marcas(alvos)
@@ -750,6 +780,10 @@ func _avancar_rota(dt: float, mundo: RefCounted, alvos: Array) -> Vector2:
 	var f := clampf(restante / freio_px, 0.0, 1.0)
 	f = f * f * (3.0 - 2.0 * f)
 	f = maxf(f, float(rota_cfg.get("freio_min", 0.12)))
+	# v0.10: com ALVO MARCADO não há zona de freio no fim — o animal segue em
+	# velocidade cheia para perseguir/bater no alvo.
+	if mira_final_id != "":
+		f = 1.0
 	var passo := velocidade * f * _fator_embalo() * dt
 	# ALVO: um ponto À FRENTE na estrada + o desvio orgânico lateral
 	var olhar_px := maxf(float(rota_cfg.get("olhar_px", 22.0)), 1.0)
@@ -930,11 +964,12 @@ func _primeiro_bloqueio(base: Vector2, ideal: Vector2, mundo: RefCounted) -> Dic
 ## zona de freio já a desacelerou — não há salto para o último ponto).
 func _terminar_rota(alvos: Array) -> Vector2:
 	var fim: Vector2 = rota[rota.size() - 1] if not rota.is_empty() else pos
-	# a rota pode acabar DURANTE o desenho (traço ao vivo): o alvo final é
-	# marcado aqui, com o adversário onde ele está agora.
+	# a rota pode acabar DURANTE o desenho (traço ao vivo): a marca é feita
+	# aqui também, com o adversário onde ele está agora.
 	if mira_final_id == "" and not rota.is_empty():
 		_marcar_alvo_no_fim(alvos, fim)
-	_golpe_final(alvos)
+	if mira_final_id != "":
+		_iniciar_final(alvos)
 	rota = PackedVector2Array()
 	_arcos_rota = PackedFloat32Array()
 	_rota_i = 0
@@ -949,6 +984,57 @@ func _terminar_rota(alvos: Array) -> Vector2:
 	_auto_espera = 0.0
 	eventos.append("rota:fim")
 	return pos
+
+
+## O alcance de um golpe físico no alvo `a` (a criatura precisa CHEGAR perto).
+func _alcance_final(a: Dictionary) -> float:
+	return float(defs.get("ataque", {}).get("alcance", 40.0)) + float(a.get("raio", 15.0)) + 10.0
+
+
+## O caminho acabou com alvo marcado: se já está no alcance, bate; senão, VAI
+## ATRÁS dele (perseguição final) com o embalo curto.
+func _iniciar_final(alvos: Array) -> void:
+	var a := Alvos.por_id(alvos, mira_final_id)
+	if a.is_empty():
+		mira_final_id = ""
+		eventos.append("mira_final:perde")
+		return
+	if pos.distance_to(Vector2(a["pos"])) <= _alcance_final(a):
+		_golpe_final(alvos)
+		return
+	_perseguindo = true
+	_perseguir_t = maxf(float(_embalo.get("perseguir_s", 3.0)), 0.3)
+	_iniciar_embalo(float(_embalo.get("curto_s", 0.25)), float(_embalo.get("curto_fator", 1.7)))
+
+
+## PERSEGUIÇÃO FINAL (v0.10): o animal VAI ATRÁS do alvo marcado a pé (em vez de
+## atacar de longe), com o embalo curto. Ao chegar no alcance, o golpe físico;
+## se for barrado/tempo esgotar, a marca se perde.
+func _perseguir(dt: float, mundo: RefCounted, alvos: Array) -> void:
+	_perseguir_t -= dt
+	var a := Alvos.por_id(alvos, mira_final_id)
+	if a.is_empty() or _perseguir_t <= 0.0:
+		_perseguindo = false
+		mira_final_id = ""
+		eventos.append("mira_final:perde")
+		return
+	var alvo: Vector2 = Vector2(a["pos"])
+	if pos.distance_to(alvo) <= _alcance_final(a):
+		_golpe_final(alvos)
+		return
+	var dir := alvo - pos
+	if dir.length() < 0.01:
+		_golpe_final(alvos)
+		return
+	dir = dir.normalized()
+	var passo := velocidade * _fator_embalo() * dt
+	var novo := _passo_com_desvio(pos, dir, passo, alvo, mundo)
+	if novo.distance_to(pos) < 0.001:
+		_barrado = true
+		return
+	_barrado = false
+	olhar = (novo - pos).normalized()
+	pos = novo
 
 
 func _autonomia(dt: float, mundo: RefCounted, alvos: Array) -> void:
@@ -1075,6 +1161,7 @@ func _atualizar_escavar(dt: float, mundo: RefCounted) -> void:
 		_desvios = 0
 		marcas = []
 		mira_final_id = ""
+		_perseguindo = false
 		_bicos = []
 		_arcos_rota = PackedFloat32Array()
 		_recargas["habilidade"] = float(defs.get("habilidade", {}).get("recarga", 0.4))

@@ -6,7 +6,9 @@ extends RefCounted
 ## - arrastar além de `desenho_min_px` já desenha a rota AO VIVO, sem espera.
 ##   A FORMA do desenho é lida por `sim/formas.gd`: laço → ataque em área,
 ##   bico → tiro. O gesto não tem de decidir isso.
-## - soltar sem arrastar = **toque** (trava a mira); dois toques = **pulo**.
+## - soltar sem arrastar = **toque** (PULO); dois toques = **toque duplo**
+##   (TIRO no alvo marcado). Para o primeiro toque de um duplo não pular, o
+##   toque simples fica PENDENTE até a janela do duplo fechar (o `tick` solta).
 ## - parado sem arrastar por `segurar_min_ms` = **segurar**: o gesto vira uma
 ##   HABILIDADE em si mesmo (cavar), decidida no soltar.
 ##
@@ -30,8 +32,10 @@ var _t0 := 0.0
 var _inicio := Vector2.ZERO
 var _segurando := false
 var _um_dedo := true
-var _ultimo_toque_t := -1.0e9
-var _ultimo_toque_pos := Vector2.ZERO
+# o toque simples fica pendente para não pular no 1º toque de um duplo
+var _pendente_ev: Dictionary = {}
+var _pendente_t := -1.0
+var _pendente_pos := Vector2.ZERO
 
 
 func _init(limiares: Dictionary = {}) -> void:
@@ -97,15 +101,21 @@ func soltar(dedo: int, pos: Vector2, t_ms: float) -> Array:
 	return evs
 
 
-## Chamar a cada quadro com os dedos parados: é o que arma o "segurar".
+## Chamar a cada quadro com os dedos parados: solta o TOQUE pendente (depois
+## da janela do duplo) e arma o "segurar".
 func tick(t_ms: float) -> Array:
 	_agora = t_ms
+	var out: Array = []
+	# janela do duplo fechou sem um segundo toque: era um TOQUE simples (pulo)
+	if _pendente_t >= 0.0 and t_ms - _pendente_t > float(lim["toque_duplo_janela_ms"]):
+		out.append(_pendente_ev)
+		_pendente_t = -1.0
 	if _caminho == -1 or _desenhando or _segurando:
-		return []
+		return out
 	if _um_dedo and t_ms - _t0 >= float(lim["segurar_min_ms"]) \
 			and _desvio_max() <= float(lim["toque_max_px"]):
 		_segurando = true
-	return []
+	return out
 
 
 # ---------------------------------------------------------------- caminho
@@ -142,15 +152,18 @@ func _soltar_caminho(pos: Vector2, t_ms: float) -> Array:
 		return []  # dois dedos nunca viram toque
 	if _desvio_max() > float(lim["toque_max_px"]) or dur > float(lim["toque_max_ms"]):
 		return [_evento("nada", t_ms)]
-	var saida := [_evento("toque", t_ms)]
-	if t_ms - _ultimo_toque_t <= float(lim["toque_duplo_janela_ms"]) \
-			and pos.distance_to(_ultimo_toque_pos) <= float(lim["toque_duplo_dist_px"]):
-		saida.append(_evento("toque_duplo", t_ms))
-		_ultimo_toque_t = -1.0e9  # o terceiro toque não vira outro duplo
-	else:
-		_ultimo_toque_t = t_ms
-		_ultimo_toque_pos = pos
-	return saida
+	# SEGUNDO toque dentro da janela e perto do primeiro: é TOQUE DUPLO (tiro).
+	# O toque simples pendente é descartado (não pula).
+	if _pendente_t >= 0.0 and t_ms - _pendente_t <= float(lim["toque_duplo_janela_ms"]) \
+			and pos.distance_to(_pendente_pos) <= float(lim["toque_duplo_dist_px"]):
+		_pendente_t = -1.0
+		return [_evento("toque_duplo", t_ms)]
+	# primeiro toque: fica pendente; o `tick` solta como TOQUE (pulo) se a
+	# janela fechar sem o segundo.
+	_pendente_ev = _evento("toque", t_ms)
+	_pendente_t = t_ms
+	_pendente_pos = pos
+	return []
 
 
 # ---------------------------------------------------------------- interno

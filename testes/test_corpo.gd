@@ -381,46 +381,21 @@ func test_laco_vira_onda_em_area_no_centro() -> void:
 	checar(adv.pos.distance_to(Vector2(175, 119)) > 5.0, "o empurrão moveu o inimigo (%s)" % adv.pos)
 
 
-## BICO: ida e volta brusca. O tiro sai da BASE (o ponto antes do bico), na
-## direção da ponta — e acerta o alvo que estiver nessa linha.
-func test_bico_dispara_tiro_na_direcao_do_bico() -> void:
+## v0.10: o BICO não atira mais (o tiro virou TOQUE DUPLO). O espinho continua
+## sendo lido: o BECO sai da rota e não há disparo.
+func test_bico_nao_atira_mais_mas_o_beco_sai_da_rota() -> void:
 	var s := _setup(MAPA)
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
-	var adv := _adv(Vector2(200, 48))
-	var alvos := [_alvo_adv("adversario:0", adv)]
-	# bico a partir da POSIÇÃO INICIAL: 48 → 150 → 70
 	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([
-		Vector2(150, 48), Vector2(70, 48)])}, m, alvos).begins_with("ok"), "rota com bico")
-	var evs := _rodar_com(c, m, alvos, adv, 1.5)
-	checar("bico:tiro" in evs, "o bico disparou (%s)" % [evs])
-	checar("acerto:adversario:0" in evs, "o tiro acertou quem estaba na linha (%s)" % [evs])
-	checar(adv.pos.distance_to(Vector2(200, 48)) > 5.0, "e empurrou (%s)" % adv.pos)
-
-
-## O gatilho do bico é a BASE: com a main line antes, o tiro só sai quando a
-## criatura chega no ponto ANTERIOR ao bico.
-func test_bico_no_meio_dispara_na_base() -> void:
-	var s := _setup(MAPA)
-	var m: RefCounted = s[0]
-	var c: RefCounted = s[1]
-	# caminho reto até 150; o bico vai a 250 e VOLTA a 150; segue a 300
-	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([
-		Vector2(150, 48), Vector2(250, 48), Vector2(150, 48), Vector2(300, 48)])}, m, []).begins_with("ok"), "rota")
-	checar("bico:tiro" not in c.drenar_eventos(), "não disparou parada")
-	var disparou := false
-	var x_no_disparo := 0.0
-	var t := 0.0
-	while t < 1.6 and not disparou:
-		c.passo(1.0 / 30.0, m, [])
-		for e in c.drenar_eventos():
-			if e == "bico:tiro":
-				disparou = true
-				x_no_disparo = c.pos.x
-		t += 1.0 / 30.0
-	checar(disparou, "disparou durante a caminhada")
-	checar(x_no_disparo > 120.0 and x_no_disparo < 176.0, "disparou na base (x=%s)" % x_no_disparo)
-
+		Vector2(150, 48), Vector2(150, 120), Vector2(150, 48), Vector2(260, 48)])}, m, []).begins_with("ok"), "rota com T")
+	var alto := false
+	for q in c.rota:
+		if q.y > 60.0:
+			alto = true
+	checar(not alto, "o beco saiu da rota (%s)" % [c.rota])
+	var evs := _rodar(c, m, 2.0)
+	checar("bico:tiro" not in evs and "tiro:disparo" not in evs, "o bico não dispara (%s)" % [evs])
 
 
 ## TRAVESSIA: a linha passa POR CIMA do adversário. Ao passar, a criatura dá a
@@ -453,9 +428,9 @@ func test_fim_em_cima_marca_o_alvo_e_golpeia() -> void:
 	checar(adv.pos.distance_to(Vector2(200, 200)) > 5.0, "o golpe empurrou (%s)" % adv.pos)
 
 
-## Se o inimigo ANDAR DEMAIS até a criatura chegar, a automira final se perde
-## (o golpe sai no vazio).
-func test_alvo_final_se_perde_se_o_inimigo_andar() -> void:
+## v0.10: se o alvo marcado ANDAR, o animal VAI ATRÁS dele (perseguição final)
+## em vez de atacar de longe — e só bate ao CHEGAR perto.
+func test_perseguicao_final_vai_atras_do_alvo() -> void:
 	var s := _setup(MAPA)
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
@@ -464,61 +439,28 @@ func test_alvo_final_se_perde_se_o_inimigo_andar() -> void:
 	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(200, 200)])}, m, alvos)
 	c.finalizar_rota(alvos)
 	igual(c.mira_final_id, "adversario:0", "marcou")
-	# ele foge para longe da marca
-	adv.pos = Vector2(48, 200)
+	# ele ANDOU para longe antes de a criatura chegar
+	adv.pos = Vector2(300, 230)
 	alvos[0]["pos"] = adv.pos
 	var evs := _rodar_com(c, m, alvos, adv, 4.0)
-	checar("mira_final:perde" in evs, "a mira se perdeu (%s)" % [evs])
-	checar("golpe_final:adversario:0" not in evs, "não golpeou o alvo perdido")
-	checar(c.mira_final_id == "", "e a marca foi limpa")
+	checar("golpe_final:adversario:0" in evs, "perseguiu e bateu (%s)" % [evs])
+	# chegou na região do alvo (o empurrão do golpe afasta o inimigo depois)
+	checar(c.pos.distance_to(Vector2(300, 230)) < 120.0, "foi atrás do alvo (%s)" % c.pos)
 
 
 # ---------------------------------------------------------------- v0.9.1: ajustes
 
-## O laço acende em QUALQUER parte da circunferência: se a criatura já está
-## andando no anel quando ele fecha, a onda sai na hora.
-func test_laco_acende_com_a_criatura_no_anel() -> void:
+## v0.10: o laço acende pela DISTÂNCIA da criatura ao CENTRO da área (até
+## `area_gatilho_px`, ~7× o corpo): não precisa chegar no anel.
+func test_laco_acende_pela_distancia_ao_centro() -> void:
 	var s := _setup(MAPA)
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
-	# o anel do laço passa a 12 px do ponto de partida (nó em 60,48)
+	# o centro do laço fica a ~58 px do ponto de partida (bem dentro dos 224 px)
 	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([
 		Vector2(130, 48), Vector2(130, 120), Vector2(60, 120), Vector2(60, 30)])}, m, []).begins_with("ok"), "rota com laço")
 	var evs := _rodar(c, m, 0.1)
-	checar("laco:onda" in evs, "onda saiu com a criatura no anel (%s)" % [evs])
-
-
-## Bico em "T" no MEIO do caminho: o beco NÃO é andado, a criatura para e
-## dispara da base na direção da ponta.
-func test_bico_em_t_no_meio_nao_e_andado() -> void:
-	var s := _setup(MAPA)
-	var m: RefCounted = s[0]
-	var c: RefCounted = s[1]
-	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([
-		Vector2(150, 48), Vector2(150, 120), Vector2(150, 48), Vector2(260, 48)])}, m, []).begins_with("ok"), "rota com T")
-	var alto := false
-	for p in c.rota:
-		if p.y > 60.0:
-			alto = true
-	checar(not alto, "o beco saiu da rota (%s)" % [c.rota])
-	var disparou := false
-	var dir_ok := false
-	for i in 90:
-		c.passo(1.0 / 30.0, m, [])
-		for e in c.drenar_eventos():
-			if e == "bico:tiro":
-				disparou = true
-				for ef in c.efeitos:
-					if str(ef["tipo"]) == "tiro":
-						dir_ok = Vector2(ef["dir"]).dot(Vector2(0, 1)) > 0.9
-		if disparou:
-			break
-	checar(disparou, "o T disparou")
-	checar(dir_ok, "tiro na direção da ponta")
-	# a criatura PARA no disparo (pausa do bico)
-	var pos_disparo: Vector2 = c.pos
-	_rodar(c, m, 0.15)
-	checar(c.pos.distance_to(pos_disparo) < 1.0, "parou antes de entrar no beco (%s → %s)" % [pos_disparo, c.pos])
+	checar("laco:onda" in evs, "onda saiu pela distância ao centro (%s)" % [evs])
 
 
 ## A ESTRADA: a criatura anda por dentro de uma faixa (não colada na linha) e o
@@ -579,17 +521,13 @@ func test_recarga_de_um_segundo_nos_especiais() -> void:
 	checar("laco:onda" in evs, "1ª onda saiu")
 	checar(float(c._recargas.get("onda", 0.0)) > 0.7, "entrou em recarga (%.2f)" % float(c._recargas.get("onda", 0.0)))
 	# uma marca de laço em cima dela NÃO acende durante o cooldown
-	var anel := PackedVector2Array([
-		c.pos + Vector2(0, -12), c.pos + Vector2(12, 0), c.pos + Vector2(0, 12),
-		c.pos + Vector2(-12, 0), c.pos + Vector2(0, -12)])
 	c.marcas.append({"tipo": "laco", "ponto": c.pos, "centro": c.pos, "raio": 30.0,
-		"anel": anel, "dir": Vector2.RIGHT, "chave": "teste:laco"})
+		"dir": Vector2.RIGHT, "chave": "teste:laco"})
 	var evs2 := _rodar(c, m, 0.15)
 	checar("laco:onda" not in evs2, "não disparou em recarga")
 	checar(not c._tem_marca("teste:laco") == false, "a marca ficou pendente")
 	# libera a recarga e a marca acende
 	c._recargas["onda"] = 0.0
-	c.pos = c.pos  # continua onde está
 	var evs3 := _rodar(c, m, 0.05)
 	checar("laco:onda" in evs3 or c._tem_marca("teste:laco") == false, "acendeu ao liberar (%s)" % [evs3])
 
@@ -656,3 +594,42 @@ func test_marcacao_embala_curto() -> void:
 		t += 1.0 / 30.0
 	checar(turbo, "embalou para a marcação")
 	checar(vmax > 130.0, "acelerou perto do alvo (%.0f px/s)" % vmax)
+
+
+# ---------------------------------------------------------------- v0.10: tiro no alvo marcado
+
+## O TIRO (toque duplo) só sai com ALVO MARCADO, mira nele, tem recarga e NÃO
+## tira a marca; o animal para para atirar.
+func test_toque_duplo_atira_no_alvo_marcado() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	var adv := _adv(Vector2(200, 200))
+	var alvos := [_alvo_adv("adversario:0", adv)]
+	igual(c.comandar({"acao": "tiro"}, m, alvos), "recusado: sem alvo marcado", "sem marca não atira")
+	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(200, 200)])}, m, alvos).begins_with("ok"), "rota até o alvo")
+	c.finalizar_rota(alvos)
+	igual(c.mira_final_id, "adversario:0", "marcou")
+	checar(c.comandar({"acao": "tiro"}, m, alvos).begins_with("ok"), "atirou")
+	checar(float(c._recargas.get("tiro", 0.0)) > 0.7, "entrou em recarga")
+	checar(c._pausa_t > 0.0, "parou para atirar")
+	igual(c.mira_final_id, "adversario:0", "a marca FICA após o disparo")
+	var mirado := false
+	for ef in c.efeitos:
+		if str(ef["tipo"]) == "tiro":
+			mirado = Vector2(ef["dir"]).dot((Vector2(adv.pos) - c.pos).normalized()) > 0.95
+	checar(mirado, "tiro mirado no alvo")
+	igual(c.comandar({"acao": "tiro"}, m, alvos), "recusado: recarga", "recarga segura o 2º tiro")
+	var evs := _rodar_com(c, m, alvos, adv, 1.2)
+	checar("acerto:adversario:0" in evs, "acertou o alvo (%s)" % [evs])
+
+
+## A MARCA nasce DURANTE o caminho, quando a ponta do traço alcança o alvo.
+func test_marca_nasce_durante_o_caminho() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	var adv := _adv(Vector2(200, 200))
+	var alvos := [_alvo_adv("adversario:0", adv)]
+	checar(c.tracar(PackedVector2Array([c.pos, c.pos + Vector2(80, 0), Vector2(200, 200)]), m, true, alvos).begins_with("ok"), "traço")
+	igual(c.mira_final_id, "adversario:0", "marcou durante o caminho")

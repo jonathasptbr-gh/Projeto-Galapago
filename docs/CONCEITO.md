@@ -31,15 +31,17 @@
   larga**: o animal anda **dentro da faixa** (mais à esquerda, à direita ou no
   centro), num percurso **orgânico**, e **freia** nos últimos passos para parar
   macio — ele não pisa exatamente na risca.
-- **Um dedo faz tudo (v0.9): o ataque nasce da FORMA do desenho.** Arrastar
-  desenha a rota; um **laço** que cruza o próprio caminho vira **ataque em
-  área** (onda que cresce do centro do laço); um **bico** (ida e volta brusca)
-  vira **tiro** na direção do bico; **passar por cima** de um alvo é batida;
-  **terminar em cima** do adversário marca o **golpe final nele**; **segurar
-  parado** ativa uma **habilidade em si mesmo** (cavar). Toque = travar a mira;
-  toque duplo = pular. **Não há gesto de dois dedos**, nem defesa, nem efeito
-  de esquiva — **esquivar é andar** com o tempo lento do desenho. O detalhe
-  fica em [`gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md).
+- **Um dedo faz tudo: o ataque nasce do DESENHO (v0.9/v0.10).** Arrastar
+  desenha a rota; um **laço** vira **ataque em área** (onda que cresce do
+  centro; acende pela **distância ao centro**, ~7× o corpo); **passar por cima**
+  de um alvo é **batida**; levar o **fim do caminho até o alvo** o **MARCA** (X
+  amarelo que anda com ele); **toque duplo** = **tiro** mirado no alvo marcado
+  (recarga de 1 s, o animal para e segue); **toque simples** = **pulo**;
+  **segurar parado** ativa uma **habilidade em si mesmo** (cavar). Com alvo
+  marcado o animal **persegue e só bate ao chegar** (sem a freada final).
+  **Não há gesto de dois dedos**, nem defesa, nem efeito de esquiva —
+  **esquivar é andar** com o tempo lento do desenho. O detalhe fica em
+  [`gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md).
 - **Afinidade como mecânica de controle:**
   - baixa: o comando é sugestão — a criatura hesita, reinterpreta ou desobedece
     por temperamento ou falta de sintonia;

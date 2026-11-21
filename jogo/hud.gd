@@ -62,13 +62,13 @@ func _legenda() -> String:
 	var m: Dictionary = cfg.get("mapa", {})
 	var linhas := PackedStringArray(["GESTOS"])
 	linhas.append("1 dedo arrastando → caminho")
-	linhas.append("laço no caminho → ataque em área")
-	linhas.append("bico (ida e volta) → tiro")
-	linhas.append("passar por cima do alvo → batida")
+	linhas.append("laço perto → ataque em área")
+	linhas.append("fim do caminho no alvo → marca")
+	linhas.append("toque duplo → tiro no alvo marcado")
+	linhas.append("passar por cima → batida")
 	linhas.append("terminar em cima → golpe final")
 	linhas.append("segurar parado → %s" % m.get("segurar", "habilidade"))
 	linhas.append("toque → %s" % m.get("toque", "—"))
-	linhas.append("toque duplo → %s" % m.get("toque_duplo", "—"))
 	return "\n".join(linhas)
 
 
@@ -100,7 +100,7 @@ func estado(corpo: RefCounted, alvos: Array, planejando := false, escala := 1.0)
 		extra = " · DESENHANDO %d%%" % roundi(escala * 100.0)
 	var final := ""
 	if corpo.mira_final_id != "":
-		final = " · ALVO FINAL %s" % corpo.mira_final_id
+		final = " · ALVO MARCADO %s" % corpo.mira_final_id
 	_estado.text = "estado: %s · alvo: %s · %s%s%s%s%s%s" % [modo, alvo, corpo.camada,
 		(" · habilidade" if corpo.habilidade_ativa() else ""),
 		(" · golpe: %s" % corpo.ataque if corpo.ataque != "" else ""),

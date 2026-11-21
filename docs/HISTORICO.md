@@ -3,6 +3,58 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.10.0 — marca ligada ao caminho, TIRO no toque duplo, PULO no toque e perseguição final (2026-11-21)
+
+- **Pedido do operador:** (1) **sem a desaceleração final** quando o caminho
+  termina num alvo marcado e **melhorar a perseguição final** — o animal estava
+  batendo sem ter ido atrás do alvo; (2) o **ataque em área** deve acender
+  **antes de chegar no laço**: a trava é a **distância até o CENTRO** da área
+  (começar com ~7× o tamanho do animal), sem esperar o animal entrar no anel;
+  (3) mudar o **gatilho do tiro e o método de marcação**: a **marcação** é a
+  mesma do golpe — **levar o fim do caminho até o alvo** (durante o caminho ele
+  fica marcado) — e o **tiro é o TOQUE DUPLO**; o **pulo vira o TOQUE SIMPLES**
+  (que antes marcava). O resumo do tiro: com o alvo marcado, os toques duplos
+  disparam **mirados nele**, não interrompem o caminho, o animal **para** para
+  atirar e segue; a **marca não sai no disparo**, sai no **golpe físico** —
+  está **ligada ao caminho**.
+- **`sim/gestos.gd`:** o **toque simples fica PENDENTE** até a janela do duplo
+  fechar (`toque_duplo_janela_ms` 280 ms): sem um segundo toque, o `tick` solta
+  o "toque" (PULO); com o segundo perto e logo, é "toque_duplo" (TIRO) e o
+  simples é descartado. Sai o par `_ultimo_toque_*`.
+- **`dados/gestos.json`:** `toque` → `pular`; `toque_duplo` → `tiro` (o toque
+  não trava mais mira).
+- **`sim/corpo.gd`:** a **marca** (`mira_final_id`) nasce **durante o caminho**
+  (`_montar_marcas` chama `_marcar_alvo_no_fim` a cada atualização da rota);
+  ela **anda com o inimigo**, vale para o tiro e para o golpe, e **sai** no
+  golpe físico (ou num caminho novo). **`_cmd_tiro`** (toque duplo): exige
+  marca e recarga (`tiro_recarga_s` 1 s), atira no alvo (`_atirar`), pausa
+  (`tiro_pausa_s` 0,25 s) e segue a rota. **A área** acende pela **distância ao
+  centro** (`area_gatilho_px` 224). **Sem zona de freio** quando há marca. No
+  fim do caminho com marca: `_iniciar_final` — perto, bate; longe, **PERSEGUE**
+  (`_perseguir`, teto `embalo.perseguir_s` 3 s, embalo curto) e bate **ao
+  chegar** (`ataque.alcance` + raio + 10). Saem a tolerância de 48 px
+  (`mira_final_tol_px`) e `mira_final_pos`; o **tiro do bico** sai (o bico só
+  corta o beco da rota).
+- **Dados:** `combate` ganha `area_gatilho_px` (224) e `tiro_pausa_s` (0,25);
+  saem `mira_final_tol_px` e `bico_pausa_s`; `embalo` ganha `perseguir_s`
+  (3,0 s). `formas.lacos` não guarda mais o `anel` (o gatilho é a distância ao
+  centro); `distancia_polilinha` sai.
+- **`jogo/`:** `hud.gd` com a legenda nova (toque = pular, toque duplo = tiro,
+  fim do caminho no alvo = marca) e "ALVO MARCADO"; `main._evento` nota
+  "TIRO no alvo marcado"; `demo.gd` reescrito: laço perto (área), cavar, toque
+  (pulo), caminho em "L" até o adversário (travessia + marca), **dois toques
+  duplos (tiros)** e o **golpe final** na perseguição.
+- **Verificação:** **90 testes, 0 falhas**, 38 scripts (parser limpo); novos:
+  o toque pendente/duplo, o tiro no alvo marcado (mira, recarga, pausa, marca
+  mantida), a marca nascendo durante o caminho, a perseguição final, a área
+  pela distância e o bico sem tiro. Sonda headless da demo: `laco:onda`,
+  `mira_final`, dois `tiro:disparo`+`acerto`, `batida`, `golpe_final`.
+  **Oráculo de quadros** (`tools/quadros.sh`, 45 quadros 720×1280 em ~3 min,
+  ~4 s/quadro — a linha pontilhada pesa no `softpipe`): HUD com a legenda nova
+  (toque = pular, toque duplo = tiro, fim do caminho = marca) e a linha
+  pontilhada escura seguindo o traço — abri os PNG. Detalhe em
+  [`gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md).
+
 ## v0.9.2 — a linha do caminho vira traço real pontilhado; cooldown dos especiais e EMBALO dos golpes (2026-11-21)
 
 - **Pedido do operador (ajustes):** (1) a linha do caminho estava **quebrada**

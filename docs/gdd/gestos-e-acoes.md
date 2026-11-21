@@ -1,17 +1,17 @@
 # Gestos e ações — como a criatura se move e age
 
 > Regra toda em `sim/` (testada) e nas tabelas `dados/gestos.json` +
-> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.9.2.**
+> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.10.**
 
 ## O fluxo
 
 ```
 dedos (toque real ou demo roteirizada — mesmo caminho)
   → sim/gestos.gd   : UM dedo = caminho · toque · toque duplo · segurar
-  → sim/formas.gd   : lê a FORMA do traço (laço, bico) → marcas de ataque
+  → sim/formas.gd   : lê a FORMA do traço (laço; o beco do bico sai da rota)
   → sim/comandos.gd : traduz o gesto em COMANDO (ação + alvo no mundo)
-  → sim/corpo.gd    : ROTA ao vivo (pontos de referência + desvio) + marcas
-                      (onda, tiro, batida, golpe final) + AUTONOMIA
+  → sim/corpo.gd    : ROTA ao vivo (estrada) + marcas (onda, batida) +
+                      MARCA do alvo (tiro/golpe) + PERSEGUIÇÃO + AUTONOMIA
 ```
 
 Tempo **simulado** (`tempo_ms`): teste, demo e oráculo são determinísticos.
@@ -21,13 +21,14 @@ Tempo **simulado** (`tempo_ms`): teste, demo e oráculo são determinísticos.
 | gesto | vira |
 |---|---|
 | **1 dedo arrastando** (acima de 16 px) | **caminho**, desenhado **AO VIVO** (sem espera) |
-| **laço** no caminho (o traço volta e o cruza) | **ataque em área**: uma onda que cresce do **centro** do laço; acende quando a criatura está em **qualquer parte da circunferência** do laço |
-| **bico** (ida e volta brusca, em "T" ou "V", no meio do caminho ou na partida) | **tiro** na direção da ponta: a criatura **para antes do beco** e dispara da **base** |
-| **passar por cima** de um alvo com a linha | **batida/empurrão** ao chegar naquele ponto |
-| **terminar o caminho em cima** do adversário | ele é marcado **alvo final** de um **golpe físico** |
+| **laço** no caminho | **ataque em área**: uma onda que cresce do **centro** do laço; a trava é a **distância da criatura ao centro** (`area_gatilho_px` = 224 px, ~7× o corpo) — não precisa chegar no anel |
+| **bico** (ida e volta brusca, em "T" ou "V") | o **beco sai da rota** (o animal não entra nele). **v0.10: o bico NÃO atira mais** — o tiro virou o toque duplo |
+| **levar o fim do caminho até o alvo** | ele fica **MARCADO** (um "X" amarelo que anda com ele); a marca vale para o **tiro** e para o **golpe físico** — e está ligada ao caminho |
+| **passar por cima** de um alvo com a linha | **batida/empurrão** ao chegar naquele ponto (embalo longo) |
+| **terminar o caminho** com alvo marcado | o animal **vai atrás** (perseguição final, sem a zona de freio) e só bate **ao chegar perto** |
 | **segurar parado** (em qualquer lugar) | **habilidade em si mesmo** (hoje: cavar) |
-| **toque** | **travar a mira** no alvo mais próximo do toque; baú → interagir |
-| **toque duplo** | **pular** (parada ou no caminho, sem interromper a rota) |
+| **toque simples** | **PULO** (o toque deixou de marcar alvos; ele sai ~0,28 s depois, para não pular no 1º toque de um duplo) |
+| **toque duplo** | **TIRO** mirado no **alvo marcado** (1 s de recarga; o animal **para** para atirar e segue o caminho) |
 
 **Não há gesto de dois dedos** (v0.9 tirou ataque ↑, defesa ↓ e especial
 abrindo). Um segundo dedo não é ação: o caminho continua no primeiro dedo e
@@ -47,11 +48,12 @@ Defesa também saiu (não há gesto para ela).
    é refeita a cada quadro e a criatura **já anda por ela**, atrás do traço.
 3. Se ela se mexeu até o traço começar, o primeiro trecho da rota a **traz de
    volta ao começo**.
-4. Ao soltar, a rota é fechada com o último trecho, as formas são lidas uma
-   última vez e o **alvo final** é marcado (se o fim caiu num adversário).
+4. Ao soltar, a rota é fechada com o último trecho. O **alvo** é marcado
+   **durante** o caminho: quando a ponta do traço alcança um adversário, ele
+   fica marcado (e a marca **anda com ele**, ligada a este caminho).
 5. **Sensibilidade**: `desenho.ganho` (1,6) multiplica o traço.
 
-### Estrada, caminho orgânico e zona de freio (v0.9.1)
+### Estrada, caminho orgânico e zona de freio (v0.9.1+)
 
 A linha desenhada é o **eixo de uma ESTRADA**, não a risca que a criatura pisa:
 
@@ -66,7 +68,8 @@ A linha desenhada é o **eixo de uma ESTRADA**, não a risca que a criatura pisa
   obrigação de pisar neles;
 - no fim há uma **ZONA DE FREIO** (`freio_px` = 44 px, mínimo `freio_min` =
   0,12): a velocidade cai suave (`smoothstep`) e a criatura **para onde está**,
-  sem salto para o último ponto (`parada_px` = 4).
+  sem salto para o último ponto (`parada_px` = 4). **v0.10: com ALVO MARCADO
+  não há freio** — o animal chega em velocidade cheia para perseguir/bater.
 
 Um tronco no caminho: o alvo à frente **pula** o ponto que cai dentro dele e a
 criatura contorna por um lado, **mantendo o lado** até passar (sem ficar
@@ -118,20 +121,32 @@ Tudo em `sim/formas.gd` (puro). O traço CRU é lido antes de virar rota:
 | **laço** | o traço volta e **cruza** a si mesmo; a área fechada tem `laco_area_min` (700 px²) e o arco `laco_arco_min` (90 px) | o **nó**, o **anel** (a circunferência fechada), o **centro** (centroide da área), o **raio** (`√area/π`, limitado a 24–120 px) e a direção do fechamento |
 | **bico** | uma **PONTA** (reversão de ~180°) e uma **BASE**: a volta reencontra a estrada numa curva forte (`bico_base_angulo` 45°) ou no fim do traço, perto do traço anterior — o espinho é estreito (o traço não se afasta da reta base→ponta) | a **base**, a **ponta**, a **direção** e os índices `i`/`j` do trecho a **cortar** |
 
-- **Laço → onda em área.** A marca acende quando a criatura está em **qualquer
-  parte da circunferência** do laço (`formas.distancia_polilinha` ≤
-  `gatilho_raio_px` 24), a partir do nó. Se o laço **fecha com a criatura já
-  andando nele**, a onda sai **na hora** — a habilidade já está ativa. A onda é
-  **um círculo que cresce do centro**; ela varre e empurra quem está na área.
-  A criatura **não precisa ir ao centro**.
-- **Bico → tiro.** A marca acende na **base**; o tiro sai dali na direção da
-  ponta e para no primeiro alvo. O **beco NÃO é andado**: o trecho `i+1..j` sai
-  da rota (a criatura segue a estrada) e ela **para** `bico_pausa_s` (0,25 s)
-  antes de disparar. Um bico desenhado **a partir da posição inicial** dispara
-  **sem a criatura andar**. Vale para o bico **no meio do caminho** (o "T"
-  perpendicular, o "V" e o bico deitado na própria linha).
+- **Laço → onda em área.** A marca acende quando a **distância da criatura ao
+  CENTRO** do laço é ≤ `area_gatilho_px` (224 px ≈ 7× o corpo de ~32 px) — não
+  precisa chegar no anel nem no nó. Laço feito perto: a onda sai **na hora**.
+  A onda é **um círculo que cresce do centro**; varre e empurra quem está na
+  área.
+- **Bico → só o beco sai da rota.** O espinho continua sendo lido (o "T"/"V"),
+  e o trecho `i+1..j` **não é andado**. **v0.10: o bico não atira**; o tiro é o
+  **toque duplo** no alvo marcado (o gesto do bico fica como um "beco sem
+  saída" ignorado — ver RESIDUOS).
 - **Sem "desenho certo":** as marcas são lidas a cada ~5 pontos do traço; o
   que já acendeu não volta, e a marca é a mesma mesmo redesenhando por cima.
+
+## A MARCA do alvo e o TIRO (v0.10)
+
+O jogador **leva o fim do caminho até o alvo** (durante o desenho ou a
+caminhada): quando a ponta do traço alcança um adversário, ele fica **marcado**
+("X" amarelo no inimigo, andando com ele). A marca é **ligada ao caminho**:
+
+- vale para o **TIRO** (toque duplo): a criatura **para** `tiro_pausa_s`
+  (0,25 s), atira **mirada no alvo marcado**, tem `tiro_recarga_s` (1 s) e
+  **segue o caminho**;
+- **não sai** com o disparo — dá para atirar de novo após a recarga;
+- **sai** quando o animal faz o **golpe físico** (chegar no alvo) ou quando um
+  **novo caminho** começa;
+- sem alvo marcado, o toque duplo **não dispara** (a HUD diz "sem alvo
+  marcado").
 
 ## Travessia e alvo final (no `sim/corpo.gd`)
 
@@ -140,12 +155,12 @@ Tudo em `sim/formas.gd` (puro). O traço CRU é lido antes de virar rota:
   naquele ponto. Ao chegar, se o alvo ainda está ali (`batida_tol_px` = 34 px),
   a criatura **bate e empurra** (adversário desliza 26 px e pisca; árvore só
   leva a batida, porque não se move).
-- **Alvo final:** se o **fim do caminho** cai sobre um adversário
-  (`mira_final_raio` = 34 px), ele é marcado — **a marca vai NELE, não no lugar
-  final** — e a HUD/mira mostram um "X" amarelo que **acompanha o inimigo**.
-  Quando a criatura chega ao fim, o **golpe físico** sai nele. Se o inimigo
-  andou mais de `mira_final_tol_px` (48 px) desde a marcação, a **automira se
-  perde**: o golpe sai no vazio (`mira_final:perde`) e a marca é limpa.
+- **Alvo final / perseguição:** com alvo marcado, no fim do caminho o animal
+  **vai atrás dele** (perseguição final, `embalo.perseguir_s` 3 s de teto, sem
+  a zona de freio) e só dá o **golpe físico** quando chega perto
+  (`ataque.alcance` + raio + 10 px). Se o alvo estiver inalcançável/tempo
+  esgotar, a marca se perde (`mira_final:perde`). A marca **sai no golpe**.
+  (v0.10 tirou a "automira perdida se ele andar > 48 px": o animal persegue.)
 
 ## Segurar parado = habilidade em si mesmo
 
@@ -169,7 +184,7 @@ numa rampa de `planejamento.retomada_ms` (0,45 s). Segurar para a habilidade
 | overlay | o que faz | efeito na rota |
 |---|---|---|
 | **onda** (laço) | círculo que cresce do centro do laço e empurra quem varre | nenhum: continua andando |
-| **tiro** (bico) | projétil na direção do bico, para no primeiro alvo | nenhum |
+| **tiro** (toque duplo) | projétil mirado no alvo marcado, para no primeiro alvo | nenhum: o animal PAUSA para atirar e segue |
 | **golpe** (`ataque`/`batida`) | arco de fases (antecipação → ativa → recuperação) | nenhum |
 | **pulo** | arco no ar enquanto segue; atravessa barreira | nenhum |
 | **habilidade** | em si mesmo, com duração; cavar troca de camada | cavar apaga a rota (outra camada) |
@@ -201,6 +216,7 @@ depois **ronda** ao redor. Cada passo é cortado pelo mundo.
 | `curto_s` / `curto_fator` | 0,25 s / 1,7× | EMBALO CURTO da **marcação** (golpe final) |
 | `longo_s` / `longo_fator` | 0,6 s / 2,0× | EMBALO LONGO do **empurrão** (travessia) |
 | `gatilho_px` | 70 | a que distância do alvo final a marcação embala |
+| `perseguir_s` | 3,0 s | teto da perseguição final |
 
 O embalo é um **pico de velocidade** que sobe e desce suave (`sin(π·u)`): o
 empurrão embala antes e **passa mais rápido que a caminhada normal** pelo alvo,
@@ -241,21 +257,26 @@ acende quando a recarga termina).
 | chave | valor | o quê |
 |---|---|---|
 | `onda_velocidade` / `onda_empurrao` | 140 px/s / 30 px | expansão e empurrão da onda |
-| `tiro_velocidade` / `tiro_alcance` | 420 px/s / 280 px | tiro do bico |
+| `tiro_velocidade` / `tiro_alcance` | 420 px/s / 280 px | tiro do toque duplo (no alvo marcado) |
 | `tiro_raio` / `tiro_empurrao` | 9 / 24 px | acerto e empurrão do tiro |
 | `batida_cruza_px` / `batida_tol_px` | 8 / 34 px | quando a linha "passa por cima" e a tolerância na chegada |
 | `batida_empurrao` | 26 px | empurrão da batida |
-| `bico_pausa_s` | 0,25 s | a pausa antes de disparar o bico |
 | `onda_recarga_s` / `tiro_recarga_s` | 1,0 s | **cooldown** dos especiais (área/tiro) |
-| `mira_final_raio` / `mira_final_tol_px` | 34 / 48 px | onde o fim do caminho marca e quanto o inimigo pode andar |
+| `area_gatilho_px` | 224 | distância da criatura ao **centro** que acende a área (≈7× o corpo) |
+| `tiro_pausa_s` | 0,25 s | a pausa do animal para atirar |
+| `mira_final_raio` | 34 px | onde o fim do caminho MARCA o alvo |
 | `mira_final_empurrao` | 44 px | empurrão do golpe final |
 
 ## Alvos
 
-- Travaveis: **árvore** e **adversário**; interativo: **baú**.
-- A mira trava no mais perto do toque dentro de ~110 px e **acompanha** o alvo
-  que anda.
-- Toque no mesmo alvo solta a mira.
+- **Adversário:** fica **marcado** quando o fim do caminho o alcança (X amarelo
+  que anda com ele); é o alvo do **tiro** (toque duplo) e do **golpe físico**
+  (a marca sai no golpe, ou num caminho novo).
+- **Árvore:** alvo da **batida de travessia** (leva a pancada, mas não é
+  empurrada — não reage).
+- **Baú:** ficou **sem gesto** na v0.10 (o toque virou PULO) — ver RESIDUOS.
+- A **mira vermelha** (travar no toque) também ficou sem gesto; o código do
+  `travar`/`alvo_id` continua no corpo, sem uso.
 
 ## Como mudar sem tocar em código
 
@@ -276,9 +297,11 @@ acende quando a recarga termina).
 - **Afinidade** (P4): hoje a criatura obedece.
 - **Habilidades além de cavar**: o estado genérico está pronto (nome +
   `duracao`), falta conteúdo.
-- **Bico**: um bico cuja volta reencontra a estrada numa curva MUITO suave
-  (sem canto) pode não ser lido; e a base é o ponto do traço mais perto da
-  volta (pode ficar alguns px dentro da boca do beco).
+- **Bico**: o espinho continua sendo lido e o beco ignorado, mas **não atira
+  mais** (o tiro é o toque duplo) — decidir com o operador se o gesto sai de
+  vez; um bico com volta MUITO suave (sem canto) pode não ser lido.
+- **Baú e mira vermelha**: sem gesto desde a v0.10 (o toque é o pulo) — o baú
+  precisa de um gatilho novo.
 - **Estrada**: a largura, a amplitude/onda e o freio são pontos de partida —
   ajustar no aparelho com o operador.
 - **Linha**: mostra o traço CRU do dedo (inclusive o beco e o tremor inicial);

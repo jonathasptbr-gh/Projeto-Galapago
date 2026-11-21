@@ -237,9 +237,9 @@ func _evento(e: String) -> void:
 	elif e.begins_with("laco:"):
 		print("evento: ", e)
 		hud.nota("LAÇO: onda em área")
-	elif e.begins_with("bico:"):
+	elif e.begins_with("tiro:"):
 		print("evento: ", e)
-		hud.nota("BICO: tiro disparado")
+		hud.nota("TIRO no alvo marcado")
 	elif e.begins_with("batida:"):
 		print("evento: ", e)
 		hud.nota("BATIDA em %s" % e.substr(7))
@@ -251,10 +251,10 @@ func _evento(e: String) -> void:
 		hud.nota("GOLPE FINAL em %s" % e.substr(12))
 	elif e == "mira_final:perde":
 		print("evento: ", e)
-		hud.nota("alvo final fugiu: a mira se perdeu")
+		hud.nota("alvo marcado se perdeu")
 	elif e.begins_with("mira_final:"):
 		print("evento: ", e)
-		hud.nota("ALVO FINAL marcado em %s" % e.substr(11))
+		hud.nota("ALVO MARCADO em %s" % e.substr(11))
 
 
 # ---------- o dedo (toque real e demo passam por aqui) ----------

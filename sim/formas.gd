@@ -64,8 +64,6 @@ static func lacos(p: PackedVector2Array, cfg: Dictionary = {}) -> Array:
 			var poligono := PackedVector2Array([no])
 			for k in range(i + 1, j + 1):
 				poligono.append(p[k])
-			var anel := poligono.duplicate()
-			anel.append(no)  # fecha a circunferência de volta no nó
 			var area := absf(area_assinada(poligono))
 			if area < area_min:
 				continue
@@ -83,7 +81,6 @@ static func lacos(p: PackedVector2Array, cfg: Dictionary = {}) -> Array:
 				"tipo": "laco", "ponto": no, "centro": centro,
 				"raio": clampf(sqrt(area / PI), raio_min, raio_max),
 				"area": area, "dir": (p[j + 1] - p[j]).normalized(), "chave": chave,
-				"anel": anel,
 			})
 			break  # o laço MAIS CURTO que fecha neste trecho
 	return out
@@ -286,14 +283,6 @@ static func _ja_bico(out: Array, base: Vector2, dir: Vector2, raio: float) -> bo
 				and Vector2(m["dir"]).dot(dir) > 0.7:
 			return true
 	return false
-
-
-## Distância de um ponto a uma POLILINHA (o anel do laço, v0.9.1).
-static func distancia_polilinha(q: Vector2, pol: PackedVector2Array) -> float:
-	var m := INF
-	for i in range(1, pol.size()):
-		m = minf(m, _dist_segmento(q, pol[i - 1], pol[i]))
-	return m
 
 
 # ---------------------------------------------------------------- medidas

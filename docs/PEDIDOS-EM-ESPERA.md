@@ -187,3 +187,9 @@
   (pontos densos, contínua) em estilo **pontilhado, escuro e transparente**;
   os especiais (área/tiro) têm **1 s de recarga** (a marca fica pendente); e os
   golpes físicos **embalam** — curto na marcação, longo no empurrão.
+- **Ajustes (v0.10.0):** sem **freio final** com alvo marcado e **perseguição
+  final** (o animal vai atrás e bate ao chegar); **área pela distância ao
+  centro** (~7× o corpo, sem esperar o anel); **marcação pelo fim do caminho**
+  (a marca anda com o alvo e está ligada ao caminho), **tiro no toque duplo**
+  (mira no alvo, 1 s de recarga, para para atirar, a marca fica) e **pulo no
+  toque simples**; o bico não atira mais.

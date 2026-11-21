@@ -119,17 +119,3 @@ func test_bico_em_t_perpendicular() -> void:
 	checar(Vector2(bicos[0]["ponto"]).distance_to(Vector2(150, 0)) <= 10.0, "base no T (%s)" % bicos[0]["ponto"])
 	checar(Vector2(bicos[0]["dir"]).dot(Vector2(0, 1)) > 0.9, "direção da ponta (%s)" % bicos[0]["dir"])
 	checar(int(bicos[0]["j"]) > int(bicos[0]["i"]), "i/j para cortar o beco")
-
-
-## O ANEL do laço (a circunferência fechada) vai na marca.
-func test_laco_tem_anel_fechado() -> void:
-	var p := _denso([[0, 0], [100, 0], [100, 100], [30, 100], [30, -30]])
-	var lacos := _por_tipo(F.analisar(p, CFG), "laco")
-	igual(lacos.size(), 1, "um laço")
-	if lacos.is_empty():
-		return
-	var anel: PackedVector2Array = lacos[0]["anel"]
-	checar(anel.size() >= 4, "anel com pontos")
-	perto_v(anel[0], anel[anel.size() - 1], 0.01, "anel fechado no nó")
-	checar(F.distancia_polilinha(Vector2(65, 0), anel) < 1.0, "ponto da circunferência")
-	checar(F.distancia_polilinha(Vector2(65, 50), anel) > 20.0, "centro NÃO está na circunferência")

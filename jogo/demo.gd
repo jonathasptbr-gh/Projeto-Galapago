@@ -3,16 +3,16 @@ extends Node
 ## comandos — e os entrega pelo MESMO caminho de um toque de verdade
 ## (main.dedo_* → sim/gestos → sim/comandos → sim/corpo).
 ##
-## Roteiro da v0.9 — o ataque nasce da FORMA do desenho:
-## 1. caminho com LAÇO: a criatura anda atrás do traço e, ao entrar no ANEL
-##    (a circunferência) do laço, a ONDA em área cresce do centro dele;
-## 2. caminho com BICO em "T" (sai da estrada e volta): o beco NÃO é andado —
-##    a criatura para na base e dispara o TIRO na direção da ponta;
-## 3. caminho até a AREIA e SEGURAR parado: habilidade (cavar) — e de novo para
+## Roteiro da v0.10:
+## 1. caminho com LAÇO perto: a ONDA em área cresce do centro (a trava é a
+##    distância ao centro, não chegar no anel);
+## 2. caminho até a AREIA e SEGURAR parado: habilidade (cavar) — e de novo para
 ##    subir;
-## 4. toque duplo = pulo;
-## 5. caminho por CIMA do adversário: travessia → BATIDA/empurrão;
-## 6. caminho que TERMINA EM CIMA dele: alvo final e GOLPE físico na chegada.
+## 3. TOQUE simples = PULO (o toque deixou de marcar);
+## 4. caminho por CIMA do adversário e terminando nele: travessia (BATIDA/
+##    embalo) e a MARCA do alvo no fim do caminho;
+## 5. TOQUE DUPLO = TIRO mirado no alvo marcado (com 1 s de recarga);
+## 6. o caminho acaba e a criatura PERSEGUE o alvo marcado e bate (golpe).
 ##
 ## O tempo é o `main.tempo_ms` (real); o tempo lento muda o MUNDO, não o roteiro.
 ## Os caminhos são em px de MUNDO, relativos à criatura no instante da descida.
@@ -26,13 +26,13 @@ func _init(m: Node) -> void:
 	main = m
 	_passos = [
 		{"t": 0.5, "tipo": "caminho", "rel": [[0, 0], [70, 0], [70, -50], [20, -50], [20, 15]], "dur": 1.4},
-		{"t": 4.4, "tipo": "caminho", "rel": [[0, 0], [70, 0], [70, -60], [70, 0], [150, 0]], "dur": 1.0},
-		{"t": 5.8, "tipo": "caminho", "cel": [2, 12], "dur": 0.8},
-		{"t": 8.2, "tipo": "segurar"},
-		{"t": 10.0, "tipo": "segurar"},
-		{"t": 11.6, "tipo": "toque_duplo"},
-		{"t": 12.6, "tipo": "perto", "passa": true, "dur": 2.0},
-		{"t": 15.6, "tipo": "perto", "fim": true, "dur": 0.7},
+		{"t": 3.2, "tipo": "caminho", "cel": [2, 12], "dur": 0.8},
+		{"t": 5.2, "tipo": "segurar"},
+		{"t": 7.0, "tipo": "segurar"},
+		{"t": 8.6, "tipo": "toque"},
+		{"t": 9.6, "tipo": "perto", "passa": true, "dur": 2.6},
+		{"t": 13.2, "tipo": "toque_duplo"},
+		{"t": 14.6, "tipo": "toque_duplo"},
 	]
 
 
@@ -68,11 +68,17 @@ func _disparar(p: Dictionary, agora: float) -> void:
 			var alvo := Vector2(tela.x * 0.5, tela.y * 0.9)
 			_curso.append({"t0": agora, "t1": agora + 0.05, "hold": 0.5, "desceu": {},
 				"trilhas": [{"dedo": 0, "pts": PackedVector2Array([alvo])}]})
+		"toque":
+			# toque SIMPLES = pulo (o simples fica pendente até a janela do duplo)
+			var p1 := Vector2(tela.x * 0.5, tela.y * 0.86)
+			_curso.append({"t0": agora, "t1": agora + 0.08, "hold": 0.0, "desceu": {},
+				"trilhas": [{"dedo": 0, "pts": PackedVector2Array([p1, p1])}]})
 		"toque_duplo":
+			# dois toques = TIRO no alvo marcado
 			var alvo := Vector2(tela.x * 0.5, tela.y * 0.86)
 			_curso.append({"t0": agora, "t1": agora + 0.08, "hold": 0.0, "desceu": {},
 				"trilhas": [{"dedo": 0, "pts": PackedVector2Array([alvo, alvo])}]})
-			_curso.append({"t0": agora + 0.25, "t1": agora + 0.33, "hold": 0.0, "desceu": {},
+			_curso.append({"t0": agora + 0.18, "t1": agora + 0.26, "hold": 0.0, "desceu": {},
 				"trilhas": [{"dedo": 0, "pts": PackedVector2Array([alvo, alvo])}]})
 		"perto":
 			# em cima do ADVERSÁRIO: passa por cima (batida) ou termina nele (golpe final)
@@ -82,12 +88,17 @@ func _disparar(p: Dictionary, agora: float) -> void:
 			if dir.length() < 1.0:
 				dir = Vector2.RIGHT
 			dir = dir.normalized()
+			# caminho em "L" (na horizontal e depois na vertical): desvia do
+			# planalto no meio da arena, que a criatura não sobe andando.
+			var d := adv - cria
 			var rel: Array = [[0, 0]]
 			if p.get("passa", false):
-				rel.append([(adv - cria - dir * 12.0).x, (adv - cria - dir * 12.0).y])
-				rel.append([(adv - cria + dir * 34.0).x, (adv - cria + dir * 34.0).y])
+				rel.append([d.x, 0.0])
+				rel.append([d.x, d.y - 10.0])
+				rel.append([d.x + 40.0, d.y - 10.0])
 			else:
-				rel.append([(adv - cria).x, (adv - cria).y])
+				rel.append([d.x, 0.0])
+				rel.append([d.x, d.y])
 			_curso.append({"t0": agora, "t1": agora + float(p.get("dur", 1.0)), "hold": 0.0,
 				"trilhas": [{"dedo": 0, "pts": _pontos({"rel": rel})}], "desceu": {}})
 

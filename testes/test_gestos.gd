@@ -37,10 +37,21 @@ func test_um_dedo_arrasta_e_ja_e_caminho() -> void:
 	igual(evs[0]["inicio"], p, "e leva o começo junto")
 
 
+## v0.10: o toque simples fica PENDENTE (para não pular no 1º toque de um
+## duplo). Sem segundo toque, o tick solta o TOQUE (pulo); com o segundo perto e
+## logo, é TOQUE DUPLO (tiro) e o simples é descartado.
 func test_toque_e_toque_duplo() -> void:
 	var r := _r()
-	igual(_nomes(_toque(r, Vector2(600, 300), 0, 90)), ["toque"], "1º toque")
-	igual(_nomes(_toque(r, Vector2(605, 302), 250, 80)), ["toque", "toque_duplo"], "2º perto e logo")
+	var p := Vector2(600, 300)
+	igual(_nomes(_toque(r, p, 0, 90)), [], "1º toque fica pendente")
+	igual(_nomes(r.tick(200)), [], "ainda dentro da janela do duplo")
+	igual(_nomes(r.tick(400)), ["toque"], "sem 2º toque: TOQUE (pulo)")
+	var r2 := _r()
+	r2.iniciar(0, p, 0, CRIA)
+	igual(_nomes(r2.soltar(0, p, 90)), [], "1º do duplo pendente")
+	r2.iniciar(0, p, 150, CRIA)
+	igual(_nomes(r2.soltar(0, p, 230)), ["toque_duplo"], "2º perto e logo: DUPLO (tiro)")
+	igual(_nomes(r2.tick(900)), [], "o duplo não deixa toque pendente")
 
 
 func test_toque_longo_vira_nada() -> void:
@@ -117,8 +128,8 @@ func test_dois_dedos_nunca_viram_toque() -> void:
 
 func test_traduz_os_gestos() -> void:
 	var m: Dictionary = cfg["mapa"]
-	igual(C.traduzir({"gesto": "toque"}, m)["acao"], "travar", "toque = travar mira")
-	igual(C.traduzir({"gesto": "toque_duplo"}, m)["acao"], "pular", "toque duplo = pular")
+	igual(C.traduzir({"gesto": "toque"}, m)["acao"], "pular", "toque = pular")
+	igual(C.traduzir({"gesto": "toque_duplo"}, m)["acao"], "tiro", "toque duplo = tiro")
 	igual(C.traduzir({"gesto": "segurar_inicio"}, m)["acao"], "habilidade", "segurar = habilidade")
 	igual(C.traduzir({"gesto": "trajetoria"}, m)["acao"], "mover", "trajetória = mover")
 	igual(C.traduzir({"gesto": "nada"}, m), {}, "nada")
