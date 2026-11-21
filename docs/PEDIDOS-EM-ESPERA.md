@@ -24,6 +24,7 @@
 | P16 | Ajustes de sensação (21/11): marca na ponta, câmera mais distante, pulo emendado, cauda do sprint | P15 | **feito (v0.11.4)** |
 | P17 | Desligar o ataque em área do laço (desenho de círculo) | P16 | **feito (v0.11.5)** |
 | P18 | Extensão de parkour a leste (desníveis, plataformas e trilhas) | P17 | **feito (v0.12.0)** |
+| P19 | Pulo automático (opção) e pulo mais longo no sprint | P18 | **feito (v0.13.0)** |
 
 ---
 
@@ -272,3 +273,22 @@
   [`gdd/mapa.md`](gdd/mapa.md) e no [`HISTORICO`](HISTORICO.md).
 - **Pendente de ajuste (no aparelho):** se o vão de 2 células está confortável
   com pulo emendado/sprint; se a área merece um atalho a partir do início.
+
+
+## P19 — Pulo automático e pulo mais longo no sprint (v0.13.0)
+
+- **Operador (2026-11-21):** "Faça uma opção para ativar e desativar um
+  sistema de pulo automático, que pula quando houver um obstáculo de um nível
+  de altura, e o caminho prosseguir sem o obstáculo do outro lado. Também
+  aproveite para aumentar a distância dos pulos em velocidade aumentada
+  ativa."
+- **Feito em v0.13.0:** botão **PULO AUTO** na HUD (estado no corpo, padrão
+  `pular.auto_padrao` falso); `sim/corpo.gd:_tentar_pulo_auto` decide quando a
+  rota para num degrau de 1 nível (puro ou com vão curto de água antes) e o
+  desenho continua, com **alcance** conferido; `pular.sprint_fator` 1,5
+  alonga o avanço no ar com sprint (pulo de ~2,1 para ~3,1 células). Detalhe
+  em [`gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md) e no
+  [`HISTORICO`](HISTORICO.md).
+- **Pendente de design/ajuste:** se o automático deve vir **ligado** por
+  padrão; se vale persistir o botão entre partidas; se o automático deve
+  também **descer** degrau de 1 nível (hoje só sobe).

@@ -1121,3 +1121,190 @@ func test_laco_desenhado_nao_vira_mais_ataque_em_area() -> void:
 	var evs := _rodar_com(c, m, alvos, adv, 8.0)
 	checar("laco:onda" not in evs, "nenhuma onda saiu (%s)" % [evs])
 	checar(not c.em_rota(), "andou o caminho até o fim (%.0f px)" % c.pos.x)
+
+
+# ---------------------------------------------------------------- v0.13: pulo automático e pulo no sprint
+
+## Escada de UM nível (^ = altura 2) no meio do caminho; a rota termina em cima.
+const DEGRAU := [
+	",,,,,,,,,,,,",
+	",,,,^^^^^^^^",
+	",,,,,,,,,,,,",
+]
+## Escada de DOIS níveis (q = altura 3): o pulo automático NÃO deve disparar.
+const DEGRAU_DOIS := [
+	",,,,,,,,,,,,",
+	",,,,qqqqqqqq",
+	",,,,,,,,,,,,",
+]
+
+
+func test_pulo_auto_vem_desligado_por_padrao() -> void:
+	var s := _setup(DEGRAU)
+	var c: RefCounted = s[1]
+	checar(not c.pulo_auto, "padrão desligado (decisão: o jogador liga no botão)")
+	var cfg: Dictionary = acoes.duplicate(true)
+	cfg["pular"]["auto_padrao"] = true
+	var c2 := Corpo.new(cfg)
+	checar(c2.pulo_auto, "o dado `pular.auto_padrao` liga")
+
+
+func test_pulo_auto_sobe_o_degrau_de_um_nivel_e_segue() -> void:
+	var s := _setup(DEGRAU)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.pulo_auto = true
+	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(336, 48)])}, m, []).begins_with("ok"), "aceitou a rota")
+	var evs := _rodar(c, m, 6.0)
+	checar("pulo:auto" in evs, "pulou sozinho (%s)" % [evs])
+	checar(c.pos.x > 280.0, "subiu o degrau e seguiu no planalto (x=%.0f)" % c.pos.x)
+
+
+func test_pulo_auto_desligado_para_no_degrau() -> void:
+	var s := _setup(DEGRAU)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(336, 48)])}, m, [])
+	var evs := _rodar(c, m, 2.0)
+	checar("pulo:auto" not in evs, "não pulou com o sistema desligado (%s)" % [evs])
+	checar(c.barrado(), "parou na barreira")
+	checar(c.pos.x < 140.0, "ficou antes do degrau (x=%.0f)" % c.pos.x)
+
+
+func test_pulo_auto_nao_pula_dois_niveis() -> void:
+	var s := _setup(DEGRAU_DOIS)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.pulo_auto = true
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(336, 48)])}, m, [])
+	var evs := _rodar(c, m, 2.0)
+	checar("pulo:auto" not in evs, "degrau de 2 níveis não dispara (%s)" % [evs])
+	checar(c.barrado(), "continua parado na beirada")
+
+
+func test_pulo_auto_nao_pula_quando_o_caminho_acaba_antes_do_degrau() -> void:
+	var s := _setup(DEGRAU)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.pulo_auto = true
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(120, 48)])}, m, [])
+	var evs := _rodar(c, m, 1.5)
+	checar("pulo:auto" not in evs, "sem caminho do outro lado, não pula (%s)" % [evs])
+	checar(c.pos.x < 128.0, "parou na ponta do caminho (x=%.0f)" % c.pos.x)
+
+
+## Distância andada DURANTE um pulo, com `pular.sprint_fator` configurável.
+func _pulo_andado_com(sprint: bool, cfg: Dictionary) -> float:
+	var s := _setup(MAPA, [], 5, cfg)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(340, 48)])}, m, [])
+	_rodar(c, m, 0.15)
+	if sprint:
+		c.comandar({"acao": "segurar"}, m, [])
+		_rodar(c, m, 0.2)
+		c.comandar({"acao": "soltar_segurar"}, m, [])
+	c.comandar({"acao": "pular"}, m, [])
+	var p0: Vector2 = c.pos
+	var t := 0.0
+	while c.no_ar() and t < 1.0:
+		c.passo(1.0 / 30.0, m, [])
+		c.drenar_eventos()
+		t += 1.0 / 30.0
+	return c.pos.distance_to(p0)
+
+
+## v0.13: no AR com o sprint (ou a cauda) ativo, o avanço horizontal ganha
+## `pular.sprint_fator` — o pulo acelerado vai mais longe que antes.
+func test_pulo_no_sprint_alonga_o_avanco_do_ar() -> void:
+	var sem: Dictionary = acoes.duplicate(true)
+	sem["pular"]["sprint_fator"] = 1.0
+	var com: Dictionary = acoes.duplicate(true)
+	com["pular"]["sprint_fator"] = 1.5
+	var d_sem := _pulo_andado_com(true, sem)
+	var d_com := _pulo_andado_com(true, com)
+	checar(d_sem > 30.0, "o pulo acelerado anda (%.1f px)" % d_sem)
+	checar(d_com > d_sem * 1.3, "o fator alonga o pulo (%.1f vs %.1f px)" % [d_com, d_sem])
+
+
+## O fator é SÓ do ar: o pulo normal (sem sprint) não muda.
+func test_pulo_normal_nao_muda_com_o_fator_do_sprint() -> void:
+	var sem: Dictionary = acoes.duplicate(true)
+	sem["pular"]["sprint_fator"] = 1.0
+	var com: Dictionary = acoes.duplicate(true)
+	com["pular"]["sprint_fator"] = 1.5
+	var d_sem := _pulo_andado_com(false, sem)
+	var d_com := _pulo_andado_com(false, com)
+	checar(absf(d_com - d_sem) < 4.0, "sem sprint o fator não vale (%.1f vs %.1f px)" % [d_com, d_sem])
+
+
+## Vão de ÁGUA curto ANTES do degrau: o pulo automático cruza o vão e sobe
+## (é o caso do pátio de parkour para a passarela).
+func test_pulo_auto_cruza_vao_curto_e_sobe_o_degrau() -> void:
+	var s := _setup([
+		",,,,,,,,,,,,",
+		",,,,~^^^^^^^",
+		",,,,,,,,,,,,",
+	])
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.pulo_auto = true
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(336, 48)])}, m, [])
+	var evs := _rodar(c, m, 6.0)
+	checar("pulo:auto" in evs, "pulou o vão e subiu (%s)" % [evs])
+	checar(c.pos.x > 200.0, "chegou ao planalto (x=%.0f)" % c.pos.x)
+
+
+## Água no MESMO nível não é "obstáculo de um nível de altura": o sistema não
+## pula, mesmo com o caminho continuando do outro lado.
+func test_pulo_auto_nao_pula_vao_de_agua_no_mesmo_nivel() -> void:
+	# coluna de água de ponta a ponta (não dá para CONTORNAR; só pular)
+	var s := _setup([
+		",,,,~,,,,,,,",
+		",,,,~,,,,,,,",
+		",,,,~,,,,,,,",
+	])
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.pulo_auto = true
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(336, 48)])}, m, [])
+	var evs := _rodar(c, m, 2.0)
+	checar("pulo:auto" not in evs, "sem degrau de altura, não pula (%s)" % [evs])
+	checar(c.barrado(), "para na beira da água")
+	checar(c.pos.x < 140.0, "ficou antes do vão (x=%.0f)" % c.pos.x)
+
+
+## Vão de 2 células antes do degrau, sem sprint: o pulo NÃO alcança o pouso,
+## então o sistema não dispara (não pula para cair na água).
+func test_pulo_auto_nao_pula_vao_de_2_celulas_sem_sprint() -> void:
+	var s := _setup([
+		",,,,,,,,,,,,",
+		",,,,~~^^^^^^",
+		",,,,,,,,,,,,",
+	])
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.pulo_auto = true
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(336, 48)])}, m, [])
+	var evs := _rodar(c, m, 2.0)
+	checar("pulo:auto" not in evs, "pouso fora do alcance não dispara (%s)" % [evs])
+	checar(c.barrado(), "para na beira do vão")
+	checar(c.pos.x < 140.0, "ficou antes do vão (x=%.0f)" % c.pos.x)
+
+
+## Com SPRINT, o pulo alonga e o mesmo vão de 2 células passa a ser alcançável:
+## o automático cruza e sobe.
+func test_pulo_auto_com_sprint_cruza_vao_de_2_celulas() -> void:
+	var s := _setup([
+		",,,,,,,,,,,,",
+		",,,,~~^^^^^^",
+		",,,,,,,,,,,,",
+	])
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.pulo_auto = true
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(336, 48)])}, m, [])
+	c.comandar({"acao": "segurar"}, m, [])
+	var evs := _rodar(c, m, 6.0)
+	checar("pulo:auto" in evs, "o pulo do sprint alcança (%s)" % [evs])
+	checar(c.pos.x > 200.0, "chegou ao planalto (x=%.0f)" % c.pos.x)

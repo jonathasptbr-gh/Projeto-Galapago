@@ -4,6 +4,11 @@
 
 | versão | onde | o quê | tamanho |
 |---|---|---|---|
+| v0.13.0 | `sim/corpo.gd` | o pulo automático só sobe degrau de **1 nível**; **descer** degrau, água no mesmo nível e degrau de 2+ níveis continuam no toque duplo | decisão |
+| v0.13.0 | `jogo/hud.gd` | o botão PULO AUTO é HUD de desenvolvimento (por cima do mapa) e **não persiste** entre aberturas: cada partida começa em `pular.auto_padrao` (falso) | pequeno |
+| v0.13.0 | `sim/corpo.gd` | o alcance do pulo automático é estimado (`velocidade × fatores × 0,42 s × 0,9`), não simulado: numa rota muito curva ou no limite do vão o sistema pode não disparar (fica o toque duplo) ou disparar no último quadro | pequeno |
+| v0.13.0 | `dados/acoes.json` | `pular.sprint_fator` 1,5 (pulo ~3,1 células) e a margem 0,9 do alcance são pontos de partida — ajustar no aparelho; com sprint o pulo pode passar do pouso em plataforma curta | design |
+| v0.13.0 | oráculo | o botão aparece nos quadros, mas o demo não **clica** nele; a regra do automático é provada pelos testes e por simulação, não por quadro | pequeno |
 | v0.12.0 | `dados/mapas/fundacao.json` | a extensão é só MOCKUP: trilha/passarela/rampa alta/plataforma ainda não têm arte (P6); a área também não tem decoração (árvore, pedra) | design |
 | v0.12.0 | `jogo/main.gd` | não há atalho para a área de parkour: chega-se pelo túnel ou pelo pulo do canal e atravessando a ilha leste — dá ~40 s de caminhada desde o início | decisão |
 | v0.12.0 | `sim/mundo.gd` | o vão de 2 células não tem regra própria: exige **pulo emendado ou sprint**; quem cai na água depende de outro pulo (é a regra que já existia) | design |

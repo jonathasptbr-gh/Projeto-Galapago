@@ -3,6 +3,51 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.13.0 — pulo automático com botão e pulo mais longo no sprint (2026-11-21)
+
+- **Pedido do operador (2026-11-21):** "Faça uma opção para ativar e desativar
+  um sistema de pulo automático, que pula quando houver um obstáculo de um
+  nível de altura, e o caminho prosseguir sem o obstáculo do outro lado.
+  Também aproveite para aumentar a distância dos pulos em velocidade aumentada
+  ativa."
+- **A OPÇÃO:** botão **PULO AUTO: LIGADO/DESLIGADO** no canto superior
+  esquerdo da HUD (o toque nele é consumido pelo Control e **não vira
+  caminho**). O estado é do corpo (`sim/corpo.gd: pulo_auto`) e o padrão vem de
+  `pular.auto_padrao` (**falso**): o jogo continua como antes até o jogador
+  ligar. Não há persistência entre partidas — cada abertura começa no padrão.
+- **A REGRA (sim/corpo.gd, `_tentar_pulo_auto`):** quando a rota para na
+  beirada e o desenho continua, o corpo pula sozinho pelo **mesmo
+  `_iniciar_pulo` do toque duplo** (respeita a recarga; eventos `pulo:on` +
+  `pulo:auto`). Dispara em dois formatos:
+  1. a célula bloqueada já é um **degrau andável de 1 nível** (passarela/
+     planalto);
+  2. há um **vão de água curto** antes do degrau, com o pouso 1 nível acima
+     **dentro do alcance** do pulo.
+  **Não** dispara para água no mesmo nível, rocha/objeto, degrau de 2+ níveis,
+  caminho que **acaba** na beirada, ou pouso longe demais (o alcance é medido
+  com os fatores de sprint do momento ×0,9 — não pula para cair na água).
+- **PULO MAIS LONGE NO SPRINT:** no ar, com o sprint (ou a cauda) ativo, o
+  avanço horizontal ganha `pular.sprint_fator` (**1,5**) — o fator vale **só no
+  ar**; a caminhada acelerada não mudou. Medido em teste (rota reta, cauda do
+  sprint): **46,9 px** no pulo normal e **66,8 → 98,2 px** no acelerado, de
+  ~2,1 para ~3,1 células. Com isso o vão de 2 células do parkour passa com
+  sprint (antes era apertado) e o automático cruza esse mesmo vão quando o
+  sprint está ativo.
+- **`dados/acoes.json`:** `pular.auto_padrao: false` e `pular.sprint_fator:
+  1.5` (idem na nota `_leia`, v0.13).
+- **Testes novos (11, `testes/test_corpo.gd`):** padrão desligado + dado que
+  liga; sobe o degrau de 1 e segue; desligado para no degrau; **não** pula 2
+  níveis; **não** pula se o caminho acaba; cruza o vão curto e sobe; **não**
+  pula vão de água no mesmo nível; **não** pula vão de 2 células sem sprint;
+  **cruza** o mesmo vão com sprint; o fator alonga o pulo no sprint; o fator
+  **não** muda o pulo normal. Suíte: **125 testes, 0 falhas**.
+- **Oráculo:** quadros com o botão no canto superior esquerdo (desligado);
+  a travessia automática foi conferida por simulação no `fundacao.json`
+  (dispara no pátio, célula 43, e sobe a passarela).
+- **O que NÃO mudou:** o toque duplo continua sendo o pulo manual (o automático
+  só antecipa o degrau de 1 nível para cima); descer degrau, atravessar água no
+  mesmo nível e vencer 2 níveis seguem no toque duplo.
+
 ## v0.12.0 — a extensão de parkour a leste (2026-11-21)
 
 - **Pedido do operador (2026-11-21):** "Crie mais uma extensão para o mapa do

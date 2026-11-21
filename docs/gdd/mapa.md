@@ -95,7 +95,11 @@ O percurso de ida (oeste→leste), tudo sobre água:
 emendado (ou sprint) sobre 2, subida de 1 nível e descida de 1 nível (andar
 não vence; o pulo sim), rampas que substituem o pulo, e caminhar em cima de
 plataforma com a câmera acompanhando. A regra é a de `sim/mundo.gd` — a
-extensão só usa alturas e vãos, sem código novo de movimento.
+extensão só usa alturas e vãos, sem código novo de movimento. Com o **PULO
+AUTO** ligado (botão da HUD, v0.13), os degraus de **1 nível** com o caminho
+continuando sobem sozinhos — inclusive os que têm um vão de **1 célula** antes
+(pátio→passarela e a volta p→b→q); os vãos de **2 células** continuam exigindo
+pulo emendado ou sprint (com sprint o pulo alonga e o automático cruza).
 
 **Como chegar:** o jogo começa na ilha oeste. A ilha leste é alcançável pelo
 túnel (terra fofa) ou pelo pulo sobre o canal central; a trilha de parkour

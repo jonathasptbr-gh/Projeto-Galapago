@@ -68,6 +68,24 @@ extends RefCounted
 ## `marcas` de laço não nascem e `_checar_marcas`/`_disparar` (ramo `laco`)
 ## ficam **parados atrás do interruptor** — o código da onda continua inteiro.
 ##
+## v0.13 — **PULO AUTOMÁTICO** (`pulo_auto`, desligado por padrão; o botão da
+## HUD liga/desliga) e **PULO MAIS LONGE NO SPRINT**:
+##
+## - o pulo automático dispara quando a rota para numa **escada de UM nível
+##   para cima** e o caminho CONTINUA **depois do pouso**: vale para a célula
+##   que já é o degrau e para um **vão de água curto** antes dele, desde que o
+##   pouso esteja dentro do alcance do pulo. Água no mesmo nível, rocha/objeto,
+##   degrau de 2+ níveis, caminho que acaba na beirada e pouso fora do alcance
+##   NÃO disparam — continuam exigindo o toque duplo;
+## - a decisão é da `sim/` (testável): `pulo_auto` é um estado do corpo, e o
+##   disparo chama o MESMO `_iniciar_pulo` do toque duplo, respeitando a
+##   recarga; o evento sai como `pulo:auto` (o `pulo:on` continua saindo);
+## - **velocidade aumentada = pulo mais longo**: enquanto está no ar com o
+##   sprint (ou a cauda dele) ativo, o avanço horizontal ganha
+##   `pular.sprint_fator` (1,5) — o pulo acelerado passa de ~2,1 para ~3,1
+##   células (46,9 px normal; 66,8 → 98,2 px com sprint). O fator só vale NO
+##   AR; andar acelerado não mudou.
+##
 ## v0.9 — O ATAQUE NASCE DO DESENHO (`sim/formas.gd`), não de um gesto de dois
 ## dedos; v0.9.1 afinou as três pontas:
 ##
@@ -174,6 +192,9 @@ var _pausa_t := 0.0                 # pausa curta ao disparar o tiro
 var energia := 1.0
 var _sprint := false
 var _sprint_cfg: Dictionary = {}
+# PULO AUTOMÁTICO (v0.13): a HUD liga/desliga; padrão em `pular.auto_padrao`.
+# Ligado, o corpo pula sozinho a escada de UM nível quando a rota continua.
+var pulo_auto := false
 # CAUDA do sprint (v0.11.4): ao soltar, o embalo continua caindo aos poucos
 var _sprint_cauda_t := 0.0
 # EMBALO dos golpes físicos (v0.9.2): acelera curto na marcação e longo no
@@ -211,6 +232,7 @@ func _init(definicoes: Dictionary = {}) -> void:
 	_combate = defs.get("combate", {})
 	_embalo = defs.get("embalo", {})
 	_sprint_cfg = defs.get("sprint", {})
+	pulo_auto = bool(defs.get("pular", {}).get("auto_padrao", false))
 
 
 # ---------------------------------------------------------------- consultas
@@ -943,9 +965,14 @@ func _avancar_rota(dt: float, mundo: RefCounted, alvos: Array) -> Vector2:
 		return _terminar_rota(alvos)
 	var base := pos
 	var fator_sprint := _fator_sprint()
+	# PULO ACELERADO (v0.13): no AR, o sprint (ou a cauda dele) alonga o avanço
+	# horizontal; no chão o fator é 1 e a caminhada não muda.
+	var fator_ar := 1.0
+	if no_ar() and fator_sprint > 1.001:
+		fator_ar = maxf(float(defs.get("pular", {}).get("sprint_fator", 1.0)), 1.0)
 	# o avanço que ela DEVERIA ter neste quadro: é o que desempata a projeção
 	# num cruzamento/bico (dois braços no mesmo lugar) e impede o "pulo".
-	var esperado := maxf(velocidade * fator_sprint * _fator_embalo() * dt * 2.0, 2.0)
+	var esperado := maxf(velocidade * fator_sprint * fator_ar * _fator_embalo() * dt * 2.0, 2.0)
 	var proj := _projetar(base, esperado)
 	# teto de segurança do avanço: um cruzamento/laço não pode "teleportar" a
 	# criatura para o fim do braço; no máximo o que ela andaria em ~4 quadros.
@@ -960,7 +987,7 @@ func _avancar_rota(dt: float, mundo: RefCounted, alvos: Array) -> Vector2:
 		if alvo_f != Vector2.ZERO and pos.distance_to(alvo_f) <= float(_embalo.get("gatilho_px", 70.0)):
 			_iniciar_embalo(float(_embalo.get("curto_s", 0.25)), float(_embalo.get("curto_fator", 1.7)))
 			_embalo_final_feito = true
-	var passo := velocidade * _fator_embalo() * fator_sprint * dt
+	var passo := velocidade * _fator_embalo() * fator_sprint * fator_ar * dt
 	# ALVO: o ponto MAIS LONGE da estrada que a linha reta alcança andando.
 	# Sem isso, a criatura corta a corda de uma curva e bate na pedra/beira.
 	var alvo := _alvo_visivel(base, mundo)
@@ -1004,6 +1031,7 @@ func _avancar_rota(dt: float, mundo: RefCounted, alvos: Array) -> Vector2:
 	if novo.distance_to(base) < 0.001:
 		_barrado = true
 		_atualizar_traco_t(dt, base)
+		_tentar_pulo_auto(mundo, base, _dir_suave, passo)
 		return base
 	_barrado = false
 	var real := (novo - base).normalized()
@@ -1011,6 +1039,83 @@ func _avancar_rota(dt: float, mundo: RefCounted, alvos: Array) -> Vector2:
 	olhar = _olhar_suave
 	_atualizar_traco_t(dt, novo)
 	return novo
+
+
+## PULO AUTOMÁTICO (v0.13, com `pulo_auto` ligado): a rota parou diante de uma
+## escada de UM nível para CIMA e o desenho CONTINUA em cima dela? Então o corpo
+## pula sozinho, pelo mesmo `_iniciar_pulo` do toque duplo. O sistema aceita dois
+## formatos de obstáculo:
+##
+## - a célula bloqueada já é o degrau (`^`/`b`: andável 1 nível acima);
+## - ou há um VÃO DE ÁGUA curto antes do degrau (o pouso é a célula andável 1
+##   nível acima, DENTRO do alcance do pulo).
+##
+## NÃO disparam: água no mesmo nível, rocha/objeto, degrau de 2+ níveis, caminho
+## que ACABA na beirada, ou pouso longe demais (nesse caso um pulo cairia na
+## água). Nesses casos o toque duplo continua sendo o gesto.
+func _tentar_pulo_auto(mundo: RefCounted, base: Vector2, dir: Vector2, passo: float) -> bool:
+	if not pulo_auto or no_ar() or camada == Mundo.SUBSOLO:
+		return false
+	if float(_recargas.get("pular", 0.0)) > 0.0:
+		return false
+	if dir.length() < 0.01 or total_rota - rota_t < PASSO_TERRENO * 2.0:
+		return false
+	# olha um pouco ALÉM do passo: a criatura para até 4 px antes da borda e o
+	# passo de um quadro pode não chegar a invadir a célula do degrau.
+	var olhar := maxf(passo + PASSO_TERRENO * 2.0, PASSO_TERRENO * 2.0)
+	var bloq: Dictionary = _primeiro_bloqueio(base, base + dir.normalized() * olhar, mundo)
+	if bloq.is_empty() or str(bloq.get("tipo", "")) != "terreno":
+		return false
+	var c: Vector2i = bloq["celula"]
+	var c0: Vector2i = mundo.celula_de(base)
+	var h0: float = mundo.altura(c0)
+	# formato 1: a própria célula bloqueada é o degrau de 1 nível;
+	# formato 2: um vão de água (altura 0) curto antes do degrau.
+	var degrau_na_celula: bool = mundo.andavel(c, camada) and _um_nivel_acima(mundo, c, h0)
+	var vao_de_agua: bool = not mundo.andavel(c, camada) and mundo.altura(c) <= 0.01 \
+			and mundo.bloqueio(c, camada) == "terreno"
+	if not degrau_na_celula and not vao_de_agua:
+		return false
+	# ALCANCE do pulo com os fatores de AGORA (sprint alonga o ar) — um pouso
+	# fora disso cairia na água, então o sistema não dispara.
+	var fs := _fator_sprint()
+	var fator_ar := 1.0
+	if fs > 1.001:
+		fator_ar = maxf(float(defs.get("pular", {}).get("sprint_fator", 1.0)), 1.0)
+	var dur := maxf(float(defs.get("pular", {}).get("fases", [0.06, 0.42, 0.06])[1]), 0.1)
+	var alcance := velocidade * fs * fator_ar * _fator_embalo() * dur * 0.9
+	# O PONTO DE POUSO (1 nível acima) adiante na ROTA e a CONTINUAÇÃO depois
+	# dele — é o que separa "degrau no meio do caminho" de "o caminho acaba".
+	var cp := float(mundo.celula_px)
+	var fim := minf(rota_t + cp * 3.0, total_rota - PASSO_TERRENO)
+	var s := rota_t + PASSO_TERRENO
+	while s <= fim:
+		var p := _ponto_em_rota(s)
+		var pc: Vector2i = mundo.celula_de(p)
+		if pc != c0 and mundo.andavel(pc, camada) \
+				and mundo.bloqueio(pc, camada) == "" \
+				and _um_nivel_acima(mundo, pc, h0):
+			if p.distance_to(base) > alcance:
+				return false  # o pulo não chega: não pula para cair na água
+			var s2 := s + cp * 0.75
+			while s2 <= minf(rota_t + cp * 4.0, total_rota):
+				var p2: Vector2i = mundo.celula_de(_ponto_em_rota(s2))
+				if p2 != pc and mundo.andavel(p2, camada) \
+						and mundo.bloqueio(p2, camada) == "" \
+						and mundo.altura(p2) <= h0 + 1.01:
+					_iniciar_pulo()
+					eventos.append("pulo:auto")
+					return true
+				s2 += PASSO_TERRENO
+			return false  # achou o degrau, mas o caminho acaba em cima dele
+		s += PASSO_TERRENO
+	return false
+
+
+## A célula `c` está exatamente UM nível acima de `h0`?
+func _um_nivel_acima(mundo: RefCounted, c: Vector2i, h0: float) -> bool:
+	var dh: float = mundo.altura(c) - h0
+	return dh >= 0.99 and dh <= 1.01
 
 
 ## Projeta a criatura na rota. Em vez de só a menor distância (que num

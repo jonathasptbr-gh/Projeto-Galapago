@@ -18,6 +18,9 @@ var _nota_t := 0.0
 var _energia_bg: ColorRect
 var _energia: ColorRect
 var _energia_largura := 180.0
+# PULO AUTOMÁTICO (v0.13): o botão manda no `corpo.pulo_auto` (a regra é da sim)
+var _corpo: RefCounted
+var _pulo_auto: Button
 
 
 func _ready() -> void:
@@ -31,6 +34,15 @@ func _ready() -> void:
 	leg.position.y += 34
 	_status = _rotulo("", Vector2(20, 46), 16)
 	_nota = _rotulo("", Vector2(20, 72), 18)
+	# PULO AUTOMÁTICO (v0.13): botão de ligar/desligar (padrão em `pular.auto_padrao`).
+	# É um Control de verdade — o toque nele é consumido pela HUD e não vira caminho.
+	_pulo_auto = Button.new()
+	_pulo_auto.text = "PULO AUTO: DESLIGADO"
+	_pulo_auto.add_theme_font_size_override("font_size", 16)
+	_pulo_auto.position = Vector2(20, 104)
+	_pulo_auto.custom_minimum_size = Vector2(240, 34)
+	_pulo_auto.pressed.connect(_alternar_pulo_auto)
+	add_child(_pulo_auto)
 	_gesto = _rotulo("gesto: —", Vector2.ZERO, 20)
 	_gesto.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 18)
 	_gesto.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -69,6 +81,10 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if atualizador and _status:
 		_status.text = atualizador.texto_status()
+	if _pulo_auto and _corpo:
+		var ligado: bool = bool(_corpo.pulo_auto)
+		_pulo_auto.text = "PULO AUTO: %s" % ("LIGADO" if ligado else "DESLIGADO")
+		_pulo_auto.modulate = Color(0.65, 1.0, 0.7) if ligado else Color.WHITE
 	if _nota_t > 0.0:
 		_nota_t = maxf(0.0, _nota_t - delta)
 		if _nota_t <= 0.0 and _nota:
@@ -82,6 +98,7 @@ func _legenda() -> String:
 	linhas.append("fim do caminho no alvo → marca")
 	linhas.append("toque → tiro (no alvo marcado ou na direção do toque)")
 	linhas.append("toque duplo → pulo")
+	linhas.append("botão PULO AUTO → sobe degrau de 1 nível")
 	linhas.append("passar por cima → batida")
 	linhas.append("segurar no caminho → sprint")
 	linhas.append("segurar parado → habilidade")
@@ -99,7 +116,15 @@ func nota(texto: String) -> void:
 		_nota_t = 2.4
 
 
+func _alternar_pulo_auto() -> void:
+	if _corpo == null:
+		return
+	_corpo.pulo_auto = not bool(_corpo.pulo_auto)
+	nota("PULO AUTO %s" % ("ligado" if _corpo.pulo_auto else "desligado"))
+
+
 func estado(corpo: RefCounted, alvos: Array, planejando := false, escala := 1.0) -> void:
+	_corpo = corpo
 	var modo := ""
 	if corpo.em_rota():
 		var pct := roundi(100.0 * minf(corpo.rota_t, corpo.total_rota) / maxf(corpo.total_rota, 0.001))

@@ -1,7 +1,7 @@
 # Gestos e ações — como a criatura se move e age
 
 > Regra toda em `sim/` (testada) e nas tabelas `dados/gestos.json` +
-> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.11.5.**
+> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.13.0.**
 
 ## O fluxo
 
@@ -28,7 +28,7 @@ Tempo **simulado** (`tempo_ms`): teste, demo e oráculo são determinísticos.
 | **terminar o caminho** com alvo marcado | o animal **vai atrás** (perseguição final) e só bate **ao chegar perto**. Com o destino longe do alvo **não há marca** e ele **não volta** (v0.11.4) |
 | **segurar** | **com um caminho em curso → SPRINT** (acelera e gasta a **barra de energia**); **sem caminho → habilidade em si mesmo** (cavar). Ativa no **limiar** do segurar, sem esperar soltar. **v0.11.4:** ao soltar, o embalo **continua por `sprint.cauda_s`** e cai aos poucos (dá para pular ainda acelerado) |
 | **toque simples** | **TIRO** HÍBRIDO: **com alvo marcado**, mirado nele; **sem marca**, na **direção do toque em relação ao animal** (1 s de recarga; o animal **para** para atirar e segue o caminho). Sai ~0,28 s depois, para não atirar no 1º toque de um duplo |
-| **toque duplo** | **PULO**. **v0.11.4:** o pulo pedido **durante o ar** entra na **FILA** e sai no quadro em que o anterior pousa (`pular.buffer_s`) — pulsos seguidos emendam sem atraso |
+| **toque duplo** | **PULO**. **v0.11.4:** o pulo pedido **durante o ar** entra na **FILA** e sai no quadro em que o anterior pousa (`pular.buffer_s`) — pulsos seguidos emendam sem atraso. **v0.13:** com o **PULO AUTO** ligado (botão da HUD), o corpo pula sozinho o degrau de **1 nível** quando o caminho continua — ver a seção própria |
 
 **Não há gesto de dois dedos** (v0.9 tirou ataque ↑, defesa ↓ e especial
 abrindo). Um segundo dedo não é ação: o caminho continua no primeiro dedo e
@@ -268,13 +268,38 @@ corpo:
 - **v0.11.4 — a CAUDA:** soltar não corta a velocidade na hora. `_fator_sprint`
   mantém o embalo por `sprint.cauda_s` (0,60 s) em **queda linear de 1,7× até
   1,0×** (a energia só é gasta segurando). É ela que deixa **pular ainda
-  acelerado**: o pulo sobe a mesma altura, mas o **avanço horizontal** cresce
-  (~1,45× o pulo normal, pela queda de 1,7× a 1,0× em 0,42 s; o teste exige
-  >1,2×);
+  acelerado**: o pulo sobe a mesma altura, mas o **avanço horizontal** cresce;
+- **v0.13 — o ar acelera MAIS:** com o sprint (ou a cauda) ativo, o avanço
+  horizontal **no ar** ganha `pular.sprint_fator` (1,5) — o fator só vale
+  durante o pulo, a caminhada acelerada não mudou. Medido em teste: pulo
+  normal 46,9 px; acelerado **66,8 → 98,2 px** (de ~2,1 para ~3,1 células). Um
+  vão de 2 células, que antes só passava no sprint apertado, passa com folga;
 - **sem caminho → HABILIDADE em si mesmo** (hoje: **cavar**), ativada no
   limiar: desce ao subsolo em célula escavável e sobe de novo do subsolo. A
   habilidade dura o tempo das fases (`cavar.fases`). A HUD diz o motivo quando
   não dá para cavar.
+
+## Pulo automático (v0.13)
+
+Um **botão na HUD** (`PULO AUTO: LIGADO/DESLIGADO`, canto superior esquerdo)
+liga e desliga o sistema; o padrão vem de `pular.auto_padrao` (**falso** — o
+jogo continua igual até o jogador ligar). O estado é do corpo
+(`sim/corpo.gd: pulo_auto`), então o teste e a simulação usam a mesma regra.
+
+Ligado, quando a **rota para na beirada** e o desenho **continua**:
+
+| situação | pula sozinho? |
+|---|---|
+| célula à frente é **andável 1 nível acima** (passarela/planalto) | **sim** |
+| **vão de água curto** antes do degrau de 1 nível, com o pouso **dentro do alcance** | **sim** (cruza o vão e sobe) |
+| vão de **2 células** antes do degrau, sem sprint | **não** (pousaria na água) |
+| o mesmo vão **com sprint** (o pulo alonga) | **sim** |
+| água no **mesmo nível**, rocha/objeto, degrau de **2+ níveis** | **não** |
+| o caminho **acaba** na beirada (nada do outro lado) | **não** |
+
+O disparo é o **mesmo** `_iniciar_pulo` do toque duplo (respeita a recarga) e
+sai com o evento `pulo:on` + `pulo:auto`. Não há "pular no vazio": a decisão
+checa o **pouso dentro do alcance** e a **continuação** da rota depois dele.
 
 ## Tempo lento, escurecida e a rampa de saída
 
@@ -290,7 +315,7 @@ numa rampa de `planejamento.retomada_ms` (0,45 s). Segurar para a habilidade
 | **onda** (laço) | círculo que cresce do centro do laço e empurra quem varre — **DESLIGADA desde a v0.11.5** (`formas.laco_ataque`) | nenhum: continua andando |
 | **tiro** (toque simples) | projétil no alvo marcado (automira) ou na direção do toque (sem marca); para no primeiro alvo | nenhum: o animal PAUSA para atirar e segue |
 | **golpe** (`ataque`/`batida`) | arco de fases (antecipação → ativa → recuperação) | nenhum |
-| **pulo** | arco no ar enquanto segue; atravessa barreira | nenhum |
+| **pulo** | arco no ar enquanto segue; atravessa barreira; **v0.13:** o automático sobe o degrau de 1 nível quando a rota continua | nenhum |
 | **habilidade** | em si mesmo, com duração; cavar troca de camada | cavar apaga a rota (outra camada) |
 
 ## Autonomia (sem rota)
@@ -306,7 +331,7 @@ depois **ronda** ao redor. Cada passo é cortado pelo mundo.
 | `mover` | `velocidade` 110 px/s |
 | `ataque` | golpe físico do fim do caminho: `fases` [0,10 · 0,14 · 0,18] s, `alcance` 40, `arco` 90°, `recarga` 0,15 |
 | `batida` | pancada de travessia: `fases` [0,06 · 0,10 · 0,12] s, `alcance` 30, `arco` 120° |
-| `pular` | `fases` [0,06 · 0,42 · 0,06] s, `altura` 26 px, `recarga` 0,08 (cooldown de POUSO), `buffer_s` 0,60 (fila do pulo no ar) |
+| `pular` | `fases` [0,06 · 0,42 · 0,06] s, `altura` 26 px, `recarga` 0,08 (cooldown de POUSO), `buffer_s` 0,60 (fila do pulo no ar), `auto_padrao` falso (PULO AUTO começa desligado), `sprint_fator` 1,5 (avanço no ar com sprint) |
 | `habilidade` | `nome` = `cavar` (o que o segurar ativa) |
 | `cavar` | `fases` [0,15 · 0,55 · 0,15] s |
 | `formas` | limiares do laço (tabela abaixo) |
