@@ -23,12 +23,15 @@
 - **Sem joystick nem botão virtual.** Interface limpa, toque direto e gestos
   (referência: Kingdom Two Crowns; sem automação excessiva).
 - **Trajetória riscada** (referência: Inazuma Eleven DS): o jogador desenha o
-  caminho da criatura na arena. Desde a v0.6 o desenho é feito a partir de uma
-  **âncora segurada longe dela** (o dedo não tapa a visão), com tempo lento
-  durante o planejamento.
-- **Gestos relativos à TELA** (decisão do operador, v0.6): para cima = ataque
-  físico; lados = especiais; para baixo = esquiva; para baixo e continuar
-  segurando = defesa; toque duplo = pulo. O detalhe fica em
+  caminho da criatura na arena. Desde a v0.7 o arrasto **não espera**: passou
+  da tolerância, já é caminho, desenhado **ao vivo** e partindo de onde a
+  criatura estava quando o dedo desceu (a linha não anda com ela). O tempo
+  desacelera e a tela escurece durante o desenho; ao soltar, uma rampa de
+  aceleração devolve o ritmo.
+- **Gestos relativos à TELA** (v0.6): para cima = ataque físico; lados =
+  especiais; para baixo = esquiva; para baixo e continuar parado = defesa;
+  toque duplo = pulo. Um **risco rápido** dispara a ação **no meio do
+  arrasto**, em paralelo ao caminho (v0.7). O detalhe fica em
   [`gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md).
 - **Afinidade como mecânica de controle:**
   - baixa: o comando é sugestão — a criatura hesita, reinterpreta ou desobedece

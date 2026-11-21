@@ -52,14 +52,14 @@ func _process(_delta: float) -> void:
 
 func _legenda() -> String:
 	var m: Dictionary = cfg.get("mapa", {})
-	var linhas := PackedStringArray(["v0.6.1 · GESTOS (TELA)"])
-	linhas.append("segurar parado e arrastar → caminho")
+	var linhas := PackedStringArray(["v0.7.0 · GESTOS (TELA)"])
+	linhas.append("arraste → caminho (ao vivo)")
 	for s in m.get("deslize", []):
 		var seta: String = {"cima": "↑", "baixo": "↓", "esquerda": "←", "direita": "→"}.get(s["nome"], "?")
-		var l := "%s %s → %s" % [seta, s["nome"], s["acao"]]
+		var l := "%s risco rápido → %s" % [seta, s["acao"]]
 		if not l in linhas:
 			linhas.append(l)
-	linhas.append("↓ + segurar → %s" % m.get("segurar", "—"))
+	linhas.append("↓ parado → %s" % m.get("segurar", "—"))
 	linhas.append("toque → %s" % m.get("toque", "—"))
 	linhas.append("toque duplo → %s" % m.get("toque_duplo", "—"))
 	linhas.append("segurar nela → %s" % m.get("segurar_na_criatura", "—"))
@@ -87,7 +87,7 @@ func estado(corpo: RefCounted, alvos: Array, planejando := false, escala := 1.0)
 		alvo = "%s%s" % [corpo.alvo_tipo, (" a %d px" % roundi(corpo.pos.distance_to(Alvos.pos_de(alvos, corpo.alvo_id))))]
 	var extra := ""
 	if planejando:
-		extra = " · PLANEJANDO %d%%" % roundi(escala * 100.0)
+		extra = " · DESENHANDO %d%%" % roundi(escala * 100.0)
 	_estado.text = "estado: %s · alvo: %s · %s%s%s%s" % [modo, alvo, corpo.camada,
 		(" · defendendo" if corpo.defendendo else ""), (" · no ar" if corpo.no_ar() else ""), extra]
 

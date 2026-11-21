@@ -28,26 +28,95 @@ func test_toque_e_toque_duplo() -> void:
 	igual(_nomes(_gesto(r, Vector2(605, 302), Vector2(605, 302), 250, 80)), ["toque", "toque_duplo"], "2º perto e logo")
 
 
-## A ÂNCORA: segurar parado cria o "animal virtual"; arrastar vira caminho.
-func test_segurar_cria_ancora_e_arrasto_vira_caminho() -> void:
+## v0.7: NÃO existe mais segurar antes. Passou da tolerância, é CAMINHO.
+func test_arrasto_ja_e_caminho_sem_espera() -> void:
 	var r := _r()
 	var p := Vector2(200, 1000)
 	r.iniciar(p, 0, CRIA)
-	igual(r.tick(200), [], "ainda não")
-	igual(r.tick(400), [], "âncora não gera comando")
-	checar(r.ancorado(), "ancorou")
-	r.mover(p + Vector2(80, -40), 470)
-	r.mover(p + Vector2(160, -80), 560)
-	var evs: Array = r.soltar(p + Vector2(200, -100), 700)
-	igual(_nomes(evs), ["trajetoria"], "arrasto depois do segurar = caminho")
-	igual(evs[0]["ancora"], p, "âncora é o ponto segurado")
+	igual(r.mover(p + Vector2(8, 0), 20), [], "abaixo da tolerância ainda é toque")
+	checar(not r.desenhando(), "não desenhou")
+	var evs_meio: Array = r.mover(p + Vector2(40, 0), 60)
+	igual(evs_meio, [], "40 px em 60 ms ainda é desenho lento")
+	checar(r.desenhando(), "já é caminho — sem espera")
+	checar(r.planejando(), "e o mundo desacelera")
+	igual(r.inicio(), p, "o começo do traço é o ponto da descida")
+	var evs: Array = r.soltar(p + Vector2(140, 0), 500)
+	igual(_nomes(evs), ["trajetoria"], "soltar fecha o caminho")
+	igual(evs[0]["inicio"], p, "e leva o começo junto")
 	checar(not evs[0]["defesa"], "não é defesa")
+
+
+## O RISCO rápido dispara a ação NO MEIO do arrasto; o caminho segue.
+func test_risco_dispara_acao_no_meio_do_desenho() -> void:
+	var r := _r()
+	r.iniciar(Vector2(200, 700), 0, CRIA)
+	var evs: Array = []
+	var p := Vector2(200, 700)
+	for i in range(1, 6):
+		p += Vector2(0, -40)
+		evs.append_array(r.mover(p, 30 * i))
+	igual(_nomes(evs), ["deslize"], "uma ação, no meio do traço")
+	checar(r.desenhando(), "o caminho continua sendo desenhado")
+	var cmd := C.traduzir(evs[0], cfg["mapa"])
+	igual(cmd["acao"], "ataque", "risco para cima = ataque")
+	igual(cmd["setor"], "cima", "setor de cima")
+	igual(_nomes(r.soltar(p + Vector2(20, -40), 220)), ["trajetoria"], "o soltar ainda fecha a rota")
+
+
+## Um gesto dispara NO MÁXIMO uma ação (senão um desenho rápido vira metralhadora).
+func test_um_risco_por_gesto() -> void:
+	var r := _r()
+	r.iniciar(Vector2(200, 700), 0, CRIA)
+	var evs: Array = []
+	var p := Vector2(200, 700)
+	for i in range(1, 6):
+		p += Vector2(40, 0)
+		evs.append_array(r.mover(p, 30 * i))
+	igual(_nomes(evs), ["deslize"], "só o primeiro risco dispara")
+
+
+## Desenho lento não vira ação: é só caminho.
+func test_desenho_lento_nao_dispara_acao() -> void:
+	var r := _r()
+	var p := Vector2(100, 900)
+	r.iniciar(p, 0, CRIA)
+	var evs: Array = []
+	for i in range(1, 13):
+		p += Vector2(20, 10)
+		evs.append_array(r.mover(p, 120 * i))
+	igual(evs, [], "nenhuma ação num traço lento")
+	checar(r.desenhando(), "e continua sendo caminho")
+	igual(_nomes(r.soltar(p, 1600)), ["trajetoria"], "fecha a rota")
+
+
+## Curva rápida é desenho, não risco: o traço não é reto.
+func test_risco_curvo_nao_dispara() -> void:
+	var r := _r()
+	var p0 := Vector2(300, 800)
+	r.iniciar(p0, 0, CRIA)
+	var evs: Array = []
+	evs.append_array(r.mover(p0 + Vector2(40, 0), 15))    # 40 px: abaixo do mínimo
+	evs.append_array(r.mover(p0 + Vector2(40, 40), 30))   # 90°: sai da corda
+	evs.append_array(r.mover(p0 + Vector2(0, 40), 45))
+	igual(evs, [], "sem ação num traço curvo")
+
+
+## Deslizar para BAIXO e continuar PARADO = defesa sustentada.
+func test_baixo_parado_defende() -> void:
+	var r := _r()
+	r.iniciar(Vector2(200, 700), 0, CRIA)
+	r.mover(Vector2(200, 750), 100)
+	r.mover(Vector2(200, 800), 300)
+	igual(_nomes(r.tick(520)), ["segurar_inicio"], "defende")
+	checar(r.defendendo(), "está defendendo")
+	igual(_nomes(r.soltar(Vector2(200, 800), 900)), ["segurar_fim"], "soltou")
 
 
 ## Segurar em cima dela sem arrastar continua sendo escavar.
 func test_segurar_nela_sem_arrastar_escava() -> void:
 	var r := _r()
 	r.iniciar(CRIA, 0, CRIA)
+	igual(r.tick(200), [], "antes do tempo")
 	r.tick(400)
 	var evs: Array = r.soltar(CRIA, 500)
 	igual(_nomes(evs), ["segurar_inicio"], "escavar")
@@ -55,33 +124,10 @@ func test_segurar_nela_sem_arrastar_escava() -> void:
 	checar(not evs[0]["defesa"], "não é defesa")
 
 
-## Arrastar para BAIXO e continuar segurando = defesa sustentada.
-func test_baixo_segurando_defende() -> void:
+## Um arrasto curtinho (dentro da tolerância) ainda é toque, não caminho.
+func test_arrasto_curto_continua_toque() -> void:
 	var r := _r()
-	r.iniciar(Vector2(200, 700), 0, CRIA)
-	r.mover(Vector2(200, 760), 80)
-	r.mover(Vector2(200, 800), 150)
-	igual(_nomes(r.tick(400)), ["segurar_inicio"], "defende")
-	checar(r.defendendo(), "está defendendo")
-	igual(_nomes(r.soltar(Vector2(200, 800), 900)), ["segurar_fim"], "soltou")
-
-
-func test_baixo_rapido_esquiva_para_tras() -> void:
-	var evs := _gesto(_r(), Vector2(200, 700), Vector2(200, 820), 0, 140)
-	igual(_nomes(evs), ["deslize"], "esquiva")
-	var cmd := C.traduzir(evs[0], cfg["mapa"])
-	igual(cmd["acao"], "esquiva", "ação")
-	perto_v(cmd["direcao"], Vector2.DOWN, 0.01, "direção do gesto")
-
-
-## Sem o segurar antes, um arrasto rápido NÃO é caminho: é gesto de ação.
-func test_arrasto_rapido_sem_segurar_nao_e_caminho() -> void:
-	var evs := _gesto(_r(), CRIA + Vector2(10, 0), CRIA + Vector2(210, 20), 0, 120)
-	igual(_nomes(evs), ["deslize"], "sem âncora = gesto")
-
-
-func test_arrasto_lento_longe_e_nada() -> void:
-	igual(_nomes(_gesto(_r(), Vector2(100, 900), Vector2(400, 900), 0, 900, 12)), ["nada"], "lento, sem âncora: nada")
+	igual(_nomes(_gesto(r, Vector2(400, 500), Vector2(408, 505), 0, 80)), ["toque"], "toque com tremida")
 
 
 ## Setores de TELA: cima = ataque, lados = especiais, baixo = esquiva.

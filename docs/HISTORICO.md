@@ -3,6 +3,53 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.7.0 — caminho ao vivo, sem espera, e ações em paralelo (2026-11-20)
+
+- **Pedido do operador:** (1) tirar o atraso do toque longo — o arrasto
+  contínuo vira caminho **direto**; (2) a linha **não se move com o animal**
+  (parte da posição no INÍCIO do gesto; se ele se mexeu no meio, volta para
+  começar por lá); (3) **ataques e afins em paralelo**, sem atraso; (4)
+  **escurecer** a tela durante o desenho e uma **rampa de aceleração** na saída;
+  (5) **mais sensibilidade** (dedo menor cobrindo mais tela).
+  **Decisões dele** (perguntadas antes de codar): caminho **AO VIVO** (a
+  criatura já anda atrás do dedo) e ação disparada **no meio do risco**, ao
+  cruzar o limiar.
+- **Gestos (`sim/gestos.gd`, reescrito):** `segurar_min_ms` deixou de ser porta
+  do caminho — passou de `desenho_min_px` (16 px) já é caminho
+  (`desenhando()`), e o `tick` só decide **defesa** (baixo + parado 0,18 s) e
+  **escavar** (segurar nela, parado, sem arrastar, 0,38 s — decidido no
+  soltar). O **RISCO** (`flick_*`) dispara `deslize` NO MEIO do arrasto e o
+  caminho continua: 44–170 px, ≤ 0,26 s, ≥ 700 px/s, desvio da corda ≤ 24 px,
+  **um por gesto** (senão um desenho rápido viraria metralhadora). Guarda
+  `_tempos` por ponto para medir velocidade numa janela de 90 ms.
+- **Corpo (`sim/corpo.gd`):** novo `tracar(pontos, mundo, inicio)` — a rota é
+  refeita a cada quadro com o traço até agora, o progresso **nunca anda para
+  trás** e a origem fica congelada. No primeiro quadro, se a criatura já se
+  mexeu, o trecho que a traz de volta ao começo é posto NA FRENTE **depois** da
+  simplificação (um traço reto com os três pontos colineares seria engolido
+  pelo Douglas-Peucker e ela cortaria o caminho — foi o primeiro teste
+  vermelho). `_pontos_de_rota` (desconto + RDP) e `_guardar_rota` foram
+  extraídos do antigo `_cmd_mover`, que continua valendo (testes antigos).
+- **Tela (`jogo/main.gd`):** na descida do dedo congela-se a **origem**
+  (posição da criatura + `canvas_transform` inverso); o traço é traduzido com
+  `desenho.ganho` (1,6), então 100 px de dedo desenham 160 px de tela. O **véu**
+  (`ColorRect` na CanvasLayer da HUD, atrás dos rótulos) escurece
+  `planejamento.escurecer` (0,22) enquanto desenha/defende e clareia junto com
+  a **rampa** `retomada_ms` (0,45 s), que devolve o tempo de 0,35× a 1× com
+  `v²` (começa devagar e solta no fim). `jogo/trilha.gd` perdeu a âncora;
+  `jogo/hud.gd` (legenda v0.7.0, "DESENHANDO") e `jogo/demo.gd` (sem `hold`,
+  divide o traço pelo ganho para cobrir as mesmas células) seguem a regra.
+- **Dados (`dados/gestos.json`):** `desenho.ganho` 1,6; `planejamento` 0,35× ·
+  0,45 s · 0,22; `flick_*`; saíram `trajetoria_min_px` e `deslize_max_ms`
+  (eram da regra antiga).
+- **Verificação:** `tools/testes.sh` — **70 testes, 0 falhas**, 35 scripts no
+  parser. `test_gestos.gd` reescrito (sem espera, risco no meio, um por gesto,
+  desenho lento/curvo sem ação, defesa, escavar, toques); `test_corpo.gd` ganhou
+  o traço ao vivo (cresce sem voltar; a volta ao começo quando ela se mexeu).
+  Oráculo: 96 quadros 720×1280 (t≈3,2 s) — véu visível, rota ao vivo atrás do
+  dedo, ataque disparado no meio do risco com o caminho continuando; a demo
+  completa (500 quadros) confere os passos seguintes.
+
 ## v0.6.1 — o aviso de atualização volta a aparecer na tela (2026-11-20)
 
 - **Relato do operador:** o app detectou a atualização (a HUD dizia "toque em

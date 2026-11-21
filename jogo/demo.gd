@@ -3,14 +3,14 @@ extends Node
 ## comandos — e os entrega pelo MESMO caminho de um toque de verdade
 ## (main.dedo_* → sim/gestos → sim/comandos → sim/corpo).
 ##
-## O roteiro da v0.6 mostra as regras novas:
-## 1. SEGURAR parado numa âncora longe da criatura e ARRASTAR: o desenho
-##    aparece transladado sobre a criatura (o dedo não tapa a visão) e o mundo
-##    entra em tempo lento enquanto a âncora existe;
+## O roteiro da v0.7 mostra as regras novas:
+## 1. ARRASTAR já é caminho: a criatura anda AO VIVO atrás do traço, a tela
+##    escurece e o mundo desacelera enquanto o dedo desenha;
 ## 2. o caminho passa POR CIMA da árvore: a criatura desvia um pouco do objeto;
-## 3. ataque (cima), especiais (lados) e esquiva (baixo) relativos à TELA;
+## 3. RISCO rápido no meio do arrasto continua disparando a ação do setor
+##    (cima = ataque, lados = especiais, baixo = esquiva), relativa à TELA;
 ## 4. toque duplo = pulo; toque na árvore trava a mira; ataque vai no alvo;
-## 5. baixo + segurar = defesa (para a rota); soltar retoma;
+## 5. baixo + parado = defesa (para a rota); soltar retoma;
 ## 6. segundo caminho curto depois da defesa.
 ##
 ## O tempo é o `main.tempo_ms` (real); o tempo lento muda o MUNDO, não o roteiro.
@@ -23,7 +23,7 @@ var _curso: Array = []
 func _init(m: Node) -> void:
 	main = m
 	_passos = [
-		{"t": 0.4, "tipo": "caminho", "ate": [[10, 13], [14, 13]], "hold": 0.55, "dur": 1.2},
+		{"t": 0.4, "tipo": "caminho", "ate": [[10, 13], [14, 13]], "dur": 1.2},
 		{"t": 2.6, "tipo": "deslize", "dir": [0, -1]},          # ataque físico
 		{"t": 3.6, "tipo": "deslize", "dir": [-1, 0]},          # especial esquerda
 		{"t": 4.9, "tipo": "deslize", "dir": [1, 0]},           # especial direita (fora da recarga)
@@ -33,7 +33,7 @@ func _init(m: Node) -> void:
 		{"t": 9.2, "tipo": "deslize", "dir": [0, -1]},          # ataque na direção do alvo
 		{"t": 10.6, "tipo": "defender"},                        # baixo + segurar
 		{"t": 12.4, "tipo": "deslize", "dir": [0, -1]},         # ataque
-		{"t": 13.6, "tipo": "caminho", "ate": [[16, 12], [17, 12]], "hold": 0.55, "dur": 0.8},
+		{"t": 13.6, "tipo": "caminho", "ate": [[16, 12], [17, 12]], "dur": 0.8},
 		{"t": 15.8, "tipo": "toque", "celula": [16, 9]},        # trava no adversário
 	]
 
@@ -46,21 +46,16 @@ func _process(_delta: float) -> void:
 		if agora < float(d["t0"]):
 			continue
 		if d.get("tipo", "") == "caminho":
-			var u := agora - float(d["t0"])
-			var hold := float(d["hold"])
-			if u < hold:
-				if not d.get("desceu", false):
-					d["desceu"] = true
-					main.dedo_desceu(d["ancora"])
-				continue
-			if u < hold + float(d["dur"]):
-				if not d.get("desceu", false):
-					d["desceu"] = true
-					main.dedo_desceu(d["ancora"])
-				main.dedo_moveu(_em(d, (u - hold) / float(d["dur"])))
-				continue
-			main.dedo_subiu(_em(d, 1.0))
-			_curso.erase(d)
+			# sem espera: desce e já arrasta (a rota nasce ao vivo)
+			if not d.get("desceu", false):
+				d["desceu"] = true
+				main.dedo_desceu(d["ancora"])
+			var u := clampf((agora - float(d["t0"])) / maxf(float(d["dur"]), 0.001), 0.0, 1.0)
+			if u >= 1.0:
+				main.dedo_subiu(_em(d, 1.0))
+				_curso.erase(d)
+			else:
+				main.dedo_moveu(_em(d, u))
 			continue
 		var u := clampf((agora - float(d["t0"])) / maxf(float(d["t1"]) - float(d["t0"]), 0.001), 0.0, 1.0)
 		if not d.get("desceu", false):
@@ -84,11 +79,14 @@ func _disparar(p: Dictionary, agora: float) -> void:
 		"caminho":
 			var ancora := Vector2(tela.x * float(p.get("ax", 0.18)), tela.y * float(p.get("ay", 0.80)))
 			var cria: Vector2 = main.tela_de(main.corpo.pos)
+			# o GANHO de sensibilidade amplia o traço: para o roteiro cobrir as
+			# mesmas células, o dedo anda a menos (divide pelo ganho)
+			var ganho := maxf(float(main.cfg_gestos.get("desenho", {}).get("ganho", 1.0)), 0.01)
 			var pts := PackedVector2Array([ancora])
 			for c in p["ate"]:
 				var alvo: Vector2 = main.tela_de(main.mundo.centro(Vector2i(c[0], c[1])))
-				pts.append(ancora + (alvo - cria))
-			_curso.append({"tipo": "caminho", "t0": agora, "hold": float(p.get("hold", 0.55)),
+				pts.append(ancora + (alvo - cria) / ganho)
+			_curso.append({"tipo": "caminho", "t0": agora,
 				"dur": float(p.get("dur", 1.2)), "pts": pts, "ancora": ancora, "desceu": false})
 		"deslize":
 			var de := Vector2(tela.x * 0.5, tela.y * 0.70)
@@ -105,7 +103,9 @@ func _disparar(p: Dictionary, agora: float) -> void:
 		"defender":
 			var de := Vector2(tela.x * 0.5, tela.y * 0.55)
 			var ate := de + Vector2(0, tela.y * 0.12)
-			_curso.append({"t0": agora, "t1": agora + 0.12, "pts": PackedVector2Array([de, ate]), "hold": 1.4})
+			# devagar de propósito: um risco rápido para baixo seria ESQUIVA, e
+			# aqui a demonstração é da defesa (parado depois do deslize)
+			_curso.append({"t0": agora, "t1": agora + 0.30, "pts": PackedVector2Array([de, ate]), "hold": 1.4})
 
 
 func _em(d: Dictionary, u: float) -> Vector2:

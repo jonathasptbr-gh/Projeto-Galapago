@@ -28,7 +28,7 @@ em código: mudar o design não exige mexer na lógica.
 ## Pipeline previsto da criatura (pacotes P3–P6)
 
 ```
-toque → gesto de TELA + âncora do caminho (sim/gestos)
+toque → gesto de TELA + caminho AO VIVO (sim/gestos)
       → pontos de referência (sim/trajetoria: desconto inicial + Douglas-Peucker)
       → INTENÇÃO
       → decisão da criatura (sim/afinidade: afinidade × temperamento × humor)

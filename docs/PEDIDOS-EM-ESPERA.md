@@ -18,6 +18,7 @@
 | P10 | Mapa básico de cima com profundidade + tela em alta resolução | P1 | **feito (v0.4.0)** — camadas lógicas + mockup |
 | P11 | Movimento por rota + overlays, alvos/mira, adversário e autonomia | P3 | **feito (v0.5.0)** |
 | P12 | Retrato + gestos de tela + caminho por âncora (tempo lento, desconto, desvio de objetos) | P11 | **feito (v0.6.0)** |
+| P13 | Caminho ao vivo (sem espera) + ações em paralelo + véu/rampa + sensibilidade | P12 | **feito (v0.7.0)** |
 
 ---
 
@@ -105,3 +106,22 @@
   A v0.5.0 instalada precisa do APK manual uma vez.
 - **Pendente de design:** o que cada **especial** faz (hoje é um golpe lateral
   genérico) e o ajuste fino de `escala_tempo`/`desconto_raio_px` pelo operador.
+
+## P13 — Caminho ao vivo, sem espera (v0.7)
+
+- **Operador (2026-11-20):** tirar o atraso do toque longo — o arrasto contínuo
+  vira caminho **direto**; a linha **não se move com o animal** (o ponto de
+  partida é a posição no INÍCIO do gesto, e se ele se mexeu no meio ela volta
+  para começar por lá); manter **ataques e afins em paralelo** com esse
+  controle, sem atraso; **escurecer a tela** durante o desenho e uma **rampa de
+  aceleração** na saída (tempo para a próxima ação); **aumentar a
+  sensibilidade** do desenho (dedo menor cobrindo mais tela).
+- **Decisões do operador:** caminho **AO VIVO** (a criatura já anda atrás do
+  dedo) e ação disparada **no meio do risco**, ao cruzar o limiar.
+- **Feito em v0.7.0:** `sim/gestos.gd` (caminho sem espera, RISCO `flick_*`,
+  defesa/escavar mantidos); `sim/corpo.gd` (`tracar` ao vivo, origem
+  congelada, progresso que não volta, volta ao começo); `jogo/main.gd`
+  (origem+mundo congelados na descida, ganho de sensibilidade, véu, rampa);
+  `jogo/trilha.gd`, `jogo/hud.gd`, `jogo/demo.gd` (sem `hold`) e
+  `dados/gestos.json` (`desenho.ganho` 1,6, `planejamento` 0,35×/0,45 s/0,22,
+  `flick_*`). Testes: `test_gestos` reescrito, `test_corpo` com traço ao vivo.

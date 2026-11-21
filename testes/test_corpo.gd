@@ -347,3 +347,40 @@ func test_pulo_curto_cai_na_agua_e_precisa_de_outro() -> void:
 	checar(c.comandar({"acao": "pular"}, m, []).begins_with("ok"), "2º pulo")
 	_rodar(c, m, 0.8)
 	checar(c.pos.x > 128.0, "saiu da água (x=%s)" % c.pos.x)
+
+
+# ---------------------------------------------------------------- v0.7: traço ao vivo
+
+## O traço desenhado AO VIVO: a rota nasce na origem, a criatura já anda por
+## ela e, quando o dedo acrescenta pontos, o progresso NUNCA volta ao começo.
+func test_traco_ao_vivo_cresce_sem_voltar() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	var origem := Vector2(48, 48)
+	checar(c.tracar(PackedVector2Array([origem, Vector2(140, 48)]), m, true).begins_with("ok"), "a rota nasce")
+	checar(c.em_rota(), "está seguindo")
+	_rodar(c, m, 0.3)
+	var andado: float = c.rota_t
+	checar(andado > 1.0, "já andou enquanto desenhava (%s)" % andado)
+	perto_v(c.rota[0], origem, 0.001, "a origem não se move")
+	checar(c.tracar(PackedVector2Array([origem, Vector2(140, 48), Vector2(280, 48)]), m, false).begins_with("ok"), "o traço cresce")
+	perto(c.rota_t, andado, 0.001, "atualizar o traço não zera o progresso")
+	checar(c.rota[c.rota.size() - 1].x > 200.0, "o fim da rota é o dedo (%s)" % [c.rota])
+	_rodar(c, m, 1.2)
+	checar(c.pos.x > 200.0, "seguiu até o fim (x=%s)" % c.pos.x)
+
+
+## A linha não anda junto com o animal: se ele se mexeu antes do traço começar,
+## o primeiro trecho o traz de volta ao começo (a origem congelada).
+func test_traco_comeca_onde_ela_estava_na_descida() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	var origem := Vector2(48, 48)
+	c.pos = Vector2(96, 48)  # ela andou 48 px antes de o traço começar
+	checar(c.tracar(PackedVector2Array([origem, Vector2(176, 48)]), m, true).begins_with("ok"), "a rota nasce")
+	perto_v(c.rota[0], c.pos - c.desvio, 1.0, "o 1º ponto é ONDE ELA ESTÁ")
+	checar(c.rota[1].distance_to(origem) < 1.0, "o 2º é o começo do traço (%s)" % [c.rota])
+	_rodar(c, m, 0.2)
+	checar(c.pos.x < 96.0, "voltou para o começo (x=%s)" % c.pos.x)

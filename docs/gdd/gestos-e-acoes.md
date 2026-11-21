@@ -1,33 +1,33 @@
 # Gestos e ações — como a criatura se move e age
 
 > Regra toda em `sim/` (testada) e nas tabelas `dados/gestos.json` +
-> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.6.**
+> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.7.**
 
 ## O fluxo
 
 ```
 dedo (toque real ou demo roteirizada — mesmo caminho)
-  → sim/gestos.gd   : reconhece O GESTO e a ÂNCORA do caminho
-  → sim/comandos.gd : traduz em COMANDO (ação + lado + alvo no mundo)
-  → sim/corpo.gd    : ROTA (pontos de referência + desvio) + OVERLAYS +
-                      AUTONOMIA (a afinidade entra aqui, P4)
+  → sim/gestos.gd   : reconhece O GESTO (caminho ao vivo + RISCO de ação)
+  → sim/comandos.gd : traduz o risco em COMANDO (ação + lado + alvo no mundo)
+  → sim/corpo.gd    : ROTA ao vivo (pontos de referência + desvio) + OVERLAYS
+                      + AUTONOMIA (a afinidade entra aqui, P4)
 ```
 
 Tempo **simulado** (`tempo_ms`): teste, demo e oráculo são determinísticos.
 
-## A regra de ouro: o gesto é da TELA, o caminho é da ÂNCORA
+## A regra de ouro: o gesto é da TELA, o caminho é da CRIATURA
 
-Os setores **não são relativos ao olhar da criatura**. Não existe mais
-"para a frente dela": o que vale é a direção do dedo na tela.
+Os setores **não são relativos ao olhar da criatura**. Não existe "para a
+frente dela": o que vale é a direção do dedo na tela.
 
 | gesto (na tela) | vira |
 |---|---|
-| **para cima** | **ataque físico** |
-| **para a esquerda / direita** | **especial** daquele lado |
-| **para baixo** (rápido) | **esquiva para trás** |
-| **para baixo e continuar segurando** | **defesa** (sustentada até soltar) |
-| **segurar parado e arrastar** | **caminho** (rota desenhada a partir da âncora) |
-| **segurar nela, sem arrastar** | **escavar** |
+| **arrastar** (qualquer distância acima de 16 px) | **caminho**, desenhado **AO VIVO** (sem espera) |
+| **risco rápido para cima** | **ataque físico** (em paralelo ao caminho) |
+| **risco rápido para a esquerda / direita** | **especial** daquele lado |
+| **risco rápido para baixo** | **esquiva para trás** |
+| **para baixo e parar (sem soltar)** | **defesa** (sustentada até soltar; para a rota) |
+| **segurar nela, sem arrastar** | **escavar** (decidido no soltar) |
 | **toque** | **travar a mira** no alvo mais próximo do toque; baú → interagir |
 | **toque duplo** | **pular** |
 
@@ -35,24 +35,44 @@ O ataque **não usa o ângulo do dedo para mirar**: a direção continua saindo 
 **alvo marcado** ou, sem alvo, da **direção da rota/olhar**. O gesto só decide
 *qual* ação. O especial sai para o lado do gesto.
 
-## O caminho por âncora (v0.6)
+## O caminho (v0.7): sem espera, ao vivo, com origem congelada
 
-Antes o caminho começava no dedo em cima da criatura — e o dedo tapava a
-visão. Agora:
+1. O dedo desce e a **origem** é congelada: a posição da criatura NAQUELE
+   instante (e o mapa tela→mundo daquele instante). A linha **não anda junto
+   com o animal** nem com a câmera enquanto o dedo desenha.
+2. Passou de `desenho_min_px` (16 px), **já é caminho** — não há mais
+   "segurar parado 0,38 s antes de arrastar". A rota é refeita a cada quadro e
+   a criatura **já anda por ela**, atrás do traço.
+3. Se ela se mexeu até o traço começar (andou sozinha), o primeiro trecho da
+   rota a **traz de volta ao começo** — ela não corta caminho.
+4. Ao soltar, a rota é fechada com o último trecho. Ela segue até o fim.
+5. **Sensibilidade**: `desenho.ganho` (1,6) multiplica o traço. Um dedo que
+   anda 100 px na tela desenha 160 px de caminho — movimento menor cobre mais
+   área. Ajustável sem tocar em código.
 
-1. o jogador **encosta e segura parado** em qualquer lugar da tela (por
-   `segurar_min_ms`, 0,38 s). Esse ponto é a **ÂNCORA**, o "animal virtual";
-2. com a âncora viva, o **mundo desacelera** (`planejamento.escala_tempo`,
-   0,35×) — dá tempo de desenhar e planejar. O dedo continua em tempo real;
-3. ao arrastar, a prévia do traço aparece **transladada sobre a criatura**
-   (o desenho é interpretado como se a âncora fosse ela), com um anel no
-   ponto segurado;
-4. ao soltar, o traço vira a rota da criatura: a âncora é mapeada para a
-   posição **atual** dela, então o caminho começa nela e segue a forma
-   desenhada;
-5. **segurar + arrastar** é sempre caminho. **Segurar sem arrastar** fora dela
-   não faz nada (é só a âncora); em cima dela, vira **escavar** (só se não
-   arrastou além da tolerância).
+### O RISCO (ação em paralelo)
+
+Sem a espera, o arrasto deixaria de disparar ataque/esquiva. Para manter as
+ações: um **risco** — traço **curto**, **reto**, **rápido** e **no começo do
+gesto** — dispara a ação do setor **no meio do arrasto**, e o caminho continua:
+
+- `deslize_min_px` (44) ≤ traço ≤ `flick_janela_px` (170);
+- duração ≤ `flick_max_ms` (0,26 s) e velocidade ≥ `flick_vel_min_px_s` (700);
+- desvio da corda ≤ `flick_reta_px` (24) — curva não é risco;
+- **um disparo por gesto**: desenhar rápido não vira metralhadora.
+
+Ou seja: desenho lento/curvo é só caminho; um "tapa" rápido no setor vira
+ataque E caminho, sem atraso e sem cancelar o desenho.
+
+### Tempo lento, escurecida e a rampa de saída
+
+- enquanto desenha (ou defende), o **mundo** roda em
+  `planejamento.escala_tempo` (0,35×) — o relógio do GESTO continua real;
+- a tela **escurece** `planejamento.escurecer` (0,22) — é o que ilustra a
+  desaceleração;
+- ao soltar, o tempo **acelera numa rampa** de `planejamento.retomada_ms`
+  (0,45 s): começa devagar e solta no fim, e o véu clareia junto. Dá tempo de
+  ver o resultado e tomar a próxima ação.
 
 ### Desconto inicial
 
@@ -97,7 +117,7 @@ apagar; ao soltar retoma) ou se **escavar** (troca de camada).
 | **especial** | golpe lateral mais longo/aberto, na direção do gesto (lados) | nenhum: continua andando |
 | **esquiva** | desloca para a direção do gesto (baixo = para trás) e **volta** | nenhum: corrige sozinha e segue |
 | **pulo** | arco no ar enquanto segue; atravessa barreira | nenhum: continua andando |
-| **defesa** | para a rota enquanto o dedo fica (baixo + segurar) | para, sem apagar |
+| **defesa** | para a rota enquanto o dedo fica (baixo + parado) | para, sem apagar |
 
 ## Autonomia (sem rota)
 
@@ -130,10 +150,13 @@ Ao terminar a rota, a criatura decide sozinha, com sorteio **semeado**
 
 - **Setores** (qual direção da tela faz o quê): `mapa.deslize` em
   `dados/gestos.json`. A legenda da HUD e a demo seguem.
+- **Sensibilidade do desenho**: `desenho.ganho` (1,6 hoje).
+- **Risco** (o que conta como ação no meio do arrasto): `flick_*` em
+  `limiares`.
+- **Tolerância dos toques e da defesa**: `toque_*`, `segurar_*`.
+- **Tempo lento, escurecida e rampa**: `planejamento` (0,35× · 0,22 · 0,45 s).
 - **Peso de cada ação** (vento, alcance, recarga, altura do pulo):
   `dados/acoes.json`.
-- **Tolerância dos gestos e o tempo lento**: `limiares` e `planejamento` em
-  `dados/gestos.json`.
 - **Caminho** (simplificação, desconto, desvio, chegada): bloco `rota` em
   `dados/acoes.json`.
 

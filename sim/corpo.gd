@@ -20,6 +20,13 @@ extends RefCounted
 ## do começo do traço antes de a rota existir: a criatura se alinha a uma
 ## distância do início e só então obedece o desenho.
 ##
+## v0.7 — **TRAÇO AO VIVO** (`tracar`): enquanto o dedo desenha, a rota é
+## refeita a cada quadro com o traço até agora e a criatura JÁ ANDA por ela. A
+## origem é fixa (onde ela estava quando o dedo desceu): nunca é a posição
+## atual, então a linha não anda junto com o animal. Se ela se mexeu até o
+## traço começar, o primeiro trecho a traz de volta ao começo. O progresso
+## nunca anda para trás.
+##
 ## Sem rota, entra em **AUTONOMIA**: parada, vagueando devagar, indo até o alvo
 ## marcado ou rondando ao redor dele. A escolha é sorteio com semente
 ## (determinístico para teste, demo e oráculo).
@@ -168,8 +175,43 @@ func _cmd_mover(cmd: Dictionary, mundo: RefCounted) -> String:
 	pts.append_array(cmd.get("pontos", PackedVector2Array()))
 	if pts.size() < 2:
 		return "recusado: caminho vazio"
-	# DESCONTO INICIAL: o pequeno vai-e-volta do começo não é obedecido. A
-	# criatura se alinha a uma distância do começo e segue o resto do desenho.
+	var nova := _pontos_de_rota(pts, mundo)
+	if nova.is_empty():
+		return "recusado: caminho curto"
+	_guardar_rota(nova, true)
+	return "ok: rota de %d px" % int(total_rota)
+
+
+## TRAÇO AO VIVO (v0.7): a rota é refeita a cada quadro com o desenho até
+## agora; a criatura já caminha por ela. `pontos[0]` é a ORIGEM congelada (onde
+## ela estava quando o dedo desceu) — quem chama põe esse ponto.
+## `inicio` = primeiro quadro do gesto: se ela se mexeu até aqui, o traço
+## ganha na frente o trecho que a traz de volta ao começo. Depois disso o
+## progresso NUNCA anda para trás.
+func tracar(pontos: PackedVector2Array, mundo: RefCounted, inicio := false) -> String:
+	var nova := _pontos_de_rota(pontos, mundo)
+	if nova.is_empty():
+		return "recusado: caminho curto"
+	if inicio:
+		# ela andou enquanto o dedo descia: põe NA FRENTE o trecho que a traz de
+		# volta ao começo do traço (depois da simplificação, senão um traço reto
+		# engoliria a volta e ela "cortaria" o caminho).
+		var base := pos - desvio
+		if base.distance_to(nova[0]) > float(rota_cfg.get("chegada_px", 12.0)):
+			var com_volta := PackedVector2Array([base])
+			com_volta.append_array(nova)
+			nova = com_volta
+	_guardar_rota(nova, inicio)
+	return "ok: rota de %d px" % int(total_rota)
+
+
+## O traço vira PONTOS DE REFERÊNCIA: DESCONTO INICIAL (o vai-e-volta do
+## começo não é obedecido; a criatura se alinha a uma distância dele e segue o
+## resto) e Douglas-Peucker (reta vira duas pontas; curva e canto continuam com
+## alguns pontos). Devolve [] quando o traço não serve.
+func _pontos_de_rota(pts: PackedVector2Array, mundo: RefCounted) -> PackedVector2Array:
+	if pts.size() < 2:
+		return PackedVector2Array()
 	var cortado := Trajetoria.descontar_inicio(pts, float(rota_cfg.get("desconto_raio_px", 44.0)),
 		float(rota_cfg.get("desconto_janela_px", 140.0)))
 	if cortado.size() < pts.size() and cortado.size() >= 2:
@@ -177,22 +219,32 @@ func _cmd_mover(cmd: Dictionary, mundo: RefCounted) -> String:
 		# inicial era necessário: não corta.
 		if mundo.caminho_livre(pts[0], cortado[1], camada):
 			pts = cortado
-	# PONTOS DE REFERÊNCIA, não o traço inteiro: reta vira duas pontas, curva e
-	# canto continuam com alguns pontos. O corpo procura um por um e pode se
-	# desviar um pouco para contornar objetos.
 	var nova := Trajetoria.simplificar(pts, float(rota_cfg.get("simplificar_px", 10.0)))
 	if nova.size() < 2 or Trajetoria.comprimento(nova) < 6.0:
-		return "recusado: caminho curto"
+		return PackedVector2Array()
+	return nova
+
+
+## Adota `nova` como rota. `reiniciar` zera o progresso (rota nova); sem ele o
+## progresso é preservado (o traço ao vivo só CRESCE no fim). Nunca fica
+## mirando um ponto que já está ao alcance.
+func _guardar_rota(nova: PackedVector2Array, reiniciar: bool) -> void:
 	rota = nova
-	_rota_i = 1
-	rota_t = 0.0
 	total_rota = Trajetoria.comprimento(rota)
 	_barrado = false
-	_desvios = 0
 	autonomia = ""
 	_auto_destino = Vector2.ZERO
-	eventos.append("rota:nova")
-	return "ok: rota de %d px" % int(total_rota)
+	if reiniciar:
+		_rota_i = 0
+		rota_t = 0.0
+		_desvios = 0
+		eventos.append("rota:nova")
+	if _rota_i >= rota.size():
+		_rota_i = rota.size() - 1
+	var base := pos - desvio
+	var chegada := float(rota_cfg.get("chegada_px", 12.0))
+	while _rota_i < rota.size() - 1 and base.distance_to(rota[_rota_i]) <= chegada:
+		_rota_i += 1
 
 
 func _cmd_travar(cmd: Dictionary, alvos: Array) -> String:

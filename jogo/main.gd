@@ -1,16 +1,20 @@
 extends Node2D
-## Cena principal (v0.6): a FUNDAÇÃO em RETRATO, com caminho por ÂNCORA.
+## Cena principal (v0.7): a FUNDAÇÃO em RETRATO, com caminho desenhado AO VIVO.
 ##
 ## Camadas de desenho (z_index), de trás para frente:
 ##   −20 parallax fundo · 0 chão · 1 trilha/rota · 2 objetos (y-sort: troncos,
 ##   baú, adversário, criatura) · 15 subsolo · 25 marca de mira · 30 copas ·
 ##   40 parallax frente · HUD.
 ##
-## Fluxo: dedo → sim/gestos (âncora do caminho + gestos de tela) →
-## sim/comandos → sim/corpo (pontos de referência + desvio + overlays +
-## autonomia). O tempo é SIMULADO (tempo_ms): demo e oráculo são determinísticos.
-## Enquanto a âncora existe, o MUNDO roda em tempo lento (`planejamento`);
-## o relógio do gesto continua real, senão o desenho ficaria arrastado.
+## Fluxo: dedo → sim/gestos (caminho sem espera + gestos de tela) →
+## sim/comandos → sim/corpo (traço ao vivo + desvio + overlays + autonomia).
+## O tempo é SIMULADO (tempo_ms): demo e oráculo são determinísticos.
+##
+## v0.7 — a ORIGEM do caminho é congelada no `dedo_desceu` (posição da criatura
+## naquele instante): o traço é traduzido tela→mundo com essa origem e com o
+## GANHO de sensibilidade (`desenho.ganho`), então a linha não anda junto com o
+## animal enquanto o dedo desenha. Enquanto desenha (ou defende), o mundo roda
+## em tempo lento e a tela escurece; ao soltar, o tempo ACELERA numa rampa.
 
 const Mundo := preload("res://sim/mundo.gd")
 const Corpo := preload("res://sim/corpo.gd")
@@ -48,8 +52,17 @@ var trilha: Node2D
 var camera: Camera2D
 var hud: CanvasLayer
 var copas: Array = []
+var veu: ColorRect
 var _dedo := -1
 var _abertos := {}
+# a ORIGEM do gesto (congelada na descida do dedo): a linha não anda com ela
+var _gesto_tela := Vector2.ZERO
+var _gesto_origem := Vector2.ZERO
+var _gesto_inv := Transform2D.IDENTITY
+var _traco_iniciado := false
+# tempo lento do desenho e a rampa de aceleração da saída
+var _escala := 1.0
+var _retomada := 0.0
 
 
 func _ready() -> void:
@@ -135,6 +148,14 @@ func _ready() -> void:
 	hud = Hud.new()
 	hud.cfg = cfg_gestos
 	add_child(hud)
+	# VÉU do desenho: escurece a tela para ilustrar a desaceleração (fica
+	# ATRÁS dos rótulos da HUD, que são filhos da mesma CanvasLayer).
+	veu = ColorRect.new()
+	veu.color = Color(0, 0, 0, 0)
+	veu.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	veu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hud.add_child(veu)
+	hud.move_child(veu, 0)
 	if "--demo" in OS.get_cmdline_user_args():
 		add_child(Demo.new(self))
 
@@ -142,13 +163,27 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	tempo_ms += delta * 1000.0
 	_entregar(reconhecedor.tick(tempo_ms))
-	# PLANEJAMENTO: com a âncora viva, o mundo desacelera; o dedo continua em
-	# tempo real (é o que dá tempo de desenhar e de planejar).
+	# TRAÇO AO VIVO: enquanto o dedo desenha, a rota é refeita e a criatura já
+	# anda por ela. O relógio do GESTO é real; quem desacelera é o MUNDO.
+	if reconhecedor.desenhando():
+		corpo.tracar(_pontos_gesto(), mundo, not _traco_iniciado)
+		_traco_iniciado = true
+	# PLANEJAMENTO: desenhando/defendendo o mundo desacelera; ao soltar, uma
+	# RAMPA de aceleração devolve o tempo normal (dá tempo de reagir).
 	var plano: Dictionary = cfg_gestos.get("planejamento", {})
-	var escala := 1.0
-	if reconhecedor.ancorado():
-		escala = float(plano.get("escala_tempo", 0.35))
-	var dt := delta * escala
+	var lento := float(plano.get("escala_tempo", 0.35))
+	var retomada_s := maxf(float(plano.get("retomada_ms", 450)) / 1000.0, 0.001)
+	var planejando: bool = reconhecedor.planejando()
+	if planejando:
+		_retomada = retomada_s
+		_escala = lento
+	elif _retomada > 0.0:
+		_retomada = maxf(0.0, _retomada - delta)
+		var v := 1.0 - _retomada / retomada_s
+		_escala = lerpf(lento, 1.0, v * v)  # começa devagar e solta no fim
+	else:
+		_escala = 1.0
+	var dt := delta * _escala
 	for adv in adversarios:
 		adv.passo(dt, mundo)
 	Alvos.sincronizar(alvos, adversarios)
@@ -157,16 +192,22 @@ func _process(delta: float) -> void:
 		_evento(e)
 	for cp in copas:
 		cp.atualizar(corpo.pos, delta, corpo.camada == Mundo.SUBSOLO)
-	# a rota continua VISÍVEL durante um gesto de ação; só a prévia da âncora
-	# substitui a linha enquanto o jogador desenha.
-	if reconhecedor.ancorado():
-		_atualizar_previa()
-	elif corpo.em_rota():
+	# a rota (a mesma que o dedo desenhou) fica VISÍVEL durante os gestos de
+	# ação: ataque, esquiva e pulo acontecem POR CIMA dela.
+	if corpo.em_rota():
 		trilha.mostrar(corpo.rota)
 	else:
 		trilha.mostrar(PackedVector2Array())
 	camera.position = criatura.ponto_visual()
-	hud.estado(corpo, alvos, reconhecedor.ancorado(), escala)
+	hud.estado(corpo, alvos, planejando, _escala)
+	_escurecer(planejando, plano, retomada_s)
+
+
+## VÉU: escurece enquanto desenha e clareia junto com a rampa de aceleração.
+func _escurecer(planejando: bool, plano: Dictionary, retomada_s: float) -> void:
+	var forca := float(plano.get("escurecer", 0.22))
+	var v := 1.0 if planejando else 1.0 - _retomada / retomada_s
+	veu.color = Color(0, 0, 0, forca * clampf(v, 0.0, 1.0))
 
 
 func _evento(e: String) -> void:
@@ -201,6 +242,13 @@ func _unhandled_input(ev: InputEvent) -> void:
 func dedo_desceu(p: Vector2) -> void:
 	if _dedo == -1:
 		_dedo = 0  # o demo chama direto, sem InputEvent
+	# CONGELA a origem: a posição dela AGORA é o começo do traço, e o mapa
+	# tela→mundo deste instante é o que traduz o desenho (a linha não anda com
+	# o animal nem com a câmera).
+	_gesto_tela = p
+	_gesto_origem = corpo.pos - corpo.desvio
+	_gesto_inv = get_viewport().get_canvas_transform().affine_inverse()
+	_traco_iniciado = false
 	_entregar(reconhecedor.iniciar(p, tempo_ms, tela_de(criatura.ponto_visual() + Vector2(0, -20))))
 
 
@@ -215,15 +263,16 @@ func dedo_subiu(p: Vector2) -> void:
 
 func _entregar(evs: Array) -> void:
 	for ev in evs:
-		var pts_tela: PackedVector2Array = ev["pontos"]
-		var desloc := Vector2.ZERO
 		if ev["gesto"] == "trajetoria":
-			# A ÂNCORA é o "animal virtual": o desenho inteiro é transladado
-			# para que ela caia em cima da criatura — o dedo fica longe dela.
-			desloc = tela_de(corpo.pos) - Vector2(ev.get("ancora", ev["fim"]))
+			# O caminho já foi desenhado AO VIVO: aqui só se fecha a rota com o
+			# último trecho (nada de recomeçar do zero).
+			var res := str(corpo.tracar(_pontos_gesto(), mundo, not _traco_iniciado))
+			_traco_iniciado = false
+			hud.gesto(ev, Comandos.traduzir(ev, cfg_gestos.get("mapa", {})), res)
+			continue
 		var pm := PackedVector2Array()
-		for q in pts_tela:
-			pm.append(mundo_de(q + desloc))
+		for q in PackedVector2Array(ev["pontos"]):
+			pm.append(mundo_de(q))
 		ev["pontos_mundo"] = pm
 		ev["alvo"] = pm[pm.size() - 1] if not pm.is_empty() else corpo.pos
 		var cmd := Comandos.traduzir(ev, cfg_gestos.get("mapa", {}))
@@ -231,17 +280,15 @@ func _entregar(evs: Array) -> void:
 		hud.gesto(ev, cmd, res)
 
 
-## Prévia do caminho durante a âncora: desenha o traço TRANSLADADO para a
-## criatura (o dedo não tapa a visão) e marca onde está o "animal virtual".
-func _atualizar_previa() -> void:
-	if not reconhecedor.ancorado():
-		trilha.mostrar(PackedVector2Array())
-		return
-	var desloc: Vector2 = tela_de(corpo.pos) - reconhecedor.ancora()
-	var prev := PackedVector2Array()
+## O desenho do dedo em MUNDO, a partir da origem congelada e com o GANHO de
+## sensibilidade: um dedo menor cobre mais tela (o mesmo traço em px de tela é
+## multiplicado por `desenho.ganho`).
+func _pontos_gesto() -> PackedVector2Array:
+	var ganho := float(cfg_gestos.get("desenho", {}).get("ganho", 1.0))
+	var pts := PackedVector2Array()
 	for q in reconhecedor.pontos():
-		prev.append(mundo_de(q + desloc))
-	trilha.mostrar(prev, mundo_de(reconhecedor.ancora()), true)
+		pts.append(_gesto_origem + _gesto_inv.basis_xform((q - _gesto_tela) * ganho))
+	return pts
 
 
 func mundo_de(tela: Vector2) -> Vector2:

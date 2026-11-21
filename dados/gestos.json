@@ -1,5 +1,5 @@
 {
- "_leia": "Gestos -> ações. v0.6: os setores são RELATIVOS À TELA (não ao olhar): 0° = direita, -90° = cima, +90° = baixo. O caminho exige SEGURAR parado: o ponto segurado vira a âncora e o arrasto a partir dela desenha a rota; o jogo entra em tempo lento enquanto a âncora existe (`planejamento.escala_tempo`). Deslizar para baixo e continuar segurando = defesa; segurar nela sem arrastar = escavar. Ver docs/gdd/gestos-e-acoes.md.",
+ "_leia": "Gestos -> ações. v0.7: os setores são RELATIVOS À TELA (0° = direita, -90° = cima, +90° = baixo). O CAMINHO não espera: qualquer arrasto além de `desenho_min_px` já é rota, desenhada AO VIVO e partindo da posição da criatura na descida do dedo (a linha não anda com ela). As AÇÕES acontecem em paralelo: um RISCO rápido (`flick_*`) dispara o setor no meio do arrasto, no máximo uma vez por gesto. Enquanto desenha, o mundo roda em `planejamento.escala_tempo` e a tela escurece `planejamento.escurecer`; ao soltar, `planejamento.retomada_ms` acelera de volta. `desenho.ganho` é a sensibilidade: dedo menor cobre mais tela. Deslizar para baixo e continuar parado = defesa; segurar nela sem arrastar = escavar. Ver docs/gdd/gestos-e-acoes.md.",
  "limiares": {
   "toque_max_px": 16,
   "toque_max_ms": 260,
@@ -7,14 +7,23 @@
   "toque_duplo_dist_px": 70,
   "segurar_min_ms": 380,
   "segurar_estavel_ms": 180,
+  "desenho_min_px": 16,
   "deslize_min_px": 44,
-  "deslize_max_ms": 380,
-  "trajetoria_min_px": 40,
+  "flick_vel_min_px_s": 700,
+  "flick_max_ms": 260,
+  "flick_reta_px": 24,
+  "flick_janela_px": 170,
+  "flick_vel_janela_ms": 90,
   "na_criatura_raio_px": 70,
   "alvo_raio_px": 110
  },
+ "desenho": {
+  "ganho": 1.6
+ },
  "planejamento": {
-  "escala_tempo": 0.35
+  "escala_tempo": 0.35,
+  "retomada_ms": 450,
+  "escurecer": 0.22
  },
  "mapa": {
   "toque": "travar",
