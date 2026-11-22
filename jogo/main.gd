@@ -33,6 +33,7 @@ const Copa := preload("res://jogo/camadas/copa.gd")
 const Parallax := preload("res://jogo/camadas/parallax.gd")
 const Criatura := preload("res://jogo/criatura.gd")
 const AdversarioMock := preload("res://jogo/adversario_mock.gd")
+const Perigos := preload("res://jogo/perigos.gd")
 const Mira := preload("res://jogo/mira.gd")
 const Trilha := preload("res://jogo/trilha.gd")
 const Efeitos := preload("res://jogo/efeitos.gd")
@@ -48,11 +49,14 @@ var cfg_gestos: Dictionary
 var tempo_ms := 0.0
 var alvos: Array = []
 var adversarios: Array = []
+var cfg_adversario: Dictionary = {}
+var hostilidade := false
 var chao: Node2D
 var subsolo: Node2D
 var criatura: Node2D
 var mira: Node2D
 var trilha: Node2D
+var perigos: Node2D
 var efeitos: Node2D
 var camera: Camera2D
 var hud: CanvasLayer
@@ -73,6 +77,7 @@ var _veu_alfa := 0.0
 func _ready() -> void:
 	var mapa := _json(MAPA)
 	cfg_gestos = _json("res://dados/gestos.json")
+	cfg_adversario = _json("res://dados/adversario.json")
 	mundo = Mundo.criar(mapa, _json("res://dados/terrenos.json"))
 	for e in mundo.validar():
 		push_error("mapa: " + e)
@@ -113,13 +118,17 @@ func _ready() -> void:
 			copas.append(cp)
 
 	for a in mapa.get("adversarios", []):
-		var adv := Adversario.new(int(a.get("semente", 1)))
+		var adv := Adversario.new(int(a.get("semente", 1)), Rect2(), cfg_adversario)
 		adv.pos = mundo.centro(Vector2i(a["celula"][0], a["celula"][1]))
 		adversarios.append(adv)
 		var no_adv := AdversarioMock.new()
 		no_adv.adv = adv
 		objetos.add_child(no_adv)
 	alvos = Alvos.montar(mapa.get("objetos", []), adversarios, mundo)
+	perigos = Perigos.new()
+	perigos.adversarios = adversarios
+	perigos.z_index = 1
+	no.add_child(perigos)
 
 	criatura = Criatura.new()
 	criatura.corpo = corpo
@@ -157,6 +166,7 @@ func _ready() -> void:
 
 	hud = Hud.new()
 	hud.cfg = cfg_gestos
+	hud.hostilidade_alternada.connect(definir_hostilidade)
 	add_child(hud)
 	# VÉU do desenho: escurece a tela para ilustrar a desaceleração (fica
 	# ATRÁS dos rótulos da HUD, que são filhos da mesma CanvasLayer).
@@ -194,8 +204,12 @@ func _process(delta: float) -> void:
 	else:
 		_escala = 1.0
 	var dt := delta * _escala
+	# o inimigo só caça quem está na SUPERFÍCIE; no subsolo ele não tem alvo
+	var alvo_corpo: Variant = corpo if corpo.camada == Mundo.SUPERFICIE else null
 	for adv in adversarios:
-		adv.passo(dt, mundo)
+		adv.passo(dt, mundo, alvo_corpo)
+		for e in adv.drenar_eventos():
+			_evento(e)
 	Alvos.sincronizar(alvos, adversarios)
 	corpo.passo(dt, mundo, alvos)
 	for e in corpo.drenar_eventos():
@@ -209,7 +223,7 @@ func _process(delta: float) -> void:
 	else:
 		trilha.mostrar(PackedVector2Array())
 	camera.position = criatura.ponto_visual()
-	hud.estado(corpo, alvos, planejando, _escala)
+	hud.estado(corpo, alvos, planejando, _escala, adversarios, hostilidade)
 	_escurecer(planejando, plano, retomada_s, delta)
 
 
@@ -260,6 +274,47 @@ func _evento(e: String) -> void:
 	elif e.begins_with("mira_final:"):
 		print("evento: ", e)
 		hud.nota("ALVO MARCADO em %s" % e.substr(11))
+	elif e.begins_with("perigo:"):
+		print("evento: ", e)
+		hud.nota("INIMIGO PREPARA %s" % _nome_ataque(e.substr(7)))
+	elif e.begins_with("acerta:"):
+		print("evento: ", e)
+		hud.nota("GOLPE DO INIMIGO: %s" % _nome_ataque(e.substr(7)))
+	elif e == "levou:golpe":
+		print("evento: ", e)
+	elif e == "esconde:prepara":
+		print("evento: ", e)
+		hud.nota("o inimigo vai se esconder")
+	elif e == "esconde:on":
+		print("evento: ", e)
+		hud.nota("o inimigo se ESCONDEU — intocável")
+	elif e == "esconde:off":
+		print("evento: ", e)
+		hud.nota("o inimigo reapareceu")
+	elif e == "esconde:sai":
+		pass
+
+
+func _nome_ataque(nome: String) -> String:
+	match nome:
+		"bote":
+			return "BOTE"
+		"esbarrao":
+			return "ESBARRÃO"
+		"cuspe":
+			return "CUSPE"
+		"esconder":
+			return "ESCONDER"
+	return nome.to_upper()
+
+
+## Liga/desliga a hostilidade em TODOS os adversários (o botão da HUD chama).
+func definir_hostilidade(v: bool) -> void:
+	hostilidade = v
+	for adv in adversarios:
+		adv.definir_hostil(v)
+	if hud:
+		hud.nota("HOSTILIDADE %s" % ("LIGADA — ele vai caçar" if v else "desligada"))
 
 
 # ---------- o dedo (toque real e demo passam por aqui) ----------

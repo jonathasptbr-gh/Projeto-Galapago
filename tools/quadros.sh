@@ -2,6 +2,7 @@
 # Oráculo visual: roda a cena principal em modo --demo e grava N quadros PNG,
 # sem GPU (Xvfb + Mesa por software). Ver docs/ORACULO.md.
 #   tools/quadros.sh [N=60] [saída=~/tmp/galapago-quadros]   (QUADROS_FPS=30 por padrão)
+#   DEMO_ARGS="--hostil" tools/quadros.sh 180 ...  → cena de inimigo hostil
 # Neste celular (proot, aarch64) o driver tem de ser softpipe: o llvmpipe morre
 # com SIGILL no JIT. No CI (x86_64) o workflow passa GALLIUM_DRIVER=llvmpipe.
 set -euo pipefail
@@ -9,6 +10,8 @@ cd "$(dirname "$0")/.."
 G="${GODOT:-$(command -v godot || echo "$HOME/.local/bin/godot")}"
 N="${1:-60}"
 SAIDA="${2:-$HOME/tmp/galapago-quadros}"
+# argumentos extras da demo (ex.: --hostil); a expansão SEM quotes é intencional
+DEMO_ARGS="${DEMO_ARGS:-}"
 case "$SAIDA" in ""|/|"$HOME"|.) echo "saída perigosa: '$SAIDA'" >&2; exit 2;; esac
 
 rm -rf "${SAIDA:?}"; mkdir -p "$SAIDA"
@@ -16,7 +19,7 @@ export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER="${GALLIUM_DRIVER:-softpipe}" GODO
 "$G" --headless --path . --import >/dev/null 2>&1 || true
 xvfb-run -a -s "-screen 0 720x1280x24" "$G" --path . --rendering-driver opengl3 \
   --audio-driver Dummy --resolution 720x1280 --write-movie "$SAIDA/q.png" \
-  --fixed-fps "${QUADROS_FPS:-30}" --quit-after "$N" -- --demo >"$SAIDA/log.txt" 2>&1 || true
+  --fixed-fps "${QUADROS_FPS:-30}" --quit-after "$N" -- --demo $DEMO_ARGS >"$SAIDA/log.txt" 2>&1 || true
 rm -f "$SAIDA"/q*.wav
 
 n=$(find "$SAIDA" -name 'q*.png' | wc -l)

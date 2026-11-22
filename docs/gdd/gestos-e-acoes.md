@@ -406,6 +406,28 @@ acende quando a recarga termina).
 | `mira_final_raio` | 34 px | onde o fim do caminho MARCA o alvo — e o quanto a PONTA pode se afastar dele sem perder a marca (v0.11.4) |
 | `mira_final_empurrao` | 44 px | empurrão do golpe final |
 
+## O inimigo hostil (v0.14)
+
+- **Botão HOSTILIDADE** na HUD: liga/desliga a caçada em todos os adversários.
+  Desligado, ele é o passeio de sempre (vagueia, leva empurrão e pisca).
+- **Caçada:** 104 px/s (o passeio é 26), zigue-zague na aproximação, **órbita**
+  a 70 px e abre espaço quando encosta. Mesma semente = mesma caçada; ele não
+  entra na água (o mundo corta o passo).
+- **Preparação + área no chão:** toda ação tem `fases` = [preparo, ativo,
+  recuperação] (o mesmo formato da criatura). No preparo ele **para**, a área
+  acende no chão, o miolo enche e a borda pisca perto do fim. Levar um golpe
+  cancela o ataque em preparo.
+- **As quatro ações:** **bote** (até 78 px) = círculo de raio 30 no lugar onde
+  o jogador estava; **esbarrão** (80–240 px) = faixa de 34 px de largura,
+  corrida a 380 px/s; **cuspe** (150–460 px) = linha fina, projétil a 280 px/s;
+  **esconder** (especial) = afunda, fica **intocável** 2 s e reaparece a
+  ~110 px do jogador (recarga 7 s; dispara ao levar um golpe).
+- **O golpe no jogador:** empurrão + atordoamento curto (sem vida, decisão do
+  operador); 0,8 s de invencibilidade depois de levar um; atordoada, a criatura
+  **não obedece** e a rota espera.
+- **Onde fica:** regra em `sim/adversario.gd`; área no chão e projétil em
+  `jogo/perigos.gd`; número em `dados/adversario.json`.
+
 ## Alvos
 
 - **Adversário:** fica **marcado** quando o fim do caminho o alcança (X amarelo
@@ -424,13 +446,17 @@ acende quando a recarga termina).
 - **Segurar/planejamento**: `limiares` e `planejamento`.
 - **O que é laço** (e se ele ataca): `formas.laco_ataque` e os limiares `laco_*` em `dados/acoes.json`.
 - **O que cada ataque faz no alvo**: `combate` (empurrões, alcances, raio).
+- **Inimigo hostil**: `dados/adversario.json` (movimento, as quatro ações,
+  recarga do esconder) e `reacao` em `dados/acoes.json` (invencibilidade e
+  velocidade do empurrão).
 - **Peso de cada ação**: fases/alcance/arco em `dados/acoes.json`.
 - **Caminho** (simplificação, desconto, desvio, chegada): bloco `rota`.
 
 ## O que fica para depois
 
-- **Dano e vida**: o adversário reage (empurrão + piscada), mas não tem vida;
-  3 golpes derrubarem é uma decisão futura.
+- **Dano e vida**: agora o adversário **ataca** (v0.14), mas ninguém tem vida:
+  o golpe dele é empurrão + atordoamento e o seu é empurrão. Vida/derrota
+  continua sendo uma decisão futura.
 - **Defesa e esquiva como efeito**: não existem (esquivar é andar).
 - **Especiais por criatura/evolução** (P4/P5).
 - **Afinidade** (P4): hoje a criatura obedece.

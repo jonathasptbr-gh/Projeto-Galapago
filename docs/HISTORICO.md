@@ -1,3 +1,56 @@
+## v0.14.0 — inimigo hostil: botão, caçada e quatro ataques com preparação (2026-11-21)
+
+- **Pedido do operador (2026-11-21):** "Elabore a dinâmica do inimigo, com um
+  botão para ligar a hostilidade. Ele vai ficar mais dinâmico em questão de
+  movimentos, mais rápido. Deve ter um ataque próximo, um de esbarrão, um de
+  longa distância e um efeito especial, como se defender ou se esconder.
+  Vamos usar o sistema de preparação de ataque e área de efeito demarcada no
+  chão."
+- **Decisões do operador:** o golpe **não tira vida** (empurrão + atordoamento
+  curto, como já era o combate físico); o especial é **ESCONDER**; a
+  hostilidade fica **ligada até o botão desligar**.
+- **O BOTÃO:** `HOSTILIDADE: LIGADA/DESLIGADA` na HUD, abaixo do PULO AUTO. O
+  estado é do main (vale para todos os adversários) e a regra é da `sim/`; o
+  toque no botão é consumido pelo Control e **não vira caminho**.
+- **A CAÇADA (`sim/adversario.gd`):** com a hostilidade ligada ele persegue a
+  **104 px/s** (o passeio era 26), aproxima em zigue-zague, **orbita** em
+  volta do jogador (`ronda_px` 88) e abre espaço quando encosta. Mesma
+  semente = mesma caçada; ele **não entra na água** (o mundo corta o passo).
+- **A PREPARAÇÃO:** cada ataque tem `fases` = [preparo, ativo, recuperação],
+  o mesmo formato de `dados/acoes.json`. Durante o preparo ele **para**, a
+  área acende no chão, o miolo enche e a borda **pisca** perto do fim. Levar
+  um golpe seu **cancela** o ataque em preparo.
+- **AS QUATRO AÇÕES:**
+  - **bote** (até 78 px): círculo de raio 30 no chão, no lugar onde o jogador
+    estava; acerta quem fica dentro, empurra 70 px e atordoa 0,45 s;
+  - **esbarrão** (80–240 px): faixa de 34 px de largura; ele corre a 380 px/s
+    pela faixa e empurra 96 px / atordoa 0,65 s;
+  - **cuspe** (150–460 px): linha fina; o projétil anda a 280 px/s, alcance
+    340, empurra 40 px / atordoa 0,30 s;
+  - **esconder** (especial): ao levar um golpe, afunda (0,35 s), fica
+    **intocável** por 2 s e reaparece a ~110 px do jogador; recarga 7 s.
+- **O CONTRA-GOLPE:** `sim/corpo.gd: levar_golpe` empurra (420 px/s), atordoa e
+  abre **0,8 s de invencibilidade**; atordoada, a criatura **não obedece**
+  (a rota fica guardada) e treme na tela. No subsolo o golpe não pega.
+- **A DEMARCAÇÃO:** `jogo/perigos.gd` desenha as três formas (círculo, faixa,
+  linha) e o projétil do cuspe; `jogo/adversario_mock.gd` põe aura/olhos
+  vermelhos no hostil, "!" no preparo e **montinho de terra com bolhas** quando
+  ele se esconde. Escondido, ele sai de `sim/alvos.gd` (não pode ser marcado
+  nem atingido).
+- **`dados/adversario.json`:** movimento (26/104/82), as quatro ações e a
+  recarga do esconder — números de partida, ajustáveis no aparelho.
+  `dados/acoes.json`: `reacao` (invencibilidade 0,8 s e 420 px/s do empurrão).
+- **Testes novos (12, `testes/test_hostil.gd`):** perseguição mais rápida que o
+  passeio; determinismo da caçada; não entra na água; bote acerta/erra; faixa
+  do esbarrão acerta/erra; linha do cuspe acerta/erra; o esconder e a
+  intocabilidade; desligar a hostilidade revela; o golpe real empurra,
+  atordoa, recusa comando e respeita a invencibilidade/subsolo. **137 testes,
+  0 falhas.**
+- **Oráculo:** `DEMO_ARGS="--hostil" tools/quadros.sh 240` grava a cena de
+  propósito (começa com a criatura perto do bicho, liga o botão, mostra os
+  ataques e um golpe ROTEIRIZADO no fim para o estado ESCONDIDO aparecer nos
+  quadros). O demo normal (60 quadros do CI) continua o mesmo.
+
 # Histórico
 
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez

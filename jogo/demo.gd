@@ -34,6 +34,20 @@ func _init(m: Node) -> void:
 		{"t": 14.0, "tipo": "toque"},
 		{"t": 15.4, "tipo": "toque"},
 	]
+	# MODO HOSTIL (`-- --demo --hostil`, para o oráculo ver os ataques): coloca a
+	# criatura perto do adversário, liga a hostilidade e fecha a cena com um
+	# golpe ROTEIRIZADO — é o que faz ele se ESCONDER.
+	if "--hostil" in OS.get_cmdline_user_args():
+		_passos = [
+			{"t": 0.2, "tipo": "hostil_on"},
+			# golpe ROTEIRIZADO no inimigo: o oráculo precisa do estado
+			# ESCONDIDO nos quadros (um caminho desenhado erraria o alvo móvel)
+			{"t": 4.2, "tipo": "esconder_demo"},
+		]
+		if not main.adversarios.is_empty():
+			main.corpo.pos = main.adversarios[0].pos + Vector2(-96, 0)
+			main.camera.position = main.corpo.pos
+			main.camera.reset_smoothing()
 
 
 func _process(_delta: float) -> void:
@@ -73,6 +87,11 @@ func _disparar(p: Dictionary, agora: float) -> void:
 			var p1 := Vector2(tela.x * 0.5, tela.y * 0.86)
 			_curso.append({"t0": agora, "t1": agora + 0.08, "hold": 0.0, "desceu": {},
 				"trilhas": [{"dedo": 0, "pts": PackedVector2Array([p1, p1])}]})
+		"hostil_on":
+			main.definir_hostilidade(true)
+		"esconder_demo":
+			if not main.adversarios.is_empty():
+				main.adversarios[0].empurrar(Vector2.RIGHT, 30.0)
 		"toque_duplo":
 			# dois toques = TIRO no alvo marcado
 			var alvo := Vector2(tela.x * 0.5, tela.y * 0.86)

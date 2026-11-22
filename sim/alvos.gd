@@ -23,19 +23,29 @@ static func montar(objetos: Array, adversarios: Array, mundo: RefCounted) -> Arr
 		var a: RefCounted = adversarios[i]
 		out.append({
 			"id": "adversario:%d" % i, "tipo": "adversario", "pos": a.pos,
-			"raio": a.raio, "travavel": true, "interativo": false, "dados": a,
+			"raio": a.raio, "travavel": _visivel(a), "interativo": false, "dados": a,
 		})
 	return out
 
 
 ## Atualiza as posições dos alvos que se movem (adversários) na lista pronta.
+## v0.14: o alvo ESCONDIDO deixa de ser travável (não dá para marcar nem bater).
 static func sincronizar(out: Array, adversarios: Array) -> void:
 	var n := 0
 	for a in out:
 		if a["tipo"] == "adversario":
 			if n < adversarios.size():
 				a["pos"] = adversarios[n].pos
+				a["travavel"] = _visivel(adversarios[n])
 				n += 1
+
+
+static func _visivel(dados: Variant) -> bool:
+	if not (dados is Object):
+		return false
+	if dados.has_method("alvo_visivel"):
+		return bool(dados.alvo_visivel())
+	return true
 
 
 ## O alvo travável mais perto de `ponto` (o toque) dentro de `alcance`; {} se
@@ -70,6 +80,8 @@ static func empurrar(out: Array, id: String, dir: Vector2, forca: float) -> bool
 	var a := por_id(out, id)
 	if a.is_empty():
 		return false
+	if not reage(a):
+		return false
 	var dados: Variant = a.get("dados", null)
 	if not (dados is Object) or not dados.has_method("empurrar"):
 		return false
@@ -80,4 +92,9 @@ static func empurrar(out: Array, id: String, dir: Vector2, forca: float) -> bool
 ## É um alvo que reage a golpe (adversário)? O que decide a ONDA e o TIRO.
 static func reage(a: Dictionary) -> bool:
 	var dados: Variant = a.get("dados", null)
-	return dados is Object and dados.has_method("empurrar")
+	if not (dados is Object) or not dados.has_method("empurrar"):
+		return false
+	# v0.14: ESCONDIDO não é alvo (o especial do adversário)
+	if dados.has_method("alvo_visivel"):
+		return bool(dados.alvo_visivel())
+	return true

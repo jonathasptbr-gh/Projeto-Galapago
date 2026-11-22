@@ -1,4 +1,8 @@
 extends CanvasLayer
+## A HUD avisa o main quando o botão de HOSTILIDADE muda de estado; quem manda
+## nos inimigos é o main (a regra é da `sim/adversario.gd`).
+signal hostilidade_alternada(ligado: bool)
+
 ## HUD de desenvolvimento: título (versão/build), legenda dos gestos (gerada da
 ## tabela), estado do corpo (rota/waypoints, barreira, alvo, camada,
 ## habilidade, alvo final, planejamento), última relação gesto → ação, nota do
@@ -21,6 +25,10 @@ var _energia_largura := 180.0
 # PULO AUTOMÁTICO (v0.13): o botão manda no `corpo.pulo_auto` (a regra é da sim)
 var _corpo: RefCounted
 var _pulo_auto: Button
+# HOSTILIDADE (v0.14): liga os ataques do adversário; estado vem do main
+var _hostil_btn: Button
+var _hostil := false
+var _inimigo: Label
 
 
 func _ready() -> void:
@@ -43,6 +51,15 @@ func _ready() -> void:
 	_pulo_auto.custom_minimum_size = Vector2(240, 34)
 	_pulo_auto.pressed.connect(_alternar_pulo_auto)
 	add_child(_pulo_auto)
+	# HOSTILIDADE (v0.14): o botão liga a caçada e os quatro ataques do bicho.
+	_hostil_btn = Button.new()
+	_hostil_btn.text = "HOSTILIDADE: DESLIGADA"
+	_hostil_btn.add_theme_font_size_override("font_size", 16)
+	_hostil_btn.position = Vector2(20, 146)
+	_hostil_btn.custom_minimum_size = Vector2(240, 34)
+	_hostil_btn.pressed.connect(_alternar_hostilidade)
+	add_child(_hostil_btn)
+	_inimigo = _rotulo("", Vector2(20, 188), 16)
 	_gesto = _rotulo("gesto: —", Vector2.ZERO, 20)
 	_gesto.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 18)
 	_gesto.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -85,6 +102,9 @@ func _process(delta: float) -> void:
 		var ligado: bool = bool(_corpo.pulo_auto)
 		_pulo_auto.text = "PULO AUTO: %s" % ("LIGADO" if ligado else "DESLIGADO")
 		_pulo_auto.modulate = Color(0.65, 1.0, 0.7) if ligado else Color.WHITE
+	if _hostil_btn:
+		_hostil_btn.text = "HOSTILIDADE: %s" % ("LIGADA" if _hostil else "DESLIGADA")
+		_hostil_btn.modulate = Color(1.0, 0.62, 0.5) if _hostil else Color.WHITE
 	if _nota_t > 0.0:
 		_nota_t = maxf(0.0, _nota_t - delta)
 		if _nota_t <= 0.0 and _nota:
@@ -99,6 +119,7 @@ func _legenda() -> String:
 	linhas.append("toque → tiro (no alvo marcado ou na direção do toque)")
 	linhas.append("toque duplo → pulo")
 	linhas.append("botão PULO AUTO → sobe degrau de 1 nível")
+	linhas.append("botão HOSTILIDADE → o bicho caça e ataca")
 	linhas.append("passar por cima → batida")
 	linhas.append("segurar no caminho → sprint")
 	linhas.append("segurar parado → habilidade")
@@ -116,6 +137,10 @@ func nota(texto: String) -> void:
 		_nota_t = 2.4
 
 
+func _alternar_hostilidade() -> void:
+	hostilidade_alternada.emit(not _hostil)
+
+
 func _alternar_pulo_auto() -> void:
 	if _corpo == null:
 		return
@@ -123,8 +148,10 @@ func _alternar_pulo_auto() -> void:
 	nota("PULO AUTO %s" % ("ligado" if _corpo.pulo_auto else "desligado"))
 
 
-func estado(corpo: RefCounted, alvos: Array, planejando := false, escala := 1.0) -> void:
+func estado(corpo: RefCounted, alvos: Array, planejando := false, escala := 1.0,
+		adversarios: Array = [], hostil := false) -> void:
 	_corpo = corpo
+	_hostil = hostil
 	var modo := ""
 	if corpo.em_rota():
 		var pct := roundi(100.0 * minf(corpo.rota_t, corpo.total_rota) / maxf(corpo.total_rota, 0.001))
@@ -146,10 +173,25 @@ func estado(corpo: RefCounted, alvos: Array, planejando := false, escala := 1.0)
 		var e := clampf(float(corpo.energia), 0.0, 1.0)
 		_energia.size.x = _energia_largura * e
 		_energia.color = Color(0.95, 0.5, 0.3, 0.95) if e < 0.25 else Color(0.45, 0.85, 1.0, 0.9)
-	_estado.text = "estado: %s · alvo: %s · %s%s%s%s%s%s" % [modo, alvo, corpo.camada,
+	_estado.text = "estado: %s · alvo: %s · %s%s%s%s%s%s%s" % [modo, alvo, corpo.camada,
 		(" · habilidade" if corpo.habilidade_ativa() else ""),
 		(" · golpe: %s" % corpo.ataque if corpo.ataque != "" else ""),
-		(" · no ar" if corpo.no_ar() else ""), final, extra]
+		(" · no ar" if corpo.no_ar() else ""), final, extra,
+		(" · ATORDOADA" if corpo.atordoado() else "")]
+	# linha do inimigo: o que ele está fazendo (preparo é o mais importante)
+	if _inimigo:
+		if adversarios.is_empty():
+			_inimigo.text = ""
+		else:
+			var a: RefCounted = adversarios[0]
+			var txt := "inimigo: %s" % a.estado_atual()
+			if a.preparando():
+				txt = "inimigo: PREPARANDO %s (%d%%)" % [str(a.acao_atual()).to_upper(), roundi(a.progresso_preparo() * 100.0)]
+			elif a.oculto():
+				txt = "inimigo: ESCONDIDO"
+			elif a.hostil:
+				txt = "inimigo: HOSTIL · %s" % a.estado_atual()
+			_inimigo.text = txt
 
 
 func _rotulo(texto: String, pos: Vector2, tamanho: int) -> Label:

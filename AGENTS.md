@@ -74,14 +74,16 @@ export_presets.cfg    preset Android (arm64, sem Gradle)
 sim/                  lógica pura: gestos (1 dedo: caminho, toque, toque duplo,
                        segurar=habilidade) · formas (laço/bico do desenho) ·
                        comandos · corpo (traço ao vivo+waypoints+overlays+
-                       marcas de ataque+autonomia) · alvos · adversario (empurrão+
-                       piscada) · mundo · trajetoria (desconto+RDP) ·
+                       marcas de ataque+autonomia) · alvos · adversario
+                       (passeio, hostilidade, preparo+área, esconder) · mundo ·
+                       trajetoria (desconto+RDP) ·
                        visibilidade · atualizacao · mapa (Wang, parado)
-jogo/                 main · criatura · adversario_mock · mira (mira+alvo final) ·
-                       trilha · efeitos (onda/tiro) · hud · demo · mock ·
+jogo/                 main · criatura · adversario_mock · perigos (área no chão) ·
+                       mira (mira+alvo final) · trilha · efeitos (onda/tiro) ·
+                       hud · demo · mock ·
                        atualizador · camadas/ (chao, subsolo, copa, parallax,
                        objeto_mock)
-dados/                gestos.json · acoes.json · terrenos.json · mapas/
+dados/                gestos.json · acoes.json · adversario.json · terrenos.json · mapas/
 testes/               run.gd (executor), caso.gd (base), test_*.gd
 tools/                estado.sh · testes.sh · quadros.sh · godot-api.sh ·
                       ci-log.mjs · baixar-apk.mjs · pixellab-catalogo.mjs ·

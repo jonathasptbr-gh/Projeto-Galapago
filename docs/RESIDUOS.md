@@ -4,6 +4,13 @@
 
 | versão | onde | o quê | tamanho |
 |---|---|---|---|
+| v0.14.0 | `dados/adversario.json` | preparos, alcances, empurrões e atordoamentos são **pontos de partida** — ajustar no aparelho | pequeno |
+| v0.14.0 | `sim/adversario.gd` | o inimigo continua o **mockup roxo**, sem sprite de bote/esbarrão/cuspe/esconder: a leitura é pela área no chão, aura, "!" e montinho de terra | arte (P6/P7) |
+| v0.14.0 | `sim/adversario.gd` | o **esconder** só dispara ao **levar um golpe** (recarga 7 s); um ataque que ERRA não o faz se esconder | design |
+| v0.14.0 | `sim/corpo.gd` | o **atordoamento** não cancela um golpe seu já em curso (ele termina), só o sprint; a rota fica guardada | pequeno |
+| v0.14.0 | `jogo/perigos.gd` | a demarcação tem **três formas** (círculo/faixa/linha); um ataque novo (cone, vários círculos) precisa de forma nova | pequeno |
+| v0.14.0 | `sim/adversario.gd` | o acerto **não checa altura**: um bote/cuspe de cima de um barranco de 1 nível alcança quem está embaixo (o esbarrão para na borda) | pequeno |
+| v0.14.0 | oráculo | a cena hostil exige `DEMO_ARGS="--hostil"`; os 60 quadros do CI mostram o começo do demo normal, **sem hostilidade** | pequeno |
 | v0.13.0 | `sim/corpo.gd` | o pulo automático só sobe degrau de **1 nível**; **descer** degrau, água no mesmo nível e degrau de 2+ níveis continuam no toque duplo | decisão |
 | v0.13.0 | `jogo/hud.gd` | o botão PULO AUTO é HUD de desenvolvimento (por cima do mapa) e **não persiste** entre aberturas: cada partida começa em `pular.auto_padrao` (falso) | pequeno |
 | v0.13.0 | `sim/corpo.gd` | o alcance do pulo automático é estimado (`velocidade × fatores × 0,42 s × 0,9`), não simulado: numa rota muito curva ou no limite do vão o sistema pode não disparar (fica o toque duplo) ou disparar no último quadro | pequeno |

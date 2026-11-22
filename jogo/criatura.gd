@@ -54,11 +54,26 @@ func _draw() -> void:
 	draw_circle(Vector2.ZERO, 20.0, Color(0, 0, 0, 0.3), true, -1.0, true)
 	draw_set_transform(Vector2.ZERO)
 	var cor := Color(0.45, 0.45, 0.55, 0.85) if subsolo else Color.WHITE
+	# ATORDOADA (v0.14): o bicho treme e fica avermelhado — o golpe tira o comando
+	var tonta: bool = corpo.atordoado()
+	if tonta:
+		cor = Color(1.0, 0.58, 0.52)
+		meu += Vector2(sin(_tempo * 57.0) * 2.2, 0.0)
 	draw_texture_rect(_sprite, Rect2(meu + Vector2(-32, -52), Vector2(64, 64)), false, cor)
 	var c := meu + Vector2(0, -20)
 	var o: Vector2 = corpo.olhar if corpo.olhar.length() > 0.01 else Vector2.RIGHT
 	draw_colored_polygon(PackedVector2Array([c + o * 30.0, c + o * 18.0 + o.orthogonal() * 7.0, c + o * 18.0 - o.orthogonal() * 7.0]), Color(1, 1, 1, 0.9))
 	_desenhar_acoes(c)
+	if tonta:
+		_desenhar_estrelas(Vector2(0, -66))
+
+
+## Estrelinhas girando sobre a cabeça: o corpo não obedece enquanto isso.
+func _desenhar_estrelas(base: Vector2) -> void:
+	for i in 3:
+		var a := _tempo * 7.0 + i * TAU / 3.0
+		var p := base + Vector2(cos(a) * 15.0, sin(a) * 4.0 - 4.0)
+		draw_circle(p, 2.4, Color(1.0, 0.9, 0.4, 0.95), true, -1.0, true)
 
 
 func _desenhar_acoes(c: Vector2) -> void:

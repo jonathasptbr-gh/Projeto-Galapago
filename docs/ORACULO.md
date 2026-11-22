@@ -10,6 +10,12 @@ roda a cena principal com o argumento de usuário `--demo` sob Xvfb + Mesa
 por software, grava N quadros PNG (Movie Maker do Godot, `--write-movie`,
 30 fps fixos) e depois o agente abre os PNG (ferramenta de leitura de imagem).
 
+`DEMO_ARGS` passa argumentos extras para a demo. A cena do **inimigo hostil**
+(v0.14) é `DEMO_ARGS="--hostil" tools/quadros.sh 240 ~/tmp/galapago-hostil`:
+começa com a criatura perto do bicho, liga o botão, mostra os ataques e um
+golpe roteirizado no fim (o estado ESCONDIDO precisa aparecer; um caminho
+desenhado erraria o alvo móvel). O demo normal continua igual.
+
 ## Fatos medidos (2026-11-20, Godot 4.7.2)
 
 - **Neste celular (proot, aarch64):** o driver `llvmpipe` inicializa o OpenGL

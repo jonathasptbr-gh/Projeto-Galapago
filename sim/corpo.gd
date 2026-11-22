@@ -221,6 +221,13 @@ var _auto_destino := Vector2.ZERO
 var _auto_espera := 0.0
 var rng := RandomNumberGenerator.new()
 
+# GOLPE DO INIMIGO (v0.14): empurrão externo + atordoamento curto. Não há vida
+# (decisão do operador): o que dói é ser jogado longe e ficar sem agir.
+var atordoado_t := 0.0
+var _invencivel_t := 0.0
+var _empurrao_ext := Vector2.ZERO
+var _reacao_cfg: Dictionary = {}
+
 var eventos: Array[String] = []
 
 
@@ -232,6 +239,7 @@ func _init(definicoes: Dictionary = {}) -> void:
 	_combate = defs.get("combate", {})
 	_embalo = defs.get("embalo", {})
 	_sprint_cfg = defs.get("sprint", {})
+	_reacao_cfg = defs.get("reacao", {})
 	pulo_auto = bool(defs.get("pular", {}).get("auto_padrao", false))
 
 
@@ -281,6 +289,36 @@ func drenar_eventos() -> Array[String]:
 	return e
 
 
+## A criatura está atordoada (não obedece comando e não anda)?
+func atordoado() -> bool:
+	return atordoado_t > 0.0
+
+
+## Ainda no curto período de invencibilidade depois de um golpe?
+func invencivel() -> bool:
+	return _invencivel_t > 0.0
+
+
+## O INIMIGO acertou (v0.14): empurra `forca_px` na direção `dir` e deixa
+## `atordoamento_s` sem agir. Devolve `false` se não valeu (invencível, no
+## subsolo ou já atordoada) — quem chama não conta o acerto nesse caso.
+func levar_golpe(dir: Vector2, forca_px: float, atordoamento_s: float) -> bool:
+	if camada == Mundo.SUBSOLO:
+		return false
+	if atordoado_t > 0.0 or _invencivel_t > 0.0:
+		return false
+	if dir.length() < 0.001:
+		dir = -olhar if olhar.length() > 0.01 else Vector2.RIGHT
+	_empurrao_ext += dir.normalized() * maxf(forca_px, 0.0)
+	atordoado_t = maxf(atordoado_t, maxf(atordoamento_s, 0.0))
+	_invencivel_t = maxf(float(_reacao_cfg.get("invencivel_s", 0.8)), 0.0)
+	# o susto corta o sprint (a rota continua guardada)
+	_sprint = false
+	_sprint_cauda_t = 0.0
+	eventos.append("levou:golpe")
+	return true
+
+
 func alvo_pos(alvos: Array) -> Vector2:
 	return Alvos.pos_de(alvos, alvo_id)
 
@@ -290,6 +328,8 @@ func alvo_pos(alvos: Array) -> Vector2:
 ## Recebe um comando (sim/comandos.gd). Devolve "ok", "ok: <detalhe>" ou
 ## "recusado: <motivo>" — quem mostra é a HUD.
 func comandar(cmd: Dictionary, mundo: RefCounted, alvos: Array = []) -> String:
+	if atordoado():
+		return "recusado: atordoado"
 	var a: String = cmd.get("acao", "")
 	match a:
 		"mover":
@@ -916,6 +956,8 @@ var _escavar_celula := Vector2i.ZERO
 # ---------------------------------------------------------------- avanço
 
 func passo(dt: float, mundo: RefCounted, alvos: Array = []) -> void:
+	_invencivel_t = maxf(_invencivel_t - dt, 0.0)
+	atordoado_t = maxf(atordoado_t - dt, 0.0)
 	for k in _recargas.keys():
 		_recargas[k] = maxf(0.0, float(_recargas[k]) - dt)
 	_atualizar_pulo(dt)
@@ -937,6 +979,12 @@ func passo(dt: float, mundo: RefCounted, alvos: Array = []) -> void:
 		_atualizar_escavar(dt, mundo)
 		pos = mundo.centro(_escavar_celula)
 		return
+	# GOLPE DO INIMIGO (v0.14): o empurrão desliza e, ATORDOADA, ela não anda
+	# nem obedece. A rota fica guardada e retoma quando o atordoamento passa.
+	if _empurrao_ext.length() > 0.01:
+		_aplicar_empurrao(dt, mundo)
+	if atordoado_t > 0.0:
+		return
 	# pausa curta do tiro: para para atirar e depois segue
 	if _pausa_t > 0.0:
 		_pausa_t = maxf(_pausa_t - dt, 0.0)
@@ -951,6 +999,19 @@ func passo(dt: float, mundo: RefCounted, alvos: Array = []) -> void:
 	else:
 		_autonomia(dt, mundo, alvos)
 	_checar_marcas(alvos)
+
+
+## Desliza o empurrão externo (golpe do inimigo) até gastá-lo. O mundo corta o
+## passo — ele não é jogado para dentro da água nem de uma parede.
+func _aplicar_empurrao(dt: float, mundo: RefCounted) -> void:
+	var dir := _empurrao_ext.normalized()
+	var quanto := minf(float(_reacao_cfg.get("empurrao_velocidade", 420.0)) * dt, _empurrao_ext.length())
+	var novo: Vector2 = mundo.limitar_segmento(pos, pos + dir * quanto, camada)
+	var andado := novo.distance_to(pos)
+	pos = novo
+	_empurrao_ext -= dir * andado
+	if andado < 0.01:
+		_empurrao_ext = Vector2.ZERO
 
 
 ## Avança a rota como uma ESTRADA (v0.9.1/v0.11.1): a criatura segue o traço

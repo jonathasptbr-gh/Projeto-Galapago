@@ -25,6 +25,7 @@
 | P17 | Desligar o ataque em área do laço (desenho de círculo) | P16 | **feito (v0.11.5)** |
 | P18 | Extensão de parkour a leste (desníveis, plataformas e trilhas) | P17 | **feito (v0.12.0)** |
 | P19 | Pulo automático (opção) e pulo mais longo no sprint | P18 | **feito (v0.13.0)** |
+| P20 | Inimigo hostil: botão, caçada e 4 ataques com preparação e área no chão | P19 | **feito (v0.14.0)** |
 
 ---
 
@@ -292,3 +293,21 @@
 - **Pendente de design/ajuste:** se o automático deve vir **ligado** por
   padrão; se vale persistir o botão entre partidas; se o automático deve
   também **descer** degrau de 1 nível (hoje só sobe).
+
+## P20 — Inimigo hostil: botão, caçada e quatro ataques (v0.14.0)
+
+- **Operador (2026-11-21):** "Elabore a dinâmica do inimigo, com um botão para
+  ligar a hostilidade. Ele vai ficar mais dinâmico em questão de movimentos,
+  mais rápido. Deve ter um ataque próximo, um de esbarrão, um de longa
+  distância e um efeito especial, como se defender ou se esconder. Vamos usar
+  o sistema de preparação de ataque e área de efeito demarcada no chão."
+- **Decisões:** sem vida (só empurrão + atordoamento); especial = esconder;
+  hostilidade fixa até desligar.
+- **Feito em v0.14.0:** botão **HOSTILIDADE** na HUD; `sim/adversario.gd` com
+  caçada (104 px/s, zigue-zague, órbita) e as quatro ações com preparo;
+  `jogo/perigos.gd` desenha círculo/faixa/linha no chão e o projétil;
+  `sim/corpo.gd: levar_golpe` (empurrão, atordoamento, invencibilidade 0,8 s);
+  `dados/adversario.json`. Detalhe no [`HISTORICO`](HISTORICO.md).
+- **Pendente de ajuste (no aparelho):** tempos de preparo e alcances; se o
+  esconder deve também disparar quando o ataque **erra** (hoje só ao levar
+  golpe); se o inimigo deve ter vida/level no futuro.

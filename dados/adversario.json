@@ -1,0 +1,53 @@
+{
+ "_leia": "ADVERSÁRIO (v0.14). `movimento`: o passeio passivo (velocidade 26, o de sempre) e a CAÇA quando a hostilidade está ligada (`velocidade_hostil`, `velocidade_ronda`, `ronda_px` = raio em que ele orbita o jogador, `recuo_px` = quando ele abre espaço, `serpentear_*` = o zigue-zague da aproximação). `acoes` é a PREPARAÇÃO DE ATAQUE: `fases` = [preparo, ativo, recuperação] em segundos (o MESMO formato de `dados/acoes.json`); `dist_min`/`dist_max` em px dizem quando ele serve; `empurrao` (px) e `atordoamento` (s) é o que o golpe faz no jogador — NÃO há vida nem dano, decisão do operador (v0.14). Formas da ÁREA DEMARCADA no chão: BOTE = círculo no chão onde o jogador estava (saia da área), ESBARRÃO = faixa (corrida) na direção do jogador, CUSPE = linha fina de tiro. ESCONDER = especial: afunda, fica intocável por `fases[1]` s e reaparece a `reaparecer_px` do jogador; dispara quando leva um golpe e a recarga deixar. Lido por sim/adversario.gd.",
+ "movimento": {
+  "velocidade": 26,
+  "velocidade_hostil": 104,
+  "velocidade_ronda": 82,
+  "ronda_px": 70,
+  "recuo_px": 46,
+  "serpentear_graus": 22,
+  "serpentear_hz": 0.6,
+  "giro_suavidade": 7.0,
+  "giro_max_graus_s": 540
+ },
+ "acoes": {
+  "bote": {
+   "fases": [0.62, 0.14, 0.42],
+   "dist_min": 0,
+   "dist_max": 78,
+   "raio": 30,
+   "empurrao": 70,
+   "atordoamento": 0.45,
+   "recarga": 1.8,
+   "avanca_px": 34
+  },
+  "esbarrao": {
+   "fases": [0.72, 0.30, 0.55],
+   "dist_min": 80,
+   "dist_max": 240,
+   "largura": 34,
+   "alcance": 230,
+   "velocidade": 380,
+   "empurrao": 96,
+   "atordoamento": 0.65,
+   "recarga": 3.6
+  },
+  "cuspe": {
+   "fases": [0.85, 0.10, 0.48],
+   "dist_min": 150,
+   "dist_max": 460,
+   "velocidade": 280,
+   "alcance": 340,
+   "raio": 9,
+   "empurrao": 40,
+   "atordoamento": 0.30,
+   "recarga": 2.6
+  },
+  "esconder": {
+   "fases": [0.35, 2.0, 0.45],
+   "recarga": 7.0,
+   "reaparecer_px": 110
+  }
+ }
+}
