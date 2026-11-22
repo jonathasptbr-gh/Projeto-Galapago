@@ -12,7 +12,7 @@
 | v0.19.0 | `sim/corpo.gd` | sem rota e sem alvo o toque é `"recusado: sem destino"` e a carga nem começa — não se atira "no dedo"; o tiro depende do destino final do caminho | decisão | aberto |
 | v0.19.0 | `jogo/hud.gd` | o **slider**, o rótulo da carga, a barra amarela, o anel na criatura e o botão **CONFIG** são **mockup** de desenvolvimento — a UI real decide depois | arte (P6/P7) | aberto |
 | v0.19.0 | oráculo | os 60 quadros do CI cobrem só os 2 primeiros segundos; o slider/CONFIG e o preparo pedem a demo inteira (~480 quadros) para o olho | operador | aberto |
-| v0.19.0 | `testes/baseline/` | o baseline ainda é o da **v0.18** (o visível mudou: CONFIG + rótulo + slider + linha nova da legenda); será atualizado com os 60 quadros do CI (`llvmpipe`) num commit seguinte do mesmo lote — sem número de run inventado | pequeno | aberto |
+| v0.19.0 | `testes/baseline/` | baseline atualizado com os 60 quadros do **CI #45** (`llvmpipe`, commit `49b9810`); o CI #45 reprovou só no diff (CONFIG/rótulo/slider/linha nova) — prova de que a mudança era visível | pequeno | resolvido em v0.19.0 |
 | v0.18.0 | `dados/acoes.json` | a **rampa** `rota.rampa_s` 0,30 s e a **carga** `combate.tiro_carga_s` 1,0 s são **pontos de partida** — ajustar no aparelho | pequeno | removido em v0.19.0 (a carga de 1,0 s; a rampa segue) |
 | v0.18.0 | `sim/gestos.gd` | o toque simples espera a janela do duplo (280 ms) para o primeiro toque de um duplo não **atirar** antes do PULO; a pausa de saída (que pulava a espera) foi removida em v0.18.0 | design | aberto |
 | v0.18.0 | `sim/corpo.gd` | o tiro do toque é **sempre de carga cheia** (1,0): 9/280/24 são o **dado bruto** do projétil e o disparo sai **13,5/448/48**; não existe tiro fraco | design | removido em v0.19.0 |

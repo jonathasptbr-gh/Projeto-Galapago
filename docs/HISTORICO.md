@@ -61,9 +61,11 @@
   relativo), que **não** faz parte da v0.19.0 — o commit deste lote leva só os
   arquivos dele.
 - **Oráculo/baseline:** o visível **mudou** (botão CONFIG, rótulo e slider da
-  carga na HUD e a linha nova da legenda). O baseline `testes/baseline/` ainda
-  é o da **v0.18** e será atualizado com os 60 quadros do CI (`llvmpipe`) num
-  commit seguinte do mesmo lote; **número de run não se inventa**.
+  carga na HUD e a linha nova da legenda). O baseline `testes/baseline/` foi
+  **atualizado neste lote** com os 60 quadros do **CI #45** (`llvmpipe`, commit
+  `49b9810`) num commit seguinte do mesmo lote. A primeira rodada do CI (#45)
+  **reprovou só no diff** (60 quadros fora da tolerância) — a prova de que a
+  mudança era visível; a suíte e o parser passaram.
 - **Resíduos:** o slider é **runtime-only** (não salva entre aberturas); o
   padrão 0,5 s e a faixa 0–1,5 s são **pontos de partida**; o tamanho é linear
   no tempo (0,5 s = 1/3 do ganho); o instantâneo (0) não tem "CARREGANDO"; o

@@ -617,5 +617,5 @@ acende quando a recarga termina).
   sem valor salvo).
 - **Oráculo**: os 60 quadros do CI só cobrem os 2 primeiros segundos; as cenas
   novas (rampa/segurar/toque/carga/slider/CONFIG) pedem a demo inteira para o
-  olho. O baseline `testes/baseline/` **ainda é o da v0.18** e será atualizado
-  com os 60 quadros do CI (`llvmpipe`) num commit seguinte do mesmo lote.
+  olho. O baseline `testes/baseline/` foi atualizado com os 60 quadros desta
+  versão (CI #45, `llvmpipe`).
