@@ -3,6 +3,74 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.18.0 — toque atira carregado, segurar corre e rampa no início da caminhada (2026-11-22)
+
+- **Autorizado pelo operador:** **reverter** a v0.17. O **toque simples volta a
+  ser TIRO** (com o tempo de carga, mesmo num toque só), o **toque longo
+  (segurar) volta a ser CORRER** (com caminho; sem caminho é a habilidade/
+  cavar), a **pausa de saída** deixa de existir, e o delay é substituído por
+  uma **rampa de aceleração** no começo de cada caminhada (0,30 s). A v0.17
+  teve a pausa de saída, a arrancada curta do toque e o tiro no soltar do
+  segurar; a v0.18 remove as três.
+- **`dados/`:** `gestos.json` — `mapa.toque` de `"correr"` para `"tiro"`,
+  `mapa.segurar` = `"segurar"`; **sai** `limiares.segurar_atraso_ms` (200).
+  `acoes.json` — **sai** `sprint.dura_s` (0,6) e **sai** `rota.atraso_s`
+  (0,35); **entra** `rota.rampa_s` 0,30; `combate.tiro_carga_s` 1,0 com
+  `tiro_carga_raio_x` 1,5, `tiro_carga_alcance_x` 1,6 e
+  `tiro_carga_empurrao_x` 2,0; a base do tiro segue `tiro_velocidade` 420,
+  `tiro_alcance` 280, `tiro_raio` 9, `tiro_empurrao` 24, `tiro_recarga_s` 1,0
+  e `tiro_pausa_s` 0,25 **depois** do disparo. Nenhum valor antigo mudou de
+  significado.
+- **`sim/gestos.gd`:** **sai** `definir_atraso` e todo o ramo da pausa (não há
+  mais limiar curto de 200 ms nem toque sem pendência); o toque simples fica
+  pendente **só** pela janela do duplo (280 ms), agora para não **atirar** no
+  primeiro toque de um duplo; o segurar vale em `segurar_min_ms` (380 ms) em
+  qualquer lugar.
+- **`sim/comandos.gd`:** o `mapa` volta a mandar `toque` → `"tiro"`; sem pausa
+  para avisar.
+- **`sim/corpo.gd`:** `_cmd_tiro` **começa a CARGA** (o animal para; `_carga_t`
+  cresce até `combate.tiro_carga_s` 1 s e `_disparar_carga` atira **sozinho**
+  com carga **1,0**, no **alvo marcado vivo** → **destino final capturado** →
+  `olhar`; **nunca** na direção do toque); sem rota e sem alvo é `"recusado:
+  sem destino"` e a carga nem começa. `_cmd_segurar` vira o **SPRINT CONTÍNUO**
+  com caminho (fator 1,7×, energia 0,45/s, recuperação 0,22/s) e a **HABILIDADE**
+  sem caminho; `_cmd_soltar_segurar` só desliga o sprint e arma a cauda
+  (`sprint.cauda_s` 0,6 s) — **não dispara tiro**. A carga é cancelada por um
+  **caminho novo** (`_guardar_rota(reiniciar=true)`) ou por um **segurar**;
+  soltar o dedo não dispara nem cancela. **RAMPA:** `_rampa_t`/`_fator_rampa`
+  sobem de ~15% a 100% em `rota.rampa_s` (smoothstep); só um caminho **novo** a
+  rearma — o traço ao vivo que cresce e a retomada depois de tiro/contorno
+  **não** reiniciam. **Saem** `_cmd_correr`, `_cancelar_caminhada`,
+  `em_atraso`/`atraso_restante_s` e o ramo da pausa no `passo`.
+- **`jogo/`:** a HUD perde o `PAUSA`/`_decimal` e ganha `CARREGANDO %`; a barra
+  amarela acima da energia e o anel na criatura aparecem **só enquanto carrega**
+  (mockup). A **legenda** fica com **10 linhas** (toque → tiro carregado
+  (alvo/fim); segurar no caminho → correr; segurar parado → habilidade).
+  `main.gd` não pergunta mais `em_atraso()` nem chama `definir_atraso`. A
+  **demo** (~16 s) mostra a **rampa** no caminho, o toque = carga+tiro, o
+  segurar = sprint+cauda, o caminho no inimigo + toque = tiro no alvo vivo, o
+  toque duplo = pulo, a perseguição/golpe e o cavar sem caminho.
+- **`testes/`:** **7 a menos** (161 → 154): saem os testes da pausa de saída e
+  da arrancada do toque; entram carga e disparo automático, `"recusado: sem
+  destino"`, tiro no alvo vivo, sprint/energia/cauda, rampa e rearme só em rota
+  nova, cancelamento da carga por caminho novo e por segurar, e o segurar sem
+  caminho cavando. **Verificação:** `tools/testes.sh` **154 testes, 0 falhas**;
+  `parser: 42 scripts, 0 com erro`; `docs: 29 Markdown, 0 erro(s)`; a execução
+  **local** dos 60 quadros do oráculo e dos 480 da demo terminou **sem SCRIPT
+  ERROR**.
+- **Documentação:** GDD reescrito no toque carregado, no sprint do segurar e na
+  rampa de início (a seção "A pausa de saída (v0.17)" foi **removida**);
+  `CONCEITO`, `AGENTS` e as descrições `_leia` de `dados/gestos.json` e
+  `dados/acoes.json` atualizados para o que o jogo faz agora.
+- **Oráculo/baseline:** o visível **mudou** (legenda v0.18 e a demo nova com a
+  rampa). O baseline `testes/baseline/` ainda é o da v0.17 e **será
+  atualizado** com os 60 quadros do CI (`llvmpipe`) num commit seguinte do
+  mesmo lote; nenhum número de run é citado porque ainda não houve.
+- **Resíduos:** a rampa 0,30 s e a carga 1,0 s são **pontos de partida**; o
+  toque espera a janela do duplo (280 ms); o tiro é sempre de carga cheia; sem
+  rota/alvo o toque não atira; o segurar sem caminho cava; a HUD de carga é
+  mockup; os 60 quadros do CI cobrem só 2 s.
+
 ## v0.17.0 — gestos: correr no toque, tiro carregado no segurar e pausa de saída (2026-11-22)
 
 - **Autorizado pelo operador:** as quatro decisões de gesto da v0.17 —

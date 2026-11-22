@@ -3,17 +3,20 @@ extends Node
 ## comandos — e os entrega pelo MESMO caminho de um toque de verdade
 ## (main.dedo_* → sim/gestos → sim/comandos → sim/corpo).
 ##
-## Roteiro (v0.17; a regra nova é do corpo, aqui só se encena o dedo):
-## 0. o caminho de sempre (baseline de 60 quadros do CI — NÃO MUDAR);
-## 1. PAUSA + SEGURAR: caminho curto e, ~0,1 s depois de soltar, o dedo desce e
-##    segura: a pausa de saída ainda vale, o segurar (200 ms) CANCELA a
-##    caminhada, carrega e solta atirando no destino final do caminho;
-## 2. PAUSA + TOQUE: outro caminho e um toque curto — ele pula a pausa e sai
-##    correndo (arrancada);
+## Roteiro (v0.18; a regra nova é do corpo, aqui só se encena o dedo):
+## 0. CAMINHO nos 2 primeiros segundos (baseline de 60 quadros do CI): é a cena
+##    que mostra a RAMPA de aceleração do começo da caminhada (do corpo,
+##    `rota.rampa_s`: ~15% → 100% em 0,30 s);
+## 1. TOQUE = TIRO CARREGADO: um caminho curto e, 0,1 s depois de soltar, um
+##    toque de 0,08 s — o animal PARA, a barra/anel de CARGA aparecem e o tiro
+##    sai sozinho ~1 s depois (mais a janela pendente do toque, 280 ms);
+## 2. SEGURAR = CORRER: um caminho em curso e, 0,1 s depois de soltar, o dedo
+##    desce e SEGURA 0,8 s — sprint contínuo, energia caindo, HUD "CORRENDO";
+##    ao soltar, a CAUDA (`sprint.cauda_s`) mantém o embalo;
 ## 3. TIRO NO ALVO MARCADO: o caminho termina EM CIMA do adversário (marca o
-##    alvo); o segurar na pausa carrega e solta no inimigo marcado;
+##    alvo vivo) e um TOQUE carrega e atira nele;
 ## 4. TOQUE DUPLO = PULO;
-## 5. PERSEGUIÇÃO/GOLPE FINAL: caminho terminando no inimigo e SEM segurar — a
+## 5. PERSEGUIÇÃO/GOLPE FINAL: caminho terminando no inimigo e SEM toque — a
 ##    criatura anda, persegue e bate;
 ## 6. SEGURAR SEM CAMINHO = HABILIDADE (cavar), numa célula escavável.
 ##
@@ -37,24 +40,25 @@ var _cavar_limite := 0.0
 func _init(m: Node) -> void:
 	main = m
 	_passos = [
-		# 0. baseline do CI (NÃO MUDAR): o caminho de sempre nos 2 primeiros segundos
+		# 0. baseline do CI: o caminho de sempre nos 2 primeiros segundos, com a
+		#    RAMPA de aceleração do começo da caminhada à vista
 		{"t": 0.5, "tipo": "caminho", "rel": [[0, 0], [70, 0], [70, -50], [20, -50], [20, 15]], "dur": 1.4},
-		# 1. caminho curto e, 0,1 s depois de soltar, o dedo desce e SEGURA
-		{"t": 2.2, "tipo": "caminho", "rel": [[0, 0], [90, 0], [90, -40]], "dur": 0.6},
-		{"t": 2.9, "tipo": "segurar", "hold": 1.0},
-		# 2. outro caminho curto e um TOQUE, 0,1 s depois de soltar
-		{"t": 4.1, "tipo": "caminho", "rel": [[0, 0], [80, 0]], "dur": 0.6},
-		{"t": 4.8, "tipo": "toque"},
-		# 3. caminho até EM CIMA do adversário e SEGURAR na pausa (tiro no alvo)
-		{"t": 5.6, "tipo": "perto", "dur": 1.2},
-		{"t": 6.9, "tipo": "segurar", "hold": 1.1},
+		# 1. caminho curto e, 0,1 s depois de soltar, um TOQUE: começa a CARGA
+		{"t": 2.6, "tipo": "caminho", "rel": [[0, 0], [90, 0], [90, -40]], "dur": 0.5},
+		{"t": 3.2, "tipo": "toque"},
+		# 2. caminho em curso e, 0,1 s depois de soltar, SEGURAR = CORRER
+		{"t": 5.0, "tipo": "caminho", "rel": [[0, 0], [0, 120], [110, 120]], "dur": 0.5},
+		{"t": 5.6, "tipo": "segurar", "hold": 0.8},
+		# 3. caminho até EM CIMA do adversário (marca o alvo vivo) e um TOQUE
+		{"t": 7.0, "tipo": "perto", "dur": 1.0},
+		{"t": 8.1, "tipo": "toque"},
 		# 4. dois toques = PULO
-		{"t": 8.3, "tipo": "toque_duplo"},
-		# 5. caminho terminando no inimigo e SEM segurar = perseguição/golpe
-		{"t": 8.9, "tipo": "perto", "dur": 1.2},
-		# 6. segurar sem caminho/alvo = habilidade (cavar) — armado aqui, mas
-		#    só sai quando o corpo estiver livre e parado numa célula escavável
-		{"t": 9.2, "tipo": "cavar"},
+		{"t": 9.8, "tipo": "toque_duplo"},
+		# 5. caminho terminando no inimigo e SEM toque = perseguição/golpe
+		{"t": 10.9, "tipo": "perto", "dur": 1.1},
+		# 6. segurar sem caminho = habilidade (cavar) — armado aqui, mas só sai
+		#    quando o corpo estiver livre e parado numa célula escavável
+		{"t": 11.0, "tipo": "cavar"},
 	]
 	# MODO HOSTIL (`-- --demo --hostil`, para o oráculo ver os ataques): coloca a
 	# criatura perto do adversário, liga a hostilidade e fecha a cena com um
@@ -115,14 +119,15 @@ func _disparar(p: Dictionary, agora: float) -> void:
 			_curso.append({"t0": agora, "t1": agora + float(p.get("dur", 1.2)), "hold": 0.0,
 				"trilhas": [{"dedo": 0, "pts": _pontos(p)}], "desceu": {}})
 		"segurar":
-			# parado SEM arrastar: no caminho/alvo = tiro carregado; sem eles, a
-			# habilidade em si mesmo. Na pausa, o limiar é curto (200 ms).
+			# parado SEM arrastar: com caminho em curso = CORRER (sprint
+			# contínuo); sem caminho = a habilidade em si mesmo. O segurar vale
+			# no limiar (`segurar_min_ms`, 380 ms), não no soltar.
 			var alvo := Vector2(tela.x * 0.5, tela.y * 0.9)
 			_curso.append({"t0": agora, "t1": agora + 0.05, "hold": float(p.get("hold", 0.5)),
 				"desceu": {}, "trilhas": [{"dedo": 0, "pts": PackedVector2Array([alvo])}]})
 		"toque":
-			# toque CURTO: na pausa ele sai na hora e CORRE; fora dela fica
-			# pendente até a janela do duplo fechar (e então corre)
+			# toque CURTO: fica pendente pela janela do duplo (280 ms) e então o
+			# corpo começa a CARGA do tiro (1 s); o disparo sai sozinho.
 			var p1 := Vector2(tela.x * 0.5, tela.y * 0.86)
 			_curso.append({"t0": agora, "t1": agora + 0.08, "hold": 0.0, "desceu": {},
 				"trilhas": [{"dedo": 0, "pts": PackedVector2Array([p1, p1])}]})
@@ -172,10 +177,11 @@ func _livre() -> bool:
 		and main.corpo.mira_final_id == "" and main.corpo.ataque == ""
 
 
-## Está parada na superfície, sem rota/pausa/inércia: o dedo do cavar desce.
+## Está parada na superfície, sem rota/inércia e SEM CARREGAR o tiro: o dedo do
+## cavar desce (começar a cavar no meio de uma carga seria outra ação).
 func _parada() -> bool:
 	return main.corpo.camada == "superficie" and not main.corpo.em_rota() \
-		and not main.corpo.em_inercia() and not main.corpo.em_atraso() \
+		and not main.corpo.em_inercia() and not main.corpo.carregando() \
 		and not main.corpo.no_ar()
 
 

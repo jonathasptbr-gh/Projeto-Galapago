@@ -13,33 +13,28 @@ extends RefCounted
 ## - os **OVERLAYS** (pulo, golpes, onda de área, tiros e habilidade), que
 ##   acontecem POR CIMA da rota sem cancelá-la.
 ##
-## v0.17 — **GESTOS DE UM DEDO**: toque = CORRER, segurar = TIRO CARREGADO e a
-## **PAUSA DE SAÍDA** de `rota.atraso_s` (0,35 s) depois de fechar o caminho.
+## v0.18 — **GESTOS DE UM DEDO**: toque = **TIRO**, segurar = **CORRER** (ou a
+## habilidade, sem caminho).
 ##
-## - **PAUSA DE SAÍDA**: `finalizar_rota` (o dedo levanta) ARMA `em_atraso()`.
-##   Enquanto ela dura a criatura NÃO anda: o jogador tem uma janela curta para
-##   mudar de ideia. SÓ `finalizar_rota` arma a pausa — `tracar`/`_adotar_traco`
-##   não (o traço ao vivo já anda, e os testes que só chamam `tracar` seguem
-##   andando na hora). Uma rota nova (`_guardar_rota`) ou o fim dela
-##   (`_terminar_rota`) desarmam.
-## - **TOQUE = CORRER** (`_cmd_correr`): arrancada curta (`sprint.dura_s`,
-##   0,6 s) no fator do sprint, gastando a barra de ENERGIA; um novo toque
-##   REARMA a duração (emenda). Na pausa o toque também a PULA (`atraso:fim`) e
-##   a caminhada começa já. Sem caminho nenhum: `"recusado: sem caminho"`.
-##   A CAUDA do sprint (`sprint.cauda_s`) continua existindo depois da
-##   arrancada; `"soltar_segurar"` NÃO termina mais o sprint.
-## - **SEGURAR = TIRO CARREGADO** (`_cmd_segurar` → `_cmd_soltar_segurar`): com
-##   caminho, com alvo marcado ou NA PAUSA, o dedo parado CARREGA (o animal para
-##   e a carga cresce até `combate.tiro_carga_s`, 1 s). Soltar dispara na direção
-##   do **ALVO MARCADO vivo** ou, sem ele, do **DESTINO FINAL do caminho**
-##   capturado no começo da carga — **nunca a direção do toque**. A carga escala
-##   `raio`, `alcance` e `empurrao` do projétil (`tiro_carga_*_x`, com teto em
-##   1,0 s). Na pausa o segurar CANCELA a caminhada (`rota:cancelada`) — a mira
-##   final sobrevive — e o mesmo soltar já atira. Sem caminho nem alvo o segurar
-##   continua sendo a HABILIDADE em si mesmo (cavar).
-## - **`_cmd_tiro`** (toque/uso interno) deixou de usar o toque como direção: sem
-##   alvo marcado vivo ele vai no ÚLTIMO PONTO DA ROTA; sem rota,
-##   `"recusado: sem destino"`.
+## - **TOQUE = TIRO CARREGADO** (`_cmd_tiro`): o toque NÃO atira na hora. Ele
+##   começa a CARGA (o animal para e `_carga_t` cresce) e o disparo sai
+##   **sozinho** ao completar `combate.tiro_carga_s` (1 s), com a carga CHEIA
+##   (1,0). A direção é o **ALVO MARCADO vivo**; sem ele, o **DESTINO FINAL do
+##   caminho** capturado no começo da carga; sem um nem outro, `olhar` —
+##   **nunca o toque**. Sem rota e sem alvo, o toque é `"recusado: sem
+##   destino"` e a carga nem começa. A carga escala `raio`, `alcance` e
+##   `empurrao` (`tiro_carga_*_x`) e só é CANCELADA por um caminho novo
+##   (`_guardar_rota(reiniciar=true)`) ou por um segurar (o jogador mudou de
+##   ideia e vai correr). Soltar o dedo não dispara nem cancela.
+## - **SEGURAR = CORRER** (`_cmd_segurar`): com caminho, liga o SPRINT CONTÍNUO
+##   (`sprint.fator`) e gasta a barra de ENERGIA enquanto o dedo fica; ao
+##   soltar (`_cmd_soltar_segurar`) o embalo continua na CAUDA
+##   (`sprint.cauda_s`). Sem caminho é a HABILIDADE em si mesmo (cavar). O
+##   segurar também cancela uma carga em curso.
+## - **RAMPA DE ACELERAÇÃO** (`rota.rampa_s`, 0,3 s): toda caminhada NOVA começa
+##   a ~15% da velocidade e chega a 100% em `rampa_s` (`_rampa_t`/`_fator_rampa`,
+##   smoothstep). O traço ao vivo reinicia a rampa uma vez; retomar depois de
+##   uma pausa/tiro NÃO reinicia.
 ##
 ## v0.11.1 — a ESTRADA deixou de CORTAR CAMINHO:
 ##
@@ -124,7 +119,8 @@ extends RefCounted
 ## - **bico** (o "T"/"V" que sai da estrada e volta) → **v0.11: o bico é
 ##   andado** (o traço é obedecido como foi desenhado; nada é ignorado);
 ## - **toque simples** → TIRO híbrido (com marca: automira; sem marca: direção do
-##   toque); **toque duplo** → PULO;
+##   toque; **v0.18: carga de 1 s, alvo marcado/destino final — nunca o toque**);
+##   **toque duplo** → PULO;
 ## - **segurar** durante um caminho → SPRINT (gasta a barra de ENERGIA); sem
 ##   caminho → habilidade em si mesmo (cavar), ativada no limiar do segurar;
 ## - **travessia** de um alvo → BATIDA/empurrão ao passar por cima;
@@ -216,22 +212,22 @@ var _arcos_rota := PackedFloat32Array()  # arco acumulado em cada ponto da rota
 var _fase1 := 0.0                   # fases do desvio orgânico (semente da rota)
 var _fase2 := 0.0
 var _pausa_t := 0.0                 # pausa curta ao disparar o tiro
-# PAUSA DE SAÍDA (v0.17): a rota foi FECHADA e o corpo ainda não anda; dura
-# `rota.atraso_s` e só `finalizar_rota` a arma.
-var _atraso_t := 0.0
-# TIRO CARREGADO (v0.17): o segurar arma a carga; o soltar dispara.
+# TIRO CARREGADO (v0.18): o TOQUE arma a carga e o disparo sai sozinho no teto;
+# o segurar cancela a carga (vai correr).
 var _carga_ativa := false
 var _carga_t := 0.0
 var _carga_max_s := 1.0             # combate.tiro_carga_s (teto da carga)
 var _carga_alvo_id := ""            # alvo marcado copiado no início da carga
 var _carga_destino := Vector2.ZERO  # DESTINO FINAL do caminho (sem alvo vivo)
 var _carga_tem_destino := false     # a rota tinha ≥ 2 pontos ao carregar?
-# SPRINT (v0.11): segurar DURANTE um caminho acelera e gasta a ENERGIA.
-# v0.17: quem arma é o TOQUE (correr), por `sprint.dura_s`.
+# SPRINT (v0.11): segurar DURANTE um caminho acelera e gasta a ENERGIA; ao
+# soltar, a CAUDA mantém o embalo por `sprint.cauda_s`.
 var energia := 1.0
 var _sprint := false
 var _sprint_cfg: Dictionary = {}
-var _sprint_t := 0.0                # duração da ARRANCADA do toque
+# RAMPA DE ACELERAÇÃO (v0.18): tempo desde o começo da rota ATUAL; zera só
+# numa rota nova (`_guardar_rota(reiniciar=true)`) e nunca num pulo/contorno.
+var _rampa_t := 0.0
 # PULO AUTOMÁTICO (v0.13): a HUD liga/desliga; padrão em `pular.auto_padrao`.
 # Ligado, o corpo pula sozinho a escada de UM nível quando a rota continua.
 var pulo_auto := false
@@ -298,19 +294,8 @@ func em_autonomia() -> bool:
 	return not em_rota() and not em_inercia()
 
 
-## A PAUSA DE SAÍDA está valendo (v0.17)? O gesto reconhecedor usa isto para
-## encurtar o segurar e soltar o toque na hora (`Gestos.definir_atraso`).
-func em_atraso() -> bool:
-	return _atraso_t > 0.0 and em_rota()
-
-
-## Quanto falta da pausa de saída (a HUD pode desenhar o fio que encurta).
-func atraso_restante_s() -> float:
-	return _atraso_t
-
-
-## A carga do tiro, de 0 a 1 (0 quando não está carregando). A HUD usa para o
-## anel em volta da criatura.
+## A carga do tiro do TOQUE, de 0 a 1 (0 quando não está carregando). A HUD usa
+## para o anel em volta da criatura; o disparo sai somente com 1,0.
 func carga() -> float:
 	if not _carga_ativa:
 		return 0.0
@@ -413,12 +398,10 @@ func comandar(cmd: Dictionary, mundo: RefCounted, alvos: Array = []) -> String:
 			return _cmd_habilidade(mundo)
 		"tiro":
 			return _cmd_tiro(cmd, alvos)
-		"correr":
-			return _cmd_correr()
 		"segurar":
 			return _cmd_segurar(mundo)
 		"soltar_segurar":
-			return _cmd_soltar_segurar(alvos)
+			return _cmd_soltar_segurar()
 	if not defs.has(a):
 		return "recusado: ação desconhecida (%s)" % a
 	return "recusado: nada a fazer"
@@ -523,15 +506,15 @@ func _guardar_rota(nova: PackedVector2Array, reiniciar: bool) -> void:
 		_olhar_suave = Vector2.ZERO
 		_sprint = false
 		_sprint_cauda_t = 0.0
-		# v0.17: rota nova desarma a pausa de saída e joga fora a carga (um
-		# tiro carregado vale para o caminho que o jogador acabou de fechar).
-		_atraso_t = 0.0
+		# v0.18: rota nova joga fora a CARGA (um tiro carregado vale para o
+		# caminho que o jogador acabou de fechar) e REARMA a rampa de
+		# aceleração do começo da caminhada.
 		_carga_ativa = false
 		_carga_t = 0.0
 		_carga_alvo_id = ""
 		_carga_tem_destino = false
 		_carga_destino = Vector2.ZERO
-		_sprint_t = 0.0
+		_rampa_t = 0.0
 		marcas = []
 		_disparadas = {}
 		mira_final_id = ""
@@ -682,9 +665,10 @@ func _fator_embalo() -> float:
 	return 1.0 + (_turbo_fator - 1.0) * sin(PI * u)
 
 
-## Quanto o SPRINT acelera AGORA (1,0 = normal). Na ARRANCADA do toque (v0.17)
-## ou com energia é o fator cheio; quando ela ACABA (ou a energia acaba), a
-## CAUDA (v0.11.4) mantém parte do embalo e cai aos poucos por `sprint.cauda_s`.
+## Quanto o SPRINT acelera AGORA (1,0 = normal). Com o dedo parado e energia é
+## o fator cheio; SOLTOU (ou a energia acabou), a CAUDA (v0.11.4) mantém parte
+## do embalo e cai aos poucos por `sprint.cauda_s` — é ela que deixa pular logo
+## depois de soltar e ainda ir mais longe.
 func _fator_sprint() -> float:
 	var cheio := maxf(float(_sprint_cfg.get("fator", 1.7)), 1.0)
 	if _sprint and energia > 0.0:
@@ -694,6 +678,19 @@ func _fator_sprint() -> float:
 	var dur := maxf(float(_sprint_cfg.get("cauda_s", 0.6)), 0.01)
 	var u := clampf(_sprint_cauda_t / dur, 0.0, 1.0)
 	return 1.0 + (cheio - 1.0) * u
+
+
+## Duração da RAMPA de aceleração do começo da caminhada (`rota.rampa_s`, 0,30 s).
+func _rampa_s() -> float:
+	return maxf(float(rota_cfg.get("rampa_s", 0.30)), 0.0001)
+
+
+## Quanto da velocidade vale AGORA no começo da caminhada: 0,15 → 1,0 em
+## `rampa_s`, com smoothstep (`u*u*(3-2u)`). Nunca zero — senão o `_barrado`
+## confundiria "começando a andar" com "parado na barreira".
+func _fator_rampa() -> float:
+	var u := clampf(_rampa_t / _rampa_s(), 0.0, 1.0)
+	return 0.15 + 0.85 * (u * u * (3.0 - 2.0 * u))
 
 
 # ---------------------------------------------------------------- efeitos
@@ -752,10 +749,6 @@ func _atingidos_tem(onda: Dictionary, id: String) -> bool:
 ## O FIM do traço: se ele terminou EM CIMA de um adversário, ele fica marcado
 ## como alvo do golpe final — a marca vai NELE (e anda com ele!) até a criatura
 ## chegar. Devolve o texto para a HUD.
-##
-## v0.17: é AQUI (e só aqui) que nasce a PAUSA DE SAÍDA — levantado o dedo, a
-## criatura espera `rota.atraso_s` antes de andar. `tracar`/`_adotar_traco` NÃO
-## armam (o traço ao vivo precisa andar enquanto o dedo desenha).
 func finalizar_rota(alvos: Array) -> String:
 	# o último quadro pode ter fechado um laço: lê tudo uma vez mais
 	var achadas := Formas.analisar(traco, _formas_cfg)
@@ -763,10 +756,6 @@ func finalizar_rota(alvos: Array) -> String:
 	_checar_marcas(alvos)
 	if rota.is_empty():
 		return ""
-	if rota.size() >= 2:
-		_atraso_t = maxf(float(rota_cfg.get("atraso_s", 0.35)), 0.0)
-		if _atraso_t > 0.0:
-			eventos.append("atraso:on")
 	return _marcar_alvo_no_fim(alvos, rota[rota.size() - 1])
 
 
@@ -926,48 +915,38 @@ func _iniciar_pulo() -> void:
 	eventos.append("pulo:on")
 
 
-## TIRO (v0.17): a DIREÇÃO não vem mais do toque.
+## TIRO DO TOQUE (v0.18) — **CARREGADO**: o toque NÃO atira na hora.
 ##
-## - COM **alvo marcado** vivo: mira NELE (automira que anda com ele);
-## - SEM marca: o **DESTINO FINAL do caminho** (o último ponto da rota). Sem
-##   caminho e sem alvo é `"recusado: sem destino"` — não se atira "no dedo".
+## - já carregando: `"ok: carregando"` (o toque repetido não reinicia);
+## - em RECARGA: `"recusado: recarga"`;
+## - captura o ALVO MARCADO e o DESTINO FINAL (último ponto da rota, se ≥ 2) e
+##   começa a CARGA: `_carga_t` de 0 até `combate.tiro_carga_s` (1 s), com o
+##   animal PARADO (o ramo da carga no `passo` retorna antes de andar);
+## - sem alvo e sem destino: `"recusado: sem destino"` — a direção NUNCA é o
+##   toque;
+## - o disparo sai SOZINHO no teto, com carga 1,0 (`_disparar_carga`), na
+##   direção do **alvo marcado vivo** ou, se ele sumiu, do **destino capturado**
+##   (sem um nem outro: `olhar`).
 ##
 ## `cmd` continua na assinatura porque o comando do gesto carrega o toque em
-## `alvo`, mas ele NÃO é mais usado. O animal PARA para atirar (`tiro_pausa_s`)
-## e depois segue a rota; a marca (se houver) NÃO sai no disparo. Recarga
-## `tiro_recarga_s` (1 s).
+## `alvo`, mas ele NÃO é usado. A carga só é cancelada por um caminho novo ou
+## por um segurar.
 func _cmd_tiro(_cmd: Dictionary, alvos: Array) -> String:
+	if _carga_ativa:
+		return "ok: carregando"
 	if float(_recargas.get("tiro", 0.0)) > 0.0:
 		return "recusado: recarga"
-	var dir := Vector2.ZERO
-	if mira_final_id != "":
-		var a := Alvos.por_id(alvos, mira_final_id)
-		if not a.is_empty():
-			dir = Vector2(a["pos"]) - pos
-		else:
-			# o alvo sumiu: a marca sai e vale o fim do caminho
-			mira_final_id = ""
-			eventos.append("mira_final:perde")
-	if dir.length() < 0.5:
-		if rota.size() < 2:
-			return "recusado: sem destino"
-		dir = rota[rota.size() - 1] - pos
-	if dir.length() < 0.5:
-		dir = olhar
-	if dir.length() < 0.01:
-		dir = Vector2.RIGHT
-	dir = dir.normalized()
-	olhar = dir
-	_atirar(dir)
-	_recargas["tiro"] = float(_combate.get("tiro_recarga_s", 1.0))
-	_pausa_t = maxf(_pausa_t, float(_combate.get("tiro_pausa_s", 0.25)))
-	eventos.append("tiro:disparo")
-	return "ok: tiro"
+	_capturar_carga()
+	if _carga_alvo_id == "" and not _carga_tem_destino:
+		_zerar_carga()
+		return "recusado: sem destino"
+	_iniciar_carga()
+	return "ok: carregando"
 
 
 ## Cria o projétil. Quem chama decide a direção; `carga` (0..1) escala `raio`,
-## `alcance` e `empurrao` do efeito — o tiro carregado é maior, vai mais longe e
-## empurra mais (v0.17). O teto é a própria carga, limitada em 1,0.
+## `alcance` e `empurrao` do efeito. O tiro do TOQUE sai com carga 1,0 (o teto,
+## limitado em 1,0): o projétil é maior, vai mais longe e empurra mais.
 func _atirar(dir: Vector2, carga := 0.0) -> void:
 	var c := clampf(carga, 0.0, 1.0)
 	efeitos.append({
@@ -988,88 +967,44 @@ func _escala_carga(carga: float, chave: String) -> float:
 	return 1.0 + (x - 1.0) * clampf(carga, 0.0, 1.0)
 
 
-## SEGURAR (v0.17) — **TIRO CARREGADO** (e a habilidade quando não há alvo):
+## SEGURAR (v0.16) — **CORRER**; sem caminho, a HABILIDADE:
 ##
-## - já carregando: `"ok: carregando"` (o dedo está parado, a carga cresce);
-## - **NA PAUSA DE SAÍDA**: captura o DESTINO FINAL e o alvo marcado ANTES de
-##   cancelar a caminhada (a mira sobrevive ao cancelamento), limpa a rota e
-##   começa a carga — o soltar do MESMO dedo já dispara;
-## - com **caminho** ou **alvo marcado**: captura e carrega; o animal PARA
-##   enquanto carrega, mas a rota fica guardada e ele retoma depois do tiro;
-## - sem caminho, sem alvo e fora da pausa: a HABILIDADE em si mesmo (cavar),
-##   como antes.
+## - já carregando o tiro: **ZERA a carga** (o jogador mudou de ideia e vai
+##   correr) e segue;
+## - com **caminho** em curso e energia: liga o SPRINT CONTÍNUO (gasta a barra
+##   de ENERGIA enquanto o dedo fica; o soltar mantém a CAUDA);
+## - sem caminho (ou sem energia para correr): a HABILIDADE em si mesmo
+##   (cavar), ativada no limiar do segurar.
 func _cmd_segurar(mundo: RefCounted) -> String:
 	if _carga_ativa:
-		return "ok: carregando"
-	if em_atraso():
-		_capturar_carga()
-		_cancelar_caminhada()
-		_iniciar_carga()
-		return "ok: carregando"
-	if em_rota() or mira_final_id != "":
-		_capturar_carga()
-		_iniciar_carga()
-		return "ok: carregando"
+		_zerar_carga()
+	if em_rota():
+		if energia <= float(_sprint_cfg.get("minimo", 0.08)):
+			return "recusado: sem energia"
+		if _sprint:
+			return "ok: já em sprint"
+		_sprint = true
+		eventos.append("sprint:on")
+		return "ok: sprint"
 	_sprint = false
 	return _cmd_habilidade(mundo)
 
 
-## CORRER (toque, v0.17): ARRANCADA curta no fator do sprint, gastando a barra
-## de ENERGIA. Na PAUSA DE SAÍDA o toque também PULA a pausa (`atraso:fim`) e a
-## caminhada começa já; um novo toque REARMA a duração (emenda a corrida).
-## Sem energia a pausa já foi pulada e o toque é recusado — ela anda no passo
-## normal. Sem caminho nenhum não há o que correr.
-func _cmd_correr() -> String:
-	if em_atraso():
-		_atraso_t = 0.0
-		eventos.append("atraso:fim")
-	elif not em_rota():
-		return "recusado: sem caminho"
-	if energia <= float(_sprint_cfg.get("minimo", 0.08)):
-		return "recusado: sem energia"
-	_sprint = true
-	_sprint_t = maxf(float(_sprint_cfg.get("dura_s", 0.6)), 0.0)
-	eventos.append("sprint:on")
-	return "ok: correndo"
+## SOLTAR o segurar (v0.16): DESLIGA o sprint, com a CAUDA mantendo o embalo
+## (`sprint.cauda_s`). **Não dispara tiro** — o tiro agora é o TOQUE, que
+## carrega e dispara sozinho.
+func _cmd_soltar_segurar() -> String:
+	if _sprint:
+		_sprint = false
+		# v0.11.4: a CAUDA mantém o embalo por um tempo (o teste de "pular
+		# ainda acelerado" depende dela).
+		_sprint_cauda_t = maxf(float(_sprint_cfg.get("cauda_s", 0.6)), 0.0)
+		eventos.append("sprint:off")
+	return "ok"
 
 
-## SOLTAR o segurar (v0.17): dispara o TIRO CARREGADO.
-##
-## A direção é o **alvo marcado VIVO** (a posição dele agora) ou, sem ele, o
-## **DESTINO FINAL capturado** no começo da carga — **nunca o toque**. A carga
-## (`_carga_t / _carga_max_s`, 0..1) escala o projétil. Sem carga ativa não faz
-## nada (uma habilidade em curso segue o curso dela). Se a recarga ainda não
-## abriu, o disparo é recusado e a caminhada cancelada continua cancelada.
-func _cmd_soltar_segurar(alvos: Array) -> String:
-	if not _carga_ativa:
-		return "ok"
-	var carga := clampf(_carga_t / maxf(_carga_max_s, 0.0001), 0.0, 1.0)
-	var dir := Vector2.ZERO
-	if _carga_alvo_id != "":
-		var a := Alvos.por_id(alvos, _carga_alvo_id)
-		if not a.is_empty():
-			dir = Vector2(a["pos"]) - pos
-	if dir.length() < 0.5 and _carga_tem_destino:
-		dir = _carga_destino - pos
-	if dir.length() < 0.5:
-		dir = olhar
-	if dir.length() < 0.01:
-		dir = Vector2.RIGHT
-	dir = dir.normalized()
-	if float(_recargas.get("tiro", 0.0)) > 0.0:
-		_zerar_carga()
-		return "recusado: recarga"
-	_atirar(dir, carga)
-	olhar = dir
-	_recargas["tiro"] = float(_combate.get("tiro_recarga_s", 1.0))
-	_pausa_t = maxf(_pausa_t, float(_combate.get("tiro_pausa_s", 0.25)))
-	eventos.append("tiro:disparo")
-	_zerar_carga()
-	return "ok: tiro"
-
-
-## Copia o que o tiro precisa ANTES de qualquer cancelamento: o DESTINO FINAL
-## do caminho (se ele tem ≥ 2 pontos) e o alvo marcado.
+## Copia o que o tiro precisa no começo da carga: o DESTINO FINAL do caminho
+## (se ele tem ≥ 2 pontos) e o alvo marcado.
 func _capturar_carga() -> void:
 	_carga_tem_destino = rota.size() >= 2
 	_carga_destino = rota[rota.size() - 1] if _carga_tem_destino else Vector2.ZERO
@@ -1085,8 +1020,8 @@ func _iniciar_carga() -> void:
 	eventos.append("carga:on")
 
 
-## Zera a carga (depois do disparo ou de uma recusa). O alvo MARCADO
-## (`mira_final_id`) não é tocado: a marca pertence ao caminho.
+## Zera a carga (depois do disparo, de uma recusa ou de um cancelamento). O
+## alvo MARCADO (`mira_final_id`) não é tocado: a marca pertence ao caminho.
 func _zerar_carga() -> void:
 	_carga_ativa = false
 	_carga_t = 0.0
@@ -1095,31 +1030,28 @@ func _zerar_carga() -> void:
 	_carga_destino = Vector2.ZERO
 
 
-## Cancela a CAMINHADA sem tocar no que o tiro precisa: `mira_final_id`
-## sobrevive (o alvo continua marcado) e o destino já foi capturado.
-func _cancelar_caminhada() -> void:
-	rota = PackedVector2Array()
-	_arcos_rota = PackedFloat32Array()
-	rota_t = 0.0
-	total_rota = 0.0
-	_rota_i = 0
-	_barrado = false
-	_desvios = 0
-	_desvio_lado = 0.0
-	_desvio_ref = 0.0
-	_desvio_inicio_s = 0.0
-	_desvio_angulo = 0.0
-	_inercia_t = 0.0
-	marcas = []
-	_disparadas = {}
-	_sprint = false
-	_sprint_t = 0.0
-	_sprint_cauda_t = 0.0
-	_atraso_t = 0.0
-	# a HUD mostra "autonomia: —"; sem rota a criatura fica PARADA (a carga e
-	# o tiro acontecem nesse estado), não vazia.
-	autonomia = "parado"
-	eventos.append("rota:cancelada")
+## Dispara a CARGA no teto (o `passo` chama ao completar `tiro_carga_s`).
+## Direção: **alvo marcado vivo** → **destino capturado** → `olhar`; a carga é
+## SEMPRE 1,0. Deixa a recarga e a pausa curta do tiro, e zera a carga.
+func _disparar_carga(alvos: Array) -> void:
+	var dir := Vector2.ZERO
+	if _carga_alvo_id != "":
+		var a := Alvos.por_id(alvos, _carga_alvo_id)
+		if not a.is_empty():
+			dir = Vector2(a["pos"]) - pos
+	if dir.length() < 0.5 and _carga_tem_destino:
+		dir = _carga_destino - pos
+	if dir.length() < 0.5:
+		dir = olhar
+	if dir.length() < 0.01:
+		dir = Vector2.RIGHT
+	dir = dir.normalized()
+	_atirar(dir, 1.0)
+	olhar = dir
+	_recargas["tiro"] = float(_combate.get("tiro_recarga_s", 1.0))
+	_pausa_t = maxf(_pausa_t, float(_combate.get("tiro_pausa_s", 0.25)))
+	eventos.append("tiro:disparo")
+	_zerar_carga()
 
 
 ## HABILIDADE EM SI MESMO (v0.9): o que era o gesto de escavar virou a
@@ -1177,14 +1109,6 @@ func passo(dt: float, mundo: RefCounted, alvos: Array = []) -> void:
 	_atualizar_efeitos(dt, alvos)
 	_turbo_t = maxf(_turbo_t - dt, 0.0)
 	_sprint_cauda_t = maxf(_sprint_cauda_t - dt, 0.0)
-	# ARRANCADA do toque (v0.17): a duração acaba sozinha e entra a CAUDA do
-	# sprint — um novo toque REARMA `_sprint_t` e emenda a corrida.
-	if _sprint_t > 0.0:
-		_sprint_t = maxf(_sprint_t - dt, 0.0)
-		if _sprint_t <= 0.0 and _sprint:
-			_sprint = false
-			_sprint_cauda_t = maxf(float(_sprint_cfg.get("cauda_s", 0.6)), 0.0)
-			eventos.append("sprint:off")
 	# ENERGIA do sprint: gasta acelerando no caminho, recupera parada/andando
 	if _sprint and em_rota() and energia > 0.0:
 		energia = maxf(0.0, energia - float(_sprint_cfg.get("gasto_s", 0.45)) * dt)
@@ -1209,19 +1133,16 @@ func passo(dt: float, mundo: RefCounted, alvos: Array = []) -> void:
 		_pausa_t = maxf(_pausa_t - dt, 0.0)
 		_checar_marcas(alvos)
 		return
-	# PAUSA DE SAÍDA (v0.17): o caminho foi FECHADO e ela ainda não anda. O
-	# toque (correr) a pula pelo comando; o segurar a troca por uma CARGA.
-	if _atraso_t > 0.0:
-		_atraso_t = maxf(_atraso_t - dt, 0.0)
-		if _atraso_t > 0.0:
-			_checar_marcas(alvos)
-			return
-	# CARGA do tiro (v0.17): o animal PARA enquanto carrega (a rota fica
-	# guardada, exceto quando o segurar veio da pausa e a cancelou). A carga
-	# não gasta energia e tem teto em `combate.tiro_carga_s`.
+	# CARGA do tiro do TOQUE (v0.18): o animal PARA enquanto carrega (a rota
+	# fica guardada e ele retoma depois do tiro). A carga não gasta energia e
+	# tem teto em `combate.tiro_carga_s`; ao completá-lo o tiro sai SOZINHO,
+	# com a carga cheia.
 	if _carga_ativa:
 		_carga_t = minf(_carga_t + dt, _carga_max_s)
-		_checar_marcas(alvos)
+		if _carga_t >= _carga_max_s - 0.0001:
+			_disparar_carga(alvos)
+		else:
+			_checar_marcas(alvos)
 		return
 	if em_rota():
 		pos = _avancar_rota(dt, mundo, alvos)
@@ -1258,6 +1179,11 @@ func _avancar_rota(dt: float, mundo: RefCounted, alvos: Array) -> Vector2:
 	if rota.is_empty() or total_rota <= 0.001:
 		return _terminar_rota(alvos)
 	var base := pos
+	# RAMPA DE ACELERAÇÃO (v0.18): o começo da caminhada NOVA é mais lento
+	# (15% → 100% em `rota.rampa_s`, smoothstep). O relógio só anda quando a
+	# criatura anda de fato; a carga/pausa não o consome.
+	_rampa_t = minf(_rampa_t + dt, _rampa_s())
+	var fator_rampa := _fator_rampa()
 	var fator_sprint := _fator_sprint()
 	# PULO ACELERADO (v0.13): no AR, o sprint (ou a cauda dele) alonga o avanço
 	# horizontal; no chão o fator é 1 e a caminhada não muda.
@@ -1266,7 +1192,7 @@ func _avancar_rota(dt: float, mundo: RefCounted, alvos: Array) -> Vector2:
 		fator_ar = maxf(float(defs.get("pular", {}).get("sprint_fator", 1.0)), 1.0)
 	# o avanço que ela DEVERIA ter neste quadro: é o que desempata a projeção
 	# num cruzamento/bico (dois braços no mesmo lugar) e impede o "pulo".
-	var esperado := maxf(velocidade * fator_sprint * fator_ar * _fator_embalo() * dt * 2.0, 2.0)
+	var esperado := maxf(velocidade * fator_sprint * fator_ar * _fator_embalo() * fator_rampa * dt * 2.0, 2.0)
 	var proj := _projetar(base, esperado)
 	# teto de segurança do avanço: um cruzamento/laço não pode "teleportar" a
 	# criatura para o fim do braço; no máximo o que ela andaria em ~4 quadros.
@@ -1281,7 +1207,7 @@ func _avancar_rota(dt: float, mundo: RefCounted, alvos: Array) -> Vector2:
 		if alvo_f != Vector2.ZERO and pos.distance_to(alvo_f) <= float(_embalo.get("gatilho_px", 70.0)):
 			_iniciar_embalo(float(_embalo.get("curto_s", 0.25)), float(_embalo.get("curto_fator", 1.7)))
 			_embalo_final_feito = true
-	var passo := velocidade * _fator_embalo() * fator_sprint * fator_ar * dt
+	var passo := velocidade * _fator_embalo() * fator_sprint * fator_ar * fator_rampa * dt
 	# ALVO: o ponto MAIS LONGE da estrada que a linha reta alcança andando.
 	# Sem isso, a criatura corta a corda de uma curva e bate na pedra/beira.
 	var alvo := _alvo_visivel(base, mundo)
@@ -1777,7 +1703,9 @@ func _terminar_rota(alvos: Array) -> Vector2:
 	if dir.length() < 0.01:
 		dir = olhar
 	var fator := _fator_sprint()
-	var v0 := velocidade * _fator_embalo() * fator
+	# a INÉRCIA sai com a velocidade de CHEGADA: o sprint (ou a cauda) e a
+	# RAMPA que ainda estiver valendo entram nela.
+	var v0 := velocidade * _fator_embalo() * fator * _fator_rampa()
 	var freio := maxf(float(rota_cfg.get("freio_extra_px", 16.0)), 0.0)
 	if fator > 1.0:
 		freio *= maxf(float(rota_cfg.get("freio_sprint_x", 1.6)), 1.0)
@@ -1793,8 +1721,6 @@ func _terminar_rota(alvos: Array) -> Vector2:
 	_desvio_inicio_s = 0.0
 	_desvio_angulo = 0.0
 	_sprint = false
-	_sprint_t = 0.0
-	_atraso_t = 0.0
 	marcas = []
 	_auto_destino = fim
 	_auto_t = 3.3  # decide JÁ no primeiro passo de autonomia
@@ -2035,8 +1961,8 @@ func _atualizar_escavar(dt: float, mundo: RefCounted) -> void:
 		marcas = []
 		mira_final_id = ""
 		_perseguindo = false
-		# v0.17: escavar troca de camada e a rota some — a pausa de saída também.
-		_atraso_t = 0.0
+		# v0.18: escavar troca de camada e a rota some — a carga também.
+		_zerar_carga()
 		_arcos_rota = PackedFloat32Array()
 		_recargas["habilidade"] = float(defs.get("habilidade", {}).get("recarga", 0.4))
 		eventos.append("camada:" + camada)

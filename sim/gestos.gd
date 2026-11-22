@@ -1,5 +1,5 @@
 extends RefCounted
-## Reconhecedor de GESTOS DE UM DEDO — LÓGICA PURA (v0.17).
+## Reconhecedor de GESTOS DE UM DEDO — LÓGICA PURA (v0.18).
 ##
 ## **UM DEDO FAZ TUDO.** O primeiro dedo que desce é o do CAMINHO:
 ##
@@ -7,29 +7,18 @@ extends RefCounted
 ##   A FORMA do desenho é lida por `sim/formas.gd` (hoje o LAÇO está DESLIGADO
 ##   por `formas.laco_ataque` — v0.11.5; ficou só o caminho). O gesto não tem
 ##   de decidir isso.
-## - soltar sem arrastar = **toque** (v0.17: a AÇÃO é CORRER, pela tabela
+## - soltar sem arrastar = **toque** (v0.18: a AÇÃO é TIRO, pela tabela
 ##   `mapa`); dois toques = **toque duplo** (PULO). Para o primeiro toque de um
-##   duplo não correr, o toque simples fica PENDENTE até a janela do duplo
+##   duplo não atirar, o toque simples fica PENDENTE até a janela do duplo
 ##   fechar (o `tick` solta).
-## - parado sem arrastar por `segurar_min_ms` = **segurar**: ATIVA na hora (no
-##   limiar, não no soltar). Quem decide o que ele faz é o corpo: com um
-##   caminho em curso é o TIRO CARREGADO; sem caminho é a habilidade (cavar).
+## - parado sem arrastar por `segurar_min_ms` (380 ms) = **segurar**: ATIVA na
+##   hora (no limiar, não no soltar). Quem decide o que ele faz é o corpo: com
+##   um caminho em curso é **CORRER** (sprint contínuo); sem caminho é a
+##   habilidade (cavar).
 ##
-## **PAUSA DE SAÍDA (v0.17)** — `definir_atraso(true)`: quando o corpo está
-## parado no `atraso` que segue o fim de um caminho, o MESMO dedo muda de
-## sentido e o limiar encurta:
-##
-## - **toque** (< `segurar_atraso_ms`) sai **NA HORA**, sem pendência e sem
-##   detecção de duplo (dois toques na pausa são dois "toque") — a ação correr
-##   tira a pausa e acelera a saída;
-## - **segurar** (≥ `segurar_atraso_ms`, 200 ms) devolve `segurar_inicio` +
-##   `segurar_fim` no mesmo soltar: o corpo começa a CARGA e dispara no mesmo
-##   quadro, e a caminhada é cancelada.
-##
-## Fora da pausa nada disso vale: o limiar do segurar continua
-## `segurar_min_ms` (380 ms) e o toque continua pendente pela janela do duplo.
-##
-## `dados/gestos.json` guarda a tabela gesto → ação (`mapa`).
+## `dados/gestos.json` guarda a tabela gesto → ação (`mapa`). O reconhecedor
+## NÃO decide a AÇÃO: o toque é só o toque; o corpo começa a CARGA de 1 s e
+## dispara sozinho ao completá-la.
 ##
 ## Um SEGUNDO dedo não é ação: o gesto continua no primeiro dedo, mas toque,
 ## toque duplo e segurar ficam DESARMADOS (dois dedos não são um toque — é o
@@ -49,9 +38,7 @@ var _t0 := 0.0
 var _inicio := Vector2.ZERO
 var _segurando := false
 var _um_dedo := true
-# a PAUSA DE SAÍDA do corpo está ativa? (o jogo/pergunta ao corpo e avisa aqui)
-var _atraso_ativo := false
-# o toque simples fica pendente para não pular no 1º toque de um duplo
+# o toque simples fica pendente para não atirar no 1º toque de um duplo
 var _pendente_ev: Dictionary = {}
 var _pendente_t := -1.0
 var _pendente_pos := Vector2.ZERO
@@ -61,19 +48,10 @@ func _init(limiares: Dictionary = {}) -> void:
 	lim = {
 		"toque_max_px": 16.0, "toque_max_ms": 260.0, "toque_duplo_janela_ms": 340.0,
 		"toque_duplo_dist_px": 70.0, "segurar_min_ms": 380.0,
-		"segurar_atraso_ms": 200.0,
 		"desenho_min_px": 16.0, "desenho_min_ms": 150.0,
 	}
 	for k in limiares:
 		lim[k] = float(limiares[k])
-
-
-## O corpo avisa que a PAUSA DE SAÍDA começou (`true`) ou acabou (`false`).
-## Enquanto ela vale, o toque sai na hora e o segurar encurta para
-## `segurar_atraso_ms` (v0.17). Não mexe na pendência em curso: um toque que já
-## estava esperando a janela do duplo continua valendo.
-func definir_atraso(ativo: bool) -> void:
-	_atraso_ativo = ativo
 
 
 func ativo() -> bool:
@@ -130,30 +108,21 @@ func soltar(dedo: int, pos: Vector2, t_ms: float) -> Array:
 
 
 ## Chamar a cada quadro com os dedos parados: solta o TOQUE pendente (depois
-## da janela do duplo) e ATIVA o "segurar" no limiar (não espera soltar). Na
-## PAUSA DE SAÍDA (v0.17) o limiar é o curto (`segurar_atraso_ms`).
+## da janela do duplo) e ATIVA o "segurar" no limiar (não espera soltar).
 func tick(t_ms: float) -> Array:
 	_agora = t_ms
 	var out: Array = []
-	# janela do duplo fechou sem um segundo toque: era um TOQUE simples (correr)
+	# janela do duplo fechou sem um segundo toque: era um TOQUE simples (tiro)
 	if _pendente_t >= 0.0 and t_ms - _pendente_t > float(lim["toque_duplo_janela_ms"]):
 		out.append(_pendente_ev)
 		_pendente_t = -1.0
 	if _caminho == -1 or _desenhando or _segurando:
 		return out
-	var limiar := _limiar_segurar()
-	if _um_dedo and t_ms - _t0 >= limiar \
+	if _um_dedo and t_ms - _t0 >= float(lim["segurar_min_ms"]) \
 			and _desvio_max() <= float(lim["toque_max_px"]):
 		_segurando = true
 		out.append(_evento("segurar_inicio", t_ms))
 	return out
-
-
-## Limiar do SEGURAR: curto DURANTE a pausa de saída, normal fora dela.
-func _limiar_segurar() -> float:
-	if _atraso_ativo:
-		return float(lim["segurar_atraso_ms"])
-	return float(lim["segurar_min_ms"])
 
 
 # ---------------------------------------------------------------- caminho
@@ -186,27 +155,17 @@ func _soltar_caminho(pos: Vector2, t_ms: float) -> Array:
 	if _segurando:
 		_segurando = false
 		return [_evento("segurar_fim", t_ms)]
-	# PAUSA DE SAÍDA (v0.17): o dedo decide NA HORA, sem pendência. Segurar
-	# >= `segurar_atraso_ms` devolve o segurar INTEIRO (início + fim no mesmo
-	# soltar): o corpo começa a carga e dispara neste quadro, cancelando a
-	# caminhada. Toque curto sai como "toque" imediato — dois toques na pausa
-	# são dois "toque" (não há duplo aqui).
-	if _atraso_ativo and _um_dedo \
-			and _desvio_max() <= float(lim["toque_max_px"]):
-		if dur >= float(lim["segurar_atraso_ms"]):
-			return [_evento("segurar_inicio", t_ms), _evento("segurar_fim", t_ms)]
-		return [_evento("toque", t_ms)]
 	if not _um_dedo:
 		return []  # dois dedos nunca viram toque
 	if _desvio_max() > float(lim["toque_max_px"]) or dur > float(lim["toque_max_ms"]):
 		return [_evento("nada", t_ms)]
 	# SEGUNDO toque dentro da janela e perto do primeiro: é TOQUE DUPLO (pulo).
-	# O toque simples pendente é descartado (não corre).
+	# O toque simples pendente é descartado (não atira).
 	if _pendente_t >= 0.0 and t_ms - _pendente_t <= float(lim["toque_duplo_janela_ms"]) \
 			and pos.distance_to(_pendente_pos) <= float(lim["toque_duplo_dist_px"]):
 		_pendente_t = -1.0
 		return [_evento("toque_duplo", t_ms)]
-	# primeiro toque: fica pendente; o `tick` solta como TOQUE (correr) se a
+	# primeiro toque: fica pendente; o `tick` solta como TOQUE (tiro) se a
 	# janela fechar sem o segundo.
 	_pendente_ev = _evento("toque", t_ms)
 	_pendente_t = t_ms

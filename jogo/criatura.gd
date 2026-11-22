@@ -93,7 +93,7 @@ func _desenhar_acoes(c: Vector2) -> void:
 		draw_colored_polygon(pts, cor_cone)
 		draw_polyline(pts.slice(1), cor_linha, 2.0, true)
 	if corpo.carregando():
-		# CARGA do tiro (v0.17): o aro vai de 20 a 30 px e o arco fecha com a
+		# CARGA do tiro (v0.18): o aro vai de 20 a 30 px e o arco fecha com a
 		# carga — o corpo só diz quanto (0..1), o desenho é daqui.
 		var cg := clampf(corpo.carga(), 0.0, 1.0)
 		var raio := lerpf(20.0, 30.0, cg)

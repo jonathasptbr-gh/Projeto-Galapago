@@ -43,7 +43,7 @@
 7. **Revisão do GDD de gestos:** seu marcador `**vX.Y.Z.**` nas primeiras
    seis linhas pertence ao histórico e não é anterior às versões citadas
    no documento. Patch só de documentação não obriga revisar design.
-8. **Toques simples/duplo:** o resumo `toque simples = CORRER` / `toque duplo =
+8. **Toques simples/duplo:** o resumo `toque simples = TIRO` / `toque duplo =
    PULO` do [`CONCEITO`](CONCEITO.md) e as respectivas linhas da tabela do
    [`GDD`](gdd/gestos-e-acoes.md) devem acompanhar `mapa.toque` e
    `mapa.toque_duplo` de [`gestos.json`](../dados/gestos.json). `pular` é

@@ -4,16 +4,15 @@ extends CanvasLayer
 signal hostilidade_alternada(ligado: bool)
 
 ## HUD de desenvolvimento: título (versão/build), legenda dos gestos (a tabela
-## v0.17 em linhas curtas), estado do corpo (rota/waypoints, barreira, alvo,
-## camada, habilidade, alvo final, planejamento, PAUSA DE SAÍDA e CARGA do
-## tiro), barra de energia e barra de carga, última relação gesto → ação, nota
-## do último golpe/ataque, e o ESTADO DA ATUALIZAÇÃO com botão de verificar à
-## mão. Layout pensado para a tela em RETRATO (720×1280).
+## v0.18 em linhas curtas), estado do corpo (rota/waypoints, barreira, alvo,
+## camada, habilidade, alvo final, planejamento e CARGA do tiro), barra de
+## energia e barra de carga, última relação gesto → ação, nota do último
+## golpe/ataque, e o ESTADO DA ATUALIZAÇÃO com botão de verificar à mão.
+## Layout pensado para a tela em RETRATO (720×1280).
 
 const Atualizador := preload("res://jogo/atualizador.gd")
 const Alvos := preload("res://sim/alvos.gd")
 
-var cfg: Dictionary = {}
 var atualizador: Control
 var _gesto: Label
 var _estado: Label
@@ -23,7 +22,7 @@ var _nota_t := 0.0
 var _energia_bg: ColorRect
 var _energia: ColorRect
 var _energia_largura := 180.0
-# CARGA do tiro (v0.17): barra fina amarela logo acima da energia, visível só
+# CARGA do tiro (v0.18): barra fina amarela logo acima da energia, visível só
 # enquanto o corpo carrega (`corpo.carregando()`), preenchida por `corpo.carga()`
 var _carga_bg: ColorRect
 var _carga: ColorRect
@@ -87,7 +86,7 @@ func _ready() -> void:
 	_energia.size = Vector2(_energia_largura, 8)
 	_energia.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_energia_bg.add_child(_energia)
-	# BARRA DE CARGA do tiro (v0.17): só aparece enquanto carrega; some do resto
+	# BARRA DE CARGA do tiro (v0.18): só aparece enquanto carrega; some do resto
 	_carga_bg = ColorRect.new()
 	_carga_bg.color = Color(0, 0, 0, 0.45)
 	_carga_bg.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 18)
@@ -135,12 +134,10 @@ func _legenda() -> String:
 	var linhas := PackedStringArray(["GESTOS"])
 	linhas.append("1 dedo arrastando → caminho")
 	linhas.append("fim do caminho no alvo → marca")
-	linhas.append("toque → correr (arrancada)")
+	linhas.append("toque → tiro carregado (alvo/fim)")
 	linhas.append("toque duplo → pulo")
-	linhas.append("segurar → tiro carregado (alvo/fim)")
-	linhas.append("segurar sem caminho/alvo → habilidade")
-	linhas.append("na pausa, toque → sai correndo")
-	linhas.append("na pausa, segurar → atira e cancela")
+	linhas.append("segurar no caminho → correr")
+	linhas.append("segurar parado → habilidade (cavar)")
 	linhas.append("passar por cima → batida")
 	linhas.append("botão PULO AUTO → sobe degrau de 1 nível")
 	linhas.append("botão HOSTILIDADE → o bicho caça e ataca")
@@ -194,17 +191,15 @@ func estado(corpo: RefCounted, alvos: Array, planejando := false, escala := 1.0,
 		var e := clampf(float(corpo.energia), 0.0, 1.0)
 		_energia.size.x = _energia_largura * e
 		_energia.color = Color(0.95, 0.5, 0.3, 0.95) if e < 0.25 else Color(0.45, 0.85, 1.0, 0.9)
-	# CARGA do tiro (v0.17): a barra fina só existe enquanto o corpo carrega
+	# CARGA do tiro (v0.18): a barra fina só existe enquanto o corpo carrega
 	var carga := clampf(corpo.carga(), 0.0, 1.0)
 	if _carga_bg and _carga:
 		_carga_bg.visible = corpo.carregando()
 		_carga.size.x = _energia_largura * carga
 		_carga.color = Color(1.0, 0.7, 0.2, 0.95) if carga >= 0.999 else Color(1.0, 0.85, 0.25, 0.95)
-	# a PAUSA DE SAÍDA e a CARGA em primeiro plano: é o que o dedo precisa ver
+	# a CARGA em primeiro plano: é o preparo do tiro que o dedo precisa ver
 	var fio := ""
-	if corpo.em_atraso():
-		fio = "PAUSA %s s" % _decimal(corpo.atraso_restante_s())
-	elif corpo.carregando():
+	if corpo.carregando():
 		fio = "CARREGANDO %d%%" % roundi(carga * 100.0)
 	var linha := "estado: %s · alvo: %s · %s%s%s%s%s%s%s" % [modo, alvo, corpo.camada,
 		(" · habilidade" if corpo.habilidade_ativa() else ""),
@@ -226,11 +221,6 @@ func estado(corpo: RefCounted, alvos: Array, planejando := false, escala := 1.0,
 			elif a.hostil:
 				txt = "inimigo: HOSTIL · %s" % a.estado_atual()
 			_inimigo.text = txt
-
-
-## Número com VÍRGULA decimal: a HUD fala com o jogador, em português.
-func _decimal(v: float, casas := 1) -> String:
-	return String.num(v, casas).replace(".", ",")
 
 
 func _rotulo(texto: String, pos: Vector2, tamanho: int) -> Label:

@@ -1,12 +1,11 @@
 {
- "_leia": "Gestos -> ações. v0.17.0 — UM DEDO FAZ TUDO. O primeiro dedo desenha a rota AO VIVO (sem espera, ganho de sensibilidade, origem congelada na descida). A FORMA do desenho vira ataque (sim/formas.gd) — o LAÇO está DESLIGADO (`formas.laco_ataque` falso em acoes.json), o círculo é só caminho; o BICO (ida e volta brusca) é ANDADO. Soltar sem arrastar = TOQUE → CORRER (arrancada de `sprint.dura_s`, gasta energia, rearma com um novo toque e cai na cauda `sprint.cauda_s`); DOIS toques = PULO. SEGURAR = TIRO CARREGADO com caminho ou alvo: o animal para, a carga cresce até `combate.tiro_carga_s` e o soltar atira no ALVO MARCADO VIVO ou no DESTINO FINAL do caminho (nunca no dedo); sem caminho nem alvo = HABILIDADE em si mesmo (cavar), no limiar. PAUSA DE SAÍDA (v0.17): ao fechar o caminho (`finalizar_rota`) a criatura espera `rota.atraso_s` (0,35 s); o toque curto (< `segurar_atraso_ms`) pula a pausa e sai correndo, o segurar (≥ 200 ms) cancela a caminhada e carrega, e o mesmo soltar dispara — a mira final sobrevive ao cancelamento. Fora da pausa o toque simples fica PENDENTE pela janela do duplo (280 ms) para o primeiro toque de um duplo não correr antes do PULO. Nenhum gesto de dois dedos. A linha é o eixo de uma ESTRADA e o BICO é andado como desenhado. Ver docs/gdd/gestos-e-acoes.md.",
+ "_leia": "Gestos -> ações. v0.18.0 — UM DEDO FAZ TUDO. O primeiro dedo desenha a rota AO VIVO (sem espera, ganho de sensibilidade, origem congelada na descida). A FORMA do desenho vira ataque (sim/formas.gd) — o LAÇO está DESLIGADO (`formas.laco_ataque` falso em acoes.json), o círculo é só caminho; o BICO (ida e volta brusca) é ANDADO. Soltar sem arrastar = TOQUE = TIRO CARREGADO: o animal PARA e a carga cresce até `combate.tiro_carga_s` (1 s); o disparo sai SOZINHO com a carga CHEIA (1,0) no ALVO MARCADO VIVO ou no DESTINO FINAL do caminho — nunca na direção do dedo; sem rota e sem alvo é `recusado: sem destino` e a carga nem começa. O toque fica PENDENTE pela janela do duplo (280 ms) para o primeiro toque de um duplo não atirar antes do PULO; DOIS toques = PULO. SEGURAR = CORRER: com caminho, sprint CONTÍNUO (`sprint.fator` 1,7×) enquanto o dedo fica, gastando energia (`sprint.gasto_s`/`recarga_s`), com a CAUDA (`sprint.cauda_s`) ao soltar; SEM caminho = HABILIDADE em si mesmo (cavar), no limiar (`segurar_min_ms`). O segurar cancela uma carga em curso; soltar o dedo não dispara nem cancela. RAMPA DE ACELERAÇÃO (v0.18): toda caminhada NOVA começa a ~15% e chega a 100% em `rota.rampa_s` (0,30 s, smoothstep); só um caminho novo a rearma (o traço ao vivo e a retomada depois do tiro/contorno não reiniciam). NÃO HÁ PAUSA DE SAÍDA (a da v0.17 foi removida): o animal anda enquanto o dedo desenha. Nenhum gesto de dois dedos. A linha é o eixo de uma ESTRADA e o BICO é andado como desenhado. A tabela `mapa` diz a AÇÃO de cada gesto (toque=tiro, toque_duplo=pular, segurar=segurar, trajetoria=mover). Ver docs/gdd/gestos-e-acoes.md.",
  "limiares": {
   "toque_max_px": 16,
   "toque_max_ms": 260,
   "toque_duplo_janela_ms": 280,
   "toque_duplo_dist_px": 70,
   "segurar_min_ms": 380,
-  "segurar_atraso_ms": 200,
   "desenho_min_px": 16,
   "desenho_min_ms": 150
  },
@@ -19,7 +18,7 @@
   "escurecer": 0.22
  },
  "mapa": {
-  "toque": "correr",
+  "toque": "tiro",
   "toque_duplo": "pular",
   "segurar": "segurar",
   "trajetoria": "mover"

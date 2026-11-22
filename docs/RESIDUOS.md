@@ -4,10 +4,19 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
-| v0.17.0 | `dados/acoes.json` | os tempos da v0.17 (pausa 0,35 s · segurar 0,2/0,38 s · carga 1,0 s · multiplicadores 1,6/1,5/2,0 · arrancada 0,6 s) são **pontos de partida** — ajustar no aparelho | pequeno | aberto |
-| v0.17.0 | `sim/gestos.gd` | fora da pausa o toque simples fica pendente até a janela do duplo (280 ms) para o primeiro toque de um duplo não correr antes do PULO; se o operador quiser resposta imediata, é mexer nessa janela e o PULO sofre | design | aberto |
-| v0.17.0 | `sim/corpo.gd` | a carga conta do **limiar** do segurar (200 ms na pausa, 380 ms fora), não do encostar: a carga cheia chega ~1 s depois do limiar, não do dedo | pequeno | aberto |
-| v0.17.0 | `sim/corpo.gd` | soltar o segurar durante a recarga (1 s) **cancela** a caminhada mas **não dispara** (caso raro): a caminhada cancelada continua cancelada e o tiro é recusado | pequeno | aberto |
+| v0.18.0 | `dados/acoes.json` | a **rampa** `rota.rampa_s` 0,30 s e a **carga** `combate.tiro_carga_s` 1,0 s são **pontos de partida** — ajustar no aparelho | pequeno | aberto |
+| v0.18.0 | `sim/gestos.gd` | o toque simples espera a janela do duplo (280 ms) para o primeiro toque de um duplo não **atirar** antes do PULO; a pausa de saída (que pulava a espera) foi removida em v0.18.0 | design | aberto |
+| v0.18.0 | `sim/corpo.gd` | o tiro do toque é **sempre de carga cheia** (1,0): 9/280/24 são o **dado bruto** do projétil e o disparo sai **13,5/448/48**; não existe tiro fraco | design | aberto |
+| v0.18.0 | `sim/corpo.gd` | sem rota e sem alvo o toque é `"recusado: sem destino"` e a carga nem começa — não se atira "no dedo"; o tiro depende do destino final do caminho | decisão | aberto |
+| v0.18.0 | `sim/corpo.gd` | sem caminho o segurar **cava** (habilidade) em vez de correr: na perseguição final/sem rota não há sprint | decisão | aberto |
+| v0.18.0 | `jogo/hud.gd` | o texto `CARREGANDO %`, a barra amarela acima da energia e o anel na criatura são **mockup de desenvolvimento** — a UI real decide depois | arte (P6/P7) | aberto |
+| v0.18.0 | oráculo | os 60 quadros do CI cobrem só os 2 primeiros segundos; a demo inteira (~480 quadros) pede o olho do operador para as cenas novas (rampa/toque/carga/segurar) | operador | aberto |
+| v0.18.0 | `testes/baseline/` | o baseline ainda é o da v0.17 (legenda e demo mudaram): será atualizado com os 60 quadros desta versão (`llvmpipe`) num commit seguinte do mesmo lote — **sem número de run inventado** | pequeno | aberto |
+| v0.18.0 | `sim/` | a **v0.17 foi revertida** por decisão do operador: a pausa de saída, a arrancada curta do toque e o tiro no soltar do segurar não existem mais; as linhas v0.17 abaixo ficam como história | decisão | resolvido em v0.18.0 |
+| v0.17.0 | `dados/acoes.json` | os tempos da v0.17 (pausa 0,35 s · segurar 0,2/0,38 s · carga 1,0 s · multiplicadores 1,6/1,5/2,0 · arrancada 0,6 s) são **pontos de partida** — ajustar no aparelho | pequeno | removido em v0.18.0 |
+| v0.17.0 | `sim/gestos.gd` | fora da pausa o toque simples fica pendente até a janela do duplo (280 ms) para o primeiro toque de um duplo não correr antes do PULO; se o operador quiser resposta imediata, é mexer nessa janela e o PULO sofre | design | removido em v0.18.0 |
+| v0.17.0 | `sim/corpo.gd` | a carga conta do **limiar** do segurar (200 ms na pausa, 380 ms fora), não do encostar: a carga cheia chega ~1 s depois do limiar, não do dedo | pequeno | removido em v0.18.0 |
+| v0.17.0 | `sim/corpo.gd` | soltar o segurar durante a recarga (1 s) **cancela** a caminhada mas **não dispara** (caso raro): a caminhada cancelada continua cancelada e o tiro é recusado | pequeno | removido em v0.18.0 |
 | v0.17.0 | `jogo/hud.gd` | a barra de carga amarela acima da energia e o anel de carga na criatura são **mockup de desenvolvimento** — a UI real decide depois | arte (P6/P7) | aberto |
 | v0.17.0 | oráculo | os 60 quadros do CI cobrem só os 2 primeiros segundos; as cenas novas (pausa/segurar/toque/carga) pedem a demo inteira (~480 quadros) para o olho | operador | aberto |
 | v0.17.0 | `testes/baseline/` | baseline atualizado com os 60 quadros do **CI #41** (`llvmpipe`, commit `3b01634`); o CI #41 reprovou só no diff (3,28% na legenda, 6,14% no último quadro pela pausa) — prova de que a mudança era visível | pequeno | resolvido em v0.17.0 |
