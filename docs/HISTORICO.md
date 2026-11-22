@@ -3,6 +3,28 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.14.4 — fila enxuta e resíduos com estado (2026-11-22)
+
+- **Autorizado pelo operador:** separar a fila do registro dos pacotes feitos e
+  dar **estado** aos resíduos. **Nenhum código de jogo, dado, teste ou CI
+  mudou** — os 137 testes e o parser 40/0 seguem verdes.
+- **`docs/PEDIDOS-FEITOS.md` (novo):** recebe as seções `## P1` a `## P21` sem
+  reescrever o texto; é registro lido por `grep` ou pela âncora do título, não
+  fila — nada ali está autorizado.
+- **`docs/PEDIDOS-EM-ESPERA.md`:** índice só com os pendentes — **P4**
+  (próximo do núcleo), **P5** (depois do P4), **P6/P7/P8** e **P22/P23**
+  (manutenção); as seções P4–P8 foram movidas como estavam e nenhuma seção de
+  pacote feito ficou no arquivo.
+- **`docs/RESIDUOS.md`:** coluna **`estado`** (`aberto` ou `resolvido em
+  vX.Y.Z`); saíram as duas linhas já resolvidas da v0.14.1 — a falta de
+  `tools/docs.sh` no CI (resolvida na v0.14.2) e a fila misturando índice e
+  detalhe (resolvida por este lote).
+- **`AGENTS.md`:** `PEDIDOS-FEITOS.md` entra no mapa documental, uma vez.
+- **Verificação:** `tools/docs.sh` sem erro e `tools/testes.sh` completo —
+  lote só de documentação.
+- **Resíduo novo:** o protocolo padrão ainda não foi replicado no repositório
+  do Áudio Visual IASD.
+
 ## v0.14.3 — protocolo de agentes, multi-sessão e fila registrada (2026-11-22)
 
 - **Autorizado pelo operador:** registrar a fila de manutenção e criar o

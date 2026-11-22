@@ -112,5 +112,5 @@ uma vez). Referências externas vendorizadas ficam no catálogo, não se repetem
 - Código e ambiente: [arquitetura](docs/ARQUITETURA.md), [Godot](docs/GODOT.md), [ambiente](docs/AMBIENTE.md).
 - Verificação e entrega: [oráculo](docs/ORACULO.md), [build](docs/BUILD.md), [guardião documental](docs/DOCUMENTACAO.md).
 - Arte: [pipeline](docs/ARTE.md), [PixelLab](docs/PIXELLAB.md), [catálogo gerado](docs/pixellab/CATALOGO.md).
-- Continuidade: [fila](docs/PEDIDOS-EM-ESPERA.md), [histórico](docs/HISTORICO.md), [resíduos](docs/RESIDUOS.md).
+- Continuidade: [fila](docs/PEDIDOS-EM-ESPERA.md), [feitos](docs/PEDIDOS-FEITOS.md), [histórico](docs/HISTORICO.md), [resíduos](docs/RESIDUOS.md).
 - Agentes: [protocolo de agentes](docs/PROTOCOLO-AGENTES.md), [multi-sessão](docs/MULTI-AGENTE.md).
