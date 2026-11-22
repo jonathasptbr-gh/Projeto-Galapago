@@ -84,6 +84,9 @@ var _gesto_tela := Vector2.ZERO
 var _gesto_origem := Vector2.ZERO
 var _gesto_inv := Transform2D.IDENTITY
 var _traco_iniciado := false
+# o traço nasceu de um SEGURAR que virou desenho (dedo não levantou)?
+# Só esse caso recomeça a origem e encerra o sprint ao soltar.
+var _desenho_de_segurar := false
 # tempo lento do desenho e a rampa de volta ao tempo normal (do MUNDO; a
 # rampa de aceleração do começo da caminhada é do corpo)
 var _escala := 1.0
@@ -212,8 +215,15 @@ func _process(delta: float) -> void:
 	# TRAÇO AO VIVO: enquanto o dedo desenha, a rota é refeita e a criatura já
 	# anda por ela. O relógio do GESTO é real; quem desacelera é o MUNDO.
 	if reconhecedor.desenhando():
-		corpo.tracar(_pontos_gesto(), mundo, not _traco_iniciado, alvos)
-		_traco_iniciado = true
+		var pts_gesto := _pontos_gesto()
+		# um recomeço de segurar começa com UM ponto — não traça ainda.
+		if pts_gesto.size() >= 2:
+			var res := str(corpo.tracar(pts_gesto, mundo, not _traco_iniciado, alvos))
+			# No recomeço do segurar, um "recusado" (traço curto) NÃO marca o
+			# início: senão a rota seria adotada como continuação (inicio=false)
+			# e herdaria o progresso da rota antiga.
+			if not _desenho_de_segurar or res.begins_with("ok"):
+				_traco_iniciado = true
 	# PLANEJAMENTO: desenhando, o mundo desacelera; ao soltar, uma RAMPA de
 	# aceleração devolve o tempo normal (dá tempo de reagir).
 	var plano: Dictionary = cfg_gestos.get("planejamento", {})
@@ -376,6 +386,7 @@ func _cancelar_contatos() -> void:
 		corpo.definir_controle_relativo(true)
 		corpo.definir_controle_relativo(camera_toque.intima())
 	_traco_iniciado = false
+	_desenho_de_segurar = false
 	corpo.mover_relativo(Vector2.ZERO)
 
 
@@ -413,6 +424,7 @@ func dedo_desceu(dedo: int, p: Vector2) -> void:
 			corpo.definir_controle_relativo(camera_toque.intima())
 		reconhecedor = Gestos.new(cfg_gestos.get("limiares", {}))
 		_traco_iniciado = false
+		_desenho_de_segurar = false
 		_joystick_dedo = -1
 		corpo.mover_relativo(Vector2.ZERO)
 		return
@@ -427,6 +439,7 @@ func dedo_desceu(dedo: int, p: Vector2) -> void:
 	_gesto_origem = corpo.pos
 	_gesto_inv = get_viewport().get_canvas_transform().affine_inverse()
 	_traco_iniciado = false
+	_desenho_de_segurar = false
 	_entregar(reconhecedor.iniciar(dedo, p, tempo_ms, tela_de(criatura.ponto_visual() + Vector2(0, -20))))
 
 
@@ -439,7 +452,27 @@ func dedo_moveu(dedo: int, p: Vector2) -> void:
 			var deslocamento := (p - _joystick_origem) / 90.0
 			corpo.mover_relativo(deslocamento.limit_length(1.0))
 		else:
+			# o dedo SEGURANDO que se move sem levantar começa um desenho
+			# NOVO na posição ATUAL (a origem congelada na descida já não vale
+			# para esses pontos). O segurar continua — o sprint não cai.
+			var limiares: Dictionary = cfg_gestos.get("limiares", {})
+			if not camera_toque.intima() and reconhecedor.ativo() \
+					and not reconhecedor.desenhando() and reconhecedor.segurando() \
+					and p.distance_to(reconhecedor.inicio()) > float(limiares.get("desenho_min_px", 16.0)):
+				_recomecar_segurar(p)
 			_entregar(reconhecedor.mover(dedo, p, tempo_ms))
+
+
+## Recomeça o traço do SEGURAR no ponto atual. A criatura é a ORIGEM
+## (em mundo) e o mapa tela→mundo também é congelado aqui; o primeiro ponto
+## nasce exatamente sobre ela.
+func _recomecar_segurar(p: Vector2) -> void:
+	reconhecedor.recomecar(p, tempo_ms)
+	_gesto_origem = corpo.pos
+	_gesto_tela = p
+	_gesto_inv = get_viewport().get_canvas_transform().affine_inverse()
+	_traco_iniciado = false
+	_desenho_de_segurar = true
 
 
 func dedo_subiu(dedo: int, p: Vector2) -> void:
@@ -494,6 +527,12 @@ func _entregar(evs: Array) -> void:
 			var marca := str(corpo.finalizar_rota(alvos))
 			if marca != "":
 				res += " · " + marca
+			# quando o desenho NASCEU de um SEGURAR (o dedo não levantou
+			# entre o sprint e o traço), fechar a trajetória encerra o segurar —
+			# senão o sprint ficaria preso. O desenho normal não passa por aqui.
+			if _desenho_de_segurar:
+				corpo.comandar({"acao": "soltar_segurar"}, mundo, alvos)
+				_desenho_de_segurar = false
 			hud.gesto(ev, Comandos.traduzir(ev, cfg_gestos.get("mapa", {})), res)
 			continue
 		var pm := PackedVector2Array()

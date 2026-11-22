@@ -3,6 +3,26 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.20.2 — caminho nascido do segurar começa na posição atual (2026-11-22)
+
+- **Bug do operador:** correndo em sprint (segurar), mover o dedo sem levantar
+  criava um caminho novo a partir da origem onde o dedo desceu, e a rota nova
+  zerava a aceleração. Agora o traço RECOMEÇA na posição ATUAL da criatura
+  (`sim/gestos.recomecar`) e a rota nova mantém o sprint e a rampa já vencida.
+- O desenho nascido de um segurar é marcado em `jogo/main.gd`
+  (`_desenho_de_segurar`): a origem tela→mundo é recongelada no ponto atual, o
+  primeiro traço só é adotado quando aceito e, ao soltar, a trajetória encerra
+  o segurar (`soltar_segurar`) — o sprint não fica preso. O desenho normal
+  (sem segurar) continua com a origem congelada na descida e zera a rampa.
+- Verificação: `tools/testes.sh` 169 testes/0 falhas, parser 45 scripts/0
+  erros, 42 testes do guardião; teste de integração headless encenou
+  rota→segurar→mover→soltar (origem e rota novas na posição atual, sprint e
+  rampa mantidos, sprint encerrado com cauda). Oráculo de 60 quadros softpipe:
+  q36/q37 divergem do baseline llvmpipe (0,75%), e o clone limpo do HEAD no
+  mesmo softpipe diverge igual — sem baseline novo; o CI confirma. Sem teste
+  no aparelho.
+- Resíduos: ver `docs/RESIDUOS.md`.
+
 ## v0.20.1 — vista íntima um pouco mais baixa (2026-11-22)
 
 - A inclinação mínima da vista íntima passa de 0,72 a 0,60; a vista superior,

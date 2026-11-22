@@ -4,6 +4,9 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.20.2 | oráculo | 60 quadros não encenam segurar→mover; a prova desse caso é teste headless, e a divergência local q36/q37 continua pré-existente (softpipe × llvmpipe), baseline preservado | verificação | aberto |
+| v0.20.2 | controles | o caminho nascido do segurar foi verificado em teste e em integração headless, mas ainda não no toque físico do aparelho | verificação / operador | aberto |
+| v0.20.2 | `jogo/main.gd` | no desenho NORMAL, um primeiro `tracar` recusado por traço curto ainda marca `_traco_iniciado` (comportamento antigo preservado); só o recomeço do segurar espera o `ok` | pequeno | aberto |
 | v0.20.1 | oráculo | comparação local softpipe divergiu em 2 de 60 quadros superiores contra baseline llvmpipe; confirmar no CI, baseline preservado | verificação | aberto |
 | v0.20.1 | vista íntima | inclinação mais baixa e controles ainda precisam de avaliação no aparelho pelo operador; seguem as limitações visuais da v0.20.0 | verificação | aberto |
 | v0.20.0 | `jogo/main.gd` | primeiro dedo na HUD seguido de segundo no mundo não é reconhecido como pinça; tratamento seguro requer testar propagação real e preservar botões | médio | aberto |

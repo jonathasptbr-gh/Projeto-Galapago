@@ -41,6 +41,14 @@ extends RefCounted
 ##   smoothstep). O traço ao vivo reinicia a rampa uma vez; retomar depois de
 ##   uma pausa/tiro NÃO reinicia.
 ##
+## **SEGURAR QUE VIRA DESENHO**: se o dedo que SEGURA (sprint) se move
+## sem levantar, o jogo RECOMEÇA o traço na posição ATUAL
+## (`sim/gestos.recomecar`) e o corpo adota a rota nova (`tracar(inicio=true)`)
+## **sem cortar o sprint nem rearmar a rampa** — a criatura continua acelerada
+## no caminho novo. Ao soltar, a trajetória encerra o segurar
+## (`soltar_segurar`), então o sprint não fica preso. Um caminho novo que NÃO
+## vem de um segurar zera sprint e rampa como antes.
+##
 ## v0.11.1 — a ESTRADA deixou de CORTAR CAMINHO:
 ##
 ## - **projeção com continuidade**: o ponto da rota onde a criatura está é
@@ -551,8 +559,11 @@ func _guardar_rota(nova: PackedVector2Array, reiniciar: bool) -> void:
 		_desvio_angulo = 0.0
 		_dir_suave = Vector2.ZERO
 		_olhar_suave = Vector2.ZERO
-		_sprint = false
-		_sprint_cauda_t = 0.0
+		# um traço ao vivo que CONTINUA um SEGURAR (o dedo não levantou)
+		# nasce com a criatura já embalada: a rota nova não corta o sprint nem a
+		# cauda. Caminho novo de verdade (sem segurar) zera como antes.
+		if not _sprint:
+			_sprint_cauda_t = 0.0
 		# v0.18: rota nova joga fora a CARGA (um tiro carregado vale para o
 		# caminho que o jogador acabou de fechar) e REARMA a rampa de
 		# aceleração do começo da caminhada.
@@ -561,7 +572,9 @@ func _guardar_rota(nova: PackedVector2Array, reiniciar: bool) -> void:
 		_carga_alvo_id = ""
 		_carga_tem_destino = false
 		_carga_destino = Vector2.ZERO
-		_rampa_t = 0.0
+		# mesma regra do sprint: continuar um segurar mantém a rampa já vencida.
+		if not _sprint:
+			_rampa_t = 0.0
 		marcas = []
 		_disparadas = {}
 		mira_final_id = ""

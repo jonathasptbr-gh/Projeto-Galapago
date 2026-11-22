@@ -66,7 +66,9 @@ antigo delay (a pausa de 0,35 s da v0.17 foi **removida**).
 
 1. O primeiro dedo desce e a **origem** é congelada: a posição da criatura
    NAQUELE instante (e o mapa tela→mundo daquele instante). A linha **não anda
-   junto com o animal** nem com a câmera enquanto o dedo desenha.
+   junto com o animal** nem com a câmera enquanto o dedo desenha. **Segurar que
+   vira desenho:** se o traço nasce de um **segurar** que se move sem levantar
+   o dedo, a origem é **recongelada na posição ATUAL** (ver "Correr").
 2. Passou de `desenho_min_px` (16 px), **já é caminho** — não há espera. A rota
    é refeita a cada quadro e a criatura **já anda por ela**, atrás do traço.
 3. Se ela se mexeu até o traço começar, o primeiro trecho da rota a **traz de
@@ -353,6 +355,12 @@ acaba de uma vez.
 - a **cauda** é o que deixa **pular ainda acelerado**: o pulo sobe a mesma
   altura, mas o avanço horizontal cresce. A barra de energia aparece na HUD
   (embaixo, à esquerda) e fica laranja quando está baixa.
+- **segurar e mover o dedo vira caminho novo:** se, correndo, o dedo se
+  move além de `desenho_min_px` (16 px) **sem levantar**, o traço **recomeça na
+  posição ATUAL** da criatura (a origem da descida deixa de valer) e o
+  **sprint continua** — a rota nova nasce já acelerada, sem rearmar a rampa. Ao
+  soltar, a trajetória **encerra o segurar** (não fica sprint preso). O desenho
+  normal, sem segurar, não muda.
 
 ## Pulo automático (v0.13)
 

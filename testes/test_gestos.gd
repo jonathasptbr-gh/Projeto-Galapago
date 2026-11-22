@@ -99,6 +99,33 @@ func test_segurar_precisa_de_um_dedo() -> void:
 	igual(_nomes(r.soltar(0, p, 560)), [], "e soltar não fecha nada")
 
 
+## O SEGURAR que vira DESENHO sem levantar o dedo RECOMEÇA o traço no
+## ponto ATUAL — não na origem onde o dedo desceu — e o segurar continua (o
+## sprint não cai). Soltar emite `trajetoria` com o ponto NOVO como começo.
+func test_recomecar_depois_do_segurar_comeca_no_ponto_atual() -> void:
+	var r := _r()
+	var p := Vector2(200, 1000)
+	r.iniciar(0, p, 0, CRIA)
+	igual(_nomes(r.tick(380)), ["segurar_inicio"], "segurou no limiar")
+	checar(r.segurando(), "o segurar é consultável")
+	checar(not r.desenhando(), "ainda não é desenho")
+	var p2 := p + Vector2(90, -40)
+	r.mover(0, p2, 420)
+	checar(r.desenhando(), "mover além do limiar já desenharia")
+	r.recomecar(p2, 420)
+	checar(r.segurando(), "o recomeço MANTÉM o segurar")
+	checar(r.desenhando(), "e já está desenhando")
+	igual(r.inicio(), p2, "a origem nova é o ponto ATUAL")
+	igual(r.pontos(), PackedVector2Array([p2]), "o traço nasce no ponto ATUAL")
+	igual(_nomes(r.tick(900)), [], "o recomeço não reativa o segurar")
+	r.mover(0, p2 + Vector2(40, 0), 950)
+	var evs: Array = r.soltar(0, p2 + Vector2(60, 0), 1000)
+	igual(_nomes(evs), ["trajetoria"], "soltar fecha o caminho")
+	igual(evs[0]["inicio"], p2, "o evento leva o começo NOVO")
+	igual(evs[0]["pontos"][0], p2, "o primeiro ponto é o recomeço")
+	checar(not r.segurando(), "soltar encerra o segurar")
+
+
 # ---------------------------------------------------------------- dois dedos não são ação
 
 ## v0.9: o segundo dedo não é ação — o caminho do primeiro continua.

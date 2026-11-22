@@ -1088,6 +1088,29 @@ func test_rampa_rearma_so_com_rota_nova() -> void:
 	perto(c._rampa_t, 0.0, 0.001, "um caminho NOVO rearma a rampa")
 
 
+## Um traço ao vivo que CONTINUA um SEGURAR (sprint) não corta a
+## aceleração: a rota nova preserva o sprint e a rampa já vencida. Um caminho
+## novo que NÃO vem de um segurar continua zerando tudo, como antes.
+func test_rota_nova_continuando_o_segurar_preserva_sprint_e_rampa() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	checar(c.tracar(PackedVector2Array([c.pos, Vector2(376, 48)]), m, true).begins_with("ok"), "traço")
+	_rodar(c, m, 0.4)  # a rampa já passou
+	igual(c.comandar({"acao": "segurar"}, m, []), "ok: sprint", "segurar com caminho corre")
+	checar(c._sprint, "sprint ligado")
+	perto(c._rampa_t, c._rampa_s(), 0.001, "a rampa já completou")
+	var base: Vector2 = c.pos
+	checar(c.tracar(PackedVector2Array([base, base + Vector2(80, 0)]), m, true).begins_with("ok"), "rota nova a partir da posição atual")
+	checar(c._sprint, "o sprint CONTINUA na rota nova")
+	checar(c._fator_rampa() > 0.95, "sem rearmar a rampa (%.2f)" % c._fator_rampa())
+	igual(c.comandar({"acao": "soltar_segurar"}, m, []), "ok", "soltar encerra")
+	checar(not c._sprint, "sprint desligado")
+	checar(c._sprint_cauda_t > 0.0, "a cauda mantém o embalo")
+	checar(c.tracar(PackedVector2Array([c.pos, c.pos + Vector2(0, 80)]), m, true).begins_with("ok"), "outro caminho")
+	perto(c._rampa_t, 0.0, 0.001, "sem segurar, a rampa rearma")
+
+
 # ---------------------------------------------------------------- v0.18: carga cancelada
 
 ## Um caminho NOVO cancela a carga do tiro (o tiro preparado valia para o

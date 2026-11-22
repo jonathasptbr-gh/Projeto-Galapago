@@ -14,7 +14,9 @@ extends RefCounted
 ## - parado sem arrastar por `segurar_min_ms` (380 ms) = **segurar**: ATIVA na
 ##   hora (no limiar, não no soltar). Quem decide o que ele faz é o corpo: com
 ##   um caminho em curso é **CORRER** (sprint contínuo); sem caminho é a
-##   habilidade (cavar).
+##   habilidade (cavar). Se o dedo que segura se MOVE sem levantar, o
+##   jogo chama `recomecar` — o traço nasce na posição ATUAL e o segurar continua
+##   (a origem antiga não vale mais para os pontos novos).
 ##
 ## `dados/gestos.json` guarda a tabela gesto → ação (`mapa`). O reconhecedor
 ## NÃO decide a AÇÃO: o toque é só o toque; o corpo começa a CARGA de 1 s e
@@ -63,6 +65,26 @@ func desenhando() -> bool:
 	return _desenhando
 
 
+## O dedo do caminho está SEGURANDO (o sprint/habilidade já foi ativado e o
+## gesto ainda não soltou)? Quem lê é o `jogo/main.gd`, para saber se o
+## desenho que começa agora nasce de um segurar.
+func segurando() -> bool:
+	return _segurando
+
+
+## RECOMEÇA o traço NO PONTO ATUAL — o segurar que vira desenho sem
+## levantar o dedo começa um caminho novo daqui, não da origem onde o dedo
+## desceu. Mantém `_caminho`/`_segurando` (o sprint continua e o dedo é o
+## mesmo); a FORMA recomeça vazia e o relógio do desenho conta de `t_ms`.
+func recomecar(pos: Vector2, t_ms: float) -> void:
+	_agora = t_ms
+	_pontos = PackedVector2Array([pos])
+	_inicio = pos
+	_t0 = t_ms
+	_t_desenho = t_ms
+	_desenhando = true
+
+
 ## O mundo está em "planejamento" (tempo lento)? Só o desenho CONFIRMADO
 ## (mais de `desenho_min_ms`) conta: um toque de mão não escurece a tela.
 func planejando() -> bool:
@@ -104,6 +126,9 @@ func soltar(dedo: int, pos: Vector2, t_ms: float) -> Array:
 	var evs := _soltar_caminho(pos, t_ms)
 	_caminho = -1
 	_desenhando = false
+	# o dedo subiu: o segurar terminou, mesmo quando o soltar fecha um traço
+	# (o disparo de `segurar_fim` é do ramo que NÃO desenha).
+	_segurando = false
 	return evs
 
 
