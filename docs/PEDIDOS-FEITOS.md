@@ -51,6 +51,12 @@
   desobedece}, com semente. Sincronia/Autonomia como modos.
 - Testes de propriedade: afinidade alta ⇒ obediência alta; mesma semente ⇒
   mesma decisão.
+- **Feito em v0.15.0:** `sim/afinidade.gd` + `dados/afinidade.json` +
+  `testes/test_afinidade.gd` (12 testes de propriedade). Em Sincronia, acima
+  do limiar, obedece na hora; em Autonomia, temperamento e humor decidem sem
+  sorteio global. **Sem ligação no `jogo/`** (a criatura continua obedecendo
+  no aparelho) — a ligação é P7; traços, pesos e ganhos são pontos de
+  partida. Detalhe no [`HISTORICO`](HISTORICO.md).
 
 ## P5 — Vivência → evolução
 
@@ -339,3 +345,17 @@
   misturam; o protocolo separa quem lê, quem escreve e quem commita.
 - **Pronto quando:** uma sessão executa a tarefa só com o briefing, sem o
   histórico do chat, e o clone continua com **um escritor por vez**.
+
+## P22 — Fila enxuta e resíduos com estado (v0.14.4; registro fechado na v0.15.0)
+
+- **O quê:** separar no índice o que está na fila do que já foi feito,
+  enxugar o índice e dar **estado** a cada linha do `RESIDUOS.md`.
+- **Feito em v0.14.4:** [`PEDIDOS-FEITOS.md`](PEDIDOS-FEITOS.md) novo (P1–P21);
+  índice só com os pacotes vivos; coluna `estado` no `RESIDUOS.md`; as duas
+  linhas resolvidas da v0.14.1 saíram.
+- **Fechado na v0.15.0:** as 9 linhas riscadas que ainda diziam `aberto`
+  (resolvidas pelas v0.7.1, v0.8.0 e v0.9.0) passaram a `resolvido em vX.Y.Z`;
+  o P22 saiu de [`PEDIDOS-EM-ESPERA.md`](PEDIDOS-EM-ESPERA.md) e entrou neste
+  registro.
+- **Pronto quando:** o índice lista só pacotes vivos, nenhuma linha já
+  resolvida fica marcada `aberto` e `tools/docs.sh` continua verde.

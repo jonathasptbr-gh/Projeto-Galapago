@@ -3,6 +3,38 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.15.0 — afinidade e personalidade (2026-11-22)
+
+- **Autorizado pelo operador:** seguir o **P4** (núcleo do jogo). **Nenhum
+  código de `jogo/` mudou** — no aparelho a criatura continua obedecendo; a
+  ligação é P7. Testes: **149, 0 falhas**; parser 42 scripts, 0 erro.
+- **`sim/afinidade.gd` (novo):** lógica pura. `temperamento` (traços 0..1) +
+  `humor` + `afinidade` decidem {obedece, hesita, reinterpreta, desobedece};
+  o sorteio vem do `RandomNumberGenerator` semeado recebido por argumento;
+  `registrar` ensina o vínculo; `probabilidades()` expõe a soma para ajuste.
+  Em **Sincronia** com afinidade ≥ `sincronia_limiar` obedece na hora, sem
+  sorteio; **Autonomia** puxa reinterpretar/desobedecer. Nenhum número de
+  balanceamento no código.
+- **`dados/afinidade.json` (novo):** traços iniciais (docilidade 0,55,
+  teimosia 0,35, curiosidade 0,6), pesos por decisão/traço, pesos de
+  afinidade e humor, ajuste de modo, limiar 0,7, atraso de hesitar 0,55 s,
+  desvio de reinterpretar 26 px e ganhos — **pontos de partida**, ajustar no
+  aparelho.
+- **`testes/test_afinidade.gd` (novo, 12 testes):** mesma semente ⇒ mesma
+  decisão; afinidade alta ≥ 90% obedece (medido 94,5% em Autonomia e 100% em
+  Sincronia); baixa ≤ 20% e desobedece; obediência não cai quando o vínculo
+  sobe; estado preso em [0,1]; Sincronia × Autonomia; atraso, desvio e `{}`
+  por decisão.
+- **Registro do P22 fechado:** as 9 linhas riscadas do `RESIDUOS.md`
+  passaram a `resolvido em vX.Y.Z` (v0.7.1, v0.8.0 e v0.9.0); o P22 saiu da
+  fila e entrou em `PEDIDOS-FEITOS.md`. O **P4 também saiu da fila** para o
+  registro; o **P5** passa a ser o próximo natural do núcleo — **nada
+  autorizado** até o operador escolher.
+- **Verificação:** `tools/testes.sh` — guardião documental, 149 testes e
+  parser 42/0. Sem mudança visível: `tools/quadros.sh` não se aplica.
+- **Resíduos:** a afinidade ainda não está ligada ao `jogo/` (P7); pesos,
+  limiar e ganhos são pontos de partida.
+
 ## v0.14.4 — fila enxuta e resíduos com estado (2026-11-22)
 
 - **Autorizado pelo operador:** separar a fila do registro dos pacotes feitos e

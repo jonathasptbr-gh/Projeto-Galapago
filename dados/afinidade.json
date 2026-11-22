@@ -1,0 +1,82 @@
+{
+ "_leia": "Afinidade — P4. Traços do temperamento (estáveis, 0..1) + humor e vínculo (estado, 0..1) decidem o comando: obedece, hesita, reinterpreta ou desobedece. A probabilidade de cada decisão é uma SOMA PONDERADA: `pesos[decisao]` mapeia TRAÇO → peso (traço novo aqui entra na soma sem mudar sim/afinidade.gd), mais `afinidade_peso`, `humor_peso` e o ajuste do `modo`. Os valores são PONTO DE PARTIDA: ajustar no aparelho com o operador. `sincronia_limiar`: em Sincronia, a partir daqui obedece na hora, sem sorteio. `hesita_atraso_s` e `reinterpreta_desvio_px` são o efeito visível de hesitar/reinterpretar. `ganhos` é o que cada decisão ensina ao vínculo (sempre preso em [0,1]). Ver sim/afinidade.gd e docs/CONCEITO.md §Afinidade como mecânica de controle.",
+ "estado_inicial": {
+  "temperamento": {
+   "docilidade": 0.55,
+   "teimosia": 0.35,
+   "curiosidade": 0.6
+  },
+  "humor": 0.55,
+  "afinidade": 0.4,
+  "modo": "sincronia"
+ },
+ "pesos": {
+  "obedece": {
+   "docilidade": 2.6,
+   "teimosia": -1.3,
+   "curiosidade": -0.3
+  },
+  "hesita": {
+   "docilidade": -0.2,
+   "teimosia": 0.9,
+   "curiosidade": 0.4
+  },
+  "reinterpreta": {
+   "docilidade": -0.5,
+   "teimosia": 0.6,
+   "curiosidade": 1.5
+  },
+  "desobedece": {
+   "docilidade": -1.8,
+   "teimosia": 1.9,
+   "curiosidade": 0.3
+  }
+ },
+ "afinidade_peso": {
+  "obedece": 5.5,
+  "hesita": 0.0,
+  "reinterpreta": -1.0,
+  "desobedece": -0.8
+ },
+ "humor_peso": {
+  "obedece": 0.35,
+  "hesita": -0.1,
+  "reinterpreta": 0.15,
+  "desobedece": -0.4
+ },
+ "modo_ajuste": {
+  "sincronia": {
+   "obedece": 1.5,
+   "hesita": -0.3,
+   "reinterpreta": -0.6,
+   "desobedece": -0.9
+  },
+  "autonomia": {
+   "obedece": -1.0,
+   "hesita": 0.3,
+   "reinterpreta": 0.8,
+   "desobedece": 0.6
+  }
+ },
+ "sincronia_limiar": 0.7,
+ "hesita_atraso_s": 0.55,
+ "reinterpreta_desvio_px": 26.0,
+ "ganhos": {
+  "obedece": {
+   "afinidade": 0.02,
+   "humor": 0.01
+  },
+  "hesita": {
+   "afinidade": 0.0,
+   "humor": -0.005
+  },
+  "reinterpreta": {
+   "afinidade": -0.005,
+   "humor": 0.0
+  },
+  "desobedece": {
+   "afinidade": -0.03,
+   "humor": -0.02
+  }
+ }
+}
