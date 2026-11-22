@@ -4,9 +4,18 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
-| v0.18.0 | `dados/acoes.json` | a **rampa** `rota.rampa_s` 0,30 s e a **carga** `combate.tiro_carga_s` 1,0 s são **pontos de partida** — ajustar no aparelho | pequeno | aberto |
+| v0.19.0 | `jogo/hud.gd` | o **slider** da carga é **runtime-only**: o valor **não é salvo** entre aberturas — cada partida começa em `combate.tiro_carga_s` (0,5 s); salvar configuração é da UI real | pequeno | aberto |
+| v0.19.0 | `dados/acoes.json` | o **padrão 0,5 s** e a **faixa 0–1,5 s** do slider (`tiro_carga_s`/`tiro_carga_max_s`) são **pontos de partida** — ajustar no aparelho com o operador | pequeno | aberto |
+| v0.19.0 | `sim/corpo.gd` | o **tamanho** do tiro é **linear no tempo** (`carga_tiro_s / tiro_carga_max_s`): a faixa toda só dá **2× no empurrão** e **1,5× no raio** — o padrão 0,5 s já é **1/3 do ganho**, não um tiro "fraco" | design | aberto |
+| v0.19.0 | `sim/corpo.gd` | o **instantâneo (0 s)** não tem estado de carga: dispara dentro do próprio comando (`"ok: tiro"`), então a HUD **não** mostra "CARREGANDO" nem barra/anel nesse caso | pequeno | aberto |
+| v0.19.0 | `sim/gestos.gd` | o toque espera a janela do duplo (**280 ms**) **antes** de começar a carga: com o preparo em 0 s o tiro ainda sai ~0,28 s depois do dedo | design | aberto |
+| v0.19.0 | `sim/corpo.gd` | sem rota e sem alvo o toque é `"recusado: sem destino"` e a carga nem começa — não se atira "no dedo"; o tiro depende do destino final do caminho | decisão | aberto |
+| v0.19.0 | `jogo/hud.gd` | o **slider**, o rótulo da carga, a barra amarela, o anel na criatura e o botão **CONFIG** são **mockup** de desenvolvimento — a UI real decide depois | arte (P6/P7) | aberto |
+| v0.19.0 | oráculo | os 60 quadros do CI cobrem só os 2 primeiros segundos; o slider/CONFIG e o preparo pedem a demo inteira (~480 quadros) para o olho | operador | aberto |
+| v0.19.0 | `testes/baseline/` | o baseline ainda é o da **v0.18** (o visível mudou: CONFIG + rótulo + slider + linha nova da legenda); será atualizado com os 60 quadros do CI (`llvmpipe`) num commit seguinte do mesmo lote — sem número de run inventado | pequeno | aberto |
+| v0.18.0 | `dados/acoes.json` | a **rampa** `rota.rampa_s` 0,30 s e a **carga** `combate.tiro_carga_s` 1,0 s são **pontos de partida** — ajustar no aparelho | pequeno | removido em v0.19.0 (a carga de 1,0 s; a rampa segue) |
 | v0.18.0 | `sim/gestos.gd` | o toque simples espera a janela do duplo (280 ms) para o primeiro toque de um duplo não **atirar** antes do PULO; a pausa de saída (que pulava a espera) foi removida em v0.18.0 | design | aberto |
-| v0.18.0 | `sim/corpo.gd` | o tiro do toque é **sempre de carga cheia** (1,0): 9/280/24 são o **dado bruto** do projétil e o disparo sai **13,5/448/48**; não existe tiro fraco | design | aberto |
+| v0.18.0 | `sim/corpo.gd` | o tiro do toque é **sempre de carga cheia** (1,0): 9/280/24 são o **dado bruto** do projétil e o disparo sai **13,5/448/48**; não existe tiro fraco | design | removido em v0.19.0 |
 | v0.18.0 | `sim/corpo.gd` | sem rota e sem alvo o toque é `"recusado: sem destino"` e a carga nem começa — não se atira "no dedo"; o tiro depende do destino final do caminho | decisão | aberto |
 | v0.18.0 | `sim/corpo.gd` | sem caminho o segurar **cava** (habilidade) em vez de correr: na perseguição final/sem rota não há sprint | decisão | aberto |
 | v0.18.0 | `jogo/hud.gd` | o texto `CARREGANDO %`, a barra amarela acima da energia e o anel na criatura são **mockup de desenvolvimento** — a UI real decide depois | arte (P6/P7) | aberto |

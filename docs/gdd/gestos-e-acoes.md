@@ -1,7 +1,7 @@
 # Gestos e ações — como a criatura se move e age
 
 > Regra toda em `sim/` (testada) e nas tabelas `dados/gestos.json` +
-> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.18.0.**
+> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.19.0.**
 
 ## O fluxo
 
@@ -27,7 +27,7 @@ Tempo **simulado** (`tempo_ms`): teste, demo e oráculo são determinísticos.
 | **passar por cima** de um alvo com a linha | **batida/empurrão** ao chegar naquele ponto (embalo longo) |
 | **terminar o caminho** com alvo marcado | o animal **vai atrás** (perseguição final) e só bate **ao chegar perto**. Com o destino longe do alvo **não há marca** e ele **não volta** (v0.11.4) |
 | **segurar** | **com caminho → CORRER**: o **SPRINT CONTÍNUO** enquanto o dedo fica (`sprint.fator` 1,7×), gastando a **energia** (`sprint.gasto_s` 0,45/s, que recupera `sprint.recarga_s` 0,22/s); ao soltar, a **CAUDA** (`sprint.cauda_s`, 0,60 s) mantém o embalo em queda de 1,7× até 1,0×. **Sem caminho → habilidade em si mesmo** (cavar), no limiar do segurar (380 ms). O segurar **cancela uma carga** de tiro em curso |
-| **toque simples** | **TIRO** carregado: o toque começa a **CARGA** e o animal **para**; aos `combate.tiro_carga_s` (**1 s**) o disparo sai **sozinho** com a carga **cheia** (1,0) no **alvo marcado vivo** ou no **fim do caminho** — **nunca** na direção do toque. Sem rota e sem alvo não atira (`"recusado: sem destino"`, a carga nem começa). A recarga (`tiro_recarga_s`, 1 s) segura o próximo toque; o toque fica **pendente** pela janela do duplo (280 ms) |
+| **toque simples** | **TIRO carregado com TEMPO CONFIGURÁVEL**: o toque começa o **PREPARO** e o animal **para**. O tempo vem do **slider da HUD** (`corpo.carga_tiro_s`): **0 a 1,5 s**, padrão **0,5 s** (`combate.tiro_carga_s`), teto `combate.tiro_carga_max_s` (**1,5 s**). **O tempo define o TAMANHO/FORÇA do tiro**: **0 s = tiro BASE 9 px de raio / 280 de alcance / 24 de empurrão, instantâneo, sem preparo**; **0,5 s = 10,5 / 336 / 32**; **1,5 s = MÁXIMO 13,5 / 448 / 48**. O disparo sai **sozinho** ao completar o tempo, no **alvo marcado vivo** ou no **fim do caminho** — **nunca** na direção do toque. Sem rota e sem alvo não atira (`"recusado: sem destino"`, a carga nem começa). O **preenchimento da barra/anel é o PREPARO**, não o tamanho. A recarga (`tiro_recarga_s`, 1 s) segura o próximo toque; o toque fica **pendente** pela janela do duplo (280 ms) |
 | **toque duplo** | **PULO**. **v0.11.4:** o pulo pedido **durante o ar** entra na **FILA** e sai no quadro em que o anterior pousa (`pular.buffer_s`) — pulsos seguidos emendam sem atraso. **v0.13:** com o **PULO AUTO** ligado (botão da HUD), o corpo pula sozinho o degrau de **1 nível** quando o caminho continua — ver a seção própria |
 
 **Não há gesto de dois dedos** (v0.9 tirou ataque ↑, defesa ↓ e especial
@@ -235,42 +235,61 @@ Tudo em `sim/formas.gd` (puro). O traço CRU é lido antes de virar rota:
 - **Sem "desenho certo":** as marcas são lidas a cada ~5 pontos do traço; o
   que já acendeu não volta, e a marca é a mesma mesmo redesenhando por cima.
 
-## A MARCA do alvo e o TIRO CARREGADO (v0.10/v0.18)
+## A MARCA do alvo e o TIRO CARREGADO (v0.10/v0.19)
 
 O jogador **leva o fim do caminho até o alvo** (durante o desenho ou a
 caminhada): quando a ponta do traço alcança um adversário, ele fica **marcado**
 ("X" amarelo no inimigo, andando com ele). A marca é **ligada ao caminho**.
 
-O **toque** é o tiro (v0.18). O toque **começa a carga**; o dedo **não** escolhe
-a direção:
+O **toque** é o tiro (v0.18/v0.19). O toque **começa o PREPARO**; o dedo **não**
+escolhe a direção:
 
 - **com alvo marcado VIVO**: automira nele — a posição **de agora** (a marca
   anda com ele). O ponto onde o dedo desceu **não** muda a direção;
 - **sem marca**: o **DESTINO FINAL do caminho** — o último ponto da rota,
-  capturado no começo da carga. Se o alvo marcado sumir antes do disparo, a
+  capturado no começo do preparo. Se o alvo marcado sumir antes do disparo, a
   marca cai e vale o destino capturado;
 - **sem rota e sem alvo**: o **tiro** em si responde `"recusado: sem destino"`
   e a carga **nem começa** — não se atira "no dedo"; e o **segurar** sem
   caminho/alvo é a **HABILIDADE** (cavar), não um tiro.
 
 O animal **para** para carregar (a rota fica guardada e ele **retoma** depois
-do tiro) e a carga cresce até `combate.tiro_carga_s` (**1 s**). O disparo sai
-**sozinho** ao completar o tempo, **sempre com a carga cheia** (1,0) — soltar
-o dedo **não** dispara nem cancela. Depois do disparo o animal faz a pausa
-curta `tiro_pausa_s` (0,25 s) e a recarga `tiro_recarga_s` (1 s) segura o
-próximo toque:
+do tiro). O **tempo do preparo** é o do slider da HUD: `corpo.carga_tiro_s`
+nasce de `combate.tiro_carga_s` (**0,5 s**, o padrão) e vai até
+`combate.tiro_carga_max_s` (**1,5 s**, lido por `corpo.tiro_carga_max_s()`).
+**O tempo escolhido é o TAMANHO/FORÇA do tiro** — a carga que o disparo usa é
+`carga_tiro_s / tiro_carga_max_s()` (0 a 1). Com **0 s** não há preparo: o tiro
+é **BASE** (9/280/24) e sai **na hora** (`"ok: tiro"`, sem estado de
+"CARREGANDO"). Nos outros tempos o disparo sai **sozinho** ao completar o
+tempo — soltar o dedo **não** dispara nem cancela. Depois do disparo o animal
+faz a pausa curta `tiro_pausa_s` (0,25 s) e a recarga `tiro_recarga_s` (1 s)
+segura o próximo toque.
 
-| grandeza | dado bruto | carga 1,0 (o tiro do toque) | chave |
+| tempo de preparo | carga (`carga_tiro_s / tiro_carga_max_s`) | raio | alcance | empurrão |
+|---|---|---|---|---|
+| **0 s** (instantâneo) | 0,00 | **9 px** (base) | **280 px** | **24 px** |
+| **0,5 s** (padrão) | 0,33 | **10,5 px** | **336 px** | **32 px** |
+| **0,75 s** | 0,50 | **11,25 px** | **364 px** | **36 px** |
+| **1,5 s** (máximo) | 1,00 | **13,5 px** | **448 px** | **48 px** |
+
+| grandeza | dado bruto | multiplicador no teto | chave |
 |---|---|---|---|
 | `raio` | 9 px | 13,5 px | `tiro_carga_raio_x` 1,5 |
 | `alcance` | 280 px | 448 px | `tiro_carga_alcance_x` 1,6 |
 | `empurrão` | 24 px | 48 px | `tiro_carga_empurrao_x` 2,0 |
 
-A escala é **linear** — `1 + (x − 1) × carga`. O 9/280/24 é o **dado bruto** do
-projétil (a régua que a carga multiplica); o tiro do toque **sempre chega à
-carga cheia**, então o que sai é **13,5 / 448 / 48**. O projétil base é
-`tiro_velocidade` 420 px/s e para no primeiro alvo. Um **toque durante a
-recarga** é recusado (`"recusado: recarga"`) e a caminhada segue.
+A escala é **linear**:
+`1 + (x − 1) × (carga_tiro_s / tiro_carga_max_s)`, com `x` o multiplicador de
+cada grandeza. O 9/280/24 é o **dado bruto** do projétil (a régua que o tempo
+multiplica) e só sai inteiro com o preparo em **0 s**; o teto de 1,5 s sai com
+**13,5 / 448 / 48**. O projétil base é `tiro_velocidade` 420 px/s e para no
+primeiro alvo. Um **toque durante a recarga** é recusado
+(`"recusado: recarga"`) e a caminhada segue.
+
+**O teto é TRAVADO no começo** do preparo (`_iniciar_carga`): arrastar o slider
+no meio **não reinicia nem encurta** o preparo em curso. O **tamanho**, sim, é
+lido **no disparo** — mudar o slider durante a carga vale para o tiro que
+sair.
 
 A carga só é **CANCELADA** por um **caminho novo** (a rota que o jogador acabou
 de fechar vale para o próximo tiro) ou por um **segurar** (o jogador mudou de
@@ -369,10 +388,35 @@ habilidade) **não** desacelera o mundo.
 | overlay | o que faz | efeito na rota |
 |---|---|---|
 | **onda** (laço) | círculo que cresce do centro do laço e empurra quem varre — **DESLIGADA desde a v0.11.5** (`formas.laco_ataque`) | nenhum: continua andando |
-| **tiro** (toque) | projétil carregado no **alvo marcado vivo** ou no **fim do caminho** (destino final); a carga escala raio/alcance/empurrão e o disparo sai **sempre cheio**; para no primeiro alvo | nenhum: o animal **PARA** para carregar (a rota fica guardada e ele **retoma** depois; **não há pausa de saída**) |
+| **tiro** (toque) | projétil no **alvo marcado vivo** ou no **fim do caminho** (destino final); o **tempo de preparo** (slider 0–1,5 s) escala raio/alcance/empurrão — 0 s é o tiro base instantâneo, 1,5 s o máximo; para no primeiro alvo | nenhum: o animal **PARA** para carregar (a rota fica guardada e ele **retoma** depois; **não há pausa de saída**) |
 | **golpe** (`ataque`/`batida`) | arco de fases (antecipação → ativa → recuperação) | nenhum |
 | **pulo** | arco no ar enquanto segue; atravessa barreira; **v0.13:** o automático sobe o degrau de 1 nível quando a rota continua | nenhum |
 | **habilidade** | em si mesmo, com duração; cavar troca de camada | cavar apaga a rota (outra camada) |
+
+## A HUD de teste: o botão CONFIG e o slider da carga (v0.19)
+
+A HUD é de **desenvolvimento** (mockup), e o que ela mostra é estado da `sim/`.
+Duas peças v0.19:
+
+- **Botão `CONFIG`** (240×34, na coluna da esquerda, abaixo do
+  `HOSTILIDADE`): esconde/mostra **toda a HUD de teste** — rótulos, legenda,
+  estado, barras, botões e o slider. O texto alterna **`CONFIG` ↔ `MOSTRAR`**.
+  **Ficam sempre**: o **próprio botão**, o **`veu`** (o retângulo de tela cheia
+  que escurece o desenho durante o planejamento; o `main` o põe no índice 0) e
+  o **`atualizador`** (o aviso de atualização do app, filho direto). O botão
+  `Verificar atualização` (filho direto, só montado com build > 0) **esconde
+  junto** com a HUD, como todo `Control` filho. A **barra amarela de carga**
+  volta a aparecer só enquanto o corpo carrega.
+- **Slider `CARGA DO TIRO`**: o rótulo (`CARGA DO TIRO: 0,50 s`; em 0 diz
+  `instantâneo`) e o `HSlider` logo abaixo — **0 a 1,5 s**, passo **0,05**,
+  padrão **0,5 s**. O teto real vem de `corpo.tiro_carga_max_s()` na primeira
+  `estado()`. O slider é um `Control` com `FOCUS_NONE`: o toque nele é
+  **consumido** (não vira caminho) e `value_changed` escreve
+  `corpo.carga_tiro_s`. Quem decide o tamanho é a `sim/`; a HUD só escolhe o
+  tempo — e o valor **não é salvo** entre aberturas (runtime-only).
+
+O **preenchimento** da barra amarela e o **anel** na criatura continuam
+mostrando o **PREPARO** (0 → 1 no tempo escolhido), **não** o tamanho do tiro.
 
 ## Autonomia (sem rota)
 
@@ -454,11 +498,12 @@ acende quando a recarga termina).
 |---|---|---|
 | `onda_velocidade` / `onda_empurrao` | 100 px/s / 30 px | expansão e empurrão da onda (laço DESLIGADO desde a v0.11.5) |
 | `tiro_velocidade` / `tiro_alcance` | 420 px/s / 280 px | base do tiro carregado do **toque** (alvo marcado vivo ou fim do caminho) |
-| `tiro_raio` / `tiro_empurrao` | 9 / 24 px | acerto e empurrão-base do tiro (a carga multiplica; o tiro do toque sai em 1,0) |
-| `tiro_carga_s` | 1,0 s | **v0.18:** tempo da CARGA do toque; o disparo sai **sozinho** no teto, com carga 1,0 |
-| `tiro_carga_raio_x` | 1,5× | raio 9 → 13,5 px na carga cheia |
-| `tiro_carga_alcance_x` | 1,6× | alcance 280 → 448 px na carga cheia |
-| `tiro_carga_empurrao_x` | 2,0× | empurrão 24 → 48 px na carga cheia |
+| `tiro_raio` / `tiro_empurrao` | 9 / 24 px | acerto e empurrão **brutos** do tiro — só saem inteiros com o preparo em 0 s |
+| `tiro_carga_s` | **0,5 s** | **v0.19:** o **padrão** do tempo de preparo do toque (o slider da HUD escreve `corpo.carga_tiro_s`); com 0 o tiro é instantâneo e base |
+| `tiro_carga_max_s` | **1,5 s** | **v0.19:** o **teto** do slider e a **referência do tamanho** (`carga_tiro_s / tiro_carga_max_s` = 0..1) |
+| `tiro_carga_raio_x` | 1,5× | raio 9 → 13,5 px no preparo **máximo** (1,5 s) |
+| `tiro_carga_alcance_x` | 1,6× | alcance 280 → 448 px no máximo |
+| `tiro_carga_empurrao_x` | 2,0× | empurrão 24 → 48 px no máximo |
 | `batida_cruza_px` / `batida_tol_px` | 8 / 34 px | quando a linha "passa por cima" e a tolerância na chegada |
 | `batida_empurrao` | 26 px | empurrão da batida |
 | `onda_recarga_s` / `tiro_recarga_s` | 1,0 s | **cooldown** dos especiais (área/tiro) |
@@ -509,8 +554,11 @@ acende quando a recarga termina).
 - **Limiares dos gestos** (toque, duplo, segurar 380, desenho): `limiares`; o
   planejamento é `planejamento`.
 - **Rampa de início da caminhada**: `rota.rampa_s` (0,30 s, 15% → 100%).
-- **Tiro carregado e carga**: `combate` (`tiro_carga_s`, `tiro_carga_*_x`,
-  `tiro_*`).
+- **Tiro carregado e carga**: `combate` (`tiro_carga_s` = o **padrão** do
+  slider, `tiro_carga_max_s` = o **teto** do slider e a referência do tamanho,
+  `tiro_carga_*_x` e `tiro_*`).
+- **CONFIG e slider**: são da **HUD** (`jogo/hud.gd`), não do dado — não há
+  chave para eles nem valor salvo; a HUD de teste não grava configuração.
 - **Sprint do segurar**: `sprint` (`fator`, `gasto_s`, `recarga_s`, `cauda_s`,
   `minimo`; sem `dura_s`).
 - **O que é laço** (e se ele ataca): `formas.laco_ataque` e os limiares `laco_*` em `dados/acoes.json`.
@@ -546,24 +594,28 @@ acende quando a recarga termina).
   outra decisão.
 - **Embalo/cooldown**: os valores (0,25 s/1,7× e 0,6 s/2,0× · 1 s) são pontos
   de partida.
-- **Tempos da v0.18**: rampa 0,30 s · carga 1,0 s · segurar 0,38 s ·
-  multiplicadores 1,6/1,5/2,0 · sprint 1,7× com cauda 0,6 s são **pontos de
-  partida** — ajustar no aparelho com o operador.
-- **Toque e a janela do duplo**: o toque (agora sempre, porque a pausa de saída
-  não existe mais) espera a janela do duplo (**280 ms**) para o primeiro toque
-  de um duplo não atirar antes do PULO. Se o operador quiser resposta imediata,
-  é mexer nessa janela — e o PULO sofre.
-- **Tiro do toque**: é **sempre de carga cheia** (1,0): a carga existe para o
-  tempo de mira, não para um tiro fraco. O toque primeiro espera a janela
-  pendente (280 ms) e a carga dura 1 s depois disso; um caminho novo ou um
-  segurar a cancelam.
+- **Tempos da v0.19**: rampa 0,30 s · carga **padrão 0,5 s** (faixa 0–1,5 s) ·
+  segurar 0,38 s · multiplicadores 1,5/1,6/2,0 · sprint 1,7× com cauda 0,6 s
+  são **pontos de partida** — ajustar no aparelho com o operador.
+- **Toque e a janela do duplo**: o toque espera a janela do duplo (**280 ms**)
+  **antes** de começar o preparo, para o primeiro toque de um duplo não atirar
+  antes do PULO. Se o operador quiser resposta imediata, é mexer nessa janela —
+  e o PULO sofre.
+- **Tempo de carga configurável**: o tempo do slider **define o tamanho** do
+  tiro (0 s = base 9/280/24 instantâneo; 1,5 s = máximo 13,5/448/48), o
+  **padrão é 0,5 s** e o instantâneo (0) **não tem** estado de "CARREGANDO". O
+  preparo é **linear** no tempo (0,5 s já é 1/3 do ganho) e o slider é
+  **runtime-only**: cada abertura começa no padrão de `dados/acoes.json` (a HUD
+  de teste **não salva** configuração).
 - **Sem rota e sem alvo o toque não atira** (`"recusado: sem destino"`): o tiro
   não vai "no dedo". Depender do destino final do caminho é decisão do desenho.
 - **Segurar sem caminho cava**: na perseguição final (sem rota) o segurar não
   acelera; ele tenta a habilidade (cavar), se a célula for escavável.
-- **HUD de carga**: o texto `CARREGANDO %`, a barra amarela acima da energia e
-  o anel na criatura são **mockup** de desenvolvimento.
+- **HUD de carga e CONFIG**: o texto `CARREGANDO %`, a barra amarela acima da
+  energia, o anel na criatura, o **slider da carga** e o **botão CONFIG** são
+  **mockup** de desenvolvimento — a UI real decide depois (sem layout final e
+  sem valor salvo).
 - **Oráculo**: os 60 quadros do CI só cobrem os 2 primeiros segundos; as cenas
-  novas (rampa/segurar/toque/carga) pedem a demo inteira (~480 quadros) para o
-  olho. O baseline do CI foi atualizado com os 60 quadros desta versão
-  (CI #43, `llvmpipe`).
+  novas (rampa/segurar/toque/carga/slider/CONFIG) pedem a demo inteira para o
+  olho. O baseline `testes/baseline/` **ainda é o da v0.18** e será atualizado
+  com os 60 quadros do CI (`llvmpipe`) num commit seguinte do mesmo lote.

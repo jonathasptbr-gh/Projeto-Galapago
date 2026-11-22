@@ -79,9 +79,10 @@ a arte fica) é do operador: o agente propõe com opções, não decide calado.
 project.godot         configuração (720x1280 canvas_items, arte nearest, RETRATO, ETC2/ASTC)
 export_presets.cfg    preset Android (arm64, sem Gradle)
 CLAUDE.md             ponteiro de uma linha para este arquivo (Claude Code)
-sim/                  lógica pura: gestos (1 dedo: caminho, toque=tiro carregado,
-                       toque duplo=pulo, segurar=correr/habilidade; rampa de
-                       início) · formas (laço/bico do desenho) ·
+sim/                  lógica pura: gestos (1 dedo: caminho, toque=tiro carregado
+                       (0–1,5 s, tamanho pelo tempo), toque duplo=pulo,
+                       segurar=correr/habilidade; rampa de início) · formas
+                       (laço/bico do desenho) ·
                        comandos · corpo (traço ao vivo+waypoints+overlays+
                        marcas de ataque+autonomia) · alvos · adversario
                        (passeio, hostilidade, preparo+área, esconder) · mundo ·
@@ -89,7 +90,7 @@ sim/                  lógica pura: gestos (1 dedo: caminho, toque=tiro carregad
                        visibilidade · atualizacao · mapa (Wang, parado)
 jogo/                 main · criatura · adversario_mock · perigos (área no chão) ·
                        mira (mira+alvo final) · trilha · efeitos (onda/tiro) ·
-                       hud · demo · mock ·
+                       hud (legenda, carga, CONFIG) · demo · mock ·
                        atualizador · camadas/ (chao, subsolo, copa, parallax,
                        objeto_mock)
 dados/                gestos.json · acoes.json · adversario.json · terrenos.json · mapas/

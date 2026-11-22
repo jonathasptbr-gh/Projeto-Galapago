@@ -3,6 +3,74 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.19.0 — tempo de carga do tiro ajustável (tamanho pelo tempo) e botão CONFIG (2026-11-22)
+
+- **Autorizado pelo operador:** o tempo de carga do tiro (**1 s** da v0.18)
+  ficou **longo**; o pedido foi deixá-lo **configurável** por um **slider de
+  0 a 1,5 s** na HUD, com o **tempo escolhido definindo o TAMANHO/FORÇA** do
+  tiro, e um **botão de configurações (`CONFIG`)** que **esconde/mostra toda a
+  HUD de teste**. O padrão passou a **0,5 s**.
+- **`dados/`:** `acoes.json` — `combate.tiro_carga_s` de 1,0 para **0,5**
+  (padrão do slider) e **entra** `combate.tiro_carga_max_s` **1,5** (teto do
+  slider e referência do tamanho); seguem `tiro_carga_raio_x` 1,5,
+  `tiro_carga_alcance_x` 1,6, `tiro_carga_empurrao_x` 2,0, `tiro_raio` 9,
+  `tiro_alcance` 280, `tiro_empurrao` 24, `tiro_velocidade` 420,
+  `tiro_recarga_s` 1,0 e `tiro_pausa_s` 0,25. Nenhum valor antigo mudou de
+  significado; as descrições `_leia` de `gestos.json` e `acoes.json` foram
+  reescritas para a v0.19.0 (chaves e valores intactos).
+- **`sim/` (API da carga):** `corpo.carga_tiro_s` é **público** (nasce de
+  `combate.tiro_carga_s`, padrão 0,5 s; a HUD escreve) e
+  `corpo.tiro_carga_max_s()` devolve o teto de `combate.tiro_carga_max_s`
+  (1,5 s, nunca ≤ 0 porque é divisor do tamanho). `carga()` continua sendo o
+  **PREPARO** (`_carga_t / _carga_max_s`, o preenchimento da barra/anel), não o
+  tamanho. `_cmd_tiro` com `carga_tiro_s` = 0 dispara **na hora**
+  (`"ok: tiro"`, sem estado de carga e sem "CARREGANDO"); com > 0 começa a
+  carga, e `_iniciar_carga` **trava o teto no começo** (mudar o slider no meio
+  não reinicia nem encurta o preparo). `_disparar_carga` passa ao projétil
+  `carga_tiro_s / tiro_carga_max_s()` (0..1), que multiplica
+  raio/alcance/empurrão — **o tamanho é lido no disparo**. A direção continua
+  alvo marcado vivo → destino final do caminho (nunca o toque); sem rota/alvo é
+  `"recusado: sem destino"`; o toque segue **pendente 280 ms** pela janela do
+  duplo; a carga cancela por caminho novo ou segurar.
+- **`jogo/`:** a HUD ganha o botão **`CONFIG`** (240×34, sempre visível; o texto
+  alterna `CONFIG` ↔ `MOSTRAR`) e o **slider `CARGA DO TIRO`** (rótulo
+  `CARGA DO TIRO: 0,50 s`, ou `instantâneo` em 0; `HSlider` 0–1,5 s, passo
+  0,05, padrão 0,5, `FOCUS_NONE`; `value_changed` escreve
+  `corpo.carga_tiro_s`). O CONFIG esconde/mostra os `Control` filhos da HUD —
+  **ficam sempre** o próprio botão, o `atualizador` (prompt de atualização) e o
+  `veu` (escurecimento do desenho, `ColorRect` de tela cheia no índice 0). A
+  barra amarela de carga e o anel da criatura continuam mostrando o **preparo**
+  e voltam só enquanto o corpo carrega; a **legenda** ganha a linha
+  `CONFIG → esconde esta HUD` (11 linhas). O slider é **runtime-only** (a HUD de
+  teste não salva configuração).
+- **`testes/`:** entram os testes do tempo de carga configurável — padrão 0,5 s
+  vindo do JSON, 1,5 s = tiro máximo (13,5/448/48), 0,75 s = meio
+  (11,25/364/36), **0 s instantâneo** (`"ok: tiro"`, sem carga, tiro base
+  9/280/24), `tiro_carga_max_s()` nunca ≤ 0 e **slider no meio da carga** sem
+  quebrar o preparo em curso.
+- **Verificação:** na **árvore compartilhada**, `tools/testes.sh` =
+  **163 testes, 0 falhas** — inclui **4 testes da outra sessão**, fora deste
+  lote —, `parser: 44 scripts, 0 com erro` (2 scripts daquela sessão) e
+  `docs: 29 Markdown, 0 erro(s)`. O **lote isolado só deste commit** foi
+  verificado num worktree limpo: **159 testes, 0 falhas** (parser 42, docs 29).
+  O oráculo **local** (60 quadros e 240 da demo) rodou **sem SCRIPT ERROR**; o
+  slider aparece em **0,50 s** e a barra amarela em **~33%** no quadro 112 da
+  demo.
+- **Outra sessão, fora deste lote:** o **working tree** também tem trabalho
+  **não commitado de outra sessão** (câmera com pinça/zoom e joystick
+  relativo), que **não** faz parte da v0.19.0 — o commit deste lote leva só os
+  arquivos dele.
+- **Oráculo/baseline:** o visível **mudou** (botão CONFIG, rótulo e slider da
+  carga na HUD e a linha nova da legenda). O baseline `testes/baseline/` ainda
+  é o da **v0.18** e será atualizado com os 60 quadros do CI (`llvmpipe`) num
+  commit seguinte do mesmo lote; **número de run não se inventa**.
+- **Resíduos:** o slider é **runtime-only** (não salva entre aberturas); o
+  padrão 0,5 s e a faixa 0–1,5 s são **pontos de partida**; o tamanho é linear
+  no tempo (0,5 s = 1/3 do ganho); o instantâneo (0) não tem "CARREGANDO"; o
+  toque espera a janela do duplo (280 ms) antes de começar a carga; sem
+  rota/alvo não atira; a barra/anel/CONFIG são **mockup**; os 60 quadros do CI
+  cobrem só 2 s.
+
 ## v0.18.0 — toque atira carregado, segurar corre e rampa no início da caminhada (2026-11-22)
 
 - **Autorizado pelo operador:** **reverter** a v0.17. O **toque simples volta a

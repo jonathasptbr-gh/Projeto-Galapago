@@ -4,10 +4,14 @@ extends CanvasLayer
 signal hostilidade_alternada(ligado: bool)
 
 ## HUD de desenvolvimento: título (versão/build), legenda dos gestos (a tabela
-## v0.18 em linhas curtas), estado do corpo (rota/waypoints, barreira, alvo,
-## camada, habilidade, alvo final, planejamento e CARGA do tiro), barra de
-## energia e barra de carga, última relação gesto → ação, nota do último
+## v0.18 em linhas curtas + a linha do CONFIG), estado do corpo (rota/waypoints,
+## barreira, alvo, camada, habilidade, alvo final, planejamento e CARGA do tiro),
+## barra de energia e barra de carga, última relação gesto → ação, nota do último
 ## golpe/ataque, e o ESTADO DA ATUALIZAÇÃO com botão de verificar à mão.
+## v0.19: SLIDER DA CARGA DO TIRO (0 a `corpo.tiro_carga_max_s()`, escreve em
+## `corpo.carga_tiro_s`; o TAMANHO do tiro é da `sim/`, a HUD só escolhe o tempo)
+## e o botão CONFIG, que esconde/mostra esta HUD de teste — o próprio botão, o
+## `veu` (escurecimento do desenho) e o `atualizador` ficam sempre.
 ## Layout pensado para a tela em RETRATO (720×1280).
 
 const Atualizador := preload("res://jogo/atualizador.gd")
@@ -33,6 +37,15 @@ var _pulo_auto: Button
 var _hostil_btn: Button
 var _hostil := false
 var _inimigo: Label
+# CARGA DO TIRO (v0.19): o slider escreve em `corpo.carga_tiro_s` (padrão 0,5 s);
+# o tamanho/força do tiro é da `sim/` — a HUD só escolhe o TEMPO de carga.
+var _carga_rotulo: Label
+var _carga_slider: HSlider
+var _slider_sincronizado := false
+# CONFIG (v0.19): esconde/mostra a HUD de teste; ele mesmo, o `veu` (o
+# escurecimento do desenho) e o `atualizador` (o aviso de atualização) ficam.
+var _config_btn: Button
+var _mostrar_info := true
 
 
 func _ready() -> void:
@@ -64,6 +77,30 @@ func _ready() -> void:
 	_hostil_btn.pressed.connect(_alternar_hostilidade)
 	add_child(_hostil_btn)
 	_inimigo = _rotulo("", Vector2(20, 188), 16)
+	# CONFIG (v0.19): sempre visível, na coluna da ESQUERDA abaixo do `inimigo`
+	# (a legenda fica à direita e o estado, embaixo). Ele esconde/mostra o resto.
+	_config_btn = Button.new()
+	_config_btn.text = "CONFIG"
+	_config_btn.add_theme_font_size_override("font_size", 16)
+	_config_btn.position = Vector2(20, 230)
+	_config_btn.custom_minimum_size = Vector2(240, 34)
+	_config_btn.pressed.connect(_alternar_info)
+	add_child(_config_btn)
+	# CARGA DO TIRO (v0.19): rótulo + slider (0 a 1,5 s, passo 0,05). O teto
+	# real vem de `corpo.tiro_carga_max_s()` na primeira `estado()`.
+	_carga_rotulo = _rotulo(_texto_carga(0.5), Vector2(20, 272), 16)
+	_carga_slider = HSlider.new()
+	_carga_slider.min_value = 0.0
+	_carga_slider.max_value = 1.5
+	_carga_slider.step = 0.05
+	_carga_slider.value = 0.5
+	_carga_slider.position = Vector2(20, 296)
+	_carga_slider.size = Vector2(240, 34)
+	_carga_slider.custom_minimum_size = Vector2(240, 34)
+	# o slider é um Control: o toque nele é CONSUMIDO (não vira caminho)
+	_carga_slider.focus_mode = Control.FOCUS_NONE
+	_carga_slider.value_changed.connect(_mudar_carga)
+	add_child(_carga_slider)
 	_gesto = _rotulo("gesto: —", Vector2.ZERO, 20)
 	_gesto.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 18)
 	_gesto.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -141,6 +178,7 @@ func _legenda() -> String:
 	linhas.append("passar por cima → batida")
 	linhas.append("botão PULO AUTO → sobe degrau de 1 nível")
 	linhas.append("botão HOSTILIDADE → o bicho caça e ataca")
+	linhas.append("CONFIG → esconde esta HUD")
 	return "\n".join(linhas)
 
 
@@ -166,10 +204,65 @@ func _alternar_pulo_auto() -> void:
 	nota("PULO AUTO %s" % ("ligado" if _corpo.pulo_auto else "desligado"))
 
 
+## Texto do rótulo da CARGA (vírgula decimal); 0 s é o tiro INSTANTÂNEO (base).
+func _texto_carga(s: float) -> String:
+	if s <= 0.001:
+		return "CARGA DO TIRO: instantâneo"
+	return "CARGA DO TIRO: %s s" % ("%.2f" % s).replace(".", ",")
+
+
+## O dedo no slider escolhe o TEMPO de carga; o tamanho/força é da `sim/`.
+func _mudar_carga(valor: float) -> void:
+	if _carga_rotulo:
+		_carga_rotulo.text = _texto_carga(valor)
+	if _corpo == null:
+		return
+	_corpo.carga_tiro_s = valor
+
+
+## CONFIG (v0.19): esconde/mostra a HUD de teste. SEMPRE ficam: o próprio botão,
+## o `veu` (ColorRect de tela cheia que o main põe no índice 0; escurece o
+## desenho) e o `atualizador` (o prompt de atualização do app).
+func _alternar_info() -> void:
+	_mostrar_info = not _mostrar_info
+	for no in get_children():
+		if not (no is Control):
+			continue
+		var filho := no as Control
+		if filho == _config_btn or filho == atualizador:
+			continue
+		if _e_veu(filho):
+			continue
+		filho.visible = _mostrar_info
+	# a barra de carga é reaberta pelo `estado()` só enquanto carrega
+	if _mostrar_info and _carga_bg and _corpo:
+		_carga_bg.visible = _corpo.carregando()
+	_config_btn.text = "CONFIG" if _mostrar_info else "MOSTRAR"
+
+
+## O `veu` é o ColorRect de TELA CHEIA que o main acrescenta e move para o
+## índice 0 — os ColorRects desta HUD (energia/carga) são ancorados embaixo.
+func _e_veu(no: Node) -> bool:
+	if not (no is ColorRect):
+		return false
+	var cr := no as ColorRect
+	return cr.anchor_right == 1.0 and cr.anchor_bottom == 1.0
+
+
 func estado(corpo: RefCounted, alvos: Array, planejando := false, escala := 1.0,
 		adversarios: Array = [], hostil := false) -> void:
 	_corpo = corpo
 	_hostil = hostil
+	# CARGA DO TIRO (v0.19): a PRIMEIRA `estado()` acerta o slider com a sim
+	# (teto e valor); depois quem manda é o dedo no slider. `set_value_no_signal`
+	# evita que a sincronização escreva de volta em `corpo.carga_tiro_s`.
+	if not _slider_sincronizado and _carga_slider:
+		_slider_sincronizado = true
+		var teto: float = corpo.tiro_carga_max_s()
+		_carga_slider.set_value_no_signal(minf(float(corpo.carga_tiro_s), teto))
+		_carga_slider.max_value = teto
+		if _carga_rotulo:
+			_carga_rotulo.text = _texto_carga(_carga_slider.value)
 	var modo := ""
 	if corpo.em_rota():
 		var pct := roundi(100.0 * minf(corpo.rota_t, corpo.total_rota) / maxf(corpo.total_rota, 0.001))
@@ -192,9 +285,10 @@ func estado(corpo: RefCounted, alvos: Array, planejando := false, escala := 1.0,
 		_energia.size.x = _energia_largura * e
 		_energia.color = Color(0.95, 0.5, 0.3, 0.95) if e < 0.25 else Color(0.45, 0.85, 1.0, 0.9)
 	# CARGA do tiro (v0.18): a barra fina só existe enquanto o corpo carrega
+	# (e some junto com o resto quando o CONFIG esconde a HUD de teste).
 	var carga := clampf(corpo.carga(), 0.0, 1.0)
 	if _carga_bg and _carga:
-		_carga_bg.visible = corpo.carregando()
+		_carga_bg.visible = _mostrar_info and corpo.carregando()
 		_carga.size.x = _energia_largura * carga
 		_carga.color = Color(1.0, 0.7, 0.2, 0.95) if carga >= 0.999 else Color(1.0, 0.85, 0.25, 0.95)
 	# a CARGA em primeiro plano: é o preparo do tiro que o dedo precisa ver

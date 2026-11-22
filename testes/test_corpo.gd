@@ -53,6 +53,15 @@ func _alvo(id: String, pos: Vector2, tipo := "arvore") -> Dictionary:
 	return {"id": id, "tipo": tipo, "pos": pos, "raio": 14.0, "travavel": true, "interativo": false, "dados": {}}
 
 
+## O ÚLTIMO projétil de tiro vivo (o mais recente, se o teste atirou duas vezes).
+func _efeito_tiro(c: RefCounted) -> Dictionary:
+	var ef := {}
+	for e in c.efeitos:
+		if str(e["tipo"]) == "tiro":
+			ef = e
+	return ef
+
+
 # ---------------------------------------------------------------- rota
 
 func test_rota_percorre_ate_o_fim_e_entra_em_autonomia() -> void:
@@ -722,17 +731,19 @@ func test_marcacao_embala_curto() -> void:
 	checar(vmax > 130.0, "acelerou perto do alvo (%.0f px/s)" % vmax)
 
 
-# ---------------------------------------------------------------- v0.10/v0.18: tiro
-# (o alvo marcado)
+# ---------------------------------------------------------------- v0.10/v0.18/v0.19: tiro
+# (o alvo marcado e a carga)
 
-## TOQUE = TIRO CARREGADO (v0.18): o comando NÃO atira na hora. Ele começa a
-## carga (o animal para e `carga()` cresce) e, ao completar `combate.tiro_carga_s`
-## (1 s = 30 quadros), o projétil sai SOZINHO com a carga CHEIA na direção do
-## **FIM DO CAMINHO** — nunca na direção do toque.
+## TOQUE = TIRO CARREGADO (v0.19): o comando NÃO atira na hora. Ele começa a
+## carga (o animal para e `carga()` cresce) e, ao completar `carga_tiro_s`
+## (padrão do JSON = 0,5 s = 15 quadros), o projétil sai SOZINHO na direção do
+## **FIM DO CAMINHO** — nunca na direção do toque — com o TAMANHO proporcional
+## ao tempo: 0,5 s de 1,5 s = carga 1/3 → 10,5 / 336 / 32.
 func test_toque_carrega_e_dispara_sozinho_no_fim_do_caminho() -> void:
 	var s := _setup(MAPA)
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
+	perto(c.carga_tiro_s, 0.5, 0.001, "o padrão da carga vem do JSON (0,5 s)")
 	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(240, 48)])}, m, [])
 	var toque: Vector2 = c.pos + Vector2(0, 100)  # para baixo (o fim do caminho é +x)
 	igual(c.comandar({"acao": "tiro", "alvo": toque}, m, []), "ok: carregando", "toque começa a carga")
@@ -742,19 +753,16 @@ func test_toque_carrega_e_dispara_sozinho_no_fim_do_caminho() -> void:
 	var p0: Vector2 = c.pos
 	var evs := _rodar(c, m, 0.3)
 	perto_v(c.pos, p0, 0.001, "o animal PARA enquanto carrega")
-	perto(c.carga(), 0.3, 0.02, "a carga cresce (0,3 s = 30%)")
+	perto(c.carga(), 0.6, 0.02, "a carga cresce (0,3 s de 0,5 s = 60%)")
 	checar("tiro:disparo" not in evs, "ainda não disparou")
-	# completa 1 s: o disparo sai sozinho, com a carga cheia
-	evs.append_array(_rodar(c, m, 0.71))
-	checar("tiro:disparo" in evs, "disparou sozinho ao completar 1 s (%s)" % [evs])
+	# completa 0,5 s: o disparo sai sozinho, com o tamanho do tempo escolhido
+	evs.append_array(_rodar(c, m, 0.21))
+	checar("tiro:disparo" in evs, "disparou sozinho ao completar 0,5 s (%s)" % [evs])
 	checar(not c.carregando(), "a carga acabou")
 	perto(c.carga(), 0.0, 0.001, "carga zerada depois do disparo")
 	checar(float(c._recargas.get("tiro", 0.0)) > 0.7, "entrou em recarga")
 	checar(c._pausa_t > 0.0, "parou para atirar")
-	var ef := {}
-	for e in c.efeitos:
-		if str(e["tipo"]) == "tiro":
-			ef = e
+	var ef := _efeito_tiro(c)
 	checar(not ef.is_empty(), "há um projétil")
 	if ef.is_empty():
 		return
@@ -762,10 +770,144 @@ func test_toque_carrega_e_dispara_sozinho_no_fim_do_caminho() -> void:
 	var fim: Vector2 = c.rota[c.rota.size() - 1]
 	checar(dir.dot((fim - c.pos).normalized()) > 0.99, "tiro na direção do FIM do caminho (%s)" % dir)
 	checar(dir.dot((toque - c.pos).normalized()) < 0.5, "e não na direção do toque (%s)" % dir)
-	perto(float(ef["raio"]), 13.5, 0.01, "carga cheia: raio")
-	perto(float(ef["alcance"]), 448.0, 0.02, "carga cheia: alcance")
-	perto(float(ef["empurrao"]), 48.0, 0.01, "carga cheia: empurrão")
+	perto(float(ef["raio"]), 10.5, 0.01, "0,5 s de 1,5 s: raio")
+	perto(float(ef["alcance"]), 336.0, 0.02, "0,5 s de 1,5 s: alcance")
+	perto(float(ef["empurrao"]), 32.0, 0.01, "0,5 s de 1,5 s: empurrão")
 	igual(c.comandar({"acao": "tiro", "alvo": toque}, m, []), "recusado: recarga", "recarga segura o 2º toque")
+
+
+# ---------------------------------------------------------------- v0.19: tempo de carga e tamanho
+
+## O TEMPO escolhido define o tamanho: `carga_tiro_s` 1,5 s (o teto de
+## `tiro_carga_max_s()`) leva 1,5 s de preparo e sai com o tiro MÁXIMO
+## 13,5 / 448 / 48.
+func test_carga_de_um_e_meio_segundo_e_o_tiro_maximo() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	perto(c.tiro_carga_max_s(), 1.5, 0.001, "o teto do slider vem do JSON (1,5 s)")
+	c.carga_tiro_s = 1.5
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(240, 48)])}, m, [])
+	igual(c.comandar({"acao": "tiro", "alvo": c.pos + Vector2(0, 100)}, m, []), "ok: carregando", "carrega")
+	var evs := _rodar(c, m, 1.0)
+	checar("tiro:disparo" not in evs, "1 s ainda não completa 1,5 s")
+	checar(c.carregando(), "segue carregando")
+	perto(c.carga(), 2.0 / 3.0, 0.07, "a barra marca ~2/3 (1 s de 1,5 s)")
+	evs.append_array(_rodar(c, m, 0.55))
+	checar("tiro:disparo" in evs, "disparou ao completar 1,5 s (%s)" % [evs])
+	var ef := _efeito_tiro(c)
+	checar(not ef.is_empty(), "há um projétil")
+	if ef.is_empty():
+		return
+	perto(float(ef["raio"]), 13.5, 0.01, "tempo máximo: raio")
+	perto(float(ef["alcance"]), 448.0, 0.02, "tempo máximo: alcance")
+	perto(float(ef["empurrao"]), 48.0, 0.01, "tempo máximo: empurrão")
+
+
+## No MEIO do caminho a escala é linear: 0,75 s de 1,5 s = carga 1/2 →
+## 11,25 / 364 / 36, com 0,75 s de preparo.
+func test_carga_de_tres_quartos_de_segundo_escala_no_meio() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.carga_tiro_s = 0.75
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(240, 48)])}, m, [])
+	igual(c.comandar({"acao": "tiro", "alvo": c.pos + Vector2(0, 100)}, m, []), "ok: carregando", "carrega")
+	var evs := _rodar(c, m, 0.4)
+	checar("tiro:disparo" not in evs, "0,4 s ainda não completa 0,75 s")
+	perto(c.carga(), 0.4 / 0.75, 0.07, "a barra marca ~o preparo (0,4 s de 0,75 s)")
+	evs.append_array(_rodar(c, m, 0.4))
+	checar("tiro:disparo" in evs, "disparou ao completar 0,75 s (%s)" % [evs])
+	var ef := _efeito_tiro(c)
+	checar(not ef.is_empty(), "há um projétil")
+	if ef.is_empty():
+		return
+	perto(float(ef["raio"]), 11.25, 0.01, "metade da carga: raio")
+	perto(float(ef["alcance"]), 364.0, 0.02, "metade da carga: alcance")
+	perto(float(ef["empurrao"]), 36.0, 0.01, "metade da carga: empurrão")
+
+
+## `carga_tiro_s` = 0 é o tiro INSTANTÂNEO: o comando dispara na hora
+## (`"ok: tiro"`), NÃO fica carregando e o projétil BASE já existe com
+## 9 / 280 / 24. A recarga e a pausa do tiro valem como sempre.
+func test_carga_zero_dispara_na_hora_com_o_tiro_base() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.carga_tiro_s = 0.0
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(240, 48)])}, m, [])
+	c.drenar_eventos()
+	var toque: Vector2 = c.pos + Vector2(0, 100)  # para baixo (o fim do caminho é +x)
+	igual(c.comandar({"acao": "tiro", "alvo": toque}, m, []), "ok: tiro", "instantâneo dispara no comando")
+	checar(not c.carregando(), "não fica carregando")
+	perto(c.carga(), 0.0, 0.001, "sem barra de carga")
+	var evs: Array = c.drenar_eventos()
+	checar("tiro:disparo" in evs, "avisou o disparo (%s)" % [evs])
+	checar("carga:on" not in evs, "não avisou carga (%s)" % [evs])
+	var ef := _efeito_tiro(c)
+	checar(not ef.is_empty(), "o projétil sai no mesmo comando")
+	if ef.is_empty():
+		return
+	var dir := Vector2(ef["dir"])
+	var fim: Vector2 = c.rota[c.rota.size() - 1]
+	checar(dir.dot((fim - c.pos).normalized()) > 0.99, "na direção do FIM do caminho (%s)" % dir)
+	checar(dir.dot((toque - c.pos).normalized()) < 0.5, "e nunca na direção do toque (%s)" % dir)
+	perto(float(ef["raio"]), 9.0, 0.01, "tiro base: raio")
+	perto(float(ef["alcance"]), 280.0, 0.02, "tiro base: alcance")
+	perto(float(ef["empurrao"]), 24.0, 0.01, "tiro base: empurrão")
+	perto(float(c._recargas.get("tiro", 0.0)), 1.0, 0.001, "entrou em recarga")
+	checar(c._pausa_t > 0.0, "pausa do tiro")
+	igual(c.comandar({"acao": "tiro", "alvo": toque}, m, []), "recusado: recarga", "recarga segura um toque novo")
+
+
+## O tempo vem do JSON e admite configuração própria: `carga_tiro_s` lê
+## `combate.tiro_carga_s` e `tiro_carga_max_s()` lê `combate.tiro_carga_max_s`
+## (nunca ≤ 0, porque é divisor do tamanho).
+func test_carga_do_tiro_vem_do_json() -> void:
+	var cfg: Dictionary = acoes.duplicate(true)
+	cfg["combate"]["tiro_carga_s"] = 0.25
+	cfg["combate"]["tiro_carga_max_s"] = 2.0
+	var c := Corpo.new(cfg)
+	perto(c.carga_tiro_s, 0.25, 0.001, "o tempo lê combate.tiro_carga_s")
+	perto(c.tiro_carga_max_s(), 2.0, 0.001, "o teto lê combate.tiro_carga_max_s")
+	cfg["combate"]["tiro_carga_max_s"] = 0.0
+	c = Corpo.new(cfg)
+	checar(c.tiro_carga_max_s() > 0.0, "teto nunca é ≤ 0")
+
+
+## O slider (escrita em `carga_tiro_s`) vale para o PRÓXIMO tiro e mudá-lo
+## DURANTE a carga não a quebra: o preparo em curso guarda o teto do começo,
+## mas o TAMANHO do disparo é o valor ATUAL (aqui 1,5 s → máximo).
+func test_slider_muda_o_proximo_tiro_sem_quebrar_a_carga_em_curso() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(240, 48)])}, m, [])
+	igual(c.comandar({"acao": "tiro", "alvo": c.pos + Vector2(0, 100)}, m, []), "ok: carregando", "carrega com 0,5 s")
+	_rodar(c, m, 0.2)
+	checar(c.carregando(), "carregando")
+	c.carga_tiro_s = 1.5  # o jogador arrastou o slider no meio do preparo
+	checar(c.carregando(), "a carga em curso não quebra")
+	perto(c.carga(), 0.4, 0.07, "a barra segue o teto travado no começo (~0,2 s de 0,5 s)")
+	var evs := _rodar(c, m, 0.35)
+	checar("tiro:disparo" in evs, "disparou no teto do começo, 0,5 s (%s)" % [evs])
+	var ef := _efeito_tiro(c)
+	checar(not ef.is_empty(), "há um projétil")
+	if not ef.is_empty():
+		perto(float(ef["raio"]), 13.5, 0.01, "o tamanho usa o valor ATUAL (1,5 s = máximo)")
+	# o PRÓXIMO tiro já sai com o tempo novo (0,75 s = 11,25 / 364 / 36)
+	_rodar(c, m, 0.3)  # a pausa do tiro passa
+	c._recargas["tiro"] = 0.0
+	c.carga_tiro_s = 0.75
+	igual(c.comandar({"acao": "tiro", "alvo": c.pos + Vector2(0, 100)}, m, []), "ok: carregando", "carrega com 0,75 s")
+	var evs2 := _rodar(c, m, 0.8)
+	checar("tiro:disparo" in evs2, "disparou ao completar 0,75 s (%s)" % [evs2])
+	var ef2 := _efeito_tiro(c)
+	checar(not ef2.is_empty(), "há um segundo projétil")
+	if not ef2.is_empty():
+		perto(float(ef2["raio"]), 11.25, 0.01, "o próximo tiro usa o tempo novo: raio")
+		perto(float(ef2["alcance"]), 364.0, 0.02, "o próximo tiro usa o tempo novo: alcance")
+		perto(float(ef2["empurrao"]), 36.0, 0.01, "o próximo tiro usa o tempo novo: empurrão")
 
 
 ## v0.18: sem alvo marcado e SEM caminho não há para onde atirar — o toque
@@ -783,8 +925,8 @@ func test_tiro_sem_destino_e_recusado() -> void:
 
 
 ## COM ALVO MARCADO a automira da v0.10 continua: o toque em OUTRO lugar não
-## muda a direção. O disparo sai no **ALVO VIVO** ao completar a carga (1 s), e
-## a marca NÃO sai no disparo.
+## muda a direção. O disparo sai no **ALVO VIVO** ao completar a carga (0,5 s),
+## e a marca NÃO sai no disparo.
 func test_toque_com_alvo_marcado_mira_no_alvo_vivo() -> void:
 	var s := _setup(MAPA)
 	var m: RefCounted = s[0]
@@ -801,13 +943,10 @@ func test_toque_com_alvo_marcado_mira_no_alvo_vivo() -> void:
 	# o alvo ANDA durante a carga: a direção segue a posição ATUAL dele
 	adv.pos = Vector2(120, 230)
 	alvos[0]["pos"] = adv.pos
-	var evs := _rodar(c, m, 0.71, alvos)
-	checar("tiro:disparo" in evs, "disparou ao completar 1 s (%s)" % [evs])
+	var evs := _rodar(c, m, 0.21, alvos)
+	checar("tiro:disparo" in evs, "disparou ao completar 0,5 s (%s)" % [evs])
 	igual(c.mira_final_id, "adversario:0", "a marca FICA após o disparo")
-	var ef := {}
-	for e in c.efeitos:
-		if str(e["tipo"]) == "tiro":
-			ef = e
+	var ef := _efeito_tiro(c)
 	checar(not ef.is_empty(), "há um projétil")
 	if not ef.is_empty():
 		var dir := Vector2(ef["dir"])

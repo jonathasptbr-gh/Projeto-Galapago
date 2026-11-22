@@ -13,19 +13,24 @@ extends RefCounted
 ## - os **OVERLAYS** (pulo, golpes, onda de área, tiros e habilidade), que
 ##   acontecem POR CIMA da rota sem cancelá-la.
 ##
-## v0.18 — **GESTOS DE UM DEDO**: toque = **TIRO**, segurar = **CORRER** (ou a
+## v0.19 — **GESTOS DE UM DEDO**: toque = **TIRO**, segurar = **CORRER** (ou a
 ## habilidade, sem caminho).
 ##
-## - **TOQUE = TIRO CARREGADO** (`_cmd_tiro`): o toque NÃO atira na hora. Ele
-##   começa a CARGA (o animal para e `_carga_t` cresce) e o disparo sai
-##   **sozinho** ao completar `combate.tiro_carga_s` (1 s), com a carga CHEIA
-##   (1,0). A direção é o **ALVO MARCADO vivo**; sem ele, o **DESTINO FINAL do
-##   caminho** capturado no começo da carga; sem um nem outro, `olhar` —
-##   **nunca o toque**. Sem rota e sem alvo, o toque é `"recusado: sem
-##   destino"` e a carga nem começa. A carga escala `raio`, `alcance` e
-##   `empurrao` (`tiro_carga_*_x`) e só é CANCELADA por um caminho novo
-##   (`_guardar_rota(reiniciar=true)`) ou por um segurar (o jogador mudou de
-##   ideia e vai correr). Soltar o dedo não dispara nem cancela.
+## - **TOQUE = TIRO CARREGADO com TEMPO CONFIGURÁVEL** (`_cmd_tiro`): o toque
+##   NÃO atira na hora (salvo `carga_tiro_s` = 0). Ele começa a CARGA (o animal
+##   para e `_carga_t` cresce) e o disparo sai **sozinho** ao completar
+##   `carga_tiro_s` — o tempo do slider da HUD, padrão `combate.tiro_carga_s`
+##   (0,5 s). O **TAMANHO do tiro é PROPORCIONAL a esse tempo**:
+##   `carga_tiro_s` 0 = tiro BASE e instantâneo (9 px/280/24, sem preparo) e
+##   `tiro_carga_max_s()` (`combate.tiro_carga_max_s`, 1,5 s) = tiro MÁXIMO
+##   (13,5/448/48); no meio, escala em linha reta. A direção é o **ALVO MARCADO
+##   vivo**; sem ele, o **DESTINO FINAL do caminho** capturado no começo da
+##   carga; sem um nem outro, `olhar` — **nunca o toque**. Sem rota e sem alvo,
+##   o toque é `"recusado: sem destino"` e a carga nem começa. A carga só é
+##   CANCELADA por um caminho novo (`_guardar_rota(reiniciar=true)`) ou por um
+##   segurar (o jogador mudou de ideia e vai correr). Soltar o dedo não dispara
+##   nem cancela. `carga_tiro_s` pode mudar a qualquer momento: a carga EM CURSO
+##   guarda o teto do começo, mas o TAMANHO é o valor lido no disparo.
 ## - **SEGURAR = CORRER** (`_cmd_segurar`): com caminho, liga o SPRINT CONTÍNUO
 ##   (`sprint.fator`) e gasta a barra de ENERGIA enquanto o dedo fica; ao
 ##   soltar (`_cmd_soltar_segurar`) o embalo continua na CAUDA
@@ -212,11 +217,15 @@ var _arcos_rota := PackedFloat32Array()  # arco acumulado em cada ponto da rota
 var _fase1 := 0.0                   # fases do desvio orgânico (semente da rota)
 var _fase2 := 0.0
 var _pausa_t := 0.0                 # pausa curta ao disparar o tiro
+# TEMPO DA CARGA do tiro do TOQUE (v0.19): 0 = instantâneo/tiro base e
+# `tiro_carga_max_s()` = tiro máximo. A HUD escreve aqui pelo slider; o TAMANHO
+# do disparo é proporcional a este tempo (ver `_disparar_carga`).
+var carga_tiro_s := 0.5
 # TIRO CARREGADO (v0.18): o TOQUE arma a carga e o disparo sai sozinho no teto;
 # o segurar cancela a carga (vai correr).
 var _carga_ativa := false
 var _carga_t := 0.0
-var _carga_max_s := 1.0             # combate.tiro_carga_s (teto da carga)
+var _carga_max_s := 0.5             # `carga_tiro_s` travado no começo da carga
 var _carga_alvo_id := ""            # alvo marcado copiado no início da carga
 var _carga_destino := Vector2.ZERO  # DESTINO FINAL do caminho (sem alvo vivo)
 var _carga_tem_destino := false     # a rota tinha ≥ 2 pontos ao carregar?
@@ -273,6 +282,7 @@ func _init(definicoes: Dictionary = {}) -> void:
 	rota_cfg = defs.get("rota", {})
 	_formas_cfg = defs.get("formas", {})
 	_combate = defs.get("combate", {})
+	carga_tiro_s = maxf(float(_combate.get("tiro_carga_s", 0.5)), 0.0)
 	_embalo = defs.get("embalo", {})
 	_sprint_cfg = defs.get("sprint", {})
 	_reacao_cfg = defs.get("reacao", {})
@@ -294,12 +304,25 @@ func em_autonomia() -> bool:
 	return not em_rota() and not em_inercia()
 
 
-## A carga do tiro do TOQUE, de 0 a 1 (0 quando não está carregando). A HUD usa
-## para o anel em volta da criatura; o disparo sai somente com 1,0.
+## A carga do tiro do TOQUE, de 0 a 1 (0 quando não está carregando): é o
+## PREENCHIMENTO do preparo (`_carga_t / _carga_max_s`), o que a HUD mostra no
+## anel — NÃO o tamanho do tiro (esse vem de `carga_tiro_s`). Com o preparo
+## instantâneo não há carga ativa; a guarda de `_carga_max_s` perto de zero
+## devolve 1,0 (preparo concluído).
 func carga() -> float:
 	if not _carga_ativa:
 		return 0.0
-	return clampf(_carga_t / maxf(_carga_max_s, 0.0001), 0.0, 1.0)
+	if _carga_max_s <= 0.001:
+		return 1.0
+	return clampf(_carga_t / _carga_max_s, 0.0, 1.0)
+
+
+## O TETO do tempo de carga do tiro (v0.19), em segundos, de
+## `combate.tiro_carga_max_s` (1,5 s): é onde o tiro sai MÁXIMO
+## (`tiro_carga_*_x`) e o fim do slider da HUD. Nunca devolve ≤ 0 (é divisor do
+## tamanho em `_disparar_carga`).
+func tiro_carga_max_s() -> float:
+	return maxf(float(_combate.get("tiro_carga_max_s", 1.5)), 0.001)
 
 
 ## Está CARREGANDO o tiro agora (parada, sem andar)?
@@ -915,18 +938,19 @@ func _iniciar_pulo() -> void:
 	eventos.append("pulo:on")
 
 
-## TIRO DO TOQUE (v0.18) — **CARREGADO**: o toque NÃO atira na hora.
+## TIRO DO TOQUE (v0.18; v0.19 com o TEMPO configurável) — **CARREGADO**.
 ##
 ## - já carregando: `"ok: carregando"` (o toque repetido não reinicia);
 ## - em RECARGA: `"recusado: recarga"`;
-## - captura o ALVO MARCADO e o DESTINO FINAL (último ponto da rota, se ≥ 2) e
-##   começa a CARGA: `_carga_t` de 0 até `combate.tiro_carga_s` (1 s), com o
-##   animal PARADO (o ramo da carga no `passo` retorna antes de andar);
+## - captura o ALVO MARCADO e o DESTINO FINAL (último ponto da rota, se ≥ 2);
 ## - sem alvo e sem destino: `"recusado: sem destino"` — a direção NUNCA é o
 ##   toque;
-## - o disparo sai SOZINHO no teto, com carga 1,0 (`_disparar_carga`), na
-##   direção do **alvo marcado vivo** ou, se ele sumiu, do **destino capturado**
-##   (sem um nem outro: `olhar`).
+## - `carga_tiro_s` = 0 (instantâneo): dispara NA HORA dentro deste comando,
+##   sem estado de carga (`"ok: tiro"`) e com o tiro BASE (carga 0) — a HUD não
+##   chega a ver "CARREGANDO";
+## - senão começa a CARGA: `_carga_t` de 0 até `carga_tiro_s`, com o animal
+##   PARADO (o ramo da carga no `passo` retorna antes de andar), e o disparo sai
+##   SOZINHO no teto, com o tamanho proporcional ao tempo (`_disparar_carga`).
 ##
 ## `cmd` continua na assinatura porque o comando do gesto carrega o toque em
 ## `alvo`, mas ele NÃO é usado. A carga só é cancelada por um caminho novo ou
@@ -940,13 +964,18 @@ func _cmd_tiro(_cmd: Dictionary, alvos: Array) -> String:
 	if _carga_alvo_id == "" and not _carga_tem_destino:
 		_zerar_carga()
 		return "recusado: sem destino"
+	# v0.19: TEMPO 0 = INSTANTÂNEO. O tiro base sai agora, sem estado de carga;
+	# o tamanho fica com `_disparar_carga`, que lê `carga_tiro_s` (0).
+	if carga_tiro_s <= 0.001:
+		_disparar_carga(alvos)
+		return "ok: tiro"
 	_iniciar_carga()
 	return "ok: carregando"
 
 
 ## Cria o projétil. Quem chama decide a direção; `carga` (0..1) escala `raio`,
-## `alcance` e `empurrao` do efeito. O tiro do TOQUE sai com carga 1,0 (o teto,
-## limitado em 1,0): o projétil é maior, vai mais longe e empurra mais.
+## `alcance` e `empurrao` do efeito. O tiro do TOQUE passa
+## `carga_tiro_s / tiro_carga_max_s()`: 0 = tiro BASE, 1 = tiro MÁXIMO.
 func _atirar(dir: Vector2, carga := 0.0) -> void:
 	var c := clampf(carga, 0.0, 1.0)
 	efeitos.append({
@@ -1012,12 +1041,16 @@ func _capturar_carga() -> void:
 
 
 ## Começa a CARGA: o corpo para (o `passo` volta antes de andar) e `_carga_t`
-## cresce até `combate.tiro_carga_s`.
+## cresce até `carga_tiro_s`. O teto é TRAVADO aqui, no começo: mudar o slider
+## no meio não reinicia nem encurta o preparo em curso (o TAMANHO do disparo,
+## sim, é lido no disparo). Com `carga_tiro_s` = 0 não há preparo — quem trata
+## o instantâneo é o `_cmd_tiro`.
 func _iniciar_carga() -> void:
 	_carga_ativa = true
 	_carga_t = 0.0
-	_carga_max_s = maxf(float(_combate.get("tiro_carga_s", 1.0)), 0.05)
-	eventos.append("carga:on")
+	_carga_max_s = maxf(carga_tiro_s, 0.0)
+	if _carga_max_s > 0.001:
+		eventos.append("carga:on")
 
 
 ## Zera a carga (depois do disparo, de uma recusa ou de um cancelamento). O
@@ -1030,9 +1063,12 @@ func _zerar_carga() -> void:
 	_carga_destino = Vector2.ZERO
 
 
-## Dispara a CARGA no teto (o `passo` chama ao completar `tiro_carga_s`).
-## Direção: **alvo marcado vivo** → **destino capturado** → `olhar`; a carga é
-## SEMPRE 1,0. Deixa a recarga e a pausa curta do tiro, e zera a carga.
+## Dispara a CARGA no teto (o `passo` chama ao completar `carga_tiro_s`; com o
+## tempo em 0 o próprio `_cmd_tiro` chama). Direção: **alvo marcado vivo** →
+## **destino capturado** → `olhar`. A carga passada ao `_atirar` é o TAMANHO do
+## tiro, `carga_tiro_s / tiro_carga_max_s()`: 0 = base (9/280/24) · 1 = máximo
+## (13,5/448/48), linear no meio. Deixa a recarga e a pausa curta do tiro, e
+## zera a carga.
 func _disparar_carga(alvos: Array) -> void:
 	var dir := Vector2.ZERO
 	if _carga_alvo_id != "":
@@ -1046,7 +1082,7 @@ func _disparar_carga(alvos: Array) -> void:
 	if dir.length() < 0.01:
 		dir = Vector2.RIGHT
 	dir = dir.normalized()
-	_atirar(dir, 1.0)
+	_atirar(dir, clampf(carga_tiro_s / tiro_carga_max_s(), 0.0, 1.0))
 	olhar = dir
 	_recargas["tiro"] = float(_combate.get("tiro_recarga_s", 1.0))
 	_pausa_t = maxf(_pausa_t, float(_combate.get("tiro_pausa_s", 0.25)))
@@ -1133,10 +1169,10 @@ func passo(dt: float, mundo: RefCounted, alvos: Array = []) -> void:
 		_pausa_t = maxf(_pausa_t - dt, 0.0)
 		_checar_marcas(alvos)
 		return
-	# CARGA do tiro do TOQUE (v0.18): o animal PARA enquanto carrega (a rota
-	# fica guardada e ele retoma depois do tiro). A carga não gasta energia e
-	# tem teto em `combate.tiro_carga_s`; ao completá-lo o tiro sai SOZINHO,
-	# com a carga cheia.
+	# CARGA do tiro do TOQUE (v0.18/v0.19): o animal PARA enquanto carrega (a
+	# rota fica guardada e ele retoma depois do tiro). A carga não gasta energia
+	# e tem teto em `carga_tiro_s`, travado no começo por `_iniciar_carga`; ao
+	# completá-lo o tiro sai SOZINHO, com o tamanho proporcional ao tempo.
 	if _carga_ativa:
 		_carga_t = minf(_carga_t + dt, _carga_max_s)
 		if _carga_t >= _carga_max_s - 0.0001:

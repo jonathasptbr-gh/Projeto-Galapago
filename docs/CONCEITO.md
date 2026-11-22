@@ -36,9 +36,11 @@
   centro; acende pela **distância ao centro**, ~7× o corpo) — **desligado na
   v0.11.5**, hoje o círculo é só caminho; **passar por cima**
   de um alvo é **batida**; levar o **fim do caminho até o alvo** o **MARCA** (X
-  amarelo que anda com ele); **toque simples** = **TIRO** carregado (o animal
-  para, a carga cresce até 1 s e o disparo sai sozinho no **alvo marcado vivo**
-  ou no **destino final do caminho**); **segurar** = **CORRER** (sprint
+  amarelo que anda com ele); **toque simples** = **TIRO** carregado: o **tempo
+  de preparo** vai de **0 a 1,5 s** num **slider da HUD** (padrão **0,5 s**) e o
+  **tempo define o tamanho/força** do tiro — 0 s é o tiro base, instantâneo, e
+  1,5 s é o máximo; o animal para e o disparo sai sozinho no **alvo marcado
+  vivo** ou no **destino final do caminho**; **segurar** = **CORRER** (sprint
   contínuo que gasta a energia; a cauda mantém o embalo ao soltar); sem
   caminho, o segurar ativa uma **habilidade em si mesmo** (cavar);
   **toque duplo** = **PULO**
@@ -48,7 +50,9 @@
   saída** — o animal anda enquanto o dedo desenha.
   Com alvo marcado o animal **persegue e só bate ao chegar** (sem a freada
   final). **Não há gesto de dois dedos**, nem defesa, nem efeito de esquiva —
-  **esquivar é andar** com o tempo lento do desenho. O detalhe fica em
+  **esquivar é andar** com o tempo lento do desenho. O **botão CONFIG** da HUD
+  **esconde/mostra a HUD de teste** (o próprio botão, o véu do desenho e o
+  aviso de atualização ficam). O detalhe fica em
   [`gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md) — **se este resumo divergir
   do GDD, o GDD vence**.
 - **Afinidade como mecânica de controle:**
