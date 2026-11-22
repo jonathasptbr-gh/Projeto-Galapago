@@ -3,6 +3,26 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.20.0 — câmera por pinça e controle relativo (2026-11-22)
+
+- Pinça aproxima de 1,6 a 3,2 e inclina o plano; cancela o gesto corrente e
+  bloqueia os contatos até todos saírem. Na vista íntima, um dedo movimenta
+  relativamente; soltar, cancelar ou perder foco interrompe o movimento. Não
+  foram inventados gestos de ataque ou salto para essa vista.
+- HUD de teste oculta na vista íntima, com avisos de atualização preservados.
+  A captura de segundo contato sobre a HUD é testada chamando os métodos, não
+  por propagação real da GUI. A ordem inversa (primeiro na HUD, segundo no
+  mundo) permanece pendente para não comprometer os botões.
+- Marca, efeito, perigo e adversário em terreno alto transitam continuamente
+  da posição histórica superior até o topo na aproximação máxima. Compromisso:
+  nas inclinações intermediárias não coincidem exatamente com o topo do chão.
+- Verificação: `tools/testes.sh` passou 167 testes, parser 45 scripts e 42
+  testes do guardião; os quadros softpipe de planalto superior, intermediário e
+  íntimo foram capturados e abertos. Essas imagens não exercitam marcas ou
+  efeitos; a continuidade é verificada numericamente. Sem teste no aparelho.
+  Não foi atualizado o baseline do CI neste trabalho.
+- Resíduos: ver `docs/RESIDUOS.md`.
+
 ## v0.19.0 — tempo de carga do tiro ajustável (tamanho pelo tempo) e botão CONFIG (2026-11-22)
 
 - **Autorizado pelo operador:** o tempo de carga do tiro (**1 s** da v0.18)

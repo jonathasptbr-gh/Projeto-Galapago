@@ -33,6 +33,16 @@ Posições em **pixels de mundo** (célula = 32 px); a conversão célula↔pixe
 | 40 | **parallax frente** | nuvens, andam RÁPIDO (1,35×) |
 | — | **HUD** | CanvasLayer, na resolução da tela |
 
+## Câmera de pinça (v0.20)
+
+A pinça aproxima de zoom 1,6 a 3,2 e comprime o plano verticalmente de 1,0
+até 0,72; objetos são compensados para não achatar sua imagem. Na vista
+superior marcas, efeitos, perigos e adversários mantêm a posição histórica;
+seu deslocamento por altura interpola continuamente até o topo projetado na
+vista íntima máxima. **Compromisso:** nas inclinações intermediárias eles não
+coincidem exatamente com o topo do chão, que já tem desnível na vista superior.
+A projeção é visual; não altera altura ou colisão da simulação.
+
 ## Subcamadas de visibilidade (sim/visibilidade.gd)
 
 A **copa da árvore** fica numa camada ACIMA de tudo: longe da criatura é

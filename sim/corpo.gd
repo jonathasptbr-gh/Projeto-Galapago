@@ -170,6 +170,9 @@ var z := 0.0                     # altura no ar (pulo)
 var olhar := Vector2.RIGHT
 var camada := Mundo.SUPERFICIE
 var velocidade := 110.0
+# Controle relativo: permanece ativo ao soltar, impedindo rota/autonomia.
+var controle_relativo := false
+var direcao_relativa := Vector2.ZERO
 
 # rota (pontos de referência; `_rota_i` = o próximo que ela procura)
 var rota := PackedVector2Array()
@@ -396,6 +399,27 @@ func alvo_pos(alvos: Array) -> Vector2:
 
 
 # ---------------------------------------------------------------- comandos
+
+## Entrar cancela a locomoção anterior; sair libera novamente a autonomia.
+func definir_controle_relativo(ativo: bool) -> void:
+	controle_relativo = ativo
+	direcao_relativa = Vector2.ZERO
+	if ativo:
+		rota = PackedVector2Array()
+		traco = PackedVector2Array()
+		marcas = []
+		mira_final_id = ""
+		_perseguindo = false
+		_inercia_t = 0.0
+		_sprint = false
+		_sprint_cauda_t = 0.0
+		autonomia = "parado"
+
+
+## Direção no plano do mundo; magnitude limitada a um para controle proporcional.
+func mover_relativo(direcao: Vector2) -> void:
+	direcao_relativa = direcao.limit_length(1.0) if controle_relativo else Vector2.ZERO
+
 
 ## Recebe um comando (sim/comandos.gd). Devolve "ok", "ok: <detalhe>" ou
 ## "recusado: <motivo>" — quem mostra é a HUD.
@@ -1179,6 +1203,11 @@ func passo(dt: float, mundo: RefCounted, alvos: Array = []) -> void:
 			_disparar_carga(alvos)
 		else:
 			_checar_marcas(alvos)
+		return
+	if controle_relativo:
+		if direcao_relativa.length() > 0.001:
+			olhar = direcao_relativa.normalized()
+			pos = mundo.limitar_segmento(pos, pos + direcao_relativa * velocidade * dt, camada)
 		return
 	if em_rota():
 		pos = _avancar_rota(dt, mundo, alvos)

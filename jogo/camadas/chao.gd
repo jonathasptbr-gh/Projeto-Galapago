@@ -8,6 +8,7 @@ extends Node2D
 const Mock := preload("res://jogo/mock.gd")
 
 var mundo: RefCounted
+var inclinacao := 1.0
 
 
 func _draw() -> void:
@@ -26,16 +27,22 @@ func _draw() -> void:
 				a.a = 0.55
 				b.a = 0.55
 			var alt: float = float(t.get("altura", 1))
-			var dy := Mock.desnivel(alt)
+			var dy := Mock.desnivel(alt, inclinacao)
 			var o := Vector2(x * cp, y * cp + dy)
 			# topo da célula em xadrez 2×2
 			draw_rect(Rect2(o, Vector2(meia, meia)), a)
 			draw_rect(Rect2(o + Vector2(meia, 0), Vector2(meia, meia)), b)
 			draw_rect(Rect2(o + Vector2(0, meia), Vector2(meia, meia)), b)
 			draw_rect(Rect2(o + Vector2(meia, meia), Vector2(meia, meia)), a)
+			# Pequenas marcas de textura aparecem gradualmente só de perto.
+			var detalhe := clampf((1.0 - inclinacao) / 0.28, 0.0, 1.0)
+			if detalhe > 0.0 and (x * 7 + y * 11) % 3 == 0:
+				var cor_detalhe := a.lightened(0.18)
+				cor_detalhe.a = 0.35 * detalhe
+				draw_line(o + Vector2(5, 9), o + Vector2(9, 9), cor_detalhe, 1.0)
 			# face sul (parede) se a de baixo é mais baixa
 			var alt_baixo: float = mundo.altura(Vector2i(x, y + 1))
-			var face := Mock.desnivel(alt_baixo) - dy
+			var face := Mock.desnivel(alt_baixo, inclinacao) - dy
 			if face > 0.5:
 				draw_rect(Rect2(Vector2(x * cp, (y + 1) * cp + dy), Vector2(cp, face)), a.darkened(0.45))
 				draw_line(Vector2(x * cp, (y + 1) * cp + dy), Vector2((x + 1) * cp, (y + 1) * cp + dy), a.darkened(0.65), 1.0)

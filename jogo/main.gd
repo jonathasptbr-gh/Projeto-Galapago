@@ -32,6 +32,7 @@ extends Node2D
 const Mundo := preload("res://sim/mundo.gd")
 const Corpo := preload("res://sim/corpo.gd")
 const Gestos := preload("res://sim/gestos.gd")
+const CameraToque := preload("res://sim/camera_toque.gd")
 const Comandos := preload("res://sim/comandos.gd")
 const Alvos := preload("res://sim/alvos.gd")
 const Adversario := preload("res://sim/adversario.gd")
@@ -73,6 +74,11 @@ var hud: CanvasLayer
 var copas: Array = []
 var veu: ColorRect
 var _dedos := {}  # índice do dedo -> pressionado (multitouch)
+var camera_toque := CameraToque.new()
+var mundo_visual: Node2D
+var objetos_visuais: Node2D
+var _joystick_origem := Vector2.ZERO
+var _joystick_dedo := -1
 # a ORIGEM do gesto (congelada na descida do dedo): a linha não anda com ela
 var _gesto_tela := Vector2.ZERO
 var _gesto_origem := Vector2.ZERO
@@ -100,6 +106,7 @@ func _ready() -> void:
 
 	add_child(Parallax.new())
 	var no := Node2D.new()
+	mundo_visual = no
 	add_child(no)
 	chao = Chao.new()
 	chao.mundo = mundo
@@ -109,6 +116,7 @@ func _ready() -> void:
 	no.add_child(trilha)
 
 	var objetos := Node2D.new()
+	objetos_visuais = objetos
 	objetos.y_sort_enabled = true
 	objetos.z_index = 2
 	no.add_child(objetos)
@@ -118,12 +126,14 @@ func _ready() -> void:
 		ob.tipo = o["tipo"]
 		ob.id_objeto = "%s:%d,%d" % [o["tipo"], c.x, c.y]
 		ob.position = mundo.centro(c) + Vector2(0, 8)
+		ob.set_meta("altura_terreno", mundo.altura(c))
 		ob.desnivel = Mock.desnivel(mundo.altura(c))
 		objetos.add_child(ob)
 		if o.has("copa"):
 			var cp := Copa.new()
 			cp.raio = float(o["copa"])
 			cp.base = ob.position + Vector2(0, ob.desnivel)
+			cp.set_meta("tronco", ob)
 			cp.z_index = 30
 			no.add_child(cp)
 			copas.append(cp)
@@ -134,10 +144,12 @@ func _ready() -> void:
 		adversarios.append(adv)
 		var no_adv := AdversarioMock.new()
 		no_adv.adv = adv
+		no_adv.mundo = mundo
 		objetos.add_child(no_adv)
 	alvos = Alvos.montar(mapa.get("objetos", []), adversarios, mundo)
 	perigos = Perigos.new()
 	perigos.adversarios = adversarios
+	perigos.mundo = mundo
 	perigos.z_index = 1
 	no.add_child(perigos)
 
@@ -154,11 +166,13 @@ func _ready() -> void:
 
 	efeitos = Efeitos.new()
 	efeitos.corpo = corpo
+	efeitos.mundo = mundo
 	efeitos.z_index = 24
 	no.add_child(efeitos)
 
 	mira = Mira.new()
 	mira.corpo = corpo
+	mira.mundo = mundo
 	mira.alvos = alvos
 	mira.z_index = 25
 	no.add_child(mira)
@@ -172,7 +186,7 @@ func _ready() -> void:
 	camera.position_smoothing_enabled = true
 	camera.position_smoothing_speed = 6.0
 	camera.position = corpo.pos
-	no.add_child(camera)
+	add_child(camera)
 	camera.make_current()
 
 	hud = Hud.new()
@@ -234,7 +248,11 @@ func _process(delta: float) -> void:
 		trilha.mostrar(corpo.traco, corpo.traco_t)
 	else:
 		trilha.mostrar(PackedVector2Array())
-	camera.position = criatura.ponto_visual()
+	var visual: Vector2 = criatura.ponto_visual()
+	if camera_toque.inclinacao() == 1.0:
+		camera.position = visual  # preserva exatamente a aritmética do baseline
+	else:
+		camera.position = Vector2(visual.x, corpo.pos.y * camera_toque.inclinacao() + visual.y - corpo.pos.y)
 	hud.estado(corpo, alvos, planejando, _escala, adversarios, hostilidade)
 	_escurecer(planejando, plano, retomada_s, delta)
 
@@ -341,6 +359,39 @@ func definir_hostilidade(v: bool) -> void:
 
 # ---------- o dedo (toque real e demo passam por aqui) ----------
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and corpo != null:
+		_cancelar_contatos()
+
+
+func _cancelar_contatos() -> void:
+	_dedos.clear()
+	camera_toque.dedos.clear()
+	camera_toque.par.clear()
+	camera_toque.bloqueado = false
+	reconhecedor = Gestos.new(cfg_gestos.get("limiares", {}))
+	_joystick_dedo = -1
+	corpo.comandar({"acao": "soltar_segurar"}, mundo, alvos)
+	if _traco_iniciado:
+		corpo.definir_controle_relativo(true)
+		corpo.definir_controle_relativo(camera_toque.intima())
+	_traco_iniciado = false
+	corpo.mover_relativo(Vector2.ZERO)
+
+
+# Solturas de contatos iniciados no mundo devem chegar mesmo sobre um botão.
+func _input(ev: InputEvent) -> void:
+	if ev is InputEventScreenTouch:
+		if _dedos.has(ev.index):
+			if ev.canceled:
+				_cancelar_contatos()
+			elif not ev.pressed:
+				dedo_subiu(ev.index, ev.position)
+		elif ev.pressed and not _dedos.is_empty():
+			dedo_desceu(ev.index, ev.position)
+			get_viewport().set_input_as_handled()
+
+
 func _unhandled_input(ev: InputEvent) -> void:
 	if ev is InputEventScreenTouch:
 		if ev.pressed and not _dedos.has(ev.index):
@@ -352,26 +403,85 @@ func _unhandled_input(ev: InputEvent) -> void:
 
 
 func dedo_desceu(dedo: int, p: Vector2) -> void:
-	var primeiro := _dedos.is_empty()
+	var acao := camera_toque.descer(dedo, p)
 	_dedos[dedo] = true
-	if primeiro:
-		# CONGELA a origem: a posição dela AGORA é o começo do traço, e o mapa
-		# tela→mundo deste instante traduz o desenho (a linha não anda com o
-		# animal nem com a câmera).
-		_gesto_tela = p
-		_gesto_origem = corpo.pos
-		_gesto_inv = get_viewport().get_canvas_transform().affine_inverse()
+	if acao == "pinca":
+		# Cancela também toques pendentes; nenhum dedo remanescente reinicia gesto.
+		corpo.comandar({"acao": "soltar_segurar"}, mundo, alvos)
+		if _traco_iniciado:
+			corpo.definir_controle_relativo(true)
+			corpo.definir_controle_relativo(camera_toque.intima())
+		reconhecedor = Gestos.new(cfg_gestos.get("limiares", {}))
 		_traco_iniciado = false
+		_joystick_dedo = -1
+		corpo.mover_relativo(Vector2.ZERO)
+		return
+	if acao != "principal":
+		return
+	if camera_toque.intima():
+		_joystick_dedo = dedo
+		_joystick_origem = p
+		corpo.mover_relativo(Vector2.ZERO)
+		return
+	_gesto_tela = p
+	_gesto_origem = corpo.pos
+	_gesto_inv = get_viewport().get_canvas_transform().affine_inverse()
+	_traco_iniciado = false
 	_entregar(reconhecedor.iniciar(dedo, p, tempo_ms, tela_de(criatura.ponto_visual() + Vector2(0, -20))))
 
 
 func dedo_moveu(dedo: int, p: Vector2) -> void:
-	_entregar(reconhecedor.mover(dedo, p, tempo_ms))
+	var acao := camera_toque.mover(dedo, p)
+	if acao == "pinca":
+		_aplicar_camera()
+	elif acao == "principal":
+		if camera_toque.intima() and dedo == _joystick_dedo:
+			var deslocamento := (p - _joystick_origem) / 90.0
+			corpo.mover_relativo(deslocamento.limit_length(1.0))
+		else:
+			_entregar(reconhecedor.mover(dedo, p, tempo_ms))
 
 
 func dedo_subiu(dedo: int, p: Vector2) -> void:
+	var acao := camera_toque.subir(dedo)
 	_dedos.erase(dedo)
-	_entregar(reconhecedor.soltar(dedo, p, tempo_ms))
+	if acao != "principal":
+		return
+	if camera_toque.intima():
+		_joystick_dedo = -1
+		corpo.mover_relativo(Vector2.ZERO)
+	else:
+		_entregar(reconhecedor.soltar(dedo, p, tempo_ms))
+
+
+func _aplicar_camera() -> void:
+	var intima: bool = camera_toque.intima()
+	if corpo.controle_relativo != intima:
+		corpo.definir_controle_relativo(intima)
+	var inclinacao: float = camera_toque.inclinacao()
+	mundo_visual.scale = Vector2(1.0, inclinacao)
+	chao.inclinacao = inclinacao
+	chao.queue_redraw()
+	criatura.inclinacao = inclinacao
+	efeitos.inclinacao = inclinacao
+	mira.inclinacao = inclinacao
+	perigos.inclinacao = inclinacao
+	# Os pés seguem o chão projetado; os desenhos dos objetos não são achatados.
+	for objeto in objetos_visuais.get_children():
+		objeto.scale = Vector2(1.0, 1.0 / inclinacao)
+		if objeto is AdversarioMock:
+			objeto.inclinacao = inclinacao
+		if objeto.has_meta("altura_terreno"):
+			objeto.desnivel = Mock.desnivel(float(objeto.get_meta("altura_terreno")), inclinacao) * inclinacao
+			objeto.queue_redraw()
+	for cp in copas:
+		var tronco: Node2D = cp.get_meta("tronco")
+		cp.base = tronco.position + Vector2(0, tronco.desnivel / inclinacao)
+		cp.queue_redraw()
+	camera.zoom = Vector2.ONE * camera_toque.zoom
+	camera.limit_top = roundi(-Mock.CELULA * inclinacao)
+	camera.limit_bottom = roundi((mundo.altura_grade + 1) * Mock.CELULA * inclinacao)
+	hud.definir_vista_intima(intima)
 
 
 func _entregar(evs: Array) -> void:

@@ -46,6 +46,18 @@ var _slider_sincronizado := false
 # escurecimento do desenho) e o `atualizador` (o aviso de atualização) ficam.
 var _config_btn: Button
 var _mostrar_info := true
+var _intima := false
+
+
+func definir_vista_intima(ativa: bool) -> void:
+	_intima = ativa
+	for no in get_children():
+		if not (no is Control) or no == atualizador or _e_veu(no):
+			continue
+		if no == _config_btn:
+			no.visible = not ativa
+		else:
+			no.visible = not ativa and _mostrar_info
 
 
 func _ready() -> void:
@@ -154,6 +166,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if atualizador and _status:
 		_status.text = atualizador.texto_status()
+		if _intima:
+			_status.visible = atualizador.estado == "erro"
 	if _pulo_auto and _corpo:
 		var ligado: bool = bool(_corpo.pulo_auto)
 		_pulo_auto.text = "PULO AUTO: %s" % ("LIGADO" if ligado else "DESLIGADO")
@@ -288,7 +302,7 @@ func estado(corpo: RefCounted, alvos: Array, planejando := false, escala := 1.0,
 	# (e some junto com o resto quando o CONFIG esconde a HUD de teste).
 	var carga := clampf(corpo.carga(), 0.0, 1.0)
 	if _carga_bg and _carga:
-		_carga_bg.visible = _mostrar_info and corpo.carregando()
+		_carga_bg.visible = not _intima and _mostrar_info and corpo.carregando()
 		_carga.size.x = _energia_largura * carga
 		_carga.color = Color(1.0, 0.7, 0.2, 0.95) if carga >= 0.999 else Color(1.0, 0.85, 0.25, 0.95)
 	# a CARGA em primeiro plano: é o preparo do tiro que o dedo precisa ver

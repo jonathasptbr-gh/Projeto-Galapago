@@ -5,6 +5,10 @@ extends SceneTree
 
 
 func _initialize() -> void:
+	call_deferred("_executar")
+
+
+func _executar() -> void:
 	var arquivos: Array[String] = []
 	for f in DirAccess.get_files_at("res://testes"):
 		if f.begins_with("test_") and f.ends_with(".gd"):

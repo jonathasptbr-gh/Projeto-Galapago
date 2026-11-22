@@ -39,6 +39,19 @@ var _cavar_limite := 0.0
 
 func _init(m: Node) -> void:
 	main = m
+	if "--camera-planalto" in OS.get_cmdline_user_args():
+		main.corpo.pos = main.mundo.centro(Vector2i(8, 8))
+		main.criatura._process(1.0)
+		main.camera.position = main.criatura.ponto_visual()
+		main.camera.reset_smoothing()
+	if "--camera-intermediaria" in OS.get_cmdline_user_args() or "--camera-intima" in OS.get_cmdline_user_args():
+		main.dedo_desceu(0, Vector2(200, 500))
+		main.dedo_desceu(1, Vector2(300, 500))
+		var distancia := 200.0 if "--camera-intima" in OS.get_cmdline_user_args() else 150.0
+		main.dedo_moveu(1, Vector2(200 + distancia, 500))
+		main.dedo_subiu(1, Vector2(200 + distancia, 500))
+		main.dedo_subiu(0, Vector2(200, 500))
+		return
 	_passos = [
 		# 0. baseline do CI: o caminho de sempre nos 2 primeiros segundos, com a
 		#    RAMPA de aceleração do começo da caminhada à vista

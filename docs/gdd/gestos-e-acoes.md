@@ -1,7 +1,7 @@
 # Gestos e ações — como a criatura se move e age
 
 > Regra toda em `sim/` (testada) e nas tabelas `dados/gestos.json` +
-> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.19.0.**
+> `dados/acoes.json` (editáveis); `jogo/` lê os contatos e desenha. **v0.20.0.**
 
 ## O fluxo
 
@@ -30,10 +30,14 @@ Tempo **simulado** (`tempo_ms`): teste, demo e oráculo são determinísticos.
 | **toque simples** | **TIRO carregado com TEMPO CONFIGURÁVEL**: o toque começa o **PREPARO** e o animal **para**. O tempo vem do **slider da HUD** (`corpo.carga_tiro_s`): **0 a 1,5 s**, padrão **0,5 s** (`combate.tiro_carga_s`), teto `combate.tiro_carga_max_s` (**1,5 s**). **O tempo define o TAMANHO/FORÇA do tiro**: **0 s = tiro BASE 9 px de raio / 280 de alcance / 24 de empurrão, instantâneo, sem preparo**; **0,5 s = 10,5 / 336 / 32**; **1,5 s = MÁXIMO 13,5 / 448 / 48**. O disparo sai **sozinho** ao completar o tempo, no **alvo marcado vivo** ou no **fim do caminho** — **nunca** na direção do toque. Sem rota e sem alvo não atira (`"recusado: sem destino"`, a carga nem começa). O **preenchimento da barra/anel é o PREPARO**, não o tamanho. A recarga (`tiro_recarga_s`, 1 s) segura o próximo toque; o toque fica **pendente** pela janela do duplo (280 ms) |
 | **toque duplo** | **PULO**. **v0.11.4:** o pulo pedido **durante o ar** entra na **FILA** e sai no quadro em que o anterior pousa (`pular.buffer_s`) — pulsos seguidos emendam sem atraso. **v0.13:** com o **PULO AUTO** ligado (botão da HUD), o corpo pula sozinho o degrau de **1 nível** quando o caminho continua — ver a seção própria |
 
-**Não há gesto de dois dedos** (v0.9 tirou ataque ↑, defesa ↓ e especial
-abrindo). Um segundo dedo não é ação: o caminho continua no primeiro dedo e
-toque/toque duplo/segurar ficam desarmados — dois dedos nunca "pulam sem
-querer".
+**Dois dedos controlam a câmera** (v0.20): a pinça altera zoom de 1,6 a 3,2,
+cancela o gesto em curso e bloqueia os dedos até todos serem levantados; não é
+ataque nem pulo. Na vista íntima, um dedo deslocado desde a posição inicial
+controla o movimento relativo; soltar, cancelar ou perder o foco o interrompe.
+Não há ação de salto ou ataque definida para essa vista. A HUD de teste se
+oculta na vista íntima, preservando avisos de atualização. A captura do segundo
+dedo sobre a HUD após o primeiro no mundo existe, mas a ordem inversa (primeiro
+sobre botão, segundo no mundo) permanece sem arbitragem segura comprovada.
 
 **Não há efeito de esquiva.** Esquivar é **caminhar**: o tempo lento do desenho
 e a rampa de aceleração já dão a janela de reação; a criatura desvia andando.

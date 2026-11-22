@@ -12,6 +12,10 @@ extends Node2D
 ## O miolo acende devagar e PISCA perto do fim: dá tempo de reagir sem precisar
 ## contar segundos. O projétil do cuspe é desenhado aqui também.
 
+const Mock := preload("res://jogo/mock.gd")
+
+var mundo: RefCounted
+var inclinacao := 1.0
 var adversarios: Array = []
 
 
@@ -24,9 +28,14 @@ func _draw() -> void:
 		if adv == null:
 			continue
 		for p in adv.perigos:
+			var origem := Vector2(p.get("pos", Vector2.ZERO))
+			draw_set_transform(Mock.ponto_relevo(origem, mundo, inclinacao) - origem)
 			_area(p)
 		for e in adv.efeitos:
+			var origem := Vector2(e.get("pos", Vector2.ZERO))
+			draw_set_transform(Mock.ponto_relevo(origem, mundo, inclinacao) - origem)
 			_projetil(e)
+		draw_set_transform(Vector2.ZERO)
 
 
 func _cor(tipo: String) -> Color:

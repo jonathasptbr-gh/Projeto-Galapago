@@ -9,6 +9,8 @@ extends Node2D
 const Mock := preload("res://jogo/mock.gd")
 
 var adv: RefCounted
+var mundo: RefCounted
+var inclinacao := 1.0
 var _tempo := 0.0
 var _sprite: Texture2D
 var _oculto_vis := 0.0
@@ -22,7 +24,7 @@ func _process(delta: float) -> void:
 	if adv == null:
 		return
 	_tempo += delta
-	position = adv.pos
+	position = Mock.ponto_relevo(adv.pos, mundo, inclinacao)
 	var alvo := 1.0 if adv.oculto() else 0.0
 	_oculto_vis = lerpf(_oculto_vis, alvo, clampf(delta * 9.0, 0.0, 1.0))
 	queue_redraw()

@@ -62,6 +62,38 @@ func _efeito_tiro(c: RefCounted) -> Dictionary:
 	return ef
 
 
+# ---------------------------------------------------------------- controle relativo
+
+func test_controle_relativo_para_ao_soltar_e_descarta_rota() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(240, 48)])}, m, [])
+	c.definir_controle_relativo(true)
+	checar(not c.em_rota(), "rota anterior cancelada")
+	c.mover_relativo(Vector2(1, 1))
+	c.passo(0.1, m, [])
+	checar(c.pos.x > 48 and c.pos.y > 48, "andou na diagonal")
+	var pos: Vector2 = c.pos
+	c.mover_relativo(Vector2.ZERO)
+	_rodar(c, m, 2.0)
+	perto_v(c.pos, pos, 0.001, "parou sem retomar rota nem autonomia")
+
+
+func test_controle_relativo_respeita_agua_e_limita_velocidade() -> void:
+	var s := _setup(AGUA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.definir_controle_relativo(true)
+	c.mover_relativo(Vector2(100, 0))
+	_rodar(c, m, 2.0)
+	checar(c.pos.x < 64.0, "não entrou na água")
+	c.pos = Vector2(48, 48)
+	c.mover_relativo(Vector2(0, -100))
+	c.passo(0.1, m, [])
+	perto(c.pos.y, 48.0 - c.velocidade * 0.1, 0.01, "magnitude limitada")
+
+
 # ---------------------------------------------------------------- rota
 
 func test_rota_percorre_ate_o_fim_e_entra_em_autonomia() -> void:

@@ -16,6 +16,7 @@ const V := preload("res://sim/visibilidade.gd")
 
 var corpo: RefCounted
 var mundo: RefCounted
+var inclinacao := 1.0
 var _desnivel := 0.0
 var _tempo := 0.0
 var _sprite: Texture2D
@@ -32,7 +33,7 @@ func _process(delta: float) -> void:
 	position = corpo.pos
 	var celula: Vector2i = mundo.celula_de(corpo.pos)
 	var alt: float = mundo.altura(celula) if corpo.camada == "superficie" else 1.0
-	_desnivel = V.aproximar(_desnivel, Mock.desnivel(alt), delta, 14.0)
+	_desnivel = V.aproximar(_desnivel, Mock.desnivel(alt, inclinacao) * inclinacao, delta, 14.0)
 	var subsolo: bool = corpo.camada == "subsolo"
 	z_as_relative = not subsolo
 	z_index = 20 if subsolo else 0

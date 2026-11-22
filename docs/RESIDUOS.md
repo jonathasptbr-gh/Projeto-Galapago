@@ -4,6 +4,10 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.20.0 | `jogo/main.gd` | primeiro dedo na HUD seguido de segundo no mundo não é reconhecido como pinça; tratamento seguro requer testar propagação real e preservar botões | médio | aberto |
+| v0.20.0 | `jogo/mock.gd` | marcas, efeitos, perigos e adversários em terreno elevado interpolam da posição histórica ao topo: nas inclinações intermediárias não coincidem exatamente com o topo | visual | aberto |
+| v0.20.0 | controles | vista íntima não tem gestos definidos para ataque ou salto; pinça e controle relativo precisam de teste no aparelho | decisão / operador | aberto |
+| v0.20.0 | oráculo | quadros capturados não mostram marcas ou efeitos sobre planalto; continuidade verificada em teste numérico, não visualmente; baseline CI não atualizado | verificação | aberto |
 | v0.19.0 | `jogo/hud.gd` | o **slider** da carga é **runtime-only**: o valor **não é salvo** entre aberturas — cada partida começa em `combate.tiro_carga_s` (0,5 s); salvar configuração é da UI real | pequeno | aberto |
 | v0.19.0 | `dados/acoes.json` | o **padrão 0,5 s** e a **faixa 0–1,5 s** do slider (`tiro_carga_s`/`tiro_carga_max_s`) são **pontos de partida** — ajustar no aparelho com o operador | pequeno | aberto |
 | v0.19.0 | `sim/corpo.gd` | o **tamanho** do tiro é **linear no tempo** (`carga_tiro_s / tiro_carga_max_s`): a faixa toda só dá **2× no empurrão** e **1,5× no raio** — o padrão 0,5 s já é **1/3 do ganho**, não um tiro "fraco" | design | aberto |
