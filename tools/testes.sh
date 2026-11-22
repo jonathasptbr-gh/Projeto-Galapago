@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-# Testes headless da camada sim/ (e de tudo em testes/test_*.gd).
-# Reprova também erro de script/parse na saída: em GDScript ele não derruba o
-# processo, só imprime — e um teste que nem rodou não pode passar calado.
+# Guardião documental + testes headless da camada sim/ (e de tudo em
+# testes/test_*.gd). Reprova também erro de script/parse na saída: em GDScript
+# ele não derruba o processo, só imprime — e um teste que nem rodou não pode
+# passar calado.
 set -uo pipefail
 cd "$(dirname "$0")/.."
+# Falha documental interrompe antes de importar/rodar o Godot (local e CI).
+tools/docs.sh || exit "$?"
 G="${GODOT:-$(command -v godot || echo "$HOME/.local/bin/godot")}"
 export GODOT_SILENCE_ROOT_WARNING=1
 

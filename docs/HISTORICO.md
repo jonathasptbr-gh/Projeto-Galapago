@@ -3,6 +3,27 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.14.2 — guardião documental offline, antes dos testes (2026-11-22)
+
+- **Pacote B autorizado pelo operador:** `tools/docs.sh` chama o verificador
+  Node (`tools/docs.mjs`) e seus testes de regressão (`tools/docs.test.mjs`).
+  Não usa rede, cofre, Godot nem dependências npm; não altera o clone.
+- **Integração:** `tools/testes.sh` reprova documentação antes de importar o
+  Godot. O CI já o executa e o APK depende desse job; não foi mudado o rito de
+  publicar um APK por lote.
+- **Verificações:** links inline locais e âncoras Markdown; cabeçalho, formato
+  e ordem das versões do histórico; resíduos da versão atual; correspondência
+  índice/seções de pacotes; mapa documental completo e sem duplicatas no
+  AGENTS; ponteiro CLAUDE; revisão do GDD; toques simples/duplo no CONCEITO e
+  no GDD confrontados com a tabela real `dados/gestos.json`.
+- **Inventário:** o desenho livre da árvore não é interpretado como esquema;
+  o AGENTS agora tem um mapa com links explícitos, validado pelo guardião.
+  `docs/DOCUMENTACAO.md` registra formatos suportados e limites; só os dois
+  toques têm comparação de significado, não toda a prosa de design.
+- **Dívida encontrada pelo próprio guardião:** os títulos antigos v0.4.0 e
+  v0.3.1 repetiam `## vX.Y.Z` na mesma linha. Corrigida só a formatação;
+  decisões históricas e regras do jogo não mudaram.
+
 ## v0.14.1 — documentação alinhada ao jogo (2026-11-22)
 
 - **Pacote A da faxina documental** (escolhido pelo operador em 2026-11-22):
@@ -877,7 +898,7 @@
   código limpava `rota` e depois lia a posição dela — a criatura ia para
   (0,0). Agora a posição final é calculada antes de limpar.
 
-## v0.4.0## v0.4.0 — a fundação: gestos, ações e camadas (2026-11-20)
+## v0.4.0 — a fundação: gestos, ações e camadas (2026-11-20)
 
 - **Escala confirmada (captura do operador = análise):** criatura 64×64 px de
   arte, célula 32 px, câmera 2×. A "impressão de grande" é a ampliação
@@ -912,7 +933,7 @@
 - GDDs novos: [`docs/gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md) e
   [`docs/gdd/mapa.md`](gdd/mapa.md) reescrito para as camadas.
 
-## v0.3.1## v0.3.1 — atualização pelo método do IASD; repositório público (2026-11-20)
+## v0.3.1 — atualização pelo método do IASD; repositório público (2026-11-20)
 
 - O operador recusou o canal separado (link para o navegador, login no GitHub)
   e pediu o método do Áudio Visual IASD com o repositório público. Feito:

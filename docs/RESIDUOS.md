@@ -4,6 +4,8 @@
 
 | versão | onde | o quê | tamanho |
 |---|---|---|---|
+| v0.14.2 | documentação | o guardião cobre estrutura e os dois toques, não toda divergência semântica; formatos Markdown suportados e limites em `docs/DOCUMENTACAO.md` | limite |
+| v0.14.2 | lint | o repositório não tem configuração de linter JS; sintaxe e comportamento do guardião são verificados por Node (`--check` e testes) | pequeno |
 | v0.14.1 | `docs/PEDIDOS-EM-ESPERA.md` | a fila ainda mistura o índice com o detalhe dos 20 pacotes feitos: enxugar é o pacote D | pequeno |
 | v0.14.1 | documentação | sem `tools/docs.sh` no CI (pacote B): as divergências corrigidas na v0.14.1 podem voltar num lote futuro | pequeno |
 | v0.14.0 | `dados/adversario.json` | preparos, alcances, empurrões e atordoamentos são **pontos de partida** — ajustar no aparelho | pequeno |

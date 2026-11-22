@@ -39,7 +39,9 @@ a arte fica) é do operador: o agente propõe com opções, não decide calado.
   e testável (sem nó, sem `Input`, sem sorteio global); `jogo/` lê toque e
   desenha. Regra de jogo fora da `sim/` é regressão.
 - **Todo código da `sim/` nasce com teste** em `testes/test_*.gd`
-  (`extends "res://testes/caso.gd"`). `tools/testes.sh` antes de commitar.
+  (`extends "res://testes/caso.gd"`). `tools/testes.sh` antes de commitar:
+  começa pelo guardião documental (`tools/docs.sh`, offline); guia e limites
+  no mapa documental abaixo.
 - **Mudança visível passa pelo oráculo** ([`ORACULO`](docs/ORACULO.md)):
   `tools/quadros.sh` e **abrir** os PNG antes de dizer que ficou certo.
 - **Arte** segue [`ARTE`](docs/ARTE.md): paleta-mestra, âncora de estilo,
@@ -86,16 +88,23 @@ jogo/                 main · criatura · adversario_mock · perigos (área no c
                        objeto_mock)
 dados/                gestos.json · acoes.json · adversario.json · terrenos.json · mapas/
 testes/               run.gd (executor), caso.gd (base), test_*.gd
-tools/                estado.sh · testes.sh · quadros.sh · godot-api.sh ·
-                      ci-log.mjs · baixar-apk.mjs · pixellab-catalogo.mjs ·
-                      pixellab-tileset.mjs · pixellab-imagem.mjs ·
-                      android/ (exportar.sh — o keystore vem dos secrets)
+tools/                estado.sh · testes.sh · docs.sh (docs.mjs + docs.test.mjs) ·
+                      quadros.sh · godot-api.sh · ci-log.mjs · baixar-apk.mjs ·
+                      pixellab-catalogo.mjs · pixellab-tileset.mjs ·
+                      pixellab-imagem.mjs · android/ (exportar.sh)
 arte/                 README.md · fonte/ (bruto da IA, .gdignore) ·
                       criaturas/ · cenarios/ (tilesets/ PNG+JSON, objetos/)
-docs/                 CONCEITO · ARQUITETURA · ORACULO · ARTE · PIXELLAB ·
-                      BUILD · GODOT · AMBIENTE · PEDIDOS-EM-ESPERA ·
-                      HISTORICO · RESIDUOS ·
-                      pixellab/ (CATALOGO, ferramentas.json, recursos/) ·
-                      gdd/ (mapa, gestos-e-acoes)
+docs/                 guias e design — inventário validado abaixo
 .github/workflows/    ci.yml (testes + quadros → APK + versao.json na Release `dev`)
 ```
+
+### Mapa documental
+
+Consulta por tarefa; este inventário é validado por `tools/docs.sh` (cada guia
+uma vez). Referências externas vendorizadas ficam no catálogo, não se repetem.
+
+- Design: [conceito](docs/CONCEITO.md), [gestos e ações](docs/gdd/gestos-e-acoes.md), [mapa](docs/gdd/mapa.md).
+- Código e ambiente: [arquitetura](docs/ARQUITETURA.md), [Godot](docs/GODOT.md), [ambiente](docs/AMBIENTE.md).
+- Verificação e entrega: [oráculo](docs/ORACULO.md), [build](docs/BUILD.md), [guardião documental](docs/DOCUMENTACAO.md).
+- Arte: [pipeline](docs/ARTE.md), [PixelLab](docs/PIXELLAB.md), [catálogo gerado](docs/pixellab/CATALOGO.md).
+- Continuidade: [fila](docs/PEDIDOS-EM-ESPERA.md), [histórico](docs/HISTORICO.md), [resíduos](docs/RESIDUOS.md).

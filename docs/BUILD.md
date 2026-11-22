@@ -2,7 +2,10 @@
 
 ## O rito de entrega (direto em `main`)
 
-1. `tools/testes.sh` verde (testes + parser de todos os `.gd`).
+1. `tools/testes.sh` verde (guardião documental + testes + parser de todos
+   os `.gd`). Só documentação: `tools/docs.sh` é a checagem rápida offline;
+   o rito completo continua exigindo a suíte. Escopo e limites:
+   [`DOCUMENTACAO.md`](DOCUMENTACAO.md).
 2. Mudou algo visível? `tools/quadros.sh` e **abrir** os PNG.
 3. `docs/HISTORICO.md`: seção `## vX.Y.Z — título (data)` no TOPO — o
    `exportar.sh` tira a versão do APK dela.
