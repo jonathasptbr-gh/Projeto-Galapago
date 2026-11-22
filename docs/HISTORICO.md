@@ -63,9 +63,11 @@
   `CONCEITO`, `AGENTS` e as descrições `_leia` de `dados/gestos.json` e
   `dados/acoes.json` atualizados para o que o jogo faz agora.
 - **Oráculo/baseline:** o visível **mudou** (legenda v0.18 e a demo nova com a
-  rampa). O baseline `testes/baseline/` ainda é o da v0.17 e **será
-  atualizado** com os 60 quadros do CI (`llvmpipe`) num commit seguinte do
-  mesmo lote; nenhum número de run é citado porque ainda não houve.
+  rampa). O baseline `testes/baseline/` foi **atualizado neste lote** com os 60
+  quadros do **CI #43** (`llvmpipe`, commit `0591201`) num commit seguinte do
+  mesmo lote. A primeira rodada do CI (#43) **reprovou só no diff** (60 quadros
+  fora da tolerância, pela legenda/demo novas) — a prova de que a mudança era
+  visível; a suíte e o parser passaram.
 - **Resíduos:** a rampa 0,30 s e a carga 1,0 s são **pontos de partida**; o
   toque espera a janela do duplo (280 ms); o tiro é sempre de carga cheia; sem
   rota/alvo o toque não atira; o segurar sem caminho cava; a HUD de carga é

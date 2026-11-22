@@ -565,5 +565,5 @@ acende quando a recarga termina).
   o anel na criatura são **mockup** de desenvolvimento.
 - **Oráculo**: os 60 quadros do CI só cobrem os 2 primeiros segundos; as cenas
   novas (rampa/segurar/toque/carga) pedem a demo inteira (~480 quadros) para o
-  olho. O baseline do CI será atualizado com os 60 quadros desta versão
-  (`llvmpipe`) num commit seguinte do mesmo lote.
+  olho. O baseline do CI foi atualizado com os 60 quadros desta versão
+  (CI #43, `llvmpipe`).
