@@ -4,6 +4,8 @@
 
 | versão | onde | o quê | tamanho |
 |---|---|---|---|
+| v0.14.1 | `docs/PEDIDOS-EM-ESPERA.md` | a fila ainda mistura o índice com o detalhe dos 20 pacotes feitos: enxugar é o pacote D | pequeno |
+| v0.14.1 | documentação | sem `tools/docs.sh` no CI (pacote B): as divergências corrigidas na v0.14.1 podem voltar num lote futuro | pequeno |
 | v0.14.0 | `dados/adversario.json` | preparos, alcances, empurrões e atordoamentos são **pontos de partida** — ajustar no aparelho | pequeno |
 | v0.14.0 | `sim/adversario.gd` | o inimigo continua o **mockup roxo**, sem sprite de bote/esbarrão/cuspe/esconder: a leitura é pela área no chão, aura, "!" e montinho de terra | arte (P6/P7) |
 | v0.14.0 | `sim/adversario.gd` | o **esconder** só dispara ao **levar um golpe** (recarga 7 s); um ataque que ERRA não o faz se esconder | design |

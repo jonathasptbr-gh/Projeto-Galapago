@@ -1,7 +1,7 @@
 # Gestos e ações — como a criatura se move e age
 
 > Regra toda em `sim/` (testada) e nas tabelas `dados/gestos.json` +
-> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.13.0.**
+> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.14.1.**
 
 ## O fluxo
 

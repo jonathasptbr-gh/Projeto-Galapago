@@ -1,3 +1,26 @@
+# Histórico
+
+> Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
+> no lote. Lê-se por `grep`, nunca inteiro.
+
+## v0.14.1 — documentação alinhada ao jogo (2026-11-22)
+
+- **Pacote A da faxina documental** (escolhido pelo operador em 2026-11-22):
+  nenhuma mudança de código — os 137 testes seguem verdes.
+- **CONCEITO (o norte lido primeiro):** o resumo de gestos dizia o INVERSO do
+  jogo ("toque duplo = tiro, simples = pulo"). Corrigido para o real —
+  **toque simples = TIRO, toque duplo = PULO** — com a regra de precedência:
+  se o resumo divergir do GDD, o GDD vence.
+- **`# Histórico` foi para o topo:** as entradas novas passam a nascer ABAIXO
+  do título (antes o título ficava depois da entrada mais nova, na linha 54).
+- **AGENTS.md, "Estrutura":** a lista de `docs/` repetia GODOT/BUILD/AMBIENTE
+  e omitia `gdd/gestos-e-acoes.md`; agora bate com a árvore. `CLAUDE.md` entra
+  como ponteiro para o `AGENTS.md` (Claude Code não lê `AGENTS.md`).
+- **PEDIDOS-EM-ESPERA:** P9, P10 e P11 apareciam no índice sem seção
+  detalhada; as três foram escritas a partir deste histórico.
+- **GDD:** o marcador dizia v0.13.0 com a seção da v0.14 já dentro; agora
+  v0.14.
+
 ## v0.14.0 — inimigo hostil: botão, caçada e quatro ataques com preparação (2026-11-21)
 
 - **Pedido do operador (2026-11-21):** "Elabore a dinâmica do inimigo, com um
@@ -50,11 +73,6 @@
   propósito (começa com a criatura perto do bicho, liga o botão, mostra os
   ataques e um golpe ROTEIRIZADO no fim para o estado ESCONDIDO aparecer nos
   quadros). O demo normal (60 quadros do CI) continua o mesmo.
-
-# Histórico
-
-> Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
-> no lote. Lê-se por `grep`, nunca inteiro.
 
 ## v0.13.0 — pulo automático com botão e pulo mais longo no sprint (2026-11-21)
 

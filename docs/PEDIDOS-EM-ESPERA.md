@@ -95,6 +95,40 @@
 
 - Conversa de design com o operador → `docs/gdd/loop-diario.md`.
 
+## P9 — Atualização automática do app (v0.3.1)
+
+- Método do Áudio Visual IASD, com o repositório público: o CI assina o APK
+  (keystore nos *secrets*) e publica na Release `dev` dois assets —
+  `projeto-galapago-dev.apk` e `versao.json`. O app lê o manifesto, baixa
+  dentro do próprio app, confere o tamanho e entrega ao instalador por
+  `OS.shell_open(arquivo)`; o Android só aceita por cima um APK com a MESMA
+  assinatura. `sim/atualizacao.gd`: host travado, teto de 300 MB.
+- **Feito em v0.3.1:** históricos auditados antes de abrir o repositório;
+  keystore de dev trocada por uma nova, só nos *secrets* e no cofre do
+  operador. O canal separado da v0.3.0 foi desmontado.
+- **Pendente do operador:** reinstalar o APK manualmente uma vez (o
+  verificador só passou a funcionar a partir da v0.5.0) e confirmar que o
+  aviso de atualização aparece sozinho.
+
+## P10 — Mapa de cima com profundidade + tela em alta resolução (v0.4.0)
+
+- Mundo em camadas lógicas (`sim/mundo.gd` + `dados/terrenos.json` +
+  `dados/mapas/fundacao.json`): superfície (terreno por célula, `altura`,
+  `andavel`, `escavavel`, rampa 1,5) e subsolo de túneis; andar vence 0,5
+  nível, pulo sobe 1, escavação desce/sobe. Apresentação em mockup de xadrez
+  com parallax, y-sort pela base e copas; tela 720×1280 em retrato.
+- **Feito em v0.4.0:** validado por 43 testes (mundo, gestos, comandos, corpo,
+  visibilidade) e demo de 450 quadros sem erro de script.
+
+## P11 — Movimento por rota + overlays, alvos, adversário e autonomia (v0.5.0)
+
+- **Regra do operador:** rota e ações andam juntas — ataque, esquiva e pulo são
+  OVERLAYS que não cancelam a rota; a defesa paralisa sem apagar; só uma rota
+  nova substitui. Arrasto perto = rota; longe = gesto de ação.
+- Alvos com mira re-resolvida (alvo móvel), autonomia semeada ao fim da rota e
+  adversário de teste determinístico que não entra na água.
+- **Feito em v0.5.0:** `sim/corpo.gd` reescrito; `sim/alvos.gd` e
+  `sim/adversario.gd` novos; 49 testes verdes.
 
 ## P12 — Retrato e caminho por âncora
 

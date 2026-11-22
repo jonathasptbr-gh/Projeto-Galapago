@@ -36,13 +36,16 @@
   centro; acende pela **distância ao centro**, ~7× o corpo) — **desligado na
   v0.11.5**, hoje o círculo é só caminho; **passar por cima**
   de um alvo é **batida**; levar o **fim do caminho até o alvo** o **MARCA** (X
-  amarelo que anda com ele); **toque duplo** = **tiro** mirado no alvo marcado
-  (recarga de 1 s, o animal para e segue); **toque simples** = **pulo**;
-  **segurar parado** ativa uma **habilidade em si mesmo** (cavar). Com alvo
-  marcado o animal **persegue e só bate ao chegar** (sem a freada final).
-  **Não há gesto de dois dedos**, nem defesa, nem efeito de esquiva —
+  amarelo que anda com ele); **toque simples** = **TIRO** híbrido — mirado no
+  alvo marcado, ou na direção do toque quando não há marca (recarga de 1 s, o
+  animal para e segue); **toque duplo** = **PULO** (desde a v0.13, com o
+  **PULO AUTO** ligado, sobe sozinho degrau de 1 nível quando o caminho
+  continua); **segurar parado** ativa uma **habilidade em si mesmo** (cavar).
+  Com alvo marcado o animal **persegue e só bate ao chegar** (sem a freada
+  final). **Não há gesto de dois dedos**, nem defesa, nem efeito de esquiva —
   **esquivar é andar** com o tempo lento do desenho. O detalhe fica em
-  [`gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md).
+  [`gdd/gestos-e-acoes.md`](gdd/gestos-e-acoes.md) — **se este resumo divergir
+  do GDD, o GDD vence**.
 - **Afinidade como mecânica de controle:**
   - baixa: o comando é sugestão — a criatura hesita, reinterpreta ou desobedece
     por temperamento ou falta de sintonia;
