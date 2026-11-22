@@ -560,5 +560,5 @@ acende quando a recarga termina).
   **mockup** de desenvolvimento.
 - **Oráculo**: os 60 quadros do CI só cobrem os 2 primeiros segundos; as cenas
   novas (pausa/segurar/toque/carga) pedem a demo inteira (~480 quadros) para o
-  olho. O baseline do CI será atualizado com os 60 quadros desta versão no
-  mesmo lote.
+  olho. O baseline do CI foi atualizado com os 60 quadros desta versão
+  (CI #41, `llvmpipe`).

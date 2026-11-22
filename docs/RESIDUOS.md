@@ -10,7 +10,7 @@
 | v0.17.0 | `sim/corpo.gd` | soltar o segurar durante a recarga (1 s) **cancela** a caminhada mas **não dispara** (caso raro): a caminhada cancelada continua cancelada e o tiro é recusado | pequeno | aberto |
 | v0.17.0 | `jogo/hud.gd` | a barra de carga amarela acima da energia e o anel de carga na criatura são **mockup de desenvolvimento** — a UI real decide depois | arte (P6/P7) | aberto |
 | v0.17.0 | oráculo | os 60 quadros do CI cobrem só os 2 primeiros segundos; as cenas novas (pausa/segurar/toque/carga) pedem a demo inteira (~480 quadros) para o olho | operador | aberto |
-| v0.17.0 | `testes/baseline/` | o baseline ainda é o antigo; será atualizado com os 60 quadros do CI (`llvmpipe`) num commit seguinte do mesmo lote, depois do verde | pequeno | aberto |
+| v0.17.0 | `testes/baseline/` | baseline atualizado com os 60 quadros do **CI #41** (`llvmpipe`, commit `3b01634`); o CI #41 reprovou só no diff (3,28% na legenda, 6,14% no último quadro pela pausa) — prova de que a mudança era visível | pequeno | resolvido em v0.17.0 |
 | v0.16.1 | — | nenhum | — | — |
 | v0.16.0 | `testes/baseline/` | baseline versionado (~9,6 MB) cresce a cada lote que muda o visível: cada atualização guarda 60 PNGs novos no histórico; avaliar poda/compressão se o repositório pesar | pequeno | aberto |
 | v0.16.0 | `testes/baseline/` | o baseline é do `llvmpipe` do runner; troca de runner, driver ou versão do Godot pode exigir atualizar o baseline no lote que a fizer | pequeno | aberto |

@@ -54,10 +54,12 @@
   `dados/gestos.json` e `dados/acoes.json` atualizados para o que o jogo faz
   agora.
 - **Oráculo/baseline:** o visível **mudou** (a legenda de 11 linhas e a pausa
-  no fim dos 60 quadros do CI). O baseline `testes/baseline/` **ainda é o
-  antigo**: será atualizado com os 60 quadros gerados pelo CI (`llvmpipe`)
-  num **commit seguinte do mesmo lote**, depois do verde. Nenhum número de run
-  é inventado aqui.
+  no fim dos 60 quadros). O baseline `testes/baseline/` foi **atualizado neste
+  lote** com os 60 quadros do **CI #41** (`llvmpipe`, commit `3b01634`; run
+  45034751151) num commit seguinte do mesmo lote. A primeira rodada do CI
+  **reprovou só no diff** (3,28% dos pixels por quadro na legenda e 6,14% no
+  último, pela pausa) — a prova de que a mudança era visível; a suíte e o
+  parser passaram.
 - **Resíduos:** os tempos da v0.17 são **pontos de partida**; fora da pausa o
   toque espera a janela do duplo; a carga conta do **limiar**; o soltar em
   recarga cancela a caminhada e não dispara; a barra/anel de carga são
