@@ -69,7 +69,13 @@ if [ -n "$BT" ]; then
   "$BT/aapt" dump badging "$APK" 2>/dev/null | grep -E "^package:|^launchable-activity:|^sdkVersion|^targetSdkVersion" || true
   # orientação do manifesto: 0 = paisagem, 1 = retrato (v0.6)
   "$BT/aapt" dump xmltree "$APK" AndroidManifest.xml 2>/dev/null | grep -i 'screenOrientation' | head -1 || true
-  "$BT/apksigner" verify --print-certs "$APK" | grep -E "Signer #1 certificate DN|Verified" || true
+  assin=$("$BT/apksigner" verify --verbose --print-certs "$APK" 2>&1 | grep -E "Signer #1 certificate DN|Verified using|ERROR" | head -4 || true)
+  if [ -n "$assin" ]; then
+    printf '%s\n' "$assin"
+  else
+    echo "AVISO: apksigner verify sem saída; conferindo a assinatura com keytool" >&2
+    keytool -printcert -jarfile "$APK" 2>&1 | grep -E "^Owner:|^SHA256:" | head -2 || true
+  fi
 fi
 echo "APK: $APK · versão $NOME · $(du -h "$APK" | cut -f1)"
 echo "versao=$NOME" >> "${GITHUB_OUTPUT:-/dev/null}"

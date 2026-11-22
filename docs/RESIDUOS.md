@@ -4,6 +4,7 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.16.1 | — | nenhum | — | — |
 | v0.16.0 | `testes/baseline/` | baseline versionado (~9,6 MB) cresce a cada lote que muda o visível: cada atualização guarda 60 PNGs novos no histórico; avaliar poda/compressão se o repositório pesar | pequeno | aberto |
 | v0.16.0 | `testes/baseline/` | o baseline é do `llvmpipe` do runner; troca de runner, driver ou versão do Godot pode exigir atualizar o baseline no lote que a fizer | pequeno | aberto |
 | v0.16.0 | `tools/quadros-diff.mjs` | o diff pega mudança objetiva de pixels, não juízo fino de arte: o olho do operador continua sendo o aceite visual | limite | aberto |
@@ -139,10 +140,10 @@
 | v0.4.0 | `jogo/mapa.gd` + `sim/mapa.gd` + `ilha_teste.json` | renderizador Wang do v0.3 ficou PARADO (sem uso) | decidir: manter para a arte futura ou remover | aberto |
 | v0.3.1 | atualizador | o caminho Android (shell_open → FileProvider → instalador) foi conferido no código do Godot, NÃO num aparelho | o operador reinstala uma vez e testa a próxima atualização | aberto |
 | v0.3.1 | git (público) | `tools/android/galapago-dev.keystore` + senha seguem no histórico | revogado na prática; nunca reutilizar | aberto |
-| v0.3.0 | `tools/pixellab-tileset.mjs` | com o job FALHO no servidor, fica esperando ~2,5 min em vez de falhar logo | pequeno — consultar o status antes de baixar | aberto |
+| v0.3.0 | `tools/pixellab-tileset.mjs` | com o job FALHO no servidor, fica esperando ~2,5 min em vez de falhar logo | pequeno — espera limitada a 45 s; a API não expõe status | resolvido em v0.16.1 |
 | v0.3.0 | `arte/cenarios/objetos/arvore.png` | sombra desenhada na arte (desligamos a nossa para não dobrar) — as outras artes não têm | P6: padronizar (sombra sempre nossa) | aberto |
-| v0.2.0 | `ci.yml` | Actions avisa: `checkout@v4`, `setup-java@v4`, `cache@v4` ainda miram Node 20 (forçadas a Node 24) | pequeno — subir as versões quando houver v5 confirmadas | aberto |
-| v0.2.0 | `tools/android/exportar.sh` passo 5 | no CI #6 o `apksigner verify` não imprimiu linha (o `aapt` sim); a assinatura foi conferida localmente com `keytool -printcert -jarfile` | pequeno — investigar a saída do apksigner 37 no próximo lote do CI | aberto |
+| v0.2.0 | `ci.yml` | Actions avisa: `checkout@v4`, `setup-java@v4`, `cache@v4` ainda miram Node 20 (forçadas a Node 24) | pequeno — subidas para v7/v6/v6 | resolvido em v0.16.1 |
+| v0.2.0 | `tools/android/exportar.sh` passo 5 | no CI #6 o `apksigner verify` não imprimiu linha (o `aapt` sim); a assinatura foi conferida localmente com `keytool -printcert -jarfile` | pequeno — `--verbose`, `2>&1` e queda para `keytool` | resolvido em v0.16.1 |
 | v0.2.0 | `export_presets.cfg` | pacote `com.projetogalapago.jogo` e keystore de dev são provisórios; trocar qualquer um obriga desinstalar | decidir antes da 1ª distribuição externa | aberto |
 | v0.2.0 | P2 | o APK não foi testado em aparelho pelo agente (instalar é do operador) | o operador instala e risca | aberto |
 | v0.1.1 | `arte/fonte/p1-cao-base-pixen.png` | prova sem paleta-mestra (64 cores livres) e câmera ainda não decidida — não é asset do jogo | resolve no P6 (âncora de arte) | aberto |

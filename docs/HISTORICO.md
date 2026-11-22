@@ -3,6 +3,22 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.16.1 — higiene de CI e tooling (2026-11-22)
+
+- **Autorizado pelo operador:** fechar os resíduos pequenos de fundação.
+  **Nenhum código de jogo, dado ou teste mudou.**
+- **`ci.yml`:** `checkout@v7`, `setup-java@v6`, `cache@v6` e
+  `upload-artifact@v7` — fim dos avisos de Node 20 nas actions antigas.
+- **`tools/android/exportar.sh` (passo 5):** `apksigner verify --verbose
+  --print-certs` com `2>&1`; se não houver linha, aviso explícito e conferência
+  por `keytool -printcert -jarfile`. A assinatura deixa de sumir do log.
+- **`tools/pixellab-tileset.mjs`:** a espera de 423 passou de 30 tentativas
+  (~2,5 min) para um teto de **45 s**, com mensagem de "job pode ter falhado";
+  a API não expõe endpoint de status, então o limite é por tempo.
+- **Verificação:** `tools/testes.sh` 149/0, parser 42/0, docs 29/0; `bash -n`
+  e `node --check` limpos. O CI #40 prova as actions novas e imprime a
+  assinatura; o 423 real de job falho não é reproduzível sem um job falho.
+
 ## v0.16.0 — oráculo com baseline e diff tolerante (2026-11-22)
 
 - **Autorizado pelo operador:** seguir o **P23** (fundação). O CI agora
