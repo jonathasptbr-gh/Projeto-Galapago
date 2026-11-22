@@ -3,6 +3,31 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.16.0 — oráculo com baseline e diff tolerante (2026-11-22)
+
+- **Autorizado pelo operador:** seguir o **P23** (fundação). O CI agora
+  **reprova regressão visual**: gera os 60 quadros, compara com
+  `testes/baseline/` e só então publica o artefato e libera o APK. **Nenhum
+  código de jogo mudou.**
+- **`tools/quadros-diff.mjs` (novo):** Node puro, sem dependência; decodifica
+  o PNG (zlib + desfiltro 0–4, 8 bits, RGB/RGBA, sem entrelaçamento) e compara
+  quadro a quadro. Reprova se a fração de pixels com delta de canal acima de
+  `--canal` (padrão 6) passar de `--px` (0,001 = 0,1%); informa quadro, %,
+  maior delta e caixa `x0,y0,x1,y1`. `--atualizar` grava o baseline de
+  propósito. Saída 0/1/2.
+- **`testes/baseline/` (novo):** 60 quadros do CI #38 (commit `5846789`,
+  `llvmpipe`), 720×1280 RGBA, ~9,6 MB, com `.gdignore` para o Godot não
+  importar (sem `.import` e fora do APK, que já exclui `testes/*`).
+- **CI:** passo "Diff dos quadros (baseline)" entre a geração e o upload; o
+  upload continua `if: always()` e o job `apk` depende do `testes`.
+- **Documentação:** `docs/ORACULO.md` ganhou a seção do diff; `docs/BUILD.md`
+  (rito 2) manda rodar o diff e atualizar o baseline **no mesmo commit**.
+- **Verificação:** suíte 149/0, parser 42/0, docs 29/0; diff contra o baseline
+  60/60; bloco 200×200 +20 **reprova** (4,33%, caixa 100,100,299,299), 1 pixel
+  +50 passa, quadro faltando reprova; import sem `.import` no baseline.
+- **Resíduos:** baseline versionado cresce a cada lote que muda o visível;
+  baseline preso ao `llvmpipe` do runner.
+
 ## v0.15.0 — afinidade e personalidade (2026-11-22)
 
 - **Autorizado pelo operador:** seguir o **P4** (núcleo do jogo). **Nenhum

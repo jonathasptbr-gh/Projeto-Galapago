@@ -29,6 +29,37 @@ desenhado erraria o alvo móvel). O demo normal continua igual.
 - **No CI (x86_64)** o workflow usa `llvmpipe` e publica os quadros como
   artefato `quadros` (7 dias).
 
+## Diff automático contra o baseline
+
+`testes/baseline/` guarda os 60 quadros do CI #38 (commit `5846789`, mesmo
+ambiente `llvmpipe` do workflow). O CI compara cada rodada com eles **depois**
+de gerar os quadros e **antes** do artefato; o upload é `if: always()`, então
+os quadros de uma rodada reprovada continuam disponíveis para diagnóstico.
+
+```
+node tools/quadros-diff.mjs [pasta=quadros] [--baseline=testes/baseline] [--canal=6] [--px=0.001] [--atualizar]
+```
+
+- Compara os `q*.png` dos dois lados em ordem numérica. **Quadro faltando ou
+  sobrando reprova** e lista os nomes.
+- Por quadro, conta os pixels em que **qualquer canal** difere por mais de
+  `--canal`; reprova se essa fração passar de `--px` (0,001 = 0,1% da
+  imagem). A falha diz o quadro, quantos pixels (e %), o maior delta e a caixa
+  `x0,y0,x1,y1` (inclusive).
+- Defaults: **canal 6** (ruído de rasterização do mesmo driver) e **0,1% de
+  pixels** (921 pixels em 720×1280 — um pixel isolado não reprova, um bloco
+  sim). Não afrouxe a tolerância para fazer um lote passar.
+- Código de saída: `0` ok · `1` divergência/quadro faltando · `2` uso ou erro
+  de leitura (baseline ausente/vazio também é `2`, com a instrução abaixo).
+- `--atualizar` copia a pasta inteira para o baseline (cria o diretório e
+  remove do baseline os `q*.png` que não existem mais) e **não compara**. É o
+  caminho explícito de quem muda o visível de propósito.
+- O baseline é do `llvmpipe` do CI; neste celular o driver é `softpipe`, então
+  o diff local pode acusar diferença legítima de renderizador. A prova é o CI.
+
+**Regra:** lote que muda o visível atualiza o baseline **no MESMO commit** e
+diz isso no `docs/HISTORICO.md` ("baseline dos quadros atualizado: …").
+
 ## Limites
 
 - Não é interativo: é uma gravação. Toque se roteiriza na cena (o modo

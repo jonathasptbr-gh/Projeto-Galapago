@@ -39,6 +39,9 @@ jobs:
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri
           GALLIUM_DRIVER=llvmpipe tools/quadros.sh 60 quadros
 
+      - name: Diff dos quadros (baseline)
+        run: node tools/quadros-diff.mjs quadros
+
       - name: Publicar quadros
         if: always()
         uses: actions/upload-artifact@v4

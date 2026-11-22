@@ -6,7 +6,12 @@
    os `.gd`). Só documentação: `tools/docs.sh` é a checagem rápida offline;
    o rito completo continua exigindo a suíte. Escopo e limites:
    [`DOCUMENTACAO.md`](DOCUMENTACAO.md).
-2. Mudou algo visível? `tools/quadros.sh` e **abrir** os PNG.
+2. Mudou algo visível? `tools/quadros.sh`, **abrir** os PNG e depois
+   `node tools/quadros-diff.mjs quadros` contra `testes/baseline/`. Lote que
+   muda o visível atualiza o baseline **no MESMO commit**
+   (`node tools/quadros-diff.mjs quadros --atualizar`) e registra isso no
+   `docs/HISTORICO.md`; o CI reprova o que sair da tolerância (canal 6,
+   0,1% dos pixels).
 3. `docs/HISTORICO.md`: seção `## vX.Y.Z — título (data)` no TOPO — o
    `exportar.sh` tira a versão do APK dela.
 4. `docs/RESIDUOS.md`: uma linha por coisa vista e não consertada (ou "nenhum").

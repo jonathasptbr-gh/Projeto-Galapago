@@ -359,3 +359,20 @@
   registro.
 - **Pronto quando:** o índice lista só pacotes vivos, nenhuma linha já
   resolvida fica marcada `aberto` e `tools/docs.sh` continua verde.
+
+## P23 — Oráculo com baseline e diff tolerante (v0.16.0)
+
+- **O quê:** `tools/quadros-diff.mjs` compara os quadros com um baseline
+  versionado em `testes/baseline/`, com tolerância (canal e fração de pixels);
+  o lote que muda o visível **atualiza o baseline** de forma explícita no mesmo
+  commit; o CI roda o diff **depois** de gerar os quadros (`tools/quadros.sh`),
+  antes do artefato e do APK.
+- **Feito em v0.16.0:** tool Node sem dependência (PNG 8 bits RGBA/RGB, filtros
+  0–4), baseline de 60 quadros do CI #38 com `.gdignore` (o Godot não importa e
+  o APK já exclui `testes/*`), passo "Diff dos quadros (baseline)" no
+  `ci.yml` (upload segue `if: always()`), rito no `docs/BUILD.md` e seção no
+  `docs/ORACULO.md`.
+- **Pronto quando:** um lote que apaga o botão da HUD reprova o job; dentro da
+  tolerância passa; a falha diz qual quadro e quanto saiu da faixa. Provado
+  com bloco de 200×200 (reprova, 4,33%), 1 pixel (passa) e quadro faltando
+  (reprova); a rodada real do CI é o aceite final.
