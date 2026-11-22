@@ -57,6 +57,11 @@ a arte fica) é do operador: o agente propõe com opções, não decide calado.
   `git add <caminhos>` (nunca `-A`), commit `vX.Y.Z: <resumo>`,
   `git push origin main`, CI verde (`tools/estado.sh --ci`; vermelho →
   `node tools/ci-log.mjs`), APK em `node tools/baixar-apk.mjs`.
+- **Trabalho por agentes:** toda sessão é **GERENTE** que fatia o trabalho em
+  briefings de contexto fresco e confere evidência — protocolo em
+  [`PROTOCOLO-AGENTES`](docs/PROTOCOLO-AGENTES.md); dois agentes no MESMO clone
+  seguem [`MULTI-AGENTE`](docs/MULTI-AGENTE.md) (um escritor por repositório,
+  `git add <caminho>`, nunca `-A`).
 - **Versão** em três casas: a 3ª conserta, a 2ª entrega sistema/pacote, a 1ª é
   marco público (demo). A nota do lote mora em
   [`docs/HISTORICO.md`](docs/HISTORICO.md) (seção `## vX.Y.Z` no topo).
@@ -108,3 +113,4 @@ uma vez). Referências externas vendorizadas ficam no catálogo, não se repetem
 - Verificação e entrega: [oráculo](docs/ORACULO.md), [build](docs/BUILD.md), [guardião documental](docs/DOCUMENTACAO.md).
 - Arte: [pipeline](docs/ARTE.md), [PixelLab](docs/PIXELLAB.md), [catálogo gerado](docs/pixellab/CATALOGO.md).
 - Continuidade: [fila](docs/PEDIDOS-EM-ESPERA.md), [histórico](docs/HISTORICO.md), [resíduos](docs/RESIDUOS.md).
+- Agentes: [protocolo de agentes](docs/PROTOCOLO-AGENTES.md), [multi-sessão](docs/MULTI-AGENTE.md).

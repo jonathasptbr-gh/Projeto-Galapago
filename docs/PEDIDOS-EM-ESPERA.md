@@ -4,6 +4,11 @@
 > pacote seguir.** Lê-se só o pacote escolhido. Um pacote cabe numa sessão; se
 > não couber, divide-se antes de começar.
 
+> **Manutenção registrada (2026-11-22):** a faxina documental A (v0.14.1) e o
+> guardião offline B (v0.14.2) já foram feitos e estão no
+> [`HISTORICO`](HISTORICO.md). O núcleo do jogo continua em P4/P5; **nada na
+> fila está autorizado** — P22 e P23 esperam escolha do operador.
+
 | pacote | o quê | depende de | estado |
 |---|---|---|---|
 | P1 | Conectar o PixelLab (MCP) e gerar a 1ª prova | conta do operador | **feito (v0.1.1)** — falta o operador trocar a chave exposta no chat |
@@ -26,6 +31,9 @@
 | P18 | Extensão de parkour a leste (desníveis, plataformas e trilhas) | P17 | **feito (v0.12.0)** |
 | P19 | Pulo automático (opção) e pulo mais longo no sprint | P18 | **feito (v0.13.0)** |
 | P20 | Inimigo hostil: botão, caçada e 4 ataques com preparação e área no chão | P19 | **feito (v0.14.0)** |
+| P21 | Protocolo multi-sessão e trabalho por subagentes | — | **feito (v0.14.3)** |
+| P22 | Fila enxuta, índice separado dos feitos e resíduos com `estado` | — | **na fila** |
+| P23 | Oráculo com baseline de quadros e diff tolerante | — | **na fila** |
 
 ---
 
@@ -345,3 +353,46 @@
 - **Pendente de ajuste (no aparelho):** tempos de preparo e alcances; se o
   esconder deve também disparar quando o ataque **erra** (hoje só ao levar
   golpe); se o inimigo deve ter vida/level no futuro.
+
+## P21 — Protocolo multi-sessão e trabalho por subagentes (v0.14.3)
+
+- **Operador (2026-11-22):** registrar a fila de manutenção e criar o protocolo
+  padrão de trabalho por agentes, inclusive o caso de duas sessões no mesmo
+  clone.
+- **Feito em v0.14.3:** [`PROTOCOLO-AGENTES.md`](PROTOCOLO-AGENTES.md) — a
+  sessão é **GERENTE** que fatia em **briefings de contexto fresco** e confere
+  **evidência** (hash/commit, saída de teste, CI); [`MULTI-AGENTE.md`](MULTI-AGENTE.md)
+  — `git add <caminho>` nunca `-A`, proibição de `checkout`/`reset`/`stash`,
+  quem editou commita, um lote por vez e a tabela dos clones da máquina.
+  `AGENTS.md` ganhou o bullet e os dois guias no mapa documental.
+- **Por quê:** a v0.14.1 e a v0.14.2 mostraram que dois lotes no mesmo tree se
+  misturam; o protocolo separa quem lê, quem escreve e quem commita.
+- **Pronto quando:** uma sessão executa a tarefa só com o briefing, sem o
+  histórico do chat, e o clone continua com **um escritor por vez**.
+
+## P22 — Fila enxuta e resíduos com estado
+
+- **O quê:** separar no índice o que está **na fila** do que já foi **feito**
+  (P1–P21: só P4–P8 seguem vivos); enxugar o índice para uma linha por pacote
+  vivo; `RESIDUOS.md` ganha a coluna **`estado`** (`aberto`, `decidido`,
+  `resolvido`) e as linhas resolvidas saem — a v0.14.1 "sem `tools/docs.sh` no
+  CI" já está resolvida pela v0.14.2 e é a primeira a sair; por fim, atualizar
+  o "próximo natural" do núcleo à luz do que P1–P21 entregaram.
+- **Por quê:** o índice de mais de 20 pacotes, quase todos feitos, empurra o
+  que importa para baixo; resíduo sem estado é lido como pendência para sempre.
+- **Pronto quando:** o índice lista só pacotes vivos; `RESIDUOS.md` tem a
+  coluna `estado` preenchida e nenhuma linha já resolvida; `tools/docs.sh`
+  continua verde com a fila nova.
+
+## P23 — Oráculo com baseline e diff tolerante
+
+- **O quê:** `tools/quadros-diff.mjs` compara os quadros com um baseline
+  versionado em `testes/baseline/`, com tolerância (px/canal) para ruído de
+  renderização; o lote que muda o visível **atualiza o baseline** de forma
+  explícita no mesmo commit; o CI roda o diff **depois** de gerar os quadros
+  (`tools/quadros.sh`), antes do APK.
+- **Por quê:** hoje o CI só confere que os quadros saíram; uma regressão visual
+  passa verde se o PNG é gerado. Baseline + tolerância transforma "abri o PNG"
+  em prova automática, sem o falso alarme de 1 px.
+- **Pronto quando:** um lote que apaga o botão da HUD reprova o job; dentro da
+  tolerância passa; a falha diz qual quadro e quanto saiu da faixa.

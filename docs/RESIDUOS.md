@@ -4,6 +4,7 @@
 
 | versão | onde | o quê | tamanho |
 |---|---|---|---|
+| v0.14.3 | documentação | o protocolo de agentes é deste repositório; o projeto Áudio Visual IASD ainda não tem o mesmo guia — replicar lá é lote de outro repositório | pequeno |
 | v0.14.2 | documentação | o guardião cobre estrutura e os dois toques, não toda divergência semântica; formatos Markdown suportados e limites em `docs/DOCUMENTACAO.md` | limite |
 | v0.14.2 | lint | o repositório não tem configuração de linter JS; sintaxe e comportamento do guardião são verificados por Node (`--check` e testes) | pequeno |
 | v0.14.1 | `docs/PEDIDOS-EM-ESPERA.md` | a fila ainda mistura o índice com o detalhe dos 20 pacotes feitos: enxugar é o pacote D | pequeno |

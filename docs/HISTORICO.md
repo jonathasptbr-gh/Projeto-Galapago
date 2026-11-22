@@ -3,6 +3,32 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.14.3 — protocolo de agentes, multi-sessão e fila registrada (2026-11-22)
+
+- **Autorizado pelo operador:** registrar a fila de manutenção e criar o
+  protocolo padrão de trabalho por agentes. **Nenhum código de jogo, dado,
+  teste ou CI mudou** — os 137 testes e o parser 40/0 seguem verdes.
+- **`docs/PROTOCOLO-AGENTES.md` (novo):** toda sessão age como **GERENTE** que
+  entende o problema, fatia em **briefings autocontidos** de contexto fresco e
+  confere **evidência** (hash/commit, saída de teste, CI) em vez de relato.
+  Cobre o que é do gerente e o que é do trabalhador, quando **não** delegar,
+  paralelismo (leitura sim; escrita não — um escritor por repositório),
+  orçamento de contexto, handoff e falha; o relatório ao operador continua em
+  linguagem de leigo.
+- **`docs/MULTI-AGENTE.md` (novo):** duas sessões no mesmo clone.
+  `git add <caminho>` nunca `-A`; proibidos `checkout`/`reset`/`stash`; quem
+  editou commita; não commitar arquivo alheio; `git status` antes do `push` com
+  aviso; um lote por vez; `git -c safe.directory='*'`; tabela dos clones da
+  máquina (Galápago e Áudio Visual IASD).
+- **`docs/PEDIDOS-EM-ESPERA.md`:** nota no topo (manutenção A/B feitas; núcleo
+  em P4/P5; nada autorizado); **P21 feito**, e **P22** (fila enxuta e resíduos
+  com `estado`) e **P23** (oráculo com baseline e diff tolerante) **na fila**,
+  no formato do P20.
+- **`AGENTS.md`:** bullet nas "Regras de desenvolvimento" apontando os dois
+  guias e ambos entrando no **mapa documental** (validado por `tools/docs.sh`).
+- **Verificação:** `tools/docs.sh` sem erro e `tools/testes.sh` completo —
+  lote só de documentação.
+
 ## v0.14.2 — guardião documental offline, antes dos testes (2026-11-22)
 
 - **Pacote B autorizado pelo operador:** `tools/docs.sh` chama o verificador
