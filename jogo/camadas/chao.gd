@@ -35,7 +35,7 @@ func _draw() -> void:
 			draw_rect(Rect2(o + Vector2(0, meia), Vector2(meia, meia)), b)
 			draw_rect(Rect2(o + Vector2(meia, meia), Vector2(meia, meia)), a)
 			# Pequenas marcas de textura aparecem gradualmente só de perto.
-			var detalhe := clampf((1.0 - inclinacao) / 0.28, 0.0, 1.0)
+			var detalhe := clampf((1.0 - inclinacao) / 0.40, 0.0, 1.0)
 			if detalhe > 0.0 and (x * 7 + y * 11) % 3 == 0:
 				var cor_detalhe := a.lightened(0.18)
 				cor_detalhe.a = 0.35 * detalhe

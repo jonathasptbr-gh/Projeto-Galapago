@@ -32,7 +32,7 @@ static func ponto_relevo(p: Vector2, mundo: RefCounted, inclinacao: float) -> Ve
 	var altura: float = mundo.altura(mundo.celula_de(p))
 	# A vista superior histórica não desloca marcas; interpolar evita um salto
 	# ao iniciar a pinça. Só na vista íntima máxima elas alcançam o topo.
-	var transicao := clampf((1.0 - inclinacao) / 0.28, 0.0, 1.0)
+	var transicao := clampf((1.0 - inclinacao) / 0.40, 0.0, 1.0)
 	return p + Vector2(0, desnivel(altura, inclinacao) * transicao)
 
 

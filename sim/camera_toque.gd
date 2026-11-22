@@ -51,4 +51,4 @@ func intima() -> bool:
 	return zoom > ZOOM_MIN + 0.01
 
 func inclinacao() -> float:
-	return lerpf(1.0, 0.72, (zoom - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN))
+	return lerpf(1.0, 0.60, (zoom - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN))

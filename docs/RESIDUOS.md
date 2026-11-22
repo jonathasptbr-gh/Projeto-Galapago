@@ -4,6 +4,8 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.20.1 | oráculo | comparação local softpipe divergiu em 2 de 60 quadros superiores contra baseline llvmpipe; confirmar no CI, baseline preservado | verificação | aberto |
+| v0.20.1 | vista íntima | inclinação mais baixa e controles ainda precisam de avaliação no aparelho pelo operador; seguem as limitações visuais da v0.20.0 | verificação | aberto |
 | v0.20.0 | `jogo/main.gd` | primeiro dedo na HUD seguido de segundo no mundo não é reconhecido como pinça; tratamento seguro requer testar propagação real e preservar botões | médio | aberto |
 | v0.20.0 | `jogo/mock.gd` | marcas, efeitos, perigos e adversários em terreno elevado interpolam da posição histórica ao topo: nas inclinações intermediárias não coincidem exatamente com o topo | visual | aberto |
 | v0.20.0 | controles | vista íntima não tem gestos definidos para ataque ou salto; pinça e controle relativo precisam de teste no aparelho | decisão / operador | aberto |

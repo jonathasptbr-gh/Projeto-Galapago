@@ -3,6 +3,19 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.20.1 — vista íntima um pouco mais baixa (2026-11-22)
+
+- A inclinação mínima da vista íntima passa de 0,72 a 0,60; a vista superior,
+  a pinça e o controle relativo permanecem. Relevo e detalhe continuam
+  interpolando ao longo de toda a aproximação.
+- Oráculo softpipe: vista íntima de planalto aberta; na vista superior, 2 de
+  60 quadros divergiram do baseline llvmpipe (0,75% cada). O baseline não foi
+  alterado; é preciso verificar o CI antes de entregar. Suíte: 167 testes,
+  45 scripts sem erro de parser e 42 testes documentais.
+- A confirmação visual e o teste de controles no aparelho dependem do operador;
+  limitações anteriores de marcas e da pinça sobre a HUD permanecem.
+- Resíduos: ver `docs/RESIDUOS.md`.
+
 ## v0.20.0 — câmera por pinça e controle relativo (2026-11-22)
 
 - Pinça aproxima de 1,6 a 3,2 e inclina o plano; cancela o gesto corrente e
