@@ -36,11 +36,15 @@
   centro; acende pela **distância ao centro**, ~7× o corpo) — **desligado na
   v0.11.5**, hoje o círculo é só caminho; **passar por cima**
   de um alvo é **batida**; levar o **fim do caminho até o alvo** o **MARCA** (X
-  amarelo que anda com ele); **toque simples** = **TIRO** híbrido — mirado no
-  alvo marcado, ou na direção do toque quando não há marca (recarga de 1 s, o
-  animal para e segue); **toque duplo** = **PULO** (desde a v0.13, com o
-  **PULO AUTO** ligado, sobe sozinho degrau de 1 nível quando o caminho
-  continua); **segurar parado** ativa uma **habilidade em si mesmo** (cavar).
+  amarelo que anda com ele); **toque simples** = **CORRER** (arrancada curta de
+  0,6 s); **segurar** = **TIRO** carregado — o animal para, a carga cresce até
+  1 s e o soltar atira no **alvo marcado vivo** ou no **destino final do
+  caminho**; sem caminho nem alvo, o segurar ativa uma **habilidade em si
+  mesmo** (cavar); ao soltar o dedo há uma **pausa de saída** de 0,35 s
+  (`rota.atraso_s`): nela o **toque pula e sai correndo** e o **segurar**
+  (200 ms) **cancela a caminhada e carrega**; **toque duplo** = **PULO**
+  (desde a v0.13, com o **PULO AUTO** ligado, sobe sozinho degrau de 1 nível
+  quando o caminho continua).
   Com alvo marcado o animal **persegue e só bate ao chegar** (sem a freada
   final). **Não há gesto de dois dedos**, nem defesa, nem efeito de esquiva —
   **esquivar é andar** com o tempo lento do desenho. O detalhe fica em

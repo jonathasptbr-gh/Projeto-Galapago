@@ -1,11 +1,12 @@
 {
- "_leia": "Gestos -> ações. v0.11.5 — UM DEDO FAZ TUDO. O primeiro dedo desenha a rota AO VIVO (sem espera, ganho de sensibilidade, origem congelada na descida). A FORMA do desenho vira ataque (sim/formas.gd) — v0.11.5: o LAÇO está DESLIGADO (`formas.laco_ataque` falso em acoes.json), o círculo é só caminho; o BICO (ida e volta brusca) é ANDADO (v0.11). Soltar sem arrastar = TOQUE (tiro híbrido: no alvo marcado, ou na direção do toque); DOIS toques = PULO; SEGURAR: com caminho em curso = SPRINT (gasta energia), sem caminho = habilidade em si mesmo (cavar), ativada no limiar. Nenhum gesto de dois dedos. a linha é o eixo de uma ESTRADA; o laço acende pela DISTÂNCIA ao centro; o BICO é andado como desenhado (v0.11). v0.11.4: o PULO pedido durante um pulo entra na FILA do corpo e sai quando a animação anterior termina. Ver docs/gdd/gestos-e-acoes.md.",
+ "_leia": "Gestos -> ações. v0.17.0 — UM DEDO FAZ TUDO. O primeiro dedo desenha a rota AO VIVO (sem espera, ganho de sensibilidade, origem congelada na descida). A FORMA do desenho vira ataque (sim/formas.gd) — o LAÇO está DESLIGADO (`formas.laco_ataque` falso em acoes.json), o círculo é só caminho; o BICO (ida e volta brusca) é ANDADO. Soltar sem arrastar = TOQUE → CORRER (arrancada de `sprint.dura_s`, gasta energia, rearma com um novo toque e cai na cauda `sprint.cauda_s`); DOIS toques = PULO. SEGURAR = TIRO CARREGADO com caminho ou alvo: o animal para, a carga cresce até `combate.tiro_carga_s` e o soltar atira no ALVO MARCADO VIVO ou no DESTINO FINAL do caminho (nunca no dedo); sem caminho nem alvo = HABILIDADE em si mesmo (cavar), no limiar. PAUSA DE SAÍDA (v0.17): ao fechar o caminho (`finalizar_rota`) a criatura espera `rota.atraso_s` (0,35 s); o toque curto (< `segurar_atraso_ms`) pula a pausa e sai correndo, o segurar (≥ 200 ms) cancela a caminhada e carrega, e o mesmo soltar dispara — a mira final sobrevive ao cancelamento. Fora da pausa o toque simples fica PENDENTE pela janela do duplo (280 ms) para o primeiro toque de um duplo não correr antes do PULO. Nenhum gesto de dois dedos. A linha é o eixo de uma ESTRADA e o BICO é andado como desenhado. Ver docs/gdd/gestos-e-acoes.md.",
  "limiares": {
   "toque_max_px": 16,
   "toque_max_ms": 260,
   "toque_duplo_janela_ms": 280,
   "toque_duplo_dist_px": 70,
   "segurar_min_ms": 380,
+  "segurar_atraso_ms": 200,
   "desenho_min_px": 16,
   "desenho_min_ms": 150
  },
@@ -18,7 +19,7 @@
   "escurecer": 0.22
  },
  "mapa": {
-  "toque": "tiro",
+  "toque": "correr",
   "toque_duplo": "pular",
   "segurar": "segurar",
   "trajetoria": "mover"

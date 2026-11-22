@@ -6,6 +6,7 @@ extends Node2D
 ## - nariz (olhar);
 ## - golpe: cone na direção do golpe (o ataque final vai no inimigo marcado);
 ## - habilidade: terra voando quando cava; anel quando é outra habilidade;
+## - carga do tiro: arco amarelo que fecha em volta dela (`corpo.carga()`);
 ## - subsolo: apagada, por cima da camada escura.
 ## v0.9: não há mais rastro de esquiva nem anel de defesa — a esquiva é o
 ## próprio caminhar e não existe gesto de defesa.
@@ -91,6 +92,14 @@ func _desenhar_acoes(c: Vector2) -> void:
 		var cor_linha := Color(0.6, 0.9, 1.0, 0.95) if especial else Color(1.0, 0.85, 0.4, 0.95)
 		draw_colored_polygon(pts, cor_cone)
 		draw_polyline(pts.slice(1), cor_linha, 2.0, true)
+	if corpo.carregando():
+		# CARGA do tiro (v0.17): o aro vai de 20 a 30 px e o arco fecha com a
+		# carga — o corpo só diz quanto (0..1), o desenho é daqui.
+		var cg := clampf(corpo.carga(), 0.0, 1.0)
+		var raio := lerpf(20.0, 30.0, cg)
+		draw_arc(c, 30.0, 0.0, TAU, 40, Color(1.0, 0.85, 0.25, 0.22), 2.0, true)
+		draw_arc(c, raio, -PI / 2.0, -PI / 2.0 + TAU * cg, 40,
+			Color(1.0, 0.9, 0.3, 0.95), 3.0, true)
 	if corpo.habilidade_ativa() and not corpo.escavando:
 		# habilidade de si mesmo que não é a cavar: anel pulsando em volta
 		var raio := 30.0 + 4.0 * sin(_tempo * 10.0)

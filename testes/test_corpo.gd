@@ -722,15 +722,18 @@ func test_marcacao_embala_curto() -> void:
 	checar(vmax > 130.0, "acelerou perto do alvo (%.0f px/s)" % vmax)
 
 
-# ---------------------------------------------------------------- v0.10: tiro no alvo marcado
+# ---------------------------------------------------------------- v0.10/v0.17: tiro
+# (o alvo marcado)
 
-## v0.11.1: o TIRO é HÍBRIDO. SEM marca ele NÃO é auto-mirado: sai na direção
-## do TOQUE em relação ao animal (o comando traz `alvo` = toque em mundo).
-func test_toque_sem_marca_atira_na_direcao_do_toque() -> void:
+## v0.17: o TIRO sem marca NÃO usa mais o toque — vai no **DESTINO FINAL do
+## caminho** (o último ponto da rota). O `alvo` do comando (o toque em mundo)
+## continua vindo do gesto, mas é IGNORADO.
+func test_tiro_sem_marca_vai_no_fim_do_caminho() -> void:
 	var s := _setup(MAPA)
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
-	var toque: Vector2 = c.pos + Vector2(0, 100)  # para baixo (o olhar padrão é +x)
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(240, 48)])}, m, [])
+	var toque: Vector2 = c.pos + Vector2(0, 100)  # para baixo (o fim do caminho é +x)
 	checar(c.comandar({"acao": "tiro", "alvo": toque}, m, []).begins_with("ok"), "atirou sem marca")
 	igual(c.mira_final_id, "", "continua sem marca")
 	checar(float(c._recargas.get("tiro", 0.0)) > 0.7, "entrou em recarga")
@@ -739,8 +742,23 @@ func test_toque_sem_marca_atira_na_direcao_do_toque() -> void:
 	for ef in c.efeitos:
 		if str(ef["tipo"]) == "tiro":
 			dir = Vector2(ef["dir"])
-	checar(dir.dot((toque - c.pos).normalized()) > 0.99, "tiro na direção do toque (%s)" % dir)
+	var fim: Vector2 = c.rota[c.rota.size() - 1]
+	checar(dir.dot((fim - c.pos).normalized()) > 0.99, "tiro na direção do FIM do caminho (%s)" % dir)
+	checar(dir.dot((toque - c.pos).normalized()) < 0.5, "e não na direção do toque (%s)" % dir)
 	igual(c.comandar({"acao": "tiro", "alvo": toque}, m, []), "recusado: recarga", "recarga segura o 2º tiro")
+
+
+## v0.17: sem alvo marcado e SEM caminho não há para onde atirar — o toque
+## deixou de ser a direção.
+func test_tiro_sem_destino_e_recusado() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	igual(c.comandar({"acao": "tiro", "alvo": c.pos + Vector2(0, 100)}, m, []),
+		"recusado: sem destino", "sem caminho e sem marca não atira")
+	checar(c.efeitos.is_empty(), "nenhum projétil criado")
+	perto(float(c._recargas.get("tiro", 0.0)), 0.0, 0.001, "não entrou em recarga")
+
 
 
 ## COM ALVO MARCADO continua a automira da v0.10: o toque em OUTRO lugar não
@@ -780,30 +798,251 @@ func test_marca_nasce_durante_o_caminho() -> void:
 	igual(c.mira_final_id, "adversario:0", "marcou durante o caminho")
 
 
-# ---------------------------------------------------------------- v0.11: sprint e segurar
+# ---------------------------------------------------------------- v0.17: correr (toque)
 
-## SEGURAR durante um CAMINHO = SPRINT: acelera, gasta a barra de energia e
-## desliga ao soltar (a energia recupera depois).
-func test_sprint_durante_o_caminho_gasta_energia() -> void:
+## TOQUE = CORRER (v0.17): arrancada curta (`sprint.dura_s`) no fator do sprint,
+## gastando a barra de ENERGIA; depois a CAUDA (`sprint.cauda_s`) mantém o
+## embalo caindo aos poucos. Um novo toque REARMA a arrancada (emenda) e
+## `"soltar_segurar"` NÃO termina mais o sprint.
+func test_correr_arranca_gasta_energia_e_rearma() -> void:
 	var s := _setup(MAPA)
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
-	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(330, 48)])}, m, [])
-	_rodar(c, m, 0.3)
-	checar(c.comandar({"acao": "segurar"}, m, []).begins_with("ok"), "sprint")
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(376, 48)])}, m, [])
+	_rodar(c, m, 0.1)
+	checar(c.comandar({"acao": "correr"}, m, []).begins_with("ok"), "correu")
+	checar(c._fator_sprint() > 1.0, "acelerou na hora (fator %.2f)" % c._fator_sprint())
+	perto(float(c._sprint_t), float(acoes["sprint"]["dura_s"]), 0.001, "a arrancada dura sprint.dura_s")
 	var e0: float = c.energia
 	var antes: Vector2 = c.pos
 	_rodar(c, m, 0.2)
 	var v: float = c.pos.distance_to(antes) / 0.2
 	checar(v > 150.0, "acelerou (%.0f px/s)" % v)
 	checar(c.energia < e0 - 0.05, "gastou energia (%.2f → %.2f)" % [e0, c.energia])
-	c.comandar({"acao": "soltar_segurar"}, m, [])
-	var e1: float = c.energia
+	# a arrancada ACABA sozinha (~0,6 s) e entra a CAUDA, ainda acima de 1,0
+	_rodar(c, m, 0.5)
+	checar(not c._sprint, "a arrancada acabou")
+	checar(c._fator_sprint() > 1.0, "a cauda ainda empurra (fator %.2f)" % c._fator_sprint())
+	# soltar o segurar não corta o sprint (v0.17)
+	igual(c.comandar({"acao": "soltar_segurar"}, m, []), "ok", "soltar não faz nada")
+	checar(c._fator_sprint() > 1.0, "segue no embalo")
+	# um novo toque rearma a arrancada inteira
+	checar(c.comandar({"acao": "correr"}, m, []).begins_with("ok"), "rearmou")
+	perto(float(c._sprint_t), float(acoes["sprint"]["dura_s"]), 0.001, "rearmou a duração")
+	checar(c._sprint, "voltou ao sprint cheio")
+	checar(c.em_rota(), "a rota continua")
+
+
+## Sem caminho não há o que correr.
+func test_correr_sem_caminho_e_recusado() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	igual(c.comandar({"acao": "correr"}, m, []), "recusado: sem caminho", "sem caminho não corre")
+	checar(not c._sprint, "não acelerou")
+	perto(float(c._sprint_t), 0.0, 0.001, "sem arrancada")
+
+
+## A CAUDA continua existindo DEPOIS da arrancada: o embalo cai aos poucos por
+## `sprint.cauda_s` e volta à caminhada normal; a energia para de ser gasta.
+func test_cauda_do_sprint_depois_da_arrancada() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(376, 48)])}, m, [])
+	_rodar(c, m, 0.1)
+	c.comandar({"acao": "correr"}, m, [])
+	_rodar(c, m, 0.7)  # passou dos 0,6 s da arrancada
+	checar(not c._sprint, "a arrancada acabou")
+	var p0: Vector2 = c.pos
+	var e0: float = c.energia
+	_rodar(c, m, 0.1)
+	var v: float = c.pos.distance_to(p0) / 0.1
+	checar(v > 125.0, "ainda acelerado na cauda (%.0f px/s)" % v)
+	checar(c.energia >= e0, "a energia não é mais gasta (%.2f → %.2f)" % [e0, c.energia])
+	_rodar(c, m, 0.8)
+	var p1: Vector2 = c.pos
+	_rodar(c, m, 0.1)
+	var v2: float = c.pos.distance_to(p1) / 0.1
+	checar(v2 < 125.0, "voltou à velocidade normal depois da cauda (%.0f px/s)" % v2)
+
+
+# ---------------------------------------------------------------- v0.17: pausa de saída
+
+## `tracar` (o desenho ao vivo) NÃO arma a pausa — a criatura anda enquanto o
+## dedo desenha. Quem arma é `finalizar_rota` (o dedo levanta): aí ela espera
+## `rota.atraso_s` (0,35 s) parada.
+func test_finalizar_rota_arma_a_pausa_de_saida() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	checar(c.tracar(PackedVector2Array([c.pos, Vector2(300, 48)]), m, true).begins_with("ok"), "traço ao vivo")
+	checar(not c.em_atraso(), "traçar não arma a pausa")
+	_rodar(c, m, 0.2)
+	checar(c.pos.x > 50.0, "andou enquanto desenhava (x=%.1f)" % c.pos.x)
+	var texto := str(c.finalizar_rota([]))  # o retorno é o texto da marca (vazio)
+	checar(texto == "", "sem alvo no fim do caminho, nenhuma marca")
+	checar("atraso:on" in c.drenar_eventos(), "avisou o começo da pausa")
+	checar(c.em_atraso(), "finalizar arma a pausa")
+	perto(c.atraso_restante_s(), float(acoes["rota"]["atraso_s"]), 0.001, "rota.atraso_s")
+	var p0: Vector2 = c.pos
 	_rodar(c, m, 0.3)
-	checar(c.energia > e1, "recuperou a energia (%.2f → %.2f)" % [e1, c.energia])
+	perto_v(c.pos, p0, 0.001, "0,3 s sem sair do lugar")
+	checar(c.em_atraso(), "ainda na pausa (0,3 < 0,35)")
+	# o TOQUE pula a pausa e arranca: a rota continua
+	checar(c.comandar({"acao": "correr"}, m, []).begins_with("ok"), "o toque corre")
+	checar(not c.em_atraso(), "a pausa foi pulada")
+	checar("atraso:fim" in c.drenar_eventos(), "avisou o fim da pausa")
+	checar(c._fator_sprint() > 1.0, "acelerou (fator %.2f)" % c._fator_sprint())
+	var e0: float = c.energia
+	_rodar(c, m, 0.2)
+	checar(c.pos.distance_to(p0) > 20.0, "saiu andando (x=%.1f)" % c.pos.x)
+	checar(c.energia < e0 - 0.03, "gastou energia (%.2f → %.2f)" % [e0, c.energia])
+	checar(c.em_rota(), "a rota continua")
 
 
-## SEGURAR sem caminho = HABILIDADE (cavar), ativada na hora.
+## PAUSA + SEGURAR: a caminhada é CANCELADA (a rota some), a carga cresce com o
+## animal parado e o soltar dispara na direção do **DESTINO FINAL capturado**
+## — não na direção do toque — com os valores da carga.
+func test_segurar_na_pausa_cancela_a_caminhada_e_atira_no_destino_final() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(300, 120)])}, m, [])
+	c.finalizar_rota([])
+	checar(c.em_atraso(), "na pausa de saída")
+	var destino: Vector2 = c.rota[c.rota.size() - 1]
+	var toque: Vector2 = c.pos + Vector2(0, 100)  # uma direção BEM diferente
+	checar(c.comandar({"acao": "segurar"}, m, []).begins_with("ok"), "começou a carga")
+	checar(not c.em_rota(), "a caminhada foi CANCELADA")
+	igual(c.rota.size(), 0, "a rota ficou vazia")
+	checar(not c.em_atraso(), "a pausa saiu")
+	checar(c.carregando(), "está carregando")
+	perto(c.carga(), 0.0, 0.01, "a carga começa em zero")
+	# 15 quadros = 0,5 s (o `_rodar` acumula 1/30 e pode passar de 0,5)
+	var evs: Array = c.drenar_eventos()
+	for i in 15:
+		c.passo(1.0 / 30.0, m, [])
+		evs.append_array(c.drenar_eventos())
+	checar("rota:cancelada" in evs, "avisou o cancelamento")
+	checar("carga:on" in evs, "avisou a carga")
+	perto(c.carga(), 0.5, 0.02, "meio segundo = meia carga")
+	var dir := Vector2.ZERO
+	var raio := 0.0
+	var alcance := 0.0
+	var empurrao := 0.0
+	checar(c.comandar({"acao": "soltar_segurar"}, m, []).begins_with("ok"), "disparou")
+	checar("tiro:disparo" in c.drenar_eventos(), "avisou o tiro")
+	checar(not c.carregando(), "a carga acabou")
+	for ef in c.efeitos:
+		if str(ef["tipo"]) == "tiro":
+			dir = Vector2(ef["dir"])
+			raio = float(ef["raio"])
+			alcance = float(ef["alcance"])
+			empurrao = float(ef["empurrao"])
+	checar(dir.dot((destino - c.pos).normalized()) > 0.99, "tiro no DESTINO FINAL capturado (%s)" % dir)
+	checar(dir.dot((toque - c.pos).normalized()) < 0.5, "e NÃO na direção do toque (%s)" % dir)
+	checar(raio > 11.0 and raio < 11.5, "raio da meia carga (%.2f)" % raio)
+	checar(alcance > 360.0 and alcance < 368.0, "alcance da meia carga (%.1f)" % alcance)
+	checar(empurrao > 35.5 and empurrao < 36.5, "empurrão da meia carga (%.2f)" % empurrao)
+
+
+## A MIRA FINAL sobrevive ao cancelamento da caminhada e vale mais que o
+## destino capturado: se o alvo marcado ANDA durante a carga, o tiro vai nele.
+func test_segurar_na_pausa_preserva_a_mira_final_e_mira_nela() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	var adv := _adv(Vector2(200, 200))
+	var alvos := [_alvo_adv("adversario:0", adv)]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(200, 200)])}, m, alvos)
+	c.finalizar_rota(alvos)
+	igual(c.mira_final_id, "adversario:0", "marcou")
+	checar(c.comandar({"acao": "segurar"}, m, []).begins_with("ok"), "carregou na pausa")
+	igual(c.mira_final_id, "adversario:0", "a mira SOBREVIVE ao cancelamento")
+	_rodar(c, m, 0.3, alvos)
+	# o alvo ANDA durante a carga: a direção segue a posição ATUAL dele
+	adv.pos = Vector2(80, 240)
+	alvos[0]["pos"] = adv.pos
+	checar(c.comandar({"acao": "soltar_segurar"}, m, alvos).begins_with("ok"), "disparou")
+	var dir := Vector2.ZERO
+	for ef in c.efeitos:
+		if str(ef["tipo"]) == "tiro":
+			dir = Vector2(ef["dir"])
+	checar(dir.dot((Vector2(adv.pos) - c.pos).normalized()) > 0.99, "tiro no alvo VIVO (%s)" % dir)
+
+
+## FORA da pausa, com caminho em curso, o segurar CARREGA parado mas NÃO
+## cancela a rota: depois do tiro ele retoma a caminhada.
+func test_segurar_com_rota_carrega_parado_e_atira_no_fim() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(300, 48)])}, m, [])
+	_rodar(c, m, 0.2)
+	var p0: Vector2 = c.pos
+	checar(c.comandar({"acao": "segurar"}, m, []).begins_with("ok"), "carregou com caminho")
+	checar(c.carga() < 0.01, "a carga começa zerada")
+	checar(c.em_rota(), "a rota NÃO é cancelada fora da pausa")
+	var evs := _rodar(c, m, 0.4)
+	perto_v(c.pos, p0, 0.001, "parou para carregar")
+	checar(c.carga() > 0.35, "a carga cresce (%.2f)" % c.carga())
+	checar("carga:on" in evs, "avisou a carga")
+	igual(c.comandar({"acao": "segurar"}, m, []), "ok: carregando", "segurar de novo não reinicia")
+	var fim: Vector2 = c.rota[c.rota.size() - 1]
+	checar(c.comandar({"acao": "soltar_segurar"}, m, []).begins_with("ok"), "disparou")
+	checar("tiro:disparo" in c.drenar_eventos(), "avisou o disparo")
+	var dir := Vector2.ZERO
+	for ef in c.efeitos:
+		if str(ef["tipo"]) == "tiro":
+			dir = Vector2(ef["dir"])
+	checar(dir.dot((fim - c.pos).normalized()) > 0.99, "tiro na direção do fim do caminho (%s)" % dir)
+	_rodar(c, m, 0.6)
+	checar(c.pos.x > p0.x + 5.0, "retomou a caminhada (x %.1f → %.1f)" % [p0.x, c.pos.x])
+
+
+## Mede o TIRO de uma carga de `passos` quadros (1/30 s cada): rota fechada →
+## pausa → segurar → espera → soltar. Devolve o efeito "tiro" (ou {}).
+func _tiro_carregado(passos: int) -> Dictionary:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(300, 48)])}, m, [])
+	c.finalizar_rota([])
+	c.comandar({"acao": "segurar"}, m, [])
+	for i in passos:
+		c.passo(1.0 / 30.0, m, [])
+		c.drenar_eventos()
+	c.comandar({"acao": "soltar_segurar"}, m, [])
+	for ef in c.efeitos:
+		if str(ef["tipo"]) == "tiro":
+			return ef
+	return {}
+
+
+## A CARGA escala `raio`, `alcance` e `empurrao` do projétil com teto em 1,0 s
+## (30 quadros = ganho cheio): 15 quadros = metade do ganho e passar de 1,0 s
+## não muda nada.
+func test_carga_escala_raio_alcance_e_empurrao_com_teto() -> void:
+	var zero := _tiro_carregado(0)
+	var meio := _tiro_carregado(15)
+	var cheio := _tiro_carregado(30)
+	var passou := _tiro_carregado(45)  # a carga para no teto de `tiro_carga_s`
+	checar(not zero.is_empty() and not meio.is_empty() and not cheio.is_empty(), "os tiros saíram")
+	perto(float(zero.get("raio", 0.0)), 9.0, 0.01, "sem carga: raio base")
+	perto(float(zero.get("alcance", 0.0)), 280.0, 0.01, "sem carga: alcance base")
+	perto(float(zero.get("empurrao", 0.0)), 24.0, 0.01, "sem carga: empurrão base")
+	perto(float(meio.get("raio", 0.0)), 11.25, 0.05, "meia carga: raio")
+	perto(float(meio.get("alcance", 0.0)), 364.0, 0.5, "meia carga: alcance")
+	perto(float(meio.get("empurrao", 0.0)), 36.0, 0.05, "meia carga: empurrão")
+	perto(float(cheio.get("raio", 0.0)), 13.5, 0.01, "carga cheia: raio")
+	perto(float(cheio.get("alcance", 0.0)), 448.0, 0.02, "carga cheia: alcance")
+	perto(float(cheio.get("empurrao", 0.0)), 48.0, 0.01, "carga cheia: empurrão")
+	perto(float(passou.get("raio", 0.0)), 13.5, 0.01, "o teto segura o raio em 1,0 s")
+	perto(float(passou.get("alcance", 0.0)), 448.0, 0.02, "o teto segura o alcance em 1,0 s")
+
+
+## SEGURAR sem caminho nem alvo = HABILIDADE (cavar), ativada na hora.
 func test_segurar_sem_caminho_cava() -> void:
 	var s := _setup(TERRA, TUNEL)
 	var m: RefCounted = s[0]
@@ -968,17 +1207,21 @@ func test_laco_pequeno_nao_acende_a_area() -> void:
 	checar("laco:onda" not in evs, "não disparou a onda (%s)" % [evs])
 
 
-## INÉRCIA maior no SPRINT manual: o pedaço de frenagem fora da rota cresce um
-## pouco quando a criatura chega acelerada.
-func _frenagem(sprint: bool) -> float:
+## INÉRCIA maior no SPRINT: o pedaço de frenagem fora da rota cresce um pouco
+## quando a criatura chega acelerada. v0.17: quem acelera é o TOQUE (correr), e
+## o toque é rearmado perto do fim — a arrancada dura só `sprint.dura_s`.
+func _frenagem(correr: bool) -> float:
 	var s := _setup(MAPA)
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
 	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(340, 48)])}, m, [])
-	if sprint:
-		c.comandar({"acao": "segurar"}, m, [])
+	if correr:
+		c.comandar({"acao": "correr"}, m, [])
 	var t := 0.0
 	while c.em_rota() and t < 8.0:
+		# rearma a arrancada nos últimos 80 px para chegar acelerado no fim
+		if correr and c.total_rota - c.rota_t < 80.0:
+			c.comandar({"acao": "correr"}, m, [])
 		c.passo(1.0 / 30.0, m, [])
 		c.drenar_eventos()
 		t += 1.0 / 30.0
@@ -1043,43 +1286,18 @@ func test_pulo_pedido_no_ar_sai_ao_terminar_o_primeiro() -> void:
 	perto(float(c._pulo_fila_t), 0.0, 0.001, "a fila foi consumida")
 
 
-## v0.11.4: soltar o segurar NÃO corta a velocidade na hora — a CAUDA mantém o
-## embalo por um tempo e só depois volta à caminhada normal (e a energia para
-## de ser gasta no soltar).
-func test_cauda_do_sprint_mantem_o_embalo_depois_de_soltar() -> void:
-	var s := _setup(MAPA)
-	var m: RefCounted = s[0]
-	var c: RefCounted = s[1]
-	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(340, 48)])}, m, [])
-	_rodar(c, m, 0.2)
-	c.comandar({"acao": "segurar"}, m, [])
-	_rodar(c, m, 0.2)
-	c.comandar({"acao": "soltar_segurar"}, m, [])
-	var p0: Vector2 = c.pos
-	var e0: float = c.energia
-	_rodar(c, m, 0.1)
-	var v: float = c.pos.distance_to(p0) / 0.1
-	checar(v > 140.0, "ainda acelerado logo após soltar (%.0f px/s)" % v)
-	_rodar(c, m, 0.8)
-	var p1: Vector2 = c.pos
-	_rodar(c, m, 0.1)
-	var v2: float = c.pos.distance_to(p1) / 0.1
-	checar(v2 < 125.0, "voltou à velocidade normal depois da cauda (%.0f px/s)" % v2)
-	checar(c.energia > e0, "a energia não é mais gasta ao soltar (%.2f → %.2f)" % [e0, c.energia])
-
-
-## Distância andada DURANTE um pulo, numa rota reta; com `sprint`, acelera e
-## SOLTA antes de pular (a cauda é o que tem de manter o embalo).
-func _pulo_andado(sprint: bool) -> float:
+## Distância andada DURANTE um pulo, numa rota reta. v0.17: com `correr`, dá o
+## toque e espera a ARRANCADA ACABAR antes de pular — é a CAUDA
+## (`sprint.cauda_s`) que tem de manter o embalo.
+func _pulo_andado(correr: bool) -> float:
 	var s := _setup(MAPA)
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
 	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(340, 48)])}, m, [])
 	_rodar(c, m, 0.15)
-	if sprint:
-		c.comandar({"acao": "segurar"}, m, [])
-		_rodar(c, m, 0.2)
-		c.comandar({"acao": "soltar_segurar"}, m, [])
+	if correr:
+		c.comandar({"acao": "correr"}, m, [])
+		_rodar(c, m, 0.65)  # passou dos 0,6 s da arrancada: é a cauda que vale
 	c.comandar({"acao": "pular"}, m, [])
 	var p0: Vector2 = c.pos
 	var t := 0.0
@@ -1090,7 +1308,7 @@ func _pulo_andado(sprint: bool) -> float:
 	return c.pos.distance_to(p0)
 
 
-## v0.11.4 (o pedido do operador): depois de soltar o acelerador ainda dá para
+## v0.11.4 (o pedido do operador), v0.17: depois da arrancada ainda dá para
 ## PULAR acelerado — o pulo vai mais longe do que o pulo normal.
 func test_pulo_com_cauda_do_sprint_vai_mais_longe() -> void:
 	var normal := _pulo_andado(false)
@@ -1194,16 +1412,16 @@ func test_pulo_auto_nao_pula_quando_o_caminho_acaba_antes_do_degrau() -> void:
 
 
 ## Distância andada DURANTE um pulo, com `pular.sprint_fator` configurável.
-func _pulo_andado_com(sprint: bool, cfg: Dictionary) -> float:
+## v0.17: o embalo vem do TOQUE (correr) e já é a CAUDA quando o pulo sai.
+func _pulo_andado_com(correr: bool, cfg: Dictionary) -> float:
 	var s := _setup(MAPA, [], 5, cfg)
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
 	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(340, 48)])}, m, [])
 	_rodar(c, m, 0.15)
-	if sprint:
-		c.comandar({"acao": "segurar"}, m, [])
-		_rodar(c, m, 0.2)
-		c.comandar({"acao": "soltar_segurar"}, m, [])
+	if correr:
+		c.comandar({"acao": "correr"}, m, [])
+		_rodar(c, m, 0.65)  # passou da arrancada: o pulo pega a cauda
 	c.comandar({"acao": "pular"}, m, [])
 	var p0: Vector2 = c.pos
 	var t := 0.0
@@ -1292,9 +1510,9 @@ func test_pulo_auto_nao_pula_vao_de_2_celulas_sem_sprint() -> void:
 	checar(c.pos.x < 140.0, "ficou antes do vão (x=%.0f)" % c.pos.x)
 
 
-## Com SPRINT, o pulo alonga e o mesmo vão de 2 células passa a ser alcançável:
-## o automático cruza e sobe.
-func test_pulo_auto_com_sprint_cruza_vao_de_2_celulas() -> void:
+## Com a ARRANCADA (toque), o pulo alonga e o mesmo vão de 2 células passa a ser
+## alcançável: o automático cruza e sobe.
+func test_pulo_auto_com_a_arrancada_cruza_vao_de_2_celulas() -> void:
 	var s := _setup([
 		",,,,,,,,,,,,",
 		",,,,~~^^^^^^",
@@ -1304,7 +1522,14 @@ func test_pulo_auto_com_sprint_cruza_vao_de_2_celulas() -> void:
 	var c: RefCounted = s[1]
 	c.pulo_auto = true
 	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(336, 48)])}, m, [])
-	c.comandar({"acao": "segurar"}, m, [])
-	var evs := _rodar(c, m, 6.0)
-	checar("pulo:auto" in evs, "o pulo do sprint alcança (%s)" % [evs])
+	# v0.17: um TOQUE a cada quadro rearma a arrancada (emenda), como o jogador
+	# faria para atravessar o vão acelerado.
+	var evs: Array = []
+	var t := 0.0
+	while t < 6.0:
+		c.comandar({"acao": "correr"}, m, [])
+		c.passo(1.0 / 30.0, m, [])
+		evs.append_array(c.drenar_eventos())
+		t += 1.0 / 30.0
+	checar("pulo:auto" in evs, "o pulo da arrancada alcança (%s)" % [evs])
 	checar(c.pos.x > 200.0, "chegou ao planalto (x=%.0f)" % c.pos.x)

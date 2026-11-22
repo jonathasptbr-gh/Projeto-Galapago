@@ -7,10 +7,10 @@ extends Node2D
 ##   baú, adversário, criatura) · 15 subsolo · 24 efeitos (onda/tiro) ·
 ##   25 marca de mira/alvo final · 30 copas · 40 parallax frente · HUD.
 ##
-## Fluxo: dedo → sim/gestos (um dedo: caminho ao vivo, toque, toque duplo,
-## segurar) → sim/comandos → sim/corpo (traço ao vivo + formas do caminho +
-## overlays + autonomia). O tempo é SIMULADO (tempo_ms): demo e oráculo são
-## determinísticos.
+## Fluxo: dedo → sim/gestos (um dedo: caminho ao vivo, toque = correr, toque
+## duplo = pulo, segurar = tiro carregado/habilidade) → sim/comandos → sim/corpo
+## (traço ao vivo + formas do caminho + pausa de saída + overlays + autonomia).
+## O tempo é SIMULADO (tempo_ms): demo e oráculo são determinísticos.
 ##
 ## v0.9 — a ORIGEM do caminho é congelada no `dedo_desceu` (posição da criatura
 ## naquele instante). A FORMA do traço vira ataque dentro do `sim/corpo.gd`
@@ -18,6 +18,12 @@ extends Node2D
 ## o laço NÃO vira mais onda em área desde a v0.11.5 — ver `formas.laco_ataque`
 ## em `dados/acoes.json`). Enquanto desenha, o mundo roda em tempo lento e a
 ## tela escurece; ao soltar, o tempo ACELERA numa rampa.
+##
+## v0.17 — a **PAUSA DE SAÍDA** é do corpo (sim/), não daqui: a cada quadro (e
+## na descida do dedo) o main pergunta `corpo.em_atraso()` e avisa o
+## reconhecedor (`definir_atraso`) — é o que faz o toque sair na hora e o
+## segurar reconhecer em 200 ms. A HUD desenha a pausa e a CARGA do tiro; o
+## jogo só lê o corpo e desenha.
 
 const Mundo := preload("res://sim/mundo.gd")
 const Corpo := preload("res://sim/corpo.gd")
@@ -182,6 +188,9 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	tempo_ms += delta * 1000.0
+	# PAUSA DE SAÍDA (v0.17): a regra é do corpo; o reconhecedor só precisa
+	# saber dela para soltar o toque na hora e encurtar o segurar.
+	reconhecedor.definir_atraso(corpo.em_atraso())
 	_entregar(reconhecedor.tick(tempo_ms))
 	# TRAÇO AO VIVO: enquanto o dedo desenha, a rota é refeita e a criatura já
 	# anda por ela. O relógio do GESTO é real; quem desacelera é o MUNDO.
@@ -249,6 +258,21 @@ func _evento(e: String) -> void:
 				n.aberto = true
 	elif e == "rota:fim":
 		trilha.mostrar(PackedVector2Array())
+	elif e == "rota:cancelada":
+		print("evento: ", e)
+		hud.nota("CAMINHADA CANCELADA")
+	elif e == "atraso:on":
+		print("evento: ", e)
+		hud.nota("PAUSA DE SAÍDA")
+	elif e == "atraso:fim":
+		print("evento: ", e)
+		hud.nota("SAINDO CORRENDO")
+	elif e == "carga:on":
+		print("evento: ", e)
+		hud.nota("CARREGANDO")
+	elif e == "sprint:on":
+		print("evento: ", e)
+		hud.nota("CORRENDO")
 	elif e.begins_with("laco:"):
 		print("evento: ", e)
 		hud.nota("LAÇO: onda em área")
@@ -340,6 +364,9 @@ func dedo_desceu(dedo: int, p: Vector2) -> void:
 		_gesto_origem = corpo.pos
 		_gesto_inv = get_viewport().get_canvas_transform().affine_inverse()
 		_traco_iniciado = false
+	# a pausa de saída vale para o dedo que ACABOU de descer (mesma regra do
+	# `_process`: quem manda é o corpo)
+	reconhecedor.definir_atraso(corpo.em_atraso())
 	_entregar(reconhecedor.iniciar(dedo, p, tempo_ms, tela_de(criatura.ponto_visual() + Vector2(0, -20))))
 
 

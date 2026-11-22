@@ -1,7 +1,7 @@
 # Gestos e ações — como a criatura se move e age
 
 > Regra toda em `sim/` (testada) e nas tabelas `dados/gestos.json` +
-> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.14.1.**
+> `dados/acoes.json` (editáveis); `jogo/` só desenha. **v0.17.0.**
 
 ## O fluxo
 
@@ -26,8 +26,8 @@ Tempo **simulado** (`tempo_ms`): teste, demo e oráculo são determinísticos.
 | **levar o fim do caminho até o alvo** | ele fica **MARCADO** (um "X" amarelo que anda com ele); a marca vale para o **tiro** e para o **golpe físico** — e está ligada ao caminho. **v0.11.4:** a marca segue a **PONTA** do traço — passar por cima e **seguir longe** não marca (não há volta para bater) |
 | **passar por cima** de um alvo com a linha | **batida/empurrão** ao chegar naquele ponto (embalo longo) |
 | **terminar o caminho** com alvo marcado | o animal **vai atrás** (perseguição final) e só bate **ao chegar perto**. Com o destino longe do alvo **não há marca** e ele **não volta** (v0.11.4) |
-| **segurar** | **com um caminho em curso → SPRINT** (acelera e gasta a **barra de energia**); **sem caminho → habilidade em si mesmo** (cavar). Ativa no **limiar** do segurar, sem esperar soltar. **v0.11.4:** ao soltar, o embalo **continua por `sprint.cauda_s`** e cai aos poucos (dá para pular ainda acelerado) |
-| **toque simples** | **TIRO** HÍBRIDO: **com alvo marcado**, mirado nele; **sem marca**, na **direção do toque em relação ao animal** (1 s de recarga; o animal **para** para atirar e segue o caminho). Sai ~0,28 s depois, para não atirar no 1º toque de um duplo |
+| **segurar** | **com caminho ou alvo marcado → TIRO CARREGADO**: o animal **para**, a carga cresce até `combate.tiro_carga_s` (1 s) e o **soltar dispara** no **alvo marcado vivo** ou no **fim do caminho**; **sem caminho nem alvo → habilidade em si mesmo** (cavar), no limiar do segurar. **Na pausa de saída** o segurar (200 ms) cancela a caminhada e carrega; soltar o mesmo dedo já atira (v0.17). Segurar **não é mais sprint** |
+| **toque simples** | **CORRER**: arrancada curta (`sprint.dura_s`, 0,6 s) que gasta a barra de energia; na **pausa de saída** o toque **pula a pausa** e a caminhada começa já. Um novo toque **rearma** a arrancada; a **cauda** (`sprint.cauda_s`) mantém o embalo caindo aos poucos. Fora da pausa o toque fica **pendente** pela janela do duplo (280 ms) |
 | **toque duplo** | **PULO**. **v0.11.4:** o pulo pedido **durante o ar** entra na **FILA** e sai no quadro em que o anterior pousa (`pular.buffer_s`) — pulsos seguidos emendam sem atraso. **v0.13:** com o **PULO AUTO** ligado (botão da HUD), o corpo pula sozinho o degrau de **1 nível** quando o caminho continua — ver a seção própria |
 
 **Não há gesto de dois dedos** (v0.9 tirou ataque ↑, defesa ↓ e especial
@@ -39,6 +39,34 @@ querer".
 e a rampa de aceleração já dão a janela de reação; a criatura desvia andando.
 Defesa também saiu (não há gesto para ela).
 
+## A pausa de saída (v0.17)
+
+Quando a rota é **FECHADA** (o dedo levanta), a criatura ainda não anda: ela
+fica parada `rota.atraso_s` (**0,35 s**) e a HUD mostra a contagem no fio
+(`PAUSA 0,2 s`). É a janela para uma **NOVA descida do dedo** mudar de ideia:
+
+- **toque curto** (menos de `segurar_atraso_ms`, **200 ms**): **PULA** a pausa
+  (`atraso:fim`) e a caminhada começa **já**, com a **ARRANCADA** do toque
+  (correr). A rota continua inteira (o toque não é um novo caminho);
+- **segurar** (≥ 200 ms): **CANCELA** a caminhada — a rota é **esvaziada**
+  (evento `rota:cancelada`) — e começa a **CARGA** do tiro. O **destino final**
+  e a **mira** são capturados **ANTES** do cancelamento: a **mira final
+  sobrevive** ao cancelamento e vale mais que o destino capturado; se o alvo
+  marcado andar, o tiro vai nele. O **soltar do mesmo dedo** já dispara. Sem
+  rota, o estado imediato é a criatura **PARADA** (autonomia `"parado"`; a
+  autonomia normal pode voltar a decidir depois, como sempre);
+- o limiar **curto** (200 ms) só vale **na pausa**. Fora dela o segurar
+  continua em `segurar_min_ms` (**380 ms**) e o toque simples fica
+  **PENDENTE** até a janela do duplo fechar (**280 ms**), para o primeiro toque
+  de um duplo não correr antes do PULO;
+- **só `finalizar_rota` arma a pausa.** `tracar` e o traço ao vivo **NÃO**
+  armam: a janela é do **FIM** do caminho, não do desenho — o traço ao vivo
+  precisa andar enquanto o dedo desenha;
+- **dois toques na pausa não são toque duplo**: não há detecção de duplo na
+  pausa. O primeiro toque sai na hora e **tira a pausa**; o segundo já é um
+  toque comum (fora da pausa, pendente pela janela do duplo);
+- a pausa **não gasta energia** — só a arrancada do toque gasta.
+
 ## O caminho (um dedo): sem espera, ao vivo, com origem congelada
 
 1. O primeiro dedo desce e a **origem** é congelada: a posição da criatura
@@ -48,9 +76,10 @@ Defesa também saiu (não há gesto para ela).
    é refeita a cada quadro e a criatura **já anda por ela**, atrás do traço.
 3. Se ela se mexeu até o traço começar, o primeiro trecho da rota a **traz de
    volta ao começo**.
-4. Ao soltar, a rota é fechada com o último trecho. O **alvo** é marcado
-   **durante** o caminho: quando a ponta do traço alcança um adversário, ele
-   fica marcado (e a marca **anda com ele**, ligada a este caminho).
+4. Ao soltar, a rota é fechada com o último trecho e abre a **pausa de saída**
+   (acima). O **alvo** é marcado **durante** o caminho: quando a ponta do traço
+   alcança um adversário, ele fica marcado (e a marca **anda com ele**, ligada a
+   este caminho).
 5. **Sensibilidade**: `desenho.ganho` (1,6) multiplica o traço.
 
 ### Estrada, caminho orgânico e inércia (v0.9.1+ / v0.11.3)
@@ -71,9 +100,9 @@ A linha desenhada é o **eixo de uma ESTRADA**, não a risca que a criatura pisa
   alcançável: perto da barreira ele volta ao eixo da estrada;
 - a criatura vai até o **fim na velocidade normal**. A frenagem é uma
   **INÉRCIA curta DEPOIS do fim** (`freio_extra_px` = 16 px, ~0,3 s), fora da
-  rota: ela passa do último ponto e para logo adiante. No **SPRINT manual** a
-  frenagem é um pouco maior (`freio_sprint_x` = 1,6×, ~26 px). `parada_px` = 4
-  é a folga para virar `rota:fim`;
+  rota: ela passa do último ponto e para logo adiante. Na **arrancada do
+  toque** (ou na cauda) a frenagem é um pouco maior (`freio_sprint_x` = 1,6×,
+  ~26 px). `parada_px` = 4 é a folga para virar `rota:fim`;
 - **v0.10+:** com ALVO MARCADO o fim não freia: começa a perseguição/golpe.
 
 Um tronco no caminho: o alvo à frente **pula** o ponto que cai dentro dele e a
@@ -214,31 +243,56 @@ Tudo em `sim/formas.gd` (puro). O traço CRU é lido antes de virar rota:
 - **Sem "desenho certo":** as marcas são lidas a cada ~5 pontos do traço; o
   que já acendeu não volta, e a marca é a mesma mesmo redesenhando por cima.
 
-## A MARCA do alvo e o TIRO HÍBRIDO (v0.10/v0.11.1)
+## A MARCA do alvo e o TIRO CARREGADO (v0.10/v0.17)
 
 O jogador **leva o fim do caminho até o alvo** (durante o desenho ou a
 caminhada): quando a ponta do traço alcança um adversário, ele fica **marcado**
 ("X" amarelo no inimigo, andando com ele). A marca é **ligada ao caminho**.
 
-O **toque simples** atira **sempre**, de duas formas:
+O **segurar** é o tiro (v0.17). O dedo **não** escolhe a direção:
 
-- **com alvo marcado**: automira nele (como na v0.10). O ponto do toque **não**
-  muda a direção;
-- **sem marca**: **não é auto-mirado** — a direção é do **animal para o ponto
-  tocado na tela** (`cmd.alvo`, convertido para mundo). Tocar em cima dela usa
-  o olhar;
-- nos dois: a criatura **para** `tiro_pausa_s` (0,25 s), tem
-  `tiro_recarga_s` (1 s) e **segue o caminho**;
-- **não sai** com o disparo — dá para atirar de novo após a recarga;
-- a marca **sai** quando o animal faz o **golpe físico** (chegar no alvo) ou
-  quando um **novo caminho** começa. Se o alvo marcado sumir, a marca cai e o
-  toque vira um tiro livre.
-- **v0.11.4 — a marca acompanha a PONTA:** ela só nasce enquanto a ponta do
-  traço está no alvo e **sai** se o traço continua e termina mais de
-  `combate.mira_final_raio` (34 px) longe dele (`_soltar_marca_longe_da_ponta`;
-  evento `mira_final:` vazio). Um caminho que **passa por cima** (batida) e
-  **segue** para longe não volta para dar o golpe de perseguição. Depois de
-  soltar o dedo, a marca **não é revalidada**: ela anda com o alvo, como antes.
+- **com alvo marcado VIVO**: automira nele — a posição **de agora** (a marca
+  anda com ele). O ponto onde o dedo desceu **não** muda a direção;
+- **sem marca**: o **DESTINO FINAL do caminho** — o último ponto da rota,
+  capturado no começo da carga. Se o alvo marcado sumir antes do disparo, a
+  marca cai e vale o destino capturado;
+- **sem rota e sem alvo**: o **tiro** em si responde `"recusado: sem destino"` —
+  não se atira "no dedo"; e o **segurar** sem caminho/alvo é a **HABILIDADE**
+  (cavar), não um tiro.
+
+O animal **para** para carregar (a rota fica guardada e ele retoma depois do
+tiro; quando o segurar veio da pausa e cancelou a caminhada, não há rota para
+retomar) e a carga cresce até `combate.tiro_carga_s` (**1 s**). O tiro sai **ao
+soltar** (um por segurar), com a carga acumulada, e o animal faz a pausa curta
+`tiro_pausa_s` (0,25 s) e a recarga `tiro_recarga_s` (1 s):
+
+| grandeza | carga 0 | carga 1,0 (1 s) | chave |
+|---|---|---|---|
+| `raio` | 9 px | 13,5 px | `tiro_carga_raio_x` 1,5 |
+| `alcance` | 280 px | 448 px | `tiro_carga_alcance_x` 1,6 |
+| `empurrão` | 24 px | 48 px | `tiro_carga_empurrao_x` 2,0 |
+
+A escala é **linear** — `1 + (x − 1) × carga` — e a carga para em 1 s (o teto).
+O projétil base é `tiro_velocidade` 420 px/s e para no primeiro alvo. Se o
+soltar acontecer **durante a recarga**, o tiro é recusado (`"recusado:
+recarga"`): a caminhada cancelada continua cancelada (caso raro).
+
+A marca **não sai** no disparo — sai no golpe físico ou num caminho novo; dá
+para carregar e atirar de novo após a recarga.
+
+**v0.11.4 — a marca acompanha a PONTA:** ela só nasce enquanto a ponta do
+traço está no alvo e **sai** se o traço continua e termina mais de
+`combate.mira_final_raio` (34 px) longe dele (`_soltar_marca_longe_da_ponta`;
+evento `mira_final:` vazio). Um caminho que **passa por cima** (batida) e
+**segue** para longe não volta para dar o golpe de perseguição. Depois de
+soltar o dedo, a marca **não é revalidada**: ela anda com o alvo, como antes.
+
+### Habilidade: o segurar sem caminho nem alvo
+
+Sem rota, sem alvo e **fora da pausa**, o segurar não é tiro: é a
+**HABILIDADE em si mesmo** (hoje: **cavar**), ativada no `segurar_min_ms`
+(380 ms). Ela desce ao subsolo numa célula escavável e sobe de novo; dura o
+tempo das fases (`cavar.fases`) e a HUD diz o motivo quando não dá para cavar.
 
 ## Travessia e alvo final (no `sim/corpo.gd`)
 
@@ -254,30 +308,33 @@ O **toque simples** atira **sempre**, de duas formas:
   esgotar, a marca se perde (`mira_final:perde`). A marca **sai no golpe**.
   (v0.10 tirou a "automira perdida se ele andar > 48 px": o animal persegue.)
 
-## Segurar: SPRINT no caminho, habilidade sem caminho (v0.11)
+## Correr: a arrancada do toque (v0.17)
 
-Segurar o dedo **parado** (sem arrastar) por `segurar_min_ms` (380 ms) ativa o
-gesto **na hora** (no limiar, sem esperar soltar). Quem decide o que ele faz é o
-corpo:
+O **toque simples** agora **CORRE**. Com um caminho em curso, ele dispara uma
+**ARRANCADA** de `sprint.dura_s` (**0,6 s**) no `sprint.fator` (**1,7×**),
+gastando a **BARRA DE ENERGIA** (`sprint.gasto_s` 0,45/s; a energia recupera
+`sprint.recarga_s` 0,22/s). Um novo toque **REARMA** a duração (emenda a
+corrida) e, ao acabar, entra a **CAUDA** (`sprint.cauda_s`, 0,60 s) em **queda
+linear de 1,7× até 1,0×**.
 
-- **com um caminho em curso → SPRINT**: o animal acelera (`sprint.fator` 1,7×)
-  enquanto o dedo fica e **gasta a BARRA DE ENERGIA** (`sprint.gasto_s` 0,45/s);
-  ao soltar (ou quando a energia acaba), a energia **recupera**
-  (`sprint.recarga_s` 0,22/s). A barra aparece na HUD (embaixo, à esquerda) e
-  fica laranja quando está baixa. Com alvo marcado ou não, funciona igual;
-- **v0.11.4 — a CAUDA:** soltar não corta a velocidade na hora. `_fator_sprint`
-  mantém o embalo por `sprint.cauda_s` (0,60 s) em **queda linear de 1,7× até
-  1,0×** (a energia só é gasta segurando). É ela que deixa **pular ainda
-  acelerado**: o pulo sobe a mesma altura, mas o **avanço horizontal** cresce;
-- **v0.13 — o ar acelera MAIS:** com o sprint (ou a cauda) ativo, o avanço
+- a energia **mínima** para começar é `sprint.minimo` (0,08); sem energia o
+  toque é recusado e ela anda no passo normal;
+- **`soltar_segurar` NÃO corta mais o sprint** (era o efeito do segurar na
+  v0.11): a arrancada tem duração própria e a cauda continua depois dela;
+- **na pausa de saída** o toque pula a pausa (`atraso:fim`) e a caminhada já
+  começa correndo; fora da pausa o toque fica **pendente** pela janela do duplo
+  (280 ms) — é o que impede o primeiro toque de um duplo de correr antes do
+  PULO;
+- **segurar não é mais sprint.** Com caminho ou alvo, o segurar vira TIRO
+  CARREGADO (o animal para); sem caminho/alvo, a habilidade (cavar);
+- **v0.13 — o ar acelera MAIS:** com a arrancada (ou a cauda) ativa, o avanço
   horizontal **no ar** ganha `pular.sprint_fator` (1,5) — o fator só vale
   durante o pulo, a caminhada acelerada não mudou. Medido em teste: pulo
   normal 46,9 px; acelerado **66,8 → 98,2 px** (de ~2,1 para ~3,1 células). Um
   vão de 2 células, que antes só passava no sprint apertado, passa com folga;
-- **sem caminho → HABILIDADE em si mesmo** (hoje: **cavar**), ativada no
-  limiar: desce ao subsolo em célula escavável e sobe de novo do subsolo. A
-  habilidade dura o tempo das fases (`cavar.fases`). A HUD diz o motivo quando
-  não dá para cavar.
+- a **cauda** é o que deixa **pular ainda acelerado**: o pulo sobe a mesma
+  altura, mas o avanço horizontal cresce. A barra de energia aparece na HUD
+  (embaixo, à esquerda) e fica laranja quando está baixa.
 
 ## Pulo automático (v0.13)
 
@@ -292,8 +349,8 @@ Ligado, quando a **rota para na beirada** e o desenho **continua**:
 |---|---|
 | célula à frente é **andável 1 nível acima** (passarela/planalto) | **sim** |
 | **vão de água curto** antes do degrau de 1 nível, com o pouso **dentro do alcance** | **sim** (cruza o vão e sobe) |
-| vão de **2 células** antes do degrau, sem sprint | **não** (pousaria na água) |
-| o mesmo vão **com sprint** (o pulo alonga) | **sim** |
+| vão de **2 células** antes do degrau, sem a arrancada | **não** (pousaria na água) |
+| o mesmo vão **com a arrancada** (o pulo alonga) | **sim** |
 | água no **mesmo nível**, rocha/objeto, degrau de **2+ níveis** | **não** |
 | o caminho **acaba** na beirada (nada do outro lado) | **não** |
 
@@ -305,15 +362,15 @@ checa o **pouso dentro do alcance** e a **continuação** da rota depois dele.
 
 Só o **desenho confirmado** desacelera: `planejamento.escala_tempo` (0,35×), a
 tela escurece `planejamento.escurecer` (0,22) e, ao soltar, o tempo acelera
-numa rampa de `planejamento.retomada_ms` (0,45 s). Segurar para a habilidade
-**não** desacelera o mundo.
+numa rampa de `planejamento.retomada_ms` (0,45 s). O segurar (tiro carregado ou
+habilidade) **não** desacelera o mundo.
 
 ## Overlays
 
 | overlay | o que faz | efeito na rota |
 |---|---|---|
 | **onda** (laço) | círculo que cresce do centro do laço e empurra quem varre — **DESLIGADA desde a v0.11.5** (`formas.laco_ataque`) | nenhum: continua andando |
-| **tiro** (toque simples) | projétil no alvo marcado (automira) ou na direção do toque (sem marca); para no primeiro alvo | nenhum: o animal PAUSA para atirar e segue |
+| **tiro** (segurar) | projétil carregado no **alvo marcado vivo** ou no **fim do caminho** (destino final); a carga escala raio/alcance/empurrão; para no primeiro alvo | nenhum: o animal PAUSA para carregar/atirar e segue (ou fica parado, se a pausa cancelou a caminhada) |
 | **golpe** (`ataque`/`batida`) | arco de fases (antecipação → ativa → recuperação) | nenhum |
 | **pulo** | arco no ar enquanto segue; atravessa barreira; **v0.13:** o automático sobe o degrau de 1 nível quando a rota continua | nenhum |
 | **habilidade** | em si mesmo, com duração; cavar troca de camada | cavar apaga a rota (outra camada) |
@@ -331,13 +388,13 @@ depois **ronda** ao redor. Cada passo é cortado pelo mundo.
 | `mover` | `velocidade` 110 px/s |
 | `ataque` | golpe físico do fim do caminho: `fases` [0,10 · 0,14 · 0,18] s, `alcance` 40, `arco` 90°, `recarga` 0,15 |
 | `batida` | pancada de travessia: `fases` [0,06 · 0,10 · 0,12] s, `alcance` 30, `arco` 120° |
-| `pular` | `fases` [0,06 · 0,42 · 0,06] s, `altura` 26 px, `recarga` 0,08 (cooldown de POUSO), `buffer_s` 0,60 (fila do pulo no ar), `auto_padrao` falso (PULO AUTO começa desligado), `sprint_fator` 1,5 (avanço no ar com sprint) |
-| `habilidade` | `nome` = `cavar` (o que o segurar ativa) |
+| `pular` | `fases` [0,06 · 0,42 · 0,06] s, `altura` 26 px, `recarga` 0,08 (cooldown de POUSO), `buffer_s` 0,60 (fila do pulo no ar), `auto_padrao` falso (PULO AUTO começa desligado), `sprint_fator` 1,5 (avanço no ar com a arrancada/cauda) |
+| `habilidade` | `nome` = `cavar` (o que o segurar ativa **sem caminho nem alvo**) |
 | `cavar` | `fases` [0,15 · 0,55 · 0,15] s |
 | `formas` | limiares do laço (tabela abaixo) |
-| `sprint` | aceleração do segurar no caminho (tabela abaixo) |
-| `combate` | onda/tiro/batida/alvo final (tabela abaixo) |
-| `rota` | `simplificar_px` 10 · `desconto_raio_px` 44 · `desconto_janela_px` 140 · `amontoado_raio_px` 24 · `amontoado_janela_px` 100 · `contorno_alcance_px` 260 · `contorno_raio_px` 128 · `desvio_teimoso_*` 36/6 · **estrada/inércia** abaixo |
+| `sprint` | **arrancada do toque** no caminho (tabela abaixo) |
+| `combate` | onda/tiro carregado/batida/alvo final (tabela abaixo) |
+| `rota` | `simplificar_px` 10 · `desconto_raio_px` 44 · `desconto_janela_px` 140 · `amontoado_raio_px` 24 · `amontoado_janela_px` 100 · `contorno_alcance_px` 260 · `contorno_raio_px` 128 · `desvio_teimoso_*` 36/6 · `atraso_s` 0,35 (pausa de saída) · **estrada/inércia** abaixo |
 
 ### `embalo` — a aceleração dos golpes físicos (v0.9.2)
 
@@ -354,7 +411,7 @@ desacelerando depois da batida; a marcação dá um puxão curto na direção do
 final. O cooldown de 1 s segura a marca do especial (ela fica **pendente** e
 acende quando a recarga termina).
 
-### `rota` — estrada, visão, contorno e inércia (v0.9.1+ / v0.11.3)
+### `rota` — estrada, visão, contorno e inércia (v0.9.1+ / v0.17)
 
 | chave | valor | o quê |
 |---|---|---|
@@ -368,8 +425,9 @@ acende quando a recarga termina).
 | `estrada_desvio_px` | 9 | amplitude do desvio orgânico lateral |
 | `estrada_onda_px` / `estrada_onda2_px` | 120 / 47 | os dois períodos da onda do desvio |
 | `giro_suavidade` / `giro_max_graus_s` | 10 / 720 | filtro e teto de giro da direção (estabilidade) |
-| `freio_extra_px` / `freio_sprint_x` | 16 / 1,6× | INÉRCIA depois do fim; no sprint ×1,6 |
+| `freio_extra_px` / `freio_sprint_x` | 16 / 1,6× | INÉRCIA depois do fim; na arrancada do toque ×1,6 |
 | `parada_px` | 4 | folga para virar `rota:fim` (a inércia continua) |
+| `atraso_s` | 0,35 | **v0.17:** PAUSA DE SAÍDA depois de fechar o caminho — só `finalizar_rota` a arma |
 
 ### `formas`
 
@@ -382,27 +440,32 @@ acende quando a recarga termina).
 | `laco_raio_min` / `laco_raio_max` | 28 / 120 | raio da onda |
 | `laco_dedupe_px` | 26 | laços repetidos |
 
-### `sprint` — a aceleração do segurar no caminho (v0.11)
+### `sprint` — a arrancada do toque (v0.17)
 
 | chave | valor | o quê |
 |---|---|---|
-| `fator` | 1,7× | quanto acelera |
+| `fator` | 1,7× | quanto a arrancada acelera |
+| `dura_s` | 0,60 s | **v0.17:** quanto a ARRANCADA dura; um novo toque a rearma |
 | `gasto_s` / `recarga_s` | 0,45 / 0,22 por s | quanto a barra gasta e quanto recupera |
-| `cauda_s` | 0,60 s | v0.11.4: quanto o embalo dura DEPOIS de soltar (1,7× → 1,0×) |
-| `minimo` | 0,08 | energia mínima para começar o sprint |
+| `cauda_s` | 0,60 s | quanto o embalo dura DEPOIS da arrancada (1,7× → 1,0×) |
+| `minimo` | 0,08 | energia mínima para começar a arrancada |
 
 ### `combate`
 
 | chave | valor | o quê |
 |---|---|---|
-| `onda_velocidade` / `onda_empurrao` | 140 px/s / 30 px | expansão e empurrão da onda |
-| `tiro_velocidade` / `tiro_alcance` | 420 px/s / 280 px | tiro do toque simples (no alvo marcado) |
-| `tiro_raio` / `tiro_empurrao` | 9 / 24 px | acerto e empurrão do tiro |
+| `onda_velocidade` / `onda_empurrao` | 100 px/s / 30 px | expansão e empurrão da onda (laço DESLIGADO desde a v0.11.5) |
+| `tiro_velocidade` / `tiro_alcance` | 420 px/s / 280 px | tiro carregado do segurar (alvo marcado vivo ou fim do caminho) |
+| `tiro_raio` / `tiro_empurrao` | 9 / 24 px | acerto e empurrão-base do tiro (a carga multiplica) |
+| `tiro_carga_s` | 1,0 s | **v0.17:** teto da CARGA; o tiro sai ao soltar |
+| `tiro_carga_raio_x` | 1,5× | raio 9 → 13,5 px na carga cheia |
+| `tiro_carga_alcance_x` | 1,6× | alcance 280 → 448 px na carga cheia |
+| `tiro_carga_empurrao_x` | 2,0× | empurrão 24 → 48 px na carga cheia |
 | `batida_cruza_px` / `batida_tol_px` | 8 / 34 px | quando a linha "passa por cima" e a tolerância na chegada |
 | `batida_empurrao` | 26 px | empurrão da batida |
 | `onda_recarga_s` / `tiro_recarga_s` | 1,0 s | **cooldown** dos especiais (área/tiro) |
 | `area_gatilho_px` | 224 | distância da criatura ao **centro** que acende a área (≈7× o corpo) |
-| `tiro_pausa_s` | 0,25 s | a pausa do animal para atirar |
+| `tiro_pausa_s` | 0,25 s | a pausa curta DEPOIS do disparo; o animal retoma a rota em seguida |
 | `mira_final_raio` | 34 px | onde o fim do caminho MARCA o alvo — e o quanto a PONTA pode se afastar dele sem perder a marca (v0.11.4) |
 | `mira_final_empurrao` | 44 px | empurrão do golpe final |
 
@@ -431,26 +494,34 @@ acende quando a recarga termina).
 ## Alvos
 
 - **Adversário:** fica **marcado** quando o fim do caminho o alcança (X amarelo
-  que anda com ele); é o alvo do **tiro** (toque simples) e do **golpe físico**
-  (a marca sai no golpe, ou num caminho novo).
+  que anda com ele); é o alvo do **tiro carregado** (segurar) e do **golpe
+  físico** (a marca sai no golpe, ou num caminho novo).
 - **Árvore:** alvo da **batida de travessia** (leva a pancada, mas não é
   empurrada — não reage).
-- **Baú:** ficou **sem gesto** na v0.10 (o toque virou PULO) — ver RESIDUOS.
+- **Baú:** ficou **sem gesto** na v0.10 (o toque duplo é o PULO) — ver RESIDUOS.
 - A **mira vermelha** (travar no toque) também ficou sem gesto; o código do
   `travar`/`alvo_id` continua no corpo, sem uso.
 
 ## Como mudar sem tocar em código
 
-- **Ação de cada gesto**: `mapa` em `dados/gestos.json`.
+- **Ação de cada gesto**: `mapa` em `dados/gestos.json` (`toque` = correr,
+  `toque_duplo` = pular, `segurar` = segurar/tiro).
 - **Sensibilidade do desenho**: `desenho.ganho`.
-- **Segurar/planejamento**: `limiares` e `planejamento`.
+- **Limiares dos gestos** (toque, duplo, segurar 380/200, desenho):
+  `limiares`; a **pausa de saída** é `rota.atraso_s`; o planejamento é
+  `planejamento`.
+- **Tiro carregado e carga**: `combate` (`tiro_carga_s`, `tiro_carga_*_x`,
+  `tiro_*`).
+- **Arrancada do toque**: `sprint` (`dura_s`, `fator`, `gasto_s`, `cauda_s`,
+  `minimo`).
 - **O que é laço** (e se ele ataca): `formas.laco_ataque` e os limiares `laco_*` em `dados/acoes.json`.
 - **O que cada ataque faz no alvo**: `combate` (empurrões, alcances, raio).
 - **Inimigo hostil**: `dados/adversario.json` (movimento, as quatro ações,
   recarga do esconder) e `reacao` em `dados/acoes.json` (invencibilidade e
   velocidade do empurrão).
 - **Peso de cada ação**: fases/alcance/arco em `dados/acoes.json`.
-- **Caminho** (simplificação, desconto, desvio, chegada): bloco `rota`.
+- **Caminho** (simplificação, desconto, desvio, chegada): bloco `rota`
+  (inclui `atraso_s`).
 
 ## O que fica para depois
 
@@ -464,8 +535,8 @@ acende quando a recarga termina).
   `duracao`), falta conteúdo.
 - **Bico**: é **andado** como desenhado (v0.11) e não tem ataque próprio; o
   espinho pode deixar o caminho mais longo.
-- **Baú e mira vermelha**: sem gesto desde a v0.10 (o toque é o pulo) — o baú
-  precisa de um gatilho novo.
+- **Baú e mira vermelha**: sem gesto desde a v0.10 (hoje o toque é correr e o
+  toque duplo é o PULO) — o baú precisa de um gatilho novo.
 - **Estrada**: a largura, a amplitude/onda, a inércia (`freio_extra_px`,
   `freio_sprint_x`) e o giro (`giro_suavidade`/`giro_max_graus_s`) são pontos
   de partida — ajustar no aparelho com o operador.
@@ -476,3 +547,18 @@ acende quando a recarga termina).
   outra decisão.
 - **Embalo/cooldown**: os valores (0,25 s/1,7× e 0,6 s/2,0× · 1 s) são pontos
   de partida.
+- **Tempos da v0.17**: pausa 0,35 s · segurar 0,2/0,38 s · carga 1,0 s ·
+  multiplicadores 1,6/1,5/2,0 · arrancada 0,6 s são **pontos de partida** —
+  ajustar no aparelho com o operador.
+- **Toque fora da pausa**: espera a janela do duplo (280 ms) para o primeiro
+  toque de um duplo não correr antes do PULO. Se o operador quiser resposta
+  imediata, é mexer nessa janela — e o PULO sofre.
+- **Carga do tiro**: conta do LIMIAR do segurar (200 ms na pausa, 380 ms fora),
+  não do encostar. Soltar durante a recarga cancela a caminhada e **não**
+  dispara (caso raro).
+- **HUD de carga**: a barra amarela acima da energia e o anel na criatura são
+  **mockup** de desenvolvimento.
+- **Oráculo**: os 60 quadros do CI só cobrem os 2 primeiros segundos; as cenas
+  novas (pausa/segurar/toque/carga) pedem a demo inteira (~480 quadros) para o
+  olho. O baseline do CI será atualizado com os 60 quadros desta versão no
+  mesmo lote.

@@ -1,5 +1,5 @@
 {
- "_leia": "Ações da criatura (v0.11.5). fases = [antecipação, ativa, recuperação] em segundos; alcance/raio em px de mundo (célula = 32). ATAQUE é o golpe físico (usado no golpe final do caminho); BATIDA é a pancada de passagem por cima de um alvo. PULAR e as HABILIDADES acontecem POR CIMA da rota e NÃO a cancelam. As formas do caminho (`formas`) dizem o que é laço (o BICO é andado como desenhado) e o TAMANHO MÍNIMO de laço para acender a área; `combate`, o que cada ataque faz (onda do laço, tiro no toque simples, empurrão) e as distâncias de gatilho; `sprint`, a aceleração do segurar dentro de um caminho. ROTA: pontos de referência esparsos (`simplificar_px`), desconto do vai-e-volta inicial, limpeza de AMONTOADOS (`amontoado_*`), desvio local de OBJETOS; v0.9.1: ESTRADA larga (o animal anda dentro da faixa, com desvio orgânico) e alvo À FRENTE; v0.10: sem freio quando há ALVO MARCADO (perseguição final) e a marca vem do fim do caminho; v0.11: o BICO é andado (nada é ignorado), o toque atira, o toque duplo pula e o SEGURAR dá SPRINT (barra de energia) ou a habilidade; v0.11.1: a ESTRADA segue pela VISÃO (alvo à frente alcançável), a projeção não pula de braço em laço/bico (`projecao_peso`) e a frenagem é INÉRCIA DEPOIS do fim (`freio_extra_px`, maior no sprint em `freio_sprint_x`); v0.11.2: ÁGUA/ROCHA também são contornadas (`contorno_alcance_px`/`contorno_raio_px`) quando a rota volta à terra perto do animal; v0.11.3: o contorno vale também para DESNÍVEL (barreira = `caminho_livre`, continuação de nível alcançável) e a direção é suavizada (`giro_suavidade`/`giro_max_graus_s`). v0.11.4: a MARCA do alvo vale para a PONTA do caminho (passar por cima e seguir longe NÃO volta para o golpe de perseguição), o PULO pedido durante o ar fica na FILA (`pular.buffer_s`, sem o atraso de esperar o toque cair) e o SPRINT tem CAUDA depois de soltar (`sprint.cauda_s`, para pular ainda acelerado). v0.11.5: o ataque em ÁREA do LAÇO está DESLIGADO (`formas.laco_ataque` falso) — desenhar um círculo continua sendo caminho, mas não acende a ONDA; o código do laço fica inteiro atrás do interruptor. Lido por sim/formas.gd e sim/corpo.gd. v0.9.2: os especiais têm RECARGA (`combate.onda_recarga_s`/`tiro_recarga_s` 1 s) e os golpes físicos EMBALAM (`embalo`). v0.13: `pular.auto_padrao` é o padrão do PULO AUTOMÁTICO (a HUD liga/desliga) e `pular.sprint_fator` alonga o avanço do pulo quando o SPRINT (ou a cauda) está ativo. v0.14: `reacao` é o GOLPE DO INIMIGO na criatura — `invencivel_s` (a janela em que um segundo golpe não pega) e `empurrao_velocidade` (px/s do empurrão); a hostilidade e as quatro ações do adversário ficam em `dados/adversario.json`.",
+ "_leia": "Ações da criatura (v0.17.0). fases = [antecipação, ativa, recuperação] em segundos; alcance/raio em px de mundo (célula = 32). ATAQUE é o golpe físico (usado no golpe final do caminho); BATIDA é a pancada de passagem por cima de um alvo. PULAR e as HABILIDADES acontecem POR CIMA da rota e NÃO a cancelam. As formas do caminho (`formas`) dizem o que é laço (o BICO é andado como desenhado) e o TAMANHO MÍNIMO de laço; `combate`, o que cada ataque faz (onda do laço DESLIGADA, tiro carregado do segurar, empurrão) e as distâncias de gatilho; `sprint`, a ARRANCADA do toque (`dura_s` 0,6 s, fator 1,7×, `gasto_s`/`recarga_s` da energia e `cauda_s`); `rota`, inclusive `atraso_s` (a PAUSA DE SAÍDA). v0.17: TOQUE = CORRER; SEGURAR = TIRO CARREGADO com caminho ou alvo (o animal para, a carga cresce até `combate.tiro_carga_s` e escala `tiro_carga_raio_x`/`tiro_carga_alcance_x`/`tiro_carga_empurrao_x`; o tiro sai no soltar, mirado no ALVO MARCADO VIVO ou no último ponto da rota — nunca na direção do dedo; sem rota/alvo é `recusado: sem destino` e o segurar vira habilidade) ou HABILIDADE sem caminho nem alvo; `rota.atraso_s` (0,35 s) é armada SÓ por `finalizar_rota` (o toque curto pula e corre; o segurar ≥ 0,2 s cancela a caminhada e carrega; `tracar` não arma). ROTA: pontos de referência esparsos (`simplificar_px`), desconto do vai-e-volta inicial, limpeza de AMONTOADOS (`amontoado_*`), desvio local de OBJETOS; v0.9.1: ESTRADA larga (o animal anda dentro da faixa, com desvio orgânico) e alvo À FRENTE; v0.10: sem freio quando há ALVO MARCADO (perseguição final) e a marca vem do fim do caminho; v0.11: o BICO é andado; v0.11.1: a ESTRADA segue pela VISÃO (alvo à frente alcançável), a projeção não pula de braço em laço/bico (`projecao_peso`) e a frenagem é INÉRCIA DEPOIS do fim (`freio_extra_px`, maior na arrancada em `freio_sprint_x`); v0.11.2: ÁGUA/ROCHA também são contornadas (`contorno_alcance_px`/`contorno_raio_px`) quando a rota volta à terra perto do animal; v0.11.3: o contorno vale também para DESNÍVEL (barreira = `caminho_livre`, continuação de nível alcançável) e a direção é suavizada (`giro_suavidade`/`giro_max_graus_s`). v0.11.4: a MARCA do alvo vale para a PONTA do caminho (passar por cima e seguir longe NÃO volta para o golpe de perseguição), o PULO pedido durante o ar fica na FILA (`pular.buffer_s`, sem o atraso de esperar o toque cair) e a CAUDA (`sprint.cauda_s`) continua o embalo depois da arrancada. v0.11.5: o ataque em ÁREA do LAÇO está DESLIGADO (`formas.laco_ataque` falso) — desenhar um círculo continua sendo caminho, mas não acende a ONDA; o código do laço fica inteiro atrás do interruptor. Lido por sim/formas.gd e sim/corpo.gd. v0.9.2: os especiais têm RECARGA (`combate.onda_recarga_s`/`tiro_recarga_s` 1 s) e os golpes físicos EMBALAM (`embalo`). v0.13: `pular.auto_padrao` é o padrão do PULO AUTOMÁTICO (a HUD liga/desliga) e `pular.sprint_fator` alonga o avanço do pulo quando a ARRANCADA (ou a cauda) está ativa. v0.14: `reacao` é o GOLPE DO INIMIGO na criatura — `invencivel_s` (a janela em que um segundo golpe não pega) e `empurrao_velocidade` (px/s do empurrão); a hostilidade e as quatro ações do adversário ficam em `dados/adversario.json`.",
  "mover": {"velocidade": 110},
  "olhar": {},
  "travar": {},
@@ -22,7 +22,8 @@
   "gasto_s": 0.45,
   "recarga_s": 0.22,
   "cauda_s": 0.60,
-  "minimo": 0.08
+  "minimo": 0.08,
+  "dura_s": 0.60
  },
  "embalo": {
   "curto_s": 0.25,
@@ -43,6 +44,10 @@
   "tiro_empurrao": 24,
   "tiro_recarga_s": 1.0,
   "tiro_pausa_s": 0.25,
+  "tiro_carga_s": 1.0,
+  "tiro_carga_alcance_x": 1.6,
+  "tiro_carga_raio_x": 1.5,
+  "tiro_carga_empurrao_x": 2.0,
   "batida_empurrao": 26,
   "batida_cruza_px": 8,
   "batida_tol_px": 34,
@@ -75,6 +80,7 @@
   "giro_max_graus_s": 720,
   "freio_extra_px": 16,
   "freio_sprint_x": 1.6,
-  "parada_px": 4
+  "parada_px": 4,
+  "atraso_s": 0.35
  }
 }

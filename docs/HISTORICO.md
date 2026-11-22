@@ -3,6 +3,66 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.17.0 — gestos: correr no toque, tiro carregado no segurar e pausa de saída (2026-11-22)
+
+- **Autorizado pelo operador:** as quatro decisões de gesto da v0.17 —
+  **toque = correr**, **segurar = tiro carregado**, **pausa de saída** de
+  0,35 s (toque pula e corre; segurar cancela a caminhada e atira) e **tiro
+  sem alvo marcado mirado no destino final do caminho**. O tiro deixa de sair
+  no toque e passa a sair no **soltar do segurar**; o segurar sem caminho nem
+  alvo continua sendo a **habilidade** (cavar).
+- **`dados/`:** `gestos.json` — `mapa.toque` de `"tiro"` para `"correr"` e
+  `limiares.segurar_atraso_ms` 200; `acoes.json` — `sprint.dura_s` 0,6,
+  `rota.atraso_s` 0,35 e `combate.tiro_carga_s` 1,0 com
+  `tiro_carga_raio_x` 1,5, `tiro_carga_alcance_x` 1,6 e
+  `tiro_carga_empurrao_x` 2,0. Nenhum valor antigo mudou de significado.
+- **`sim/gestos.gd`:** `definir_atraso` (o corpo avisa a pausa), limiar curto
+  `segurar_atraso_ms` na pausa (200 ms; fora dela segue `segurar_min_ms`, 380),
+  toque na pausa **sem pendência** e **sem detecção de duplo**, e um segurar
+  ≥ 200 ms devolve `segurar_inicio` + `segurar_fim` no **mesmo soltar** (a
+  carga e o disparo saem no mesmo quadro). O toque simples fora da pausa
+  continua pendente pela janela do duplo (280 ms).
+- **`sim/comandos.gd`:** o toque segue `mapa.toque` (`"correr"`);
+  `segurar_inicio` → `"segurar"` e `segurar_fim` → `"soltar_segurar"`.
+- **`sim/corpo.gd`:** `_cmd_correr` (arrancada de `sprint.dura_s` 0,6 s no
+  fator 1,7×, energia 0,45/s, rearma por um novo toque e cauda de 0,6 s);
+  `_cmd_segurar`/`_cmd_soltar_segurar` (carga até 1 s com o animal **parado**;
+  tiro no **alvo marcado vivo** ou no **destino final capturado**;
+  `"recusado: sem destino"` sem rota nem alvo); `_cancelar_caminhada` (rota
+  **esvaziada**, `mira_final_id` **preservada**, autonomia `"parado"`);
+  `_atirar(carga)` escalando raio, alcance e empurrão. A pausa é armada **só**
+  em `finalizar_rota` (`em_atraso`/`atraso_restante_s`; `tracar` e o traço ao
+  vivo **não** armam). O sprint deixa de terminar em `soltar_segurar` e passa a
+  ter duração própria, com a cauda depois dela.
+- **`jogo/`:** HUD com `PAUSA`/`CARREGANDO`, barra de carga **amarela** acima
+  da energia, anel de carga na criatura e a **legenda de 11 linhas**;
+  `main` avisa o reconhecedor da pausa (`definir_atraso`) na descida do dedo e
+  a cada quadro; a demo encena o caminho de sempre, pausa+segurar,
+  pausa+toque, tiro no alvo marcado, toque duplo, perseguição/golpe final e o
+  segurar sem caminho (cavar) — **~15 s**.
+- **`testes/`:** **12 a mais** (149 → 161), com 16 funções novas e 4
+  substituídas: pausa e dois toques, limiar curto, dois dedos na pausa,
+  cancelamento da caminhada, mira preservada, carga e teto de 1 s, tiro no fim
+  do caminho, `"recusado: sem destino"`, arrancada/energia/rearma, cauda,
+  arrancada sem caminho e pulo automático com a arrancada.
+  **Verificação:** `tools/testes.sh` **161 testes, 0 falhas**;
+  `parser: 42 scripts, 0 com erro`; `docs: 29 Markdown, 0 erro(s)`; a execução
+  local do oráculo (60 quadros) termina **sem SCRIPT ERROR**.
+- **Documentação:** GDD reescrito na pausa de saída, no tiro carregado e na
+  arrancada do toque (e o valor da onda corrigido de 140 para **100 px/s**,
+  lido do dado real); `CONCEITO`, `AGENTS` e as descrições `_leia` de
+  `dados/gestos.json` e `dados/acoes.json` atualizados para o que o jogo faz
+  agora.
+- **Oráculo/baseline:** o visível **mudou** (a legenda de 11 linhas e a pausa
+  no fim dos 60 quadros do CI). O baseline `testes/baseline/` **ainda é o
+  antigo**: será atualizado com os 60 quadros gerados pelo CI (`llvmpipe`)
+  num **commit seguinte do mesmo lote**, depois do verde. Nenhum número de run
+  é inventado aqui.
+- **Resíduos:** os tempos da v0.17 são **pontos de partida**; fora da pausa o
+  toque espera a janela do duplo; a carga conta do **limiar**; o soltar em
+  recarga cancela a caminhada e não dispara; a barra/anel de carga são
+  **mockup**; os 60 quadros do CI cobrem só os 2 primeiros segundos.
+
 ## v0.16.1 — higiene de CI e tooling (2026-11-22)
 
 - **Autorizado pelo operador:** fechar os resíduos pequenos de fundação.

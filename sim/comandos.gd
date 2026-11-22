@@ -3,10 +3,13 @@ extends RefCounted
 ## de dados/gestos.json. Quem decide se a criatura obedece é a camada de
 ## afinidade (P4); hoje ela obedece.
 ##
-## v0.11 — UM DEDO SÓ. O caminho é desenhado ao vivo pelo `jogo/main.gd` em
-## `corpo.tracar`; aqui passam os gestos que viram comando: toque (tiro),
-## toque duplo (pulo), segurar (sprint no caminho / habilidade sem caminho) e a
-## trajetória (mover, já desenhada).
+## v0.17 — UM DEDO SÓ. O caminho é desenhado ao vivo pelo `jogo/main.gd` em
+## `corpo.tracar`; aqui passam os gestos que viram comando: toque (**correr**:
+## arrancada curta), toque duplo (pulo), segurar (**tiro carregado** com
+## caminho/alvo, habilidade sem caminho) e a trajetória (mover, já desenhada).
+## Na PAUSA DE SAÍDA do corpo um segurar chega como `segurar_inicio` e
+## `segurar_fim` no mesmo quadro — "segurar" e "soltar_segurar" seguidos — e o
+## toque chega na hora, sem a janela do duplo.
 ##
 ## O ATAQUE NÃO PASSA POR AQUI: ele nasce da FORMA do caminho em
 ## `sim/formas.gd` → `sim/corpo.gd` (hoje só a travessia; o LAÇO está desligado

@@ -79,8 +79,9 @@ a arte fica) é do operador: o agente propõe com opções, não decide calado.
 project.godot         configuração (720x1280 canvas_items, arte nearest, RETRATO, ETC2/ASTC)
 export_presets.cfg    preset Android (arm64, sem Gradle)
 CLAUDE.md             ponteiro de uma linha para este arquivo (Claude Code)
-sim/                  lógica pura: gestos (1 dedo: caminho, toque, toque duplo,
-                       segurar=habilidade) · formas (laço/bico do desenho) ·
+sim/                  lógica pura: gestos (1 dedo: caminho, toque=correr, toque
+                       duplo=pulo, segurar=tiro carregado/habilidade; pausa de
+                       saída) · formas (laço/bico do desenho) ·
                        comandos · corpo (traço ao vivo+waypoints+overlays+
                        marcas de ataque+autonomia) · alvos · adversario
                        (passeio, hostilidade, preparo+área, esconder) · mundo ·
