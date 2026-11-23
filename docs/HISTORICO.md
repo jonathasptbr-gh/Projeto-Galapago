@@ -16,7 +16,7 @@
   (nenhum ponto solto).
 - **Verificação:** `tools/testes.sh` 213 testes/0 falhas (1 novo: cobertura
   de ossos por perfil), parser 58 scripts/0 erros. Baseline trocado em commit
-  próprio com os quadros do CI (llvmpipe).
+  próprio com os 60 quadros do **CI #61** (llvmpipe).
 - **Resíduos:** ver `docs/RESIDUOS.md`.
 
 ## v0.25.1 — biomecânica da passada: passo de 4 tempos e galope (2026-11-23)
