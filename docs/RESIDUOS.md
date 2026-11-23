@@ -4,6 +4,12 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.23.0 | animação | só `bite`, `stunned`, `dig` e `charge` têm desenho; as outras 37 ações têm catálogo mas ainda não têm clipe na pele | médio | aberto |
+| v0.23.0 | animação | durações e janelas de evento são provisórias (125 ms herdado da E2); ajustar no aparelho | pequeno | aberto |
+| v0.23.0 | vida/dano | `hit`/`death` existem na máquina e no catálogo, mas o jogo não tem vida: ficam dormentes | design | aberto |
+| v0.23.0 | camadas | a máquina escolhe UM clipe; overlay simultâneo (comer andando) só com peças separadas de arte | design | aberto |
+| v0.23.0 | corrida | andar e correr usam o mesmo clipe `walk`; `run` entra quando houver estado de sprint exposto | pequeno | aberto |
+| v0.23.0 | ave/serpente | os drivers de ação (avanço/abaixar) são genéricos; ler bem nas duas anatomias ainda não foi avaliado pelo operador | médio | aberto |
 | v0.22.0 | arte | pele geométrica provisória (silhuetas de ave/serpente ainda fracas); a arte real é a F5 | médio | aberto |
 | v0.22.0 | jogo | a pele só liga na demo (`--geo-*`); o jogo normal continua no mock de xadrez | decisão | aberto |
 | v0.22.0 | animação | só `idle`/`walk`; as demais 41 ações e a máquina de estados são a F3 | médio | aberto |

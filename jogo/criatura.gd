@@ -17,6 +17,8 @@ const Esq := preload("res://sim/esqueleto.gd")
 const Dir := preload("res://sim/direcao.gd")
 const Rigs := preload("res://jogo/rigs.gd")
 const PeleGeo := preload("res://jogo/pele_geometrica.gd")
+const Anim := preload("res://sim/animacao.gd")
+const AnimData := preload("res://jogo/animacoes.gd")
 
 var corpo: RefCounted
 var mundo: RefCounted
@@ -31,10 +33,16 @@ var _rig_debug := false
 var _tempo_pele := 0.0
 var _ultima_pos := Vector2.ZERO
 var _andando := false
+# F3: máquina de estados da animação (catálogo em dados/animacoes.json).
+var _anim_cat: Dictionary = {}
+var _anim_mem: Dictionary = {}
+var _clipe_forcado := ""
+var _fase_forcada := -1.0
 
 
 func _ready() -> void:
 	_sprite = Mock.criatura(Color("#d9752f"), Color("#f2a45c"), Color("#4a2010"))
+	_anim_cat = AnimData.carregar()
 	if corpo != null:
 		_ultima_pos = corpo.pos
 
@@ -57,6 +65,12 @@ func pele_geometrica_ativa() -> bool:
 	return not _rig.is_empty()
 
 
+## Só na demo: congela um clipe do catálogo para inspecionar o desenho.
+func forcar_clipe(id: String, fase := 0.5) -> void:
+	_clipe_forcado = id
+	_fase_forcada = fase
+
+
 func _process(delta: float) -> void:
 	if corpo == null:
 		return
@@ -65,6 +79,8 @@ func _process(delta: float) -> void:
 	var desloc: float = (corpo.pos - _ultima_pos).length()
 	_ultima_pos = corpo.pos
 	_andando = desloc > 0.35
+	if not _anim_cat.is_empty():
+		_anim_mem = Anim.resolver(Anim.retrato(corpo, _andando), _anim_cat, _anim_mem, _tempo_pele * 1000.0)
 	position = corpo.pos
 	var celula: Vector2i = mundo.celula_de(corpo.pos)
 	var alt: float = mundo.altura(celula) if corpo.camada == "superficie" else 1.0
@@ -98,14 +114,24 @@ func _draw() -> void:
 		meu += Vector2(sin(_tempo * 57.0) * 2.2, 0.0)
 	var c := meu + Vector2(0, -20)
 	if not _rig.is_empty():
-		# F2: o corpo é o esqueleto; a direção sai do olhar em OITO setores e a
-		# fase do clipe do relógio da própria pele (duração vem do rig).
+		# F2/F3: a direção sai do olhar em OITO setores; o clipe e a fase vêm da
+		# máquina de estados (ou do clipe forçado, só na demo); o rig manda no
+		# desenho e o golpe sai da âncora `boca`.
 		var dir := Dir.setor(corpo.olhar)
-		var clipe := "walk" if _andando else "idle"
-		var dur := Esq.duracao(_rig, clipe)
-		var fase := fmod(_tempo_pele / maxf(dur, 0.001), 1.0)
+		var clipe := String(_anim_mem.get("id", "idle"))
+		if _clipe_forcado != "":
+			clipe = _clipe_forcado
+		if not (_rig.get("clips", {}) as Dictionary).has(clipe):
+			clipe = "walk" if _andando else "idle"
+		var fase := _fase_forcada
+		if fase < 0.0:
+			fase = Anim.fase(_anim_mem, _anim_cat, _tempo_pele * 1000.0)
 		PeleGeo.desenhar(self, _rig, dir, fase, clipe, meu, cor, _rig_debug)
 		c = _ancora_boca(meu, dir, fase, clipe)
+		if _rig_debug:
+			var rotulo := clipe + (" (forçado)" if _clipe_forcado != "" else " · " + String(_anim_mem.get("id", "")))
+			draw_string(ThemeDB.fallback_font, meu + Vector2(-30, -58), rotulo,
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(1, 1, 1, 0.9))
 	else:
 		draw_texture_rect(_sprite, Rect2(meu + Vector2(-32, -52), Vector2(64, 64)), false, cor)
 		var o: Vector2 = corpo.olhar if corpo.olhar.length() > 0.01 else Vector2.RIGHT

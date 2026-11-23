@@ -16,7 +16,7 @@ extends RefCounted
 
 const DIRECOES := ["south", "south-east", "east", "north-east", "north", "north-west", "west", "south-west"]
 const Z := ["front", "back"]
-const CLIPES := ["idle", "walk"]
+const CLIPES := ["idle", "walk", "bite", "stunned", "dig", "charge"]
 
 
 ## Lê o JSON e valida. Devolve {} (falha fechada) para texto ou rig inválido.
@@ -154,6 +154,14 @@ static func pose(m: Dictionary, direcao: String, fase: float, clipe: String = "w
 			_ande_frontal(m, j, f)
 		else:
 			_ande_lateral(m, j, f)
+	elif clipe == "bite":
+		_ataque(j, f, String(d["profile"]) == "frontal")
+	elif clipe == "stunned":
+		_tonto(j, f)
+	elif clipe == "dig":
+		_cava(j, f)
+	elif clipe == "charge":
+		_carrega(j, f, String(d["profile"]) == "frontal")
 	else:
 		_respira(m, j, f)
 	if bool(d["mirror"]):
@@ -300,6 +308,60 @@ static func _bipede(m: Dictionary, j: Dictionary, fase: float) -> void:
 			j[k] = j[k] + Vector2(0.0, bob)
 	if j.has("cauda_ponta"):
 		j["cauda_ponta"] = j["cauda_ponta"] + Vector2(sin(p + 1.0) * float(c["cauda"]), bob)
+
+
+# --- drivers geométricos das ações (provisórios; a arte futura troca por clipes) ---
+
+static func _desloca(j: Dictionary, delta: Vector2) -> void:
+	for k in j:
+		j[k] = (j[k] as Vector2) + delta
+
+
+## Move o corpo sem arrastar os pés (patas ficam plantadas e a perna estica).
+static func _desloca_corpo(j: Dictionary, delta: Vector2) -> void:
+	for k in j:
+		if String(k).begins_with("pata"):
+			continue
+		j[k] = (j[k] as Vector2) + delta
+
+
+## Mordida: o corpo avança na direção em que olha e volta (fase 0..1).
+static func _ataque(j: Dictionary, fase: float, frontal: bool) -> void:
+	var s := sin(PI * fase)
+	var frente := Vector2(0.0, s * 9.0) if frontal else Vector2(s * 9.0, 0.0)
+	_desloca_corpo(j, frente)
+	if j.has("cabeca"):
+		j["cabeca"] = (j["cabeca"] as Vector2) + frente * 0.8
+	if j.has("focinho"):
+		j["focinho"] = (j["focinho"] as Vector2) + frente * 1.1
+	if j.has("bico"):
+		j["bico"] = (j["bico"] as Vector2) + frente * 0.9
+
+
+## Atordoado: treme e a cabeça pende.
+static func _tonto(j: Dictionary, fase: float) -> void:
+	_desloca(j, Vector2(sin(fase * TAU * 3.0) * 2.6, 0.0))
+	if j.has("cabeca"):
+		j["cabeca"] = (j["cabeca"] as Vector2) + Vector2(0.0, 3.0)
+	if j.has("focinho"):
+		j["focinho"] = (j["focinho"] as Vector2) + Vector2(0.0, 3.0)
+
+
+## Cavar: o corpo abaixa e a cabeça desce, com tremor curto.
+static func _cava(j: Dictionary, fase: float) -> void:
+	_desloca_corpo(j, Vector2(sin(fase * TAU * 2.0) * 0.8, 5.0))
+
+
+## Carga do tiro: encolhe e puxa a cabeça para trás.
+static func _carrega(j: Dictionary, fase: float, frontal: bool) -> void:
+	var tras := Vector2(0.0, -3.0) if frontal else Vector2(-3.0, 0.0)
+	_desloca_corpo(j, Vector2(0.0, 2.5))
+	if j.has("cabeca"):
+		j["cabeca"] = (j["cabeca"] as Vector2) + tras
+	if j.has("focinho"):
+		j["focinho"] = (j["focinho"] as Vector2) + tras
+	if j.has("bico"):
+		j["bico"] = (j["bico"] as Vector2) + tras
 
 
 # --- marcha provisória (dois perfis); a arte futura substitui por clipes ---

@@ -47,6 +47,10 @@ func _init(m: Node) -> void:
 		main.criatura.ativar_pele_geometrica("serpente", debug_geo)
 	elif "--geo-ave" in OS.get_cmdline_user_args():
 		main.criatura.ativar_pele_geometrica("ave", debug_geo)
+	# Inspeção de um clipe do catálogo (só demo): --geo-estado=bite
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--geo-estado="):
+			main.criatura.forcar_clipe(a.split("=")[1], 0.5)
 	if "--camera-planalto" in OS.get_cmdline_user_args():
 		main.corpo.pos = main.mundo.centro(Vector2i(8, 8))
 		main.criatura._process(1.0)

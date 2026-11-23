@@ -60,6 +60,12 @@ de `dados/rig/<familia>.json` validado por `sim/esqueleto.gd` (pose por fase e
 PixelLab entra no mesmo lugar quando a arte for aprovada — a regra de jogo
 nunca pergunta qual pele está ativa.
 
+**Animação (v0.23.0):** `dados/animacoes.json` é o catálogo (camada, loop,
+duração, prioridade, janelas de evento por tempo e socket) e
+`sim/animacao.gd` é a máquina pura que transforma o retrato do corpo no clipe
+a desenhar. A prioridade decide quem corta quem; a base troca entre andar e
+parado. Nenhum dano, alcance ou tempo mora aqui.
+
 ## Mundo e mapa
 
 O mapa vem de **dados**: `dados/mapas/<nome>.json` (cantos de terreno + objetos)

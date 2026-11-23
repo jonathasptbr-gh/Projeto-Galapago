@@ -3,6 +3,28 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.23.0 — máquina de estados da animação (F3) (2026-11-23)
+
+- **Catálogo de 43 ações** em `dados/animacoes.json`: camada, loop, duração,
+  prioridade, capacidade exigida (`requer`), interrupções e janelas de evento
+  por **tempo** com o socket que ancora o VFX. Durações **provisórias**;
+  `hit`/`death` ficam prontos e dormentes enquanto não existir vida.
+- **Máquina pura** `sim/animacao.gd`: retrato do corpo (andando, atordoado,
+  golpe, carga, escavando, pulo) → clipe, com prioridade (morte > atordoado >
+  dano > ação > salto > base > overlay > expressão). Clipe de uma vez segura a
+  cena; ameaça mais urgente corta; a base troca entre andar e parado.
+- **A pele obedece:** `jogo/animacoes.gd` carrega o catálogo e
+  `jogo/criatura.gd` desenha o clipe/fase escolhidos. Os três rigs ganharam
+  `bite`, `stunned`, `dig` e `charge`, com drivers geométricos (o corpo avança
+  sem arrastar os pés, treme e pende a cabeça, abaixa para cavar, encolhe na
+  carga). `--geo-debug` mostra o clipe; `--geo-estado=<id>` congela um clipe
+  na demo.
+- **Verificação:** `tools/testes.sh` 200 testes/0 falhas (8 novos: catálogo,
+  prioridades, clipe de uma vez, interrupção, fase loop/fim e retrato do
+  corpo), parser 55 scripts/0 erros; quadros do oráculo com mordida,
+  atordoado, cavar e carga — PNGs abertos; o mock padrão segue intacto.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.22.0 — pele geométrica no jogo (F2) (2026-11-23)
 
 - **A criatura pode ser desenhada pelo esqueleto**, não pelo xadrez:
