@@ -1,7 +1,8 @@
-# Pull request — o lote para revisão no celular
+# Pull request — opcional
 
-> Um lote por PR. O merge é a aprovação do operador; o agente **não** faz o
-> merge do próprio PR. Rito completo em [`docs/BUILD.md`](../docs/BUILD.md).
+> O PR **não** é gate: o agente faz o merge direto em `main` e a aprovação
+> visual é no chat do DSH (o único canal). Use este template só se um PR for
+> aberto por algum motivo. Rito em [`docs/BUILD.md`](../docs/BUILD.md).
 
 ## O que muda
 

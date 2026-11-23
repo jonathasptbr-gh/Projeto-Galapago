@@ -76,27 +76,21 @@ remove do baseline o que não existe mais. `--atualizar` do
 `quadros-diff.mjs` continua valendo para quem estiver num driver igual ao do
 CI — não é o caso deste aparelho.
 
-## Lote visível com revisão (branch + PR)
+## Lote visível: branch para o baseline, merge direto
 
-O rito acima (direto em `main`) continua valendo para documentação, ferramenta
-e correção de uma linha. **Lote que muda o que o operador vê** (arte, câmera,
-movimento, UI) vai por branch e PR:
+Lote que muda o que o operador vê (arte, câmera, movimento, UI) continua
+precisando do baseline do llvmpipe no MESMO commit. O branch `lote/vX.Y.Z`
+existe só para o CI gerar o baseline; **não há PR obrigatório nem
+dual-control** (decisão do operador, 2026-11-23):
 
-```bash
-git switch -c lote/vX.Y.Z
-# ... o lote ...
-git push -u origin lote/vX.Y.Z
-# abrir o PR: o template .github/PULL_REQUEST_TEMPLATE.md já pede aceite,
-# preview, risco, rollback e custo
-```
-
-- O CI roda no PR e o job `preview` comenta as imagens — a revisão acontece
-  ali, não no APK.
-- **O merge é a aprovação do operador.** O agente não faz o merge do próprio
-  PR (dual-control). Depois do merge, o job `apk` publica a `dev`.
-- WIP: **um** lote com PR aberto por vez; nada de dois agentes no mesmo branch.
-- `main` sem proteção de branch hoje (a configuração exige o operador em
-  Settings → Branches); enquanto isso, a regra é de disciplina, não de trava.
+- O agente faz o **merge direto em `main`** (autorização permanente) e dá
+  `git push origin main`.
+- A **aprovação visual é no chat do DSH**: o agente envia a imagem (quadro ou
+  folha de contato) e o operador responde ali. Comentário de PR, issue e
+  e-mail NÃO são lidos nem servem de aprovação.
+- O job `preview` (GIF + quadros no Pages) é conveniência para o commit em
+  `main`; falha de Pages não segura o lote nem pede aprovação.
+- WIP: um lote por vez; nada de dois agentes no mesmo branch.
 
 ## Rollback
 

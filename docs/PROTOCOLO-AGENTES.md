@@ -35,8 +35,8 @@ falta no briefing é falha do gerente, não do trabalhador.
 ## Critério de aceite e teto de reparo
 
 - Todo lote começa com **critério de aceite observável** — uma frase do que o
-  operador vê ou faz de diferente. Ele abre o briefing e o PR (template em
-  `.github/PULL_REQUEST_TEMPLATE.md`).
+  operador vê ou faz de diferente. Ele abre o briefing (o PR é opcional; a
+  aprovação visual é no chat do DSH).
 - **Iteração seletiva:** `tools/verificar.sh` (só as áreas tocadas); o commit
   é gated por `tools/testes.sh` inteiro. Rodar a suíte inteira a cada passo é
   caro e não prova mais.

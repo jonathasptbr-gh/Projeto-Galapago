@@ -4,6 +4,7 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.27.1 | — | nenhum | — | — |
 | v0.27.0 | CI | o `preview` num PR falha ao criar o deployment do Pages: o ambiente `github-pages` só aceita `main` (`custom_branch_policies`); liberar `lote/*` em Settings → Environments → github-pages, ou revisar pelo artefato `quadros` do run | médio | aberto |
 | v0.27.0 | animação | `Anim.retrato` lê `corpo._fator_sprint()` (método privado) só para a pose de decolagem; se o corpo trocar de API, o retrato quebra no parser | pequeno | aberto |
 | v0.27.0 | pele | a mordida não tem faísca nas vistas de costas (`north`, `north-east`, `north-west`): a boca é oculta nesses setores, então o VFX falha fechado | pequeno | aberto |

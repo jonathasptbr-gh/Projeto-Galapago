@@ -3,6 +3,18 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.27.1 — aprovação só no chat e merge direto do agente (2026-11-23)
+
+- **Canal único:** o chat do DSH é o **único** meio de comunicação e
+  aprovação do operador — e-mail, comentário de GitHub, issue e PR **não são
+  lidos**. A revisão visual (arte, movimento, UI) acontece aqui, com a imagem
+  enviada nesta conversa.
+- **Fim do dual-control:** o agente tem autorização permanente para fazer o
+  merge do próprio lote direto em `main`; o branch `lote/vX.Y.Z` fica só para
+  o CI gerar o baseline do lote visível. O job `preview` vira conveniência,
+  não gate.
+- **Verificação:** `tools/docs.sh` ok; PR #1 (v0.27.0) mergeado por squash.
+
 ## v0.27.0 — cão em oito direções: juntas menores, salto com impulso e cadência ágil (2026-11-23)
 
 - **Juntas menores:** a pele esquelética desenha os pontos vermelhos com raio

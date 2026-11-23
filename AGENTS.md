@@ -34,6 +34,12 @@ de leigo, curto, pelo que ele VÊ ou FAZ — e nunca omite:
 Isso vale para o CHAT. `AGENTS.md`, `docs/` e commits são técnicos e densos:
 quem os lê é o agente seguinte.
 
+**Este chat do DSH é o único meio de comunicação e aprovação.** O operador não
+lê e-mail, comentário de GitHub, issue nem PR: a revisão visual (arte, movimento,
+UI) acontece aqui, com a imagem enviada nesta conversa. O agente **não espera
+aprovação fora daqui** — entrega (merge direto em `main`) e mostra a imagem
+nesta conversa; a aprovação é a resposta do operador aqui.
+
 Decisão de **design** (como a criatura se comporta, o que a história diz, como
 a arte fica) é do operador: o agente propõe com opções, não decide calado.
 
@@ -63,7 +69,8 @@ a arte fica) é do operador: o agente propõe com opções, não decide calado.
   `node tools/ci-log.mjs`), APK em `node tools/baixar-apk.mjs`. Iteração:
   `tools/verificar.sh` (seletivo); o gate do commit é `tools/testes.sh`
   inteiro. Cada push deixa o **preview do lote** comentado no commit (GIF +
-  quadros-chave, job `preview`): é a revisão do operador no celular.
+  quadros-chave, job `preview`) — conveniência técnica; a revisão do operador
+  é no chat do DSH, com a imagem enviada aqui.
 - **Trabalho por agentes:** toda sessão é **GERENTE** que fatia o trabalho em
   briefings de contexto fresco e confere evidência — protocolo em
   [`PROTOCOLO-AGENTES`](docs/PROTOCOLO-AGENTES.md); dois agentes no MESMO clone
