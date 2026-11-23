@@ -3,6 +3,22 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.30.0 — giro contínuo do cão na apresentação (2026-11-23)
+
+- **Rotação 0–360°:** o skin 3D usa o ângulo real do olhar (`yaw_graus` em
+  `sim/esqueleto3d.gd`) em vez do yaw do setor; `sim/direcao.gd` continua
+  mandando nas regras e nos sockets. Acabou o snap de 45° no desenho.
+- **Amortecimento só visual:** curvas suaves giram a 18 rad/s; ataque/marca
+  ou virada de mais de 90° num quadro vão direto ao alvo, para a âncora e o
+  cone não atrasarem (teste dedicado).
+- **Continuidade medida:** 0→1° desloca 0,16 px, 44→45° 0,27 px, 359→0°
+  0,16 px — sem salto nas fronteiras de setor.
+- **Ferramenta:** `tools/folha_canino3d.gd --giro` gera a folha de 24 ângulos
+  (0–345°) × 3 fases e a tira do GIF de 360°.
+- **Verificação:** 247 testes/0, parser 64/0, docs 32/0; GIF conferido;
+  baseline dos quadros atualizado no CI #77.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.29.0 — cão com esqueleto 3D projetado em 2D (2026-11-23)
 
 - **Fase A do plano 3D:** o cão passa a ser desenhado por 22 juntas e 21 ossos

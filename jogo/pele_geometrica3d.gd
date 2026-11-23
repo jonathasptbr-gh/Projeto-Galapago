@@ -13,6 +13,8 @@ const ANCORA := {"boca": Color("#7fe0ff"), "coroa": Color("#ffd84d"), "base_caud
 
 
 ## `base` é o ponto do chão da criatura na tela; `tinta` escurece no subsolo.
+## A `pose` já chega projetada com o yaw contínuo da câmera; `direcao` não
+## entra aqui. Os sockets de módulos/VFX também já vêm resolvidos nela.
 static func desenhar(c: CanvasItem, rig: Dictionary, pose: Dictionary, base: Vector2,
 		tinta: Color = Color.WHITE, debug: bool = false, escala: float = 1.0) -> void:
 	if pose.is_empty():

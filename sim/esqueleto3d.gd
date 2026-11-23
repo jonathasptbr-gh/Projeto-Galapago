@@ -227,6 +227,23 @@ static func yaw(direcao: String) -> float:
 	return deg_to_rad(float(YAW_GRAUS[direcao]))
 
 
+## Yaw do rig em GRAUS, na convenção do jogo: 0 = east, 90 = south,
+## 180 = west, 270 = north (e as diagonais a 45°). É o valor que a câmera
+## contínua usa; `yaw()` devolve o mesmo em radianos.
+static func yaw_graus(direcao: String) -> float:
+	if not YAW_GRAUS.has(direcao):
+		return NAN
+	return float(YAW_GRAUS[direcao])
+
+
+## Ângulo efetivo da câmera: `yaw_graus` contínuo quando finito; NaN (padrão)
+## volta ao yaw do setor do rig. Sempre normalizado em [0, 360).
+static func yaw_efetivo(direcao: String, yaw_graus: float) -> float:
+	if is_finite(yaw_graus):
+		return fposmod(yaw_graus, 360.0)
+	return yaw_graus(direcao)
+
+
 static func pitch() -> float:
 	return deg_to_rad(PITCH_GRAUS)
 
@@ -234,8 +251,13 @@ static func pitch() -> float:
 ## Pose 3D completa. Devolve {} para direção/clipe desconhecido — nunca
 ## inventa pose. `juntas` é o contrato 2D (Vector2 no canvas); `juntas_3d`,
 ## `profundidade` e `sockets` são o que o desenho 3D e os módulos consomem.
+##
+## `direcao` continua mandando no SETOR (sockets/oculto_em e módulos). O
+## `yaw_graus` é só a CÂMERA de apresentação: NaN (padrão) usa o yaw do setor;
+## um valor contínuo gira a projeção sem tocar em nenhuma regra. Convenção:
+## 0° = east, 90° = south, 180° = west, 270° = north.
 static func pose(m: Dictionary, direcao: String, fase: float, clipe: String = "walk",
-		salto_correndo: bool = false) -> Dictionary:
+		salto_correndo: bool = false, yaw_graus: float = NAN) -> Dictionary:
 	if m.is_empty() or not m.get("directions") is Dictionary:
 		return {}
 	if not (m["directions"] as Dictionary).has(direcao):
@@ -269,7 +291,7 @@ static func pose(m: Dictionary, direcao: String, fase: float, clipe: String = "w
 		_deitar(j, f)
 	elif clipe == "get_up":
 		_deitar(j, 1.0 - f)
-	return _projetar_pose(m, j, direcao, clipe, f)
+	return _projetar_pose(m, j, direcao, clipe, f, yaw_graus)
 
 
 ## Projeção ortográfica. Devolve Vector3(sx, sy_para_baixo, profundidade_longe).
@@ -326,7 +348,9 @@ static func ordem_pintor(rig: Dictionary, p: Dictionary) -> Array:
 
 ## Adaptador: devolve um rig/pose no formato EXATO que `jogo/modulos.gd` e
 ## `sim/modulos.gd` já consomem (socket por nome via sim/esqueleto.gd), sem
-## mudar uma linha deles. Os sockets viram juntas sintéticas na pose 2D.
+## mudar uma linha deles. Os sockets viram juntas sintéticas na pose 2D e já
+## chegam projetados com o yaw contínuo da pose; `direcao` decide só o
+## `oculto_em` (as vistas de costas continuam escondendo boca/cauda).
 static func adaptar_modulos(rig: Dictionary, p: Dictionary, direcao: String) -> Dictionary:
 	var juntas_mod: Dictionary = (p.get("juntas", {}) as Dictionary).duplicate()
 	var sockets: Dictionary = p.get("sockets", {})
@@ -574,8 +598,9 @@ static func _ik(P: Vector3, F: Vector3, l1: float, l2: float, bend: float) -> Ve
 
 # --- projeção, sockets e pose 2D ---
 
-static func _projetar_pose(m: Dictionary, j: Dictionary, direcao: String, clipe: String, f: float) -> Dictionary:
-	var yaw_rad := yaw(direcao)
+static func _projetar_pose(m: Dictionary, j: Dictionary, direcao: String, clipe: String, f: float,
+		yaw_graus: float = NAN) -> Dictionary:
+	var yaw_rad := deg_to_rad(yaw_efetivo(direcao, yaw_graus))
 	var pitch_rad := pitch()
 	var pr: Dictionary = {}
 	var prof: Dictionary = {}
@@ -583,18 +608,19 @@ static func _projetar_pose(m: Dictionary, j: Dictionary, direcao: String, clipe:
 		var p := projetar(j[nome], yaw_rad, pitch_rad)
 		pr[nome] = para_canvas(p, m)
 		prof[nome] = p.z
-	var sockets := _sockets(m, j, pr, prof, direcao)
+	var sockets := _sockets(m, j, pr, prof, direcao, yaw_rad)
 	return {"juntas": pr, "juntas_3d": j, "profundidade": prof, "sockets": sockets,
 		"direcao": direcao, "clipe": clipe, "fase": f, "yaw": yaw_rad}
 
 
 static func _sockets(m: Dictionary, j: Dictionary, pr: Dictionary, prof: Dictionary,
-		direcao: String) -> Dictionary:
+		direcao: String, yaw_rad: float = NAN) -> Dictionary:
 	var out: Dictionary = {}
 	var socks: Variant = m.get("sockets", {})
 	if not socks is Dictionary:
 		return out
-	var yaw_rad := yaw(direcao)
+	if not is_finite(yaw_rad):
+		yaw_rad = yaw(direcao)
 	var pitch_rad := pitch()
 	for nome in socks:
 		var s: Dictionary = socks[nome]

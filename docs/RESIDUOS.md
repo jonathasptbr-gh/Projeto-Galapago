@@ -4,6 +4,10 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.30.0 | sockets | `boca` e `base_cauda` piscam nas fronteiras de setor (`oculto_em` é por direção) mesmo com o corpo girando suave | pequeno | aberto |
+| v0.30.0 | silhueta | em 90°/270° a vista frontal vira uma linha de 16 px; em 68 px o arame 3D é mais cruzado que o 2D | design | aberto |
+| v0.30.0 | sombra | com pitch 20° o cão "sobe/desce" em relação à sombra ao girar (patas em alturas diferentes) | design | aberto |
+| v0.30.0 | aparelho | sem teste no celular (só headless/Xvfb softpipe) | operador | aberto |
 | v0.29.0 | câmera | com 20°, as patas caem em alturas diferentes na tela (spread 5,5–7,6 px); não existe mais a base única do 2D — é a câmera escolhida | design | aberto |
 | v0.29.0 | leitura | em 68 px o esqueleto 3D é mais "arame" e cruzado que o 2D, sobretudo nas diagonais; a leitura de cão é menos imediata | design | aberto |
 | v0.29.0 | fase B | camadas de pixel art por osso ainda não desenhadas (só o campo `pecas` e a validação) | médio | aberto |

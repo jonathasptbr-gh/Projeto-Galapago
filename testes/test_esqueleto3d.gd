@@ -10,6 +10,7 @@ const Dir := preload("res://sim/direcao.gd")
 const Rigs3D := preload("res://jogo/rigs3d.gd")
 const Mods := preload("res://sim/modulos.gd")
 const Criatura := preload("res://jogo/criatura.gd")
+const Corpo := preload("res://sim/corpo.gd")
 const CAMINHO := "res://dados/rig/canino3d.json"
 
 const BOCA_OCULTA := ["north", "north-east", "north-west"]
@@ -350,6 +351,188 @@ func test_canino_usa_o_skin_3d() -> void:
 	checar(not c.esqueleto3d_ativo(), "2D desliga o esqueleto 3D")
 	checar(c.ativar_esqueleto3d("canino3d"), "volta ao esqueleto 3D")
 	checar(c.esqueleto3d_ativo(), "3D religado")
+	c.free()
+
+
+func test_pose_aceita_yaw_continuo() -> void:
+	var m := _rig()
+	for y in [22.5, 200.0, -30.0, 405.0]:
+		var p := E3.pose(m, "east", 0.3, "walk", false, float(y))
+		checar(not p.is_empty(), "pose com yaw contínuo %.1f" % y)
+		perto(rad_to_deg(float(p["yaw"])), fposmod(float(y), 360.0), 0.0001,
+			"yaw devolvido normalizado %.1f" % y)
+		for nome in p["juntas"]:
+			checar((p["juntas"][nome] as Vector2).is_finite(), "junta finita yaw %.1f/%s" % [y, nome])
+	# O contínuo NÃO usa o yaw do setor: 22,5° difere do padrão 0° (east).
+	var a := E3.pose(m, "east", 0.3, "walk", false, 22.5)
+	var b := E3.pose(m, "east", 0.3, "walk")
+	var mexeu := 0.0
+	for nome in a["juntas"]:
+		mexeu = maxf(mexeu, (a["juntas"][nome] as Vector2).distance_to(b["juntas"][nome]))
+	checar(mexeu > 0.5, "22,5° move a projeção em relação a east (%.3f px)" % mexeu)
+
+
+func test_continuidade_do_giro() -> void:
+	var m := _rig()
+	var base := E3.pose(m, "south-east", 0.42, "walk", false, 0.0)
+	for y in [1.0, 2.0]:
+		var p := E3.pose(m, "south-east", 0.42, "walk", false, float(y))
+		var maxd := 0.0
+		for nome in base["juntas"]:
+			maxd = maxf(maxd, (p["juntas"][nome] as Vector2).distance_to(base["juntas"][nome]))
+		checar(maxd < 1.0, "1° de giro desloca menos de 1 px (veio %.3f)" % maxd)
+		base = p
+	# Fronteiras reais de `Dir.setor` (22,5° e 67,5°): o setor muda, mas a
+	# projeção contínua não pode dar salto.
+	for par in [[22.0, 22.4, 22.6, 23.0], [67.0, 67.4, 67.6, 68.0]]:
+		var anterior: Dictionary = {}
+		for y in par:
+			var dir := Dir.setor(Vector2.from_angle(deg_to_rad(float(y))))
+			var p2 := E3.pose(m, dir, 0.42, "walk", false, float(y))
+			if not anterior.is_empty():
+				var maxd2 := 0.0
+				for nome in p2["juntas"]:
+					maxd2 = maxf(maxd2, (p2["juntas"][nome] as Vector2).distance_to(anterior[nome]))
+				checar(maxd2 < 1.0, "fronteira de setor %.1f° sem salto (%.3f px)" % [y, maxd2])
+			anterior = p2["juntas"]
+	# 359° → 0° fecha o círculo.
+	var fim := E3.pose(m, "south-east", 0.42, "walk", false, 359.0)
+	var inicio := E3.pose(m, "south-east", 0.42, "walk", false, 0.0)
+	var maxw := 0.0
+	for nome in fim["juntas"]:
+		maxw = maxf(maxw, (fim["juntas"][nome] as Vector2).distance_to(inicio["juntas"][nome]))
+	checar(maxw < 1.0, "359→0 sem salto (%.3f px)" % maxw)
+
+
+func test_espelho_yaw_180_continuo() -> void:
+	var m := _rig()
+	for y in [22.5, 200.0]:
+		var a := E3.pose(m, "east", 0.25, "walk", false, float(y))
+		var b := E3.pose(m, "east", 0.25, "walk", false, float(y) + 180.0)
+		var mina := INF
+		var maxa := -INF
+		var minb := INF
+		var maxb := -INF
+		for nome in a["juntas"]:
+			var qa: Vector2 = a["juntas"][nome]
+			var qb: Vector2 = b["juntas"][nome]
+			perto(qa.x + qb.x, 68.0, 0.0001, "yaw+180 inverte x em %s" % nome)
+			mina = minf(mina, qa.x)
+			maxa = maxf(maxa, qa.x)
+			minb = minf(minb, qb.x)
+			maxb = maxf(maxb, qb.x)
+		perto(minb, 68.0 - maxa, 0.0001, "bbox x espelhada (min) %.1f" % y)
+		perto(maxb, 68.0 - mina, 0.0001, "bbox x espelhada (max) %.1f" % y)
+		# No idle as quatro patas estão em y=0: nelas a profundidade z também
+		# inverte. (No walk uma pata pode estar no ar, com y>0.)
+		var ia := E3.pose(m, "east", 0.0, "idle", false, float(y))
+		var ib := E3.pose(m, "east", 0.0, "idle", false, float(y) + 180.0)
+		for k in PATAS:
+			perto(float(ia["profundidade"][k]) + float(ib["profundidade"][k]), 0.0, 0.000001,
+				"yaw+180 inverte a profundidade da pata %s (%.1f)" % [k, y])
+	# y=0: a profundidade horizontal também inverte (x e z do plano do chão).
+	var va := E3.projetar(Vector3(3.0, 0.0, -5.0), deg_to_rad(22.5), E3.pitch())
+	var vb := E3.projetar(Vector3(3.0, 0.0, -5.0), deg_to_rad(202.5), E3.pitch())
+	perto(va.x + vb.x, 0.0, 0.000001, "projeção x inverte")
+	perto(va.z + vb.z, 0.0, 0.000001, "profundidade z inverte no chão")
+
+
+func test_setor_e_angulo_coincidem_nos_oito_yaws() -> void:
+	var m := _rig()
+	for dir in E3.DIRECOES:
+		var padrao := E3.pose(m, dir, 0.33, "run")
+		var explicito := E3.pose(m, dir, 0.33, "run", false, E3.yaw_graus(dir))
+		perto(float(explicito["yaw"]), float(padrao["yaw"]), 0.000001, "yaw rad: " + dir)
+		for nome in padrao["juntas"]:
+			perto_v(explicito["juntas"][nome], padrao["juntas"][nome], 0.000001,
+				"junta igual ao padrão: %s/%s" % [dir, nome])
+		for nome in padrao["sockets"]:
+			perto_v(explicito["sockets"][nome]["pos"], padrao["sockets"][nome]["pos"], 0.000001,
+				"socket igual ao padrão: %s/%s" % [dir, nome])
+
+
+func test_sockets_seguem_o_setor_com_yaw_continuo() -> void:
+	var m := _rig()
+	# A direção continua decidindo oculto_em, mesmo com uma câmera de 200°.
+	var norte := E3.pose(m, "north", 0.0, "idle", false, 200.0)
+	checar(not bool((norte["sockets"]["boca"] as Dictionary)["visivel"]), "boca some em north (yaw 200)")
+	checar(bool((norte["sockets"]["base_cauda"] as Dictionary)["visivel"]), "cauda existe em north (yaw 200)")
+	var sul := E3.pose(m, "south", 0.0, "idle", false, 200.0)
+	checar(bool((sul["sockets"]["boca"] as Dictionary)["visivel"]), "boca existe em south (yaw 200)")
+	checar(not bool((sul["sockets"]["base_cauda"] as Dictionary)["visivel"]), "cauda some em south (yaw 200)")
+	# A posição do socket, porém, acompanha o yaw contínuo.
+	var setor := E3.pose(m, "north", 0.0, "idle")
+	var d := ((norte["sockets"]["coroa"] as Dictionary)["pos"] as Vector2).distance_to(
+		(setor["sockets"]["coroa"] as Dictionary)["pos"] as Vector2)
+	checar(d > 1.0, "socket se move com o yaw contínuo (%.2f px)" % d)
+
+
+func test_integracao_criatura_olhar_diagonal() -> void:
+	var c := Criatura.new()
+	c._ready()
+	var corpo := Corpo.new()
+	corpo.olhar = Vector2(1, 1).normalized()
+	c.corpo = corpo
+	perto(c.yaw_apresentacao(), 45.0, 0.001, "olhar (1,1) → yaw 45")
+	corpo.olhar = Vector2(-1, -1).normalized()
+	perto(c.yaw_apresentacao(), 225.0, 0.001, "olhar (-1,-1) → yaw 225")
+	corpo.olhar = Vector2(1, 0)
+	perto(c.yaw_apresentacao(), 0.0, 0.001, "olhar (1,0) → yaw 0")
+	corpo.olhar = Vector2.ZERO
+	perto(c.yaw_apresentacao(), 90.0, 0.001, "olhar zero cai no setor south")
+	corpo.olhar = Vector2(1, 1).normalized()
+	var p := E3.pose(c._rig3d, Dir.setor(corpo.olhar), 0.0, "idle", false, c.yaw_apresentacao())
+	checar(not p.is_empty(), "pose da Criatura com olhar diagonal")
+	perto(rad_to_deg(float(p["yaw"])), 45.0, 0.001, "pose 3D usa o yaw contínuo do olhar")
+	c.free()
+
+
+func _dif_ang(a: float, b: float) -> float:
+	return absf(wrapf(a - b, -180.0, 180.0))
+
+
+func test_salto_de_olhar_e_passo_do_amortecimento() -> void:
+	var c := Criatura.new()
+	c._ready()
+	var corpo := Corpo.new()
+	c.corpo = corpo
+	# 1) ATAQUE ATIVO: yaw de apresentação e yaw do desenho coincidem no
+	# PRIMEIRO quadro, mesmo partindo de um yaw bem diferente.
+	corpo.olhar = Vector2.from_angle(deg_to_rad(80.0))
+	corpo.ataque = "ataque"
+	c._yaw_vis = 0.0
+	c._atualizar_yaw_apresentacao(1.0 / 60.0)
+	checar(_dif_ang(c.yaw_desenho(), c.yaw_apresentacao()) < 0.01,
+		"ataque ativo não atrasa o yaw (dif=%.4f°)" % _dif_ang(c.yaw_desenho(), c.yaw_apresentacao()))
+	# 2) SALTO BRUTO > 90°: sem ataque, também vai direto.
+	corpo.ataque = ""
+	corpo.olhar = Vector2.from_angle(deg_to_rad(120.0))
+	c._yaw_vis = 0.0
+	c._atualizar_yaw_apresentacao(1.0 / 60.0)
+	checar(_dif_ang(c.yaw_desenho(), c.yaw_apresentacao()) < 0.01,
+		"salto >90° não atrasa o yaw (dif=%.4f°)" % _dif_ang(c.yaw_desenho(), c.yaw_apresentacao()))
+	# 3) CURVA SUAVE: usa delta × 18 rad/s, não um passo fixo. Em 1/60 s o
+	# passo é ~17,19°; em 1/30 s é o dobro (~34,38°).
+	corpo.olhar = Vector2.from_angle(deg_to_rad(80.0))
+	c._yaw_vis = 0.0
+	c._atualizar_yaw_apresentacao(1.0 / 60.0)
+	perto(c.yaw_desenho(), rad_to_deg(18.0) / 60.0, 0.001, "passo de 1/60 s usa delta")
+	c._yaw_vis = 0.0
+	c._atualizar_yaw_apresentacao(1.0 / 30.0)
+	perto(c.yaw_desenho(), rad_to_deg(18.0) / 30.0, 0.001, "passo de 1/30 s é o dobro")
+	# 4) O teto de 180°: 0,1745 s contínuo; 11 quadros a 60 fps = 0,1833 s
+	# (≈0,18 s), nunca um valor fixo por quadro.
+	checar(180.0 / rad_to_deg(18.0) <= 0.18, "180° contínuo em 18 rad/s ≤ 0,18 s")
+	var y := 0.0
+	var frames := 0
+	var passo := rad_to_deg(18.0) / 60.0
+	while frames < 100:
+		var d := absf(wrapf(180.0 - y, -180.0, 180.0))
+		if d <= 0.0001:
+			break
+		y = c._suavizar_yaw(y, 180.0, passo)
+		frames += 1
+	checar(frames <= 11, "180° em no máximo 11 quadros de 60 fps (veio %d = %.4f s)" % [frames, float(frames) / 60.0])
 	c.free()
 
 

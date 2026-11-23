@@ -23,6 +23,9 @@ const Anim := preload("res://sim/animacao.gd")
 const AnimData := preload("res://jogo/animacoes.gd")
 const ModDraw := preload("res://jogo/modulos.gd")
 const Esq3 := preload("res://sim/esqueleto3d.gd")
+# Teto do amortecimento angular da CÂMERA de apresentação (rad/s). Só se
+# aplica a curvas suaves; ataque/salto de olhar vai direto ao alvo.
+const VEL_YAW_RAD_S := 18.0
 const Rigs3D := preload("res://jogo/rigs3d.gd")
 const PeleGeo3D := preload("res://jogo/pele_geometrica3d.gd")
 
@@ -41,6 +44,9 @@ var _rig3d: Dictionary = {}
 var _rig3d_id := ""
 var _rig_debug := false
 var _tempo_pele := 0.0
+# Yaw de APRESENTAÇÃO (graus) com suavização angular só visual; NaN = ainda
+# não inicializado. Não é `corpo.olhar` e não decide setor/regra nenhuma.
+var _yaw_vis := NAN
 var _ultima_pos := Vector2.ZERO
 var _andando := false
 # F3: máquina de estados da animação (catálogo em dados/animacoes.json).
@@ -88,6 +94,7 @@ func ativar_pele_geometrica(id: String = "canino", debug := false) -> bool:
 	_anim_cat = Anim.para_rig(AnimData.carregar(), m)
 	_anim_mem = {}
 	_tempo_pele = 0.0
+	_yaw_vis = NAN
 	queue_redraw()
 	return true
 
@@ -107,6 +114,7 @@ func ativar_esqueleto3d(id: String = "canino3d", debug := false) -> bool:
 	_anim_cat = Anim.para_rig(AnimData.carregar(), m)
 	_anim_mem = {}
 	_tempo_pele = 0.0
+	_yaw_vis = NAN
 	queue_redraw()
 	return true
 
@@ -117,6 +125,42 @@ func esqueleto3d_ativo() -> bool:
 
 func pele_geometrica_ativa() -> bool:
 	return not _rig.is_empty() or not _rig3d.is_empty()
+
+
+## Ângulo CONTÍNUO do olhar para a câmera 3D, em graus: 0 = east, 90 = south,
+## 180 = west, 270 = north. É só apresentação: a simulação continua usando
+## `Dir.setor`. Olhar zero/inválido cai no setor (south), como `Dir.setor`.
+func yaw_apresentacao() -> float:
+	if corpo == null:
+		return Esq3.yaw_graus("south")
+	var olhar: Vector2 = corpo.olhar
+	if not is_finite(olhar.x) or not is_finite(olhar.y) or olhar.length() < 0.001:
+		return Esq3.yaw_graus(Dir.setor(Vector2.ZERO))
+	return fposmod(rad_to_deg(olhar.angle()), 360.0)
+
+
+## Yaw que o DESENHO usa agora (já amortecido). Fora do `_process`, cai no
+## alvo; é o mesmo valor que `_draw` passa ao skin.
+func yaw_desenho() -> float:
+	if is_finite(_yaw_vis):
+		return _yaw_vis
+	return yaw_apresentacao()
+
+
+## Atualiza o yaw de desenho. Ataque ativo (`corpo.ataque != ""`) ou salto
+## bruto do olhar > 90° vai DIRETO ao alvo no mesmo quadro; só curvas suaves
+## passam pelo passo máximo, que usa o `delta` real (18 rad/s), nunca um passo
+## fixo. Não altera `corpo.olhar`.
+func _atualizar_yaw_apresentacao(delta: float) -> void:
+	var alvo := yaw_apresentacao()
+	if not is_finite(_yaw_vis):
+		_yaw_vis = alvo
+		return
+	var salto := absf(wrapf(alvo - _yaw_vis, -180.0, 180.0))
+	if (corpo != null and String(corpo.ataque) != "") or salto > 90.0:
+		_yaw_vis = alvo
+		return
+	_yaw_vis = _suavizar_yaw(_yaw_vis, alvo, maxf(delta, 0.0) * rad_to_deg(VEL_YAW_RAD_S))
 
 
 ## Só na demo: congela um clipe do catálogo para inspecionar o desenho.
@@ -136,6 +180,9 @@ func _process(delta: float) -> void:
 		return
 	_tempo += delta
 	_tempo_pele += delta
+	# CÂMERA 3D: segue o olhar já suavizado pelo corpo. Ataque/salto de olhar
+	# vai direto; só curvas suaves são amortecidas (18 rad/s × delta).
+	_atualizar_yaw_apresentacao(delta)
 	var desloc: float = (corpo.pos - _ultima_pos).length()
 	_ultima_pos = corpo.pos
 	_andando = desloc > 0.35
@@ -196,8 +243,9 @@ func _draw() -> void:
 		var salto_correndo := bool(_anim_mem.get("salto_correndo", false)) and _clipe_forcado == ""
 		if not _rig3d.is_empty():
 			# O esqueleto 3D projeta; o adaptador entrega rig/pose no MESMO
-			# formato que módulos e VFX já consomem (socket por nome).
-			var pose3 := Esq3.pose(_rig3d, dir, fase, clipe, salto_correndo)
+			# formato que módulos e VFX já consomem (socket por nome). A
+			# direção decide sockets; o yaw contínuo decide só a câmera.
+			var pose3 := Esq3.pose(_rig3d, dir, fase, clipe, salto_correndo, yaw_desenho())
 			if pose3.is_empty():
 				push_error("pose 3D vazia: " + dir + "/" + clipe)
 			else:
@@ -252,6 +300,14 @@ func _ancora_boca(base: Vector2, rig: Dictionary, pose: Dictionary, direcao: Str
 		return base + Vector2(0, -20)
 	var piv := Vector2(float(rig["pivot_px"][0]), float(rig["pivot_px"][1]))
 	return base + ((a["pos"] as Vector2) - piv)
+
+
+## Lerp angular em graus com wrap; `passo_max` é o quanto pode girar no quadro.
+func _suavizar_yaw(atual: float, alvo: float, passo_max: float) -> float:
+	var d := wrapf(alvo - atual, -180.0, 180.0)
+	if absf(d) <= passo_max:
+		return fposmod(alvo, 360.0)
+	return fposmod(atual + signf(d) * passo_max, 360.0)
 
 
 func _desenhar_estrelas(base: Vector2) -> void:
