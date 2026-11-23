@@ -4,6 +4,7 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.21.1 | arte | o contrato tem 8 direções, mas a arte existente tem 4 (canino) e 1 (serpente); a pele de sprite deverá declarar o subconjunto por clipe | médio | aberto |
 | v0.21.0 | `dados/rig/` | só o canino; serpente e ave (as outras âncoras) ainda sem rig | médio | aberto |
 | v0.21.0 | `sim/esqueleto.gd` | só `idle`/`walk`; as 43 ações do catálogo e a máquina de estados são F3 | médio | aberto |
 | v0.21.0 | `jogo/` | nenhuma pele usa o esqueleto; integração visual é F2 e troca para sprite é F5 | decisão | aberto |

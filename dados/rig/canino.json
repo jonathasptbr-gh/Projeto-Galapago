@@ -1,81 +1,600 @@
 {
-  "_leia": "RIG do canino (v0.21.0) — CONTRATO de pose e âncoras, não arte. `joints` são px locais do canvas (origem no canto superior esquerdo); `pivot_px` é o ponto de chão (pés). `profiles` separa a vista lateral (east/west) da frontal (south/north); `mirror` espelha em x no pivô. `bones` é só o desenho (o avaliador não depende dele). `sockets` é NOME → osso + deslocamento + z; `oculto_em` diz onde a âncora NÃO existe (null, não herda quadro). `motion` são parâmetros da marcha provisória; o clipe de arte futuro substitui isso sem mexer na mecânica. `envelope_px` é o que a arte real precisa respeitar. `clips` só declara duração/loop. Lido por sim/esqueleto.gd.",
+  "_leia": "RIG do canino (v0.21.1) — CONTRATO de pose e âncoras, não arte. `joints` são px locais do canvas (origem no canto superior esquerdo); `pivot_px` é o ponto de chão (pés). OITO direções: `frontal` (south/north), `lateral` (east/west) e duas de 3/4 (`diagonal` = frente-direita, `diagonal_costas` = costas-direita), espelhadas em x no pivô. `mirror` espelha; `costas` diz que a face não aparece. `bones` é só o desenho (o avaliador não depende dele). `sockets` é NOME → osso + deslocamento + z; `oculto_em` diz onde a âncora NÃO existe (null, não herda quadro). `motion` são parâmetros da marcha provisória; o clipe de arte futuro substitui isso sem mexer na mecânica. `envelope_px` é o que a arte real precisa respeitar. `clips` só declara duração/loop. Lido por sim/esqueleto.gd.",
   "schema_version": 1,
   "id": "canino",
   "arquetipo": "quadrupede",
   "familia": "canino",
   "sample": "geométrico provisório de estudo; NÃO é arte aprovada",
-  "canvas_px": [68, 68],
-  "pivot_px": [34, 50],
-  "envelope_px": {"altura": 32, "comprimento": 39, "largura": 20},
+  "canvas_px": [
+    68,
+    68
+  ],
+  "pivot_px": [
+    34,
+    50
+  ],
+  "envelope_px": {
+    "altura": 32,
+    "comprimento": 39,
+    "largura": 20
+  },
   "directions": {
-    "south": {"profile": "frontal", "mirror": false, "costas": false},
-    "north": {"profile": "frontal", "mirror": false, "costas": true},
-    "east":  {"profile": "lateral", "mirror": false, "costas": false},
-    "west":  {"profile": "lateral", "mirror": true,  "costas": false}
+    "south": {
+      "profile": "frontal",
+      "mirror": false,
+      "costas": false
+    },
+    "south-east": {
+      "profile": "diagonal",
+      "mirror": false,
+      "costas": false
+    },
+    "east": {
+      "profile": "lateral",
+      "mirror": false,
+      "costas": false
+    },
+    "north-east": {
+      "profile": "diagonal_costas",
+      "mirror": false,
+      "costas": true
+    },
+    "north": {
+      "profile": "frontal",
+      "mirror": false,
+      "costas": true
+    },
+    "north-west": {
+      "profile": "diagonal_costas",
+      "mirror": true,
+      "costas": true
+    },
+    "west": {
+      "profile": "lateral",
+      "mirror": true,
+      "costas": false
+    },
+    "south-west": {
+      "profile": "diagonal",
+      "mirror": true,
+      "costas": false
+    }
   },
   "profiles": {
     "lateral": {
       "joints": {
-        "quadril":     [28, 37],
-        "lombo":       [34, 35],
-        "peito":       [40, 34],
-        "pescoco":     [44, 30],
-        "cabeca":      [48, 26],
-        "focinho":     [54, 26],
-        "orelha":      [45, 17],
-        "cauda_base":  [24, 36],
-        "cauda_ponta": [15, 33],
-        "joelho_t":    [24, 42],
-        "pata_t":      [26, 50],
-        "joelho_f":    [42, 42],
-        "pata_f":      [44, 50],
-        "joelho_t2":   [21, 42],
-        "pata_t2":     [23, 50],
-        "joelho_f2":   [45, 42],
-        "pata_f2":     [47, 50]
+        "quadril": [
+          28,
+          37
+        ],
+        "lombo": [
+          34,
+          35
+        ],
+        "peito": [
+          40,
+          34
+        ],
+        "pescoco": [
+          44,
+          30
+        ],
+        "cabeca": [
+          48,
+          26
+        ],
+        "focinho": [
+          54,
+          26
+        ],
+        "orelha": [
+          45,
+          17
+        ],
+        "cauda_base": [
+          24,
+          36
+        ],
+        "cauda_ponta": [
+          15,
+          33
+        ],
+        "joelho_t": [
+          24,
+          42
+        ],
+        "pata_t": [
+          26,
+          50
+        ],
+        "joelho_f": [
+          42,
+          42
+        ],
+        "pata_f": [
+          44,
+          50
+        ],
+        "joelho_t2": [
+          21,
+          42
+        ],
+        "pata_t2": [
+          23,
+          50
+        ],
+        "joelho_f2": [
+          45,
+          42
+        ],
+        "pata_f2": [
+          47,
+          50
+        ]
       },
       "bones": [
-        {"a": "quadril", "b": "lombo", "w": 8.5},
-        {"a": "lombo", "b": "peito", "w": 8.5},
-        {"a": "peito", "b": "pescoco", "w": 6.0},
-        {"a": "pescoco", "b": "cabeca", "w": 6.0},
-        {"a": "cabeca", "b": "focinho", "w": 4.5},
-        {"a": "quadril", "b": "cauda_base", "w": 4.0},
-        {"a": "cauda_base", "b": "cauda_ponta", "w": 3.0},
-        {"a": "quadril", "b": "joelho_t", "w": 4.0},
-        {"a": "joelho_t", "b": "pata_t", "w": 3.5},
-        {"a": "peito", "b": "joelho_f", "w": 4.0},
-        {"a": "joelho_f", "b": "pata_f", "w": 3.5},
-        {"a": "quadril", "b": "joelho_t2", "w": 4.0},
-        {"a": "joelho_t2", "b": "pata_t2", "w": 3.5},
-        {"a": "peito", "b": "joelho_f2", "w": 4.0},
-        {"a": "joelho_f2", "b": "pata_f2", "w": 3.5}
+        {
+          "a": "quadril",
+          "b": "lombo",
+          "w": 8.5
+        },
+        {
+          "a": "lombo",
+          "b": "peito",
+          "w": 8.5
+        },
+        {
+          "a": "peito",
+          "b": "pescoco",
+          "w": 6.0
+        },
+        {
+          "a": "pescoco",
+          "b": "cabeca",
+          "w": 6.0
+        },
+        {
+          "a": "cabeca",
+          "b": "focinho",
+          "w": 4.5
+        },
+        {
+          "a": "quadril",
+          "b": "cauda_base",
+          "w": 4.0
+        },
+        {
+          "a": "cauda_base",
+          "b": "cauda_ponta",
+          "w": 3.0
+        },
+        {
+          "a": "quadril",
+          "b": "joelho_t",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_t",
+          "b": "pata_t",
+          "w": 3.5
+        },
+        {
+          "a": "peito",
+          "b": "joelho_f",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_f",
+          "b": "pata_f",
+          "w": 3.5
+        },
+        {
+          "a": "quadril",
+          "b": "joelho_t2",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_t2",
+          "b": "pata_t2",
+          "w": 3.5
+        },
+        {
+          "a": "peito",
+          "b": "joelho_f2",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_f2",
+          "b": "pata_f2",
+          "w": 3.5
+        }
       ]
     },
     "frontal": {
       "joints": {
-        "quadril":     [34, 40],
-        "lombo":       [34, 37],
-        "peito":       [34, 35],
-        "pescoco":     [34, 31],
-        "cabeca":      [34, 25],
-        "focinho":     [34, 29],
-        "orelha_e":    [29, 17],
-        "orelha_d":    [39, 17],
-        "pata_e":      [28, 50],
-        "pata_d":      [40, 50],
-        "cauda_base":  [34, 41],
-        "cauda_ponta": [34, 48]
+        "quadril": [
+          34,
+          40
+        ],
+        "lombo": [
+          34,
+          37
+        ],
+        "peito": [
+          34,
+          35
+        ],
+        "pescoco": [
+          34,
+          31
+        ],
+        "cabeca": [
+          34,
+          25
+        ],
+        "focinho": [
+          34,
+          29
+        ],
+        "orelha_e": [
+          29,
+          17
+        ],
+        "orelha_d": [
+          39,
+          17
+        ],
+        "pata_e": [
+          28,
+          50
+        ],
+        "pata_d": [
+          40,
+          50
+        ],
+        "cauda_base": [
+          34,
+          41
+        ],
+        "cauda_ponta": [
+          34,
+          48
+        ]
       },
       "bones": [
-        {"a": "quadril", "b": "lombo", "w": 9.0},
-        {"a": "lombo", "b": "peito", "w": 9.0},
-        {"a": "peito", "b": "pescoco", "w": 7.0},
-        {"a": "pescoco", "b": "cabeca", "w": 7.0},
-        {"a": "quadril", "b": "pata_e", "w": 4.5},
-        {"a": "quadril", "b": "pata_d", "w": 4.5},
-        {"a": "cauda_base", "b": "cauda_ponta", "w": 3.5}
+        {
+          "a": "quadril",
+          "b": "lombo",
+          "w": 9.0
+        },
+        {
+          "a": "lombo",
+          "b": "peito",
+          "w": 9.0
+        },
+        {
+          "a": "peito",
+          "b": "pescoco",
+          "w": 7.0
+        },
+        {
+          "a": "pescoco",
+          "b": "cabeca",
+          "w": 7.0
+        },
+        {
+          "a": "quadril",
+          "b": "pata_e",
+          "w": 4.5
+        },
+        {
+          "a": "quadril",
+          "b": "pata_d",
+          "w": 4.5
+        },
+        {
+          "a": "cauda_base",
+          "b": "cauda_ponta",
+          "w": 3.5
+        }
+      ]
+    },
+    "diagonal": {
+      "joints": {
+        "quadril": [
+          29.5,
+          37
+        ],
+        "lombo": [
+          34,
+          35
+        ],
+        "peito": [
+          38.5,
+          34
+        ],
+        "pescoco": [
+          41,
+          30.5
+        ],
+        "cabeca": [
+          44,
+          27
+        ],
+        "focinho": [
+          48.5,
+          28
+        ],
+        "orelha": [
+          42,
+          18
+        ],
+        "cauda_base": [
+          27,
+          36
+        ],
+        "cauda_ponta": [
+          20,
+          32
+        ],
+        "joelho_t": [
+          27,
+          42
+        ],
+        "pata_t": [
+          28,
+          50
+        ],
+        "joelho_f": [
+          40,
+          42
+        ],
+        "pata_f": [
+          41,
+          50
+        ],
+        "joelho_t2": [
+          25,
+          41
+        ],
+        "pata_t2": [
+          26,
+          49
+        ],
+        "joelho_f2": [
+          42,
+          41
+        ],
+        "pata_f2": [
+          43,
+          49
+        ]
+      },
+      "bones": [
+        {
+          "a": "quadril",
+          "b": "lombo",
+          "w": 8.5
+        },
+        {
+          "a": "lombo",
+          "b": "peito",
+          "w": 8.5
+        },
+        {
+          "a": "peito",
+          "b": "pescoco",
+          "w": 6.0
+        },
+        {
+          "a": "pescoco",
+          "b": "cabeca",
+          "w": 6.0
+        },
+        {
+          "a": "cabeca",
+          "b": "focinho",
+          "w": 4.5
+        },
+        {
+          "a": "quadril",
+          "b": "cauda_base",
+          "w": 4.0
+        },
+        {
+          "a": "cauda_base",
+          "b": "cauda_ponta",
+          "w": 3.0
+        },
+        {
+          "a": "quadril",
+          "b": "joelho_t",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_t",
+          "b": "pata_t",
+          "w": 3.5
+        },
+        {
+          "a": "peito",
+          "b": "joelho_f",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_f",
+          "b": "pata_f",
+          "w": 3.5
+        },
+        {
+          "a": "quadril",
+          "b": "joelho_t2",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_t2",
+          "b": "pata_t2",
+          "w": 3.5
+        },
+        {
+          "a": "peito",
+          "b": "joelho_f2",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_f2",
+          "b": "pata_f2",
+          "w": 3.5
+        }
+      ]
+    },
+    "diagonal_costas": {
+      "joints": {
+        "quadril": [
+          29.5,
+          37
+        ],
+        "lombo": [
+          34,
+          35
+        ],
+        "peito": [
+          38.5,
+          34
+        ],
+        "pescoco": [
+          41,
+          29.5
+        ],
+        "cabeca": [
+          44,
+          25
+        ],
+        "focinho": [
+          48,
+          26
+        ],
+        "orelha": [
+          42,
+          16
+        ],
+        "cauda_base": [
+          27,
+          37
+        ],
+        "cauda_ponta": [
+          20,
+          35
+        ],
+        "joelho_t": [
+          27,
+          42
+        ],
+        "pata_t": [
+          28,
+          50
+        ],
+        "joelho_f": [
+          40,
+          42
+        ],
+        "pata_f": [
+          41,
+          50
+        ],
+        "joelho_t2": [
+          25,
+          41
+        ],
+        "pata_t2": [
+          26,
+          49
+        ],
+        "joelho_f2": [
+          42,
+          41
+        ],
+        "pata_f2": [
+          43,
+          49
+        ]
+      },
+      "bones": [
+        {
+          "a": "quadril",
+          "b": "lombo",
+          "w": 8.5
+        },
+        {
+          "a": "lombo",
+          "b": "peito",
+          "w": 8.5
+        },
+        {
+          "a": "peito",
+          "b": "pescoco",
+          "w": 6.0
+        },
+        {
+          "a": "pescoco",
+          "b": "cabeca",
+          "w": 6.0
+        },
+        {
+          "a": "cabeca",
+          "b": "focinho",
+          "w": 4.5
+        },
+        {
+          "a": "quadril",
+          "b": "cauda_base",
+          "w": 4.0
+        },
+        {
+          "a": "cauda_base",
+          "b": "cauda_ponta",
+          "w": 3.0
+        },
+        {
+          "a": "quadril",
+          "b": "joelho_t",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_t",
+          "b": "pata_t",
+          "w": 3.5
+        },
+        {
+          "a": "peito",
+          "b": "joelho_f",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_f",
+          "b": "pata_f",
+          "w": 3.5
+        },
+        {
+          "a": "quadril",
+          "b": "joelho_t2",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_t2",
+          "b": "pata_t2",
+          "w": 3.5
+        },
+        {
+          "a": "peito",
+          "b": "joelho_f2",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_f2",
+          "b": "pata_f2",
+          "w": 3.5
+        }
       ]
     }
   },
@@ -87,12 +606,50 @@
     "respira_px": 0.6
   },
   "sockets": {
-    "boca":       {"joint": "focinho",    "offset": [0, 0],  "z": "front", "oculto_em": ["north"]},
-    "coroa":      {"joint": "cabeca",     "offset": [0, -7], "z": "front", "oculto_em": []},
-    "base_cauda": {"joint": "cauda_base", "offset": [0, 0],  "z": "back",  "oculto_em": ["south"]}
+    "boca": {
+      "joint": "focinho",
+      "offset": [
+        0,
+        0
+      ],
+      "z": "front",
+      "oculto_em": [
+        "north",
+        "north-east",
+        "north-west"
+      ]
+    },
+    "coroa": {
+      "joint": "cabeca",
+      "offset": [
+        0,
+        -7
+      ],
+      "z": "front",
+      "oculto_em": []
+    },
+    "base_cauda": {
+      "joint": "cauda_base",
+      "offset": [
+        0,
+        0
+      ],
+      "z": "back",
+      "oculto_em": [
+        "south",
+        "south-east",
+        "south-west"
+      ]
+    }
   },
   "clips": {
-    "idle": {"duracao_s": 1.0, "loop": true},
-    "walk": {"duracao_s": 0.5, "loop": true}
+    "idle": {
+      "duracao_s": 1.0,
+      "loop": true
+    },
+    "walk": {
+      "duracao_s": 0.5,
+      "loop": true
+    }
   }
 }

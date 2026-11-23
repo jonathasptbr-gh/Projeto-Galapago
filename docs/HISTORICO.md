@@ -3,6 +3,23 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.21.1 — oito direções no esqueleto (2026-11-23)
+
+- **O contrato passa a 8 direções** (S, SE, E, NE, N, NW, W, SW): o rig do
+  canino ganha dois perfis de 3/4 — `diagonal` (frente-direita) e
+  `diagonal_costas` (costas-direita), espelhados para oeste; cardinais
+  continuam nos perfis `frontal` e `lateral`. `sim/esqueleto.gd` só passou a
+  aceitar a lista e a tratar todo perfil não-frontal como marcha lateral.
+- **Âncoras por direção:** `boca` some em norte/nordeste/noroeste,
+  `base_cauda` some em sul/sudeste/sudoeste e `coroa` existe em todas — o
+  mesmo `null` do E4, sem herdar posição.
+- **Verificação:** `tools/testes.sh` 200 testes/0 falhas (os testes do
+  esqueleto agora cobrem os pares de espelho das diagonais e a ausência de
+  âncora nelas), parser 56 scripts/0 erros; `git diff --check` limpo. Sem
+  mudança visível no jogo (o esqueleto ainda não é desenhado), baseline do
+  oráculo intacto.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.21.0 — esqueleto: contrato de pose e âncoras (2026-11-23)
 
 - **Camada nova, pura e sem desenho.** `sim/esqueleto.gd` lê um rig de dado

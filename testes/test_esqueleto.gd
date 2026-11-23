@@ -18,12 +18,12 @@ func _rig() -> Dictionary:
 func test_rig_do_projeto_valida() -> void:
 	var m := _rig()
 	igual(E.validar(m), "", "canino sem erro")
-	igual(E.direcoes(m).size(), 4, "quatro direções")
+	igual(E.direcoes(m).size(), 8, "oito direções")
 	perto(E.duracao(m, "walk"), 0.5, 0.001, "duração do passo")
 	perto(E.duracao(m, "idle"), 1.0, 0.001, "duração do parado")
 
 
-func test_pose_tem_juntas_nas_quatro_direcoes() -> void:
+func test_pose_tem_juntas_nas_oito_direcoes() -> void:
 	var m := _rig()
 	for dir in E.DIRECOES:
 		var p := E.pose(m, dir, 0.0, "idle")
@@ -43,9 +43,32 @@ func test_pes_no_chao() -> void:
 	var jl: Dictionary = l["juntas"]
 	perto((jl["pata_f"] as Vector2).y, 50.0, 0.001, "pata dianteira no chão")
 	perto((jl["pata_t"] as Vector2).y, 50.0, 0.001, "pata traseira no chão")
+	for diag in ["south-east", "north-east"]:
+		var p2 := E.pose(m, diag, 0.0, "idle")
+		var j2: Dictionary = p2["juntas"]
+		perto((j2["pata_f"] as Vector2).y, 50.0, 0.001, "pata dianteira no chão: " + diag)
+		perto((j2["pata_t"] as Vector2).y, 50.0, 0.001, "pata traseira no chão: " + diag)
 
 
 func test_espelho_nao_desloca() -> void:
+	var m := _rig()
+	for par in [["east", "west"], ["south-east", "south-west"], ["north-east", "north-west"]]:
+		var da: String = par[0]
+		var db: String = par[1]
+		var a := E.pose(m, da, 0.0, "walk")
+		var b := E.pose(m, db, 0.0, "walk")
+		var ja: Dictionary = a["juntas"]
+		var jb: Dictionary = b["juntas"]
+		checar(not ja.is_empty() and not jb.is_empty(), "pose do par " + da)
+		for nome in ja:
+			if jb.has(nome):
+				perto((ja[nome] as Vector2).x + (jb[nome] as Vector2).x, 68.0, 0.001,
+					"espelho %s/%s em %s" % [da, db, nome])
+				perto((ja[nome] as Vector2).y, (jb[nome] as Vector2).y, 0.001,
+					"altura %s/%s em %s" % [da, db, nome])
+
+
+func test_espelho_cardinal_antigo() -> void:
 	var m := _rig()
 	var l := E.pose(m, "east", 0.0, "idle")
 	var o := E.pose(m, "west", 0.0, "idle")
@@ -68,6 +91,12 @@ func test_ancora_existe_e_some() -> void:
 	checar(not E.socket(m, norte, "north", "base_cauda").is_empty(), "cauda ao norte")
 	checar(not E.socket(m, sul, "south", "coroa").is_empty(), "coroa ao sul")
 	checar(not E.socket(m, norte, "north", "coroa").is_empty(), "coroa ao norte")
+	var se := E.pose(m, "south-east", 0.0, "idle")
+	var ne := E.pose(m, "north-east", 0.0, "idle")
+	checar(not E.socket(m, se, "south-east", "boca").is_empty(), "boca na diagonal da frente")
+	checar(E.socket(m, ne, "north-east", "boca").is_empty(), "boca some na diagonal de costas")
+	checar(E.socket(m, se, "south-east", "base_cauda").is_empty(), "cauda some na diagonal da frente")
+	checar(not E.socket(m, ne, "north-east", "base_cauda").is_empty(), "cauda na diagonal de costas")
 	checar(E.socket(m, sul, "south", "asa").is_empty(), "socket inexistente devolve vazio")
 
 

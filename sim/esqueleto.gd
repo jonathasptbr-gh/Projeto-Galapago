@@ -8,11 +8,13 @@ extends RefCounted
 ## e resolve âncora por NOME. Nada aqui decide regra de jogo: dano, alcance e
 ## tempo continuam em `sim/corpo.gd`. Socket decora, não decide.
 ##
+## Oito direções: cardinais e diagonais; o desenho de 3/4 é perfil próprio.
+##
 ## Unidades: px locais do canvas (origem no canto superior esquerdo); o pivô
 ## fica nos pés. Âncora ausente na direção NÃO existe naquele desenho — não
 ## herda posição do quadro anterior.
 
-const DIRECOES := ["south", "west", "east", "north"]
+const DIRECOES := ["south", "south-east", "east", "north-east", "north", "north-west", "west", "south-west"]
 const Z := ["front", "back"]
 const CLIPES := ["idle", "walk"]
 
@@ -137,10 +139,10 @@ static func pose(m: Dictionary, direcao: String, fase: float, clipe: String = "w
 		j[nome] = Vector2(float(p[0]), float(p[1]))
 	var f := wrapf(fase, 0.0, 1.0)
 	if clipe == "walk":
-		if d["profile"] == "lateral":
-			_ande_lateral(m, j, f)
-		else:
+		if d["profile"] == "frontal":
 			_ande_frontal(m, j, f)
+		else:
+			_ande_lateral(m, j, f)
 	else:
 		_respira(m, j, f)
 	if bool(d["mirror"]):
