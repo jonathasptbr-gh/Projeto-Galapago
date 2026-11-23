@@ -4,6 +4,9 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.21.2 | arte | rigs geométricos de serpente e ave provisórios, ainda sem validação visual (depende da F2) | médio | aberto |
+| v0.21.2 | dados/rig | escalas diferentes por família (canino 68×68, serpente 96×64, ave 64×64); a regra de porte entre arquétipos continua em aberto | design | aberto |
+| v0.21.2 | dados/rig | serpente e ave só têm `idle`/`walk`; voo, nado e as demais 41 ações do catálogo ficam para a F3 | médio | aberto |
 | v0.21.1 | arte | o contrato tem 8 direções, mas a arte existente tem 4 (canino) e 1 (serpente); a pele de sprite deverá declarar o subconjunto por clipe | médio | aberto |
 | v0.21.0 | `dados/rig/` | só o canino; serpente e ave (as outras âncoras) ainda sem rig | médio | aberto |
 | v0.21.0 | `sim/esqueleto.gd` | só `idle`/`walk`; as 43 ações do catálogo e a máquina de estados são F3 | médio | aberto |

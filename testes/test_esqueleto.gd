@@ -8,10 +8,15 @@ const CAMINHO := "res://dados/rig/canino.json"
 
 
 func _rig() -> Dictionary:
-	var texto := FileAccess.get_file_as_string(CAMINHO)
-	checar(not texto.is_empty(), "rig legível em " + CAMINHO)
+	return _rig_nome("canino")
+
+
+func _rig_nome(nome: String) -> Dictionary:
+	var caminho := "res://dados/rig/" + nome + ".json"
+	var texto := FileAccess.get_file_as_string(caminho)
+	checar(not texto.is_empty(), "rig legível em " + caminho)
 	var m := E.de_json(texto)
-	checar(not m.is_empty(), "rig válido (de_json)")
+	checar(not m.is_empty(), "rig válido (de_json): " + nome)
 	return m
 
 
@@ -178,3 +183,44 @@ func test_envelope_do_canino() -> void:
 	perto(float(env.get("altura", 0.0)), 32.0, 0.001, "altura")
 	perto(float(env.get("comprimento", 0.0)), 39.0, 0.001, "comprimento")
 	perto(float(env.get("largura", 0.0)), 20.0, 0.001, "largura")
+
+
+func test_os_tres_rigs_das_ancoras_validam() -> void:
+	for nome in ["canino", "serpente", "ave"]:
+		var m := _rig_nome(nome)
+		igual(E.validar(m), "", "rig sem erro: " + nome)
+		igual(E.direcoes(m).size(), 8, "oito direções: " + nome)
+		for dir in E.DIRECOES:
+			var p := E.pose(m, dir, 0.0, "walk")
+			checar(not p.is_empty(), "pose %s em %s" % [nome, dir])
+
+
+func test_serpente_rasteja_sem_pernas() -> void:
+	var m := _rig_nome("serpente")
+	var a := E.pose(m, "east", 0.0, "walk")
+	var b := E.pose(m, "east", 0.5, "walk")
+	var ja: Dictionary = a["juntas"]
+	var jb: Dictionary = b["juntas"]
+	checar(absf((ja["s4"] as Vector2).y - (jb["s4"] as Vector2).y) > 0.5, "onda move o meio do corpo")
+	checar(absf((ja["cabeca"] as Vector2).x - (jb["cabeca"] as Vector2).x) > 0.2, "cabeça acompanha a onda")
+	checar(not ja.has("pata_e") and not ja.has("pata_f"), "serpente não inventa perna")
+	# a diagonal também ondula
+	var se := E.pose(m, "south-east", 0.0, "walk")
+	var sd := E.pose(m, "south-east", 0.5, "walk")
+	checar(not se.is_empty() and (se["juntas"] as Dictionary).size() == (sd["juntas"] as Dictionary).size(), "diagonal da serpente")
+
+
+func test_ave_bipede_alterna_os_pes() -> void:
+	var m := _rig_nome("ave")
+	var a := E.pose(m, "south", 0.25, "walk")
+	var b := E.pose(m, "south", 0.75, "walk")
+	var ja: Dictionary = a["juntas"]
+	var jb: Dictionary = b["juntas"]
+	checar(absf((ja["pata_e"] as Vector2).y - (jb["pata_e"] as Vector2).y) > 0.5, "pé esquerdo alterna")
+	checar(absf((ja["pata_d"] as Vector2).y - (jb["pata_d"] as Vector2).y) > 0.5, "pé direito alterna em oposição")
+	perto((ja["pata_d"] as Vector2).y, 50.0, 0.001, "o pé oposto fica no chão")
+	perto((jb["pata_e"] as Vector2).y, 50.0, 0.001, "e troca no meio do passo")
+	var norte := E.pose(m, "north", 0.0, "idle")
+	checar(E.socket(m, norte, "north", "boca").is_empty(), "bico some ao norte")
+	var leste := E.pose(m, "east", 0.0, "idle")
+	checar(not E.socket(m, leste, "east", "boca").is_empty(), "bico existe a leste")

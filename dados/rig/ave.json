@@ -1,0 +1,540 @@
+{
+  "_leia": "RIG da ave (v0.21.2) — âncora do arquétipo alado. Bípede: `walk` é `_bipede` (as duas pernas alternam e o corpo balança; as asas ficam dobradas até existir voo). Oito direções: `lateral`, `frontal` e duas de 3/4; espelho em x no pivô. `pivot_px` é a linha do chão sob as patas. Sockets: boca (bico), coroa, base_cauda. Lido por sim/esqueleto.gd.",
+  "schema_version": 1,
+  "id": "ave",
+  "arquetipo": "ave",
+  "familia": "raptor",
+  "sample": "geométrico provisório de estudo; NÃO é arte aprovada",
+  "canvas_px": [
+    64,
+    64
+  ],
+  "pivot_px": [
+    32,
+    50
+  ],
+  "envelope_px": {
+    "altura": 30,
+    "comprimento": 33,
+    "largura": 22
+  },
+  "directions": {
+    "south": {
+      "profile": "frontal",
+      "mirror": false,
+      "costas": false
+    },
+    "south-east": {
+      "profile": "diagonal",
+      "mirror": false,
+      "costas": false
+    },
+    "east": {
+      "profile": "lateral",
+      "mirror": false,
+      "costas": false
+    },
+    "north-east": {
+      "profile": "diagonal_costas",
+      "mirror": false,
+      "costas": true
+    },
+    "north": {
+      "profile": "frontal",
+      "mirror": false,
+      "costas": true
+    },
+    "north-west": {
+      "profile": "diagonal_costas",
+      "mirror": true,
+      "costas": true
+    },
+    "west": {
+      "profile": "lateral",
+      "mirror": true,
+      "costas": false
+    },
+    "south-west": {
+      "profile": "diagonal",
+      "mirror": true,
+      "costas": false
+    }
+  },
+  "profiles": {
+    "lateral": {
+      "joints": {
+        "corpo": [
+          32,
+          38
+        ],
+        "peito": [
+          37,
+          36
+        ],
+        "pescoco": [
+          41,
+          31
+        ],
+        "cabeca": [
+          45,
+          27
+        ],
+        "bico": [
+          51,
+          27
+        ],
+        "cauda": [
+          25,
+          37
+        ],
+        "cauda_ponta": [
+          18,
+          35
+        ],
+        "asa": [
+          33,
+          34
+        ],
+        "asa_ponta": [
+          28,
+          39
+        ],
+        "coxa_e": [
+          33,
+          42
+        ],
+        "pata_e": [
+          34,
+          50
+        ],
+        "coxa_d": [
+          30,
+          42
+        ],
+        "pata_d": [
+          30,
+          50
+        ]
+      },
+      "bones": [
+        {
+          "a": "corpo",
+          "b": "peito",
+          "w": 8.0
+        },
+        {
+          "a": "peito",
+          "b": "pescoco",
+          "w": 5.0
+        },
+        {
+          "a": "pescoco",
+          "b": "cabeca",
+          "w": 5.0
+        },
+        {
+          "a": "cabeca",
+          "b": "bico",
+          "w": 3.0
+        },
+        {
+          "a": "corpo",
+          "b": "cauda",
+          "w": 3.5
+        },
+        {
+          "a": "cauda",
+          "b": "cauda_ponta",
+          "w": 3.0
+        },
+        {
+          "a": "coxa_e",
+          "b": "pata_e",
+          "w": 3.0
+        },
+        {
+          "a": "coxa_d",
+          "b": "pata_d",
+          "w": 3.0
+        }
+      ]
+    },
+    "frontal": {
+      "joints": {
+        "corpo": [
+          32,
+          38
+        ],
+        "peito": [
+          32,
+          36
+        ],
+        "pescoco": [
+          32,
+          30
+        ],
+        "cabeca": [
+          32,
+          24
+        ],
+        "bico": [
+          32,
+          20
+        ],
+        "cauda": [
+          32,
+          41
+        ],
+        "cauda_ponta": [
+          32,
+          46
+        ],
+        "asa_e": [
+          25,
+          35
+        ],
+        "asa_ponta_e": [
+          21,
+          40
+        ],
+        "asa_d": [
+          39,
+          35
+        ],
+        "asa_ponta_d": [
+          43,
+          40
+        ],
+        "coxa_e": [
+          29,
+          43
+        ],
+        "pata_e": [
+          28,
+          50
+        ],
+        "coxa_d": [
+          35,
+          43
+        ],
+        "pata_d": [
+          36,
+          50
+        ]
+      },
+      "bones": [
+        {
+          "a": "corpo",
+          "b": "peito",
+          "w": 8.0
+        },
+        {
+          "a": "peito",
+          "b": "pescoco",
+          "w": 5.0
+        },
+        {
+          "a": "pescoco",
+          "b": "cabeca",
+          "w": 5.0
+        },
+        {
+          "a": "cabeca",
+          "b": "bico",
+          "w": 3.0
+        },
+        {
+          "a": "corpo",
+          "b": "cauda",
+          "w": 3.5
+        },
+        {
+          "a": "cauda",
+          "b": "cauda_ponta",
+          "w": 3.0
+        },
+        {
+          "a": "coxa_e",
+          "b": "pata_e",
+          "w": 3.0
+        },
+        {
+          "a": "coxa_d",
+          "b": "pata_d",
+          "w": 3.0
+        },
+        {
+          "a": "corpo",
+          "b": "asa_e",
+          "w": 4.0
+        },
+        {
+          "a": "asa_e",
+          "b": "asa_ponta_e",
+          "w": 3.0
+        },
+        {
+          "a": "corpo",
+          "b": "asa_d",
+          "w": 4.0
+        },
+        {
+          "a": "asa_d",
+          "b": "asa_ponta_d",
+          "w": 3.0
+        }
+      ]
+    },
+    "diagonal": {
+      "joints": {
+        "corpo": [
+          32.0,
+          38
+        ],
+        "peito": [
+          35.6,
+          36
+        ],
+        "pescoco": [
+          38.5,
+          32.0
+        ],
+        "cabeca": [
+          41.4,
+          28.0
+        ],
+        "bico": [
+          45.7,
+          28.0
+        ],
+        "cauda": [
+          27.0,
+          36.0
+        ],
+        "cauda_ponta": [
+          21.9,
+          34.0
+        ],
+        "asa": [
+          32.7,
+          34
+        ],
+        "asa_ponta": [
+          29.1,
+          39
+        ],
+        "coxa_e": [
+          32.7,
+          42
+        ],
+        "pata_e": [
+          33.4,
+          50
+        ],
+        "coxa_d": [
+          30.6,
+          42
+        ],
+        "pata_d": [
+          30.6,
+          50
+        ]
+      },
+      "bones": [
+        {
+          "a": "corpo",
+          "b": "peito",
+          "w": 8.0
+        },
+        {
+          "a": "peito",
+          "b": "pescoco",
+          "w": 5.0
+        },
+        {
+          "a": "pescoco",
+          "b": "cabeca",
+          "w": 5.0
+        },
+        {
+          "a": "cabeca",
+          "b": "bico",
+          "w": 3.0
+        },
+        {
+          "a": "corpo",
+          "b": "cauda",
+          "w": 3.5
+        },
+        {
+          "a": "cauda",
+          "b": "cauda_ponta",
+          "w": 3.0
+        },
+        {
+          "a": "coxa_e",
+          "b": "pata_e",
+          "w": 3.0
+        },
+        {
+          "a": "coxa_d",
+          "b": "pata_d",
+          "w": 3.0
+        }
+      ]
+    },
+    "diagonal_costas": {
+      "joints": {
+        "corpo": [
+          32.0,
+          38
+        ],
+        "peito": [
+          35.6,
+          36
+        ],
+        "pescoco": [
+          38.5,
+          29.0
+        ],
+        "cabeca": [
+          41.4,
+          25.0
+        ],
+        "bico": [
+          45.7,
+          25.0
+        ],
+        "cauda": [
+          27.0,
+          39.0
+        ],
+        "cauda_ponta": [
+          21.9,
+          37.0
+        ],
+        "asa": [
+          32.7,
+          34
+        ],
+        "asa_ponta": [
+          29.1,
+          39
+        ],
+        "coxa_e": [
+          32.7,
+          42
+        ],
+        "pata_e": [
+          33.4,
+          50
+        ],
+        "coxa_d": [
+          30.6,
+          42
+        ],
+        "pata_d": [
+          30.6,
+          50
+        ]
+      },
+      "bones": [
+        {
+          "a": "corpo",
+          "b": "peito",
+          "w": 8.0
+        },
+        {
+          "a": "peito",
+          "b": "pescoco",
+          "w": 5.0
+        },
+        {
+          "a": "pescoco",
+          "b": "cabeca",
+          "w": 5.0
+        },
+        {
+          "a": "cabeca",
+          "b": "bico",
+          "w": 3.0
+        },
+        {
+          "a": "corpo",
+          "b": "cauda",
+          "w": 3.5
+        },
+        {
+          "a": "cauda",
+          "b": "cauda_ponta",
+          "w": 3.0
+        },
+        {
+          "a": "coxa_e",
+          "b": "pata_e",
+          "w": 3.0
+        },
+        {
+          "a": "coxa_d",
+          "b": "pata_d",
+          "w": 3.0
+        }
+      ]
+    }
+  },
+  "motion": {
+    "driver": "ave",
+    "passo_px": 3.0,
+    "levanta_px": 2.5,
+    "corpo_px": 0.9,
+    "cauda_px": 1.2,
+    "respira_px": 0.4
+  },
+  "sockets": {
+    "boca": {
+      "joint": "bico",
+      "offset": [
+        0,
+        0
+      ],
+      "z": "front",
+      "oculto_em": [
+        "north",
+        "north-east",
+        "north-west"
+      ]
+    },
+    "coroa": {
+      "joint": "cabeca",
+      "offset": [
+        0,
+        -5
+      ],
+      "z": "front",
+      "oculto_em": []
+    },
+    "base_cauda": {
+      "joint": "cauda",
+      "offset": [
+        0,
+        0
+      ],
+      "z": "back",
+      "oculto_em": [
+        "south",
+        "south-east",
+        "south-west"
+      ]
+    }
+  },
+  "clips": {
+    "idle": {
+      "duracao_s": 0.9,
+      "loop": true
+    },
+    "walk": {
+      "duracao_s": 0.5,
+      "loop": true
+    }
+  }
+}

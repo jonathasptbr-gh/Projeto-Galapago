@@ -36,6 +36,8 @@ static func validar(m: Dictionary) -> String:
 		return "schema_version != 1"
 	if not m.get("id") is String or (m["id"] as String).is_empty():
 		return "id ausente"
+	if m.has("arquetipo") and not (m["arquetipo"] in ["quadrupede", "serpente", "ave", "slime"]):
+		return "arquetipo desconhecido"
 	for chave in ["canvas_px", "pivot_px"]:
 		if not _par(m.get(chave)):
 			return chave + " inválido"
@@ -105,6 +107,10 @@ static func validar(m: Dictionary) -> String:
 		return "motion inválido"
 	for chave in motion:
 		var v2: Variant = motion[chave]
+		if chave == "driver":
+			if not v2 is String:
+				return "motion.driver inválido"
+			continue
 		if not (v2 is int or v2 is float) or not is_finite(float(v2)):
 			return "motion.%s inválido" % chave
 	return ""
@@ -138,8 +144,13 @@ static func pose(m: Dictionary, direcao: String, fase: float, clipe: String = "w
 		var p: Array = bruto[nome]
 		j[nome] = Vector2(float(p[0]), float(p[1]))
 	var f := wrapf(fase, 0.0, 1.0)
+	var tipo := String(m.get("arquetipo", "quadrupede"))
 	if clipe == "walk":
-		if d["profile"] == "frontal":
+		if tipo == "serpente":
+			_rasteja(m, j, f)
+		elif tipo == "ave":
+			_bipede(m, j, f)
+		elif d["profile"] == "frontal":
 			_ande_frontal(m, j, f)
 		else:
 			_ande_lateral(m, j, f)
@@ -236,6 +247,61 @@ static func _par(v: Variant) -> bool:
 	return true
 
 
+## Serpente: onda que corre da cauda (s0) à cabeça pela cadeia de juntas.
+static func _rasteja(m: Dictionary, j: Dictionary, fase: float) -> void:
+	var c := _cfg(m)
+	var amp: float = c["onda"]
+	var passo_onda: float = c["onda_passo"]
+	var cadeia: Array[String] = []
+	for i in 8:
+		var nome := "s%d" % i
+		if j.has(nome):
+			cadeia.append(nome)
+	for extra in ["pescoco", "cabeca"]:
+		if j.has(extra):
+			cadeia.append(extra)
+	var n := cadeia.size()
+	if n < 3:
+		return
+	var base: Dictionary = {}
+	for i in n:
+		base[cadeia[i]] = j[cadeia[i]]
+	for i in n:
+		var ant: String = cadeia[maxi(i - 1, 0)]
+		var prox: String = cadeia[mini(i + 1, n - 1)]
+		var dir: Vector2 = (base[prox] as Vector2) - (base[ant] as Vector2)
+		if dir.length() < 0.001:
+			continue
+		var perp := dir.normalized().orthogonal()
+		var taper := 0.35 + 0.65 * float(i) / float(maxi(n - 1, 1))
+		var desloc: float = sin(fase * TAU - float(i) * passo_onda) * amp * taper
+		j[cadeia[i]] = (base[cadeia[i]] as Vector2) + perp * desloc
+	if j.has("boca") and base.has("cabeca"):
+		j["boca"] = (j["boca"] as Vector2) + ((j["cabeca"] as Vector2) - (base["cabeca"] as Vector2)) * 0.8
+
+
+## Ave: duas pernas alternam e o corpo balança; asa dobrada não anima ainda.
+static func _bipede(m: Dictionary, j: Dictionary, fase: float) -> void:
+	var c := _cfg(m)
+	var passo: float = c["passo"]
+	var levanta: float = c["levanta"]
+	var p := fase * TAU
+	var s := sin(p)
+	for k in ["pata_e", "pata_d"]:
+		if j.has(k):
+			var f: float = s if k == "pata_e" else -s
+			j[k] = j[k] + Vector2(f * passo * 0.4, -maxf(0.0, f) * levanta)
+			var coxa := "coxa_e" if k == "pata_e" else "coxa_d"
+			if j.has(coxa):
+				j[coxa] = j[coxa] + Vector2(f * passo * 0.2, -maxf(0.0, f) * levanta * 0.5)
+	var bob: float = -float(c["corpo"]) * (0.5 + 0.5 * cos(2.0 * p))
+	for k in ["corpo", "peito", "pescoco", "cabeca", "bico"]:
+		if j.has(k):
+			j[k] = j[k] + Vector2(0.0, bob)
+	if j.has("cauda_ponta"):
+		j["cauda_ponta"] = j["cauda_ponta"] + Vector2(sin(p + 1.0) * float(c["cauda"]), bob)
+
+
 # --- marcha provisória (dois perfis); a arte futura substitui por clipes ---
 
 static func _cfg(m: Dictionary) -> Dictionary:
@@ -247,6 +313,8 @@ static func _cfg(m: Dictionary) -> Dictionary:
 		"corpo": float(d.get("corpo_px", 1.0)),
 		"cauda": float(d.get("cauda_px", 1.5)),
 		"respira": float(d.get("respira_px", 0.5)),
+		"onda": float(d.get("onda_px", 3.0)),
+		"onda_passo": float(d.get("onda_passo", 0.9)),
 	}
 
 
@@ -298,12 +366,16 @@ static func _respira(m: Dictionary, j: Dictionary, fase: float) -> void:
 	var c := _cfg(m)
 	var p := fase * TAU
 	var respira: float = c["respira"]
-	for k in ["quadril", "lombo", "peito", "pescoco"]:
+	for k in ["quadril", "lombo", "peito", "corpo", "pescoco"]:
 		if j.has(k):
 			j[k] = j[k] + Vector2(0.0, sin(p) * respira)
 	if j.has("cabeca"):
 		j["cabeca"] = j["cabeca"] + Vector2(0.0, sin(p + 0.4) * respira * 1.4)
 	if j.has("focinho"):
 		j["focinho"] = j["focinho"] + Vector2(0.0, sin(p + 0.4) * respira * 1.4)
+	if j.has("bico"):
+		j["bico"] = j["bico"] + Vector2(0.0, sin(p + 0.4) * respira * 1.4)
+	if j.has("s0"):
+		j["s0"] = j["s0"] + Vector2(sin(p * 0.5) * float(c["onda"]) * 0.4, 0.0)
 	if j.has("cauda_ponta"):
 		j["cauda_ponta"] = j["cauda_ponta"] + Vector2(sin(p * 0.5) * float(c["cauda"]) * 0.8, 0.0)

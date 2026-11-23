@@ -3,6 +3,26 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.21.2 — rigs de serpente e ave (2026-11-23)
+
+- **As três famílias-âncora têm rig.** `dados/rig/serpente.json` (11 juntas,
+  sem pernas; `walk` é rastejo com onda que corre pela cadeia s0..s7) e
+  `dados/rig/ave.json` (13 juntas; bípede, as duas pernas alternam e a asa
+  fica dobrada). Os dois com **8 direções** e os mesmos quatro perfis de pose
+  (frontal, lateral e duas de 3/4) + espelho.
+- **Despacho por arquétipo:** `sim/esqueleto.gd` escolhe o driver —
+  quadrupede (patas), serpente (`_rasteja`) e ave (`_bipede`); `motion.driver`
+  é texto e o resto do `motion` continua numérico. `arquetipo` desconhecido
+  falha fechado.
+- **Sockets por família:** serpente `boca`/`dorso`/`base_cauda`; ave
+  `boca`/`coroa`/`base_cauda`, com a mesma regra de ausência por direção e
+  `null` explícito.
+- **Verificação:** `tools/testes.sh` 203 testes/0 falhas (3 provas novas: os
+  três rigs válidos nas 8 direções; serpente ondula sem inventar perna; ave
+  alterna os pés e mantém um no chão), parser 56 scripts/0 erros. Ainda **sem
+  desenho** (F2) e sem arte aprovada.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.21.1 — oito direções no esqueleto (2026-11-23)
 
 - **O contrato passa a 8 direções** (S, SE, E, NE, N, NW, W, SW): o rig do
