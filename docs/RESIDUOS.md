@@ -4,6 +4,12 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.26.0 | preview | GIF depende de `python3-pil` no runner; sem ele o comentário sai só com os quadros-chave | pequeno | aberto |
+| v0.26.0 | preview | o Pages substitui a página a cada push: imagem de lote antigo dá 404 (o comentário é atualizado no lugar) | pequeno | aberto |
+| v0.26.0 | preview | o branch `gh-pages` existe só porque o Pages exigiu uma origem para ser criado; o site vem de `build_type=workflow` | pequeno | aberto |
+| v0.26.0 | rito | `main` continua sem proteção de branch (exige o operador em Settings → Branches); o PR é disciplina, não trava | médio | aberto |
+| v0.26.0 | licença | repositório público ainda sem LICENSE — decisão do operador (MIT? todos os direitos reservados?) | decisão | aberto |
+| v0.26.0 | ferramentas | `preview.mjs` e `quadros-baseline.mjs` sem teste automatizado próprio | pequeno | aberto |
 | v0.25.2 | pele | esqueleto puro é para estudo de juntas; a leitura de personagem no mapa fica de propósito em segundo plano até a arte | decisão | aberto |
 | v0.25.2 | foco | serpente e ave seguem sem ossos completos (pontos soltos como asas) — renderizam, mas não foram polidos | médio | aberto |
 | v0.25.2 | sombra | a sombra elíptica do mock continua sob o esqueleto (ajuda a ler o chão) | pequeno | aberto |

@@ -55,10 +55,23 @@ node tools/quadros-diff.mjs [pasta=quadros] [--baseline=testes/baseline] [--cana
   remove do baseline os `q*.png` que não existem mais) e **não compara**. É o
   caminho explícito de quem muda o visível de propósito.
 - O baseline é do `llvmpipe` do CI; neste celular o driver é `softpipe`, então
-  o diff local pode acusar diferença legítima de renderizador. A prova é o CI.
+  o diff local pode acusar diferença legítima de renderizador — e **não** se
+  gera baseline confiável aqui. A prova é o CI.
 
-**Regra:** lote que muda o visível atualiza o baseline **no MESMO commit** e
-diz isso no `docs/HISTORICO.md` ("baseline dos quadros atualizado: …").
+**Regra:** o baseline do lote visível é **gerado pelo CI antes do commit** e
+entra no MESMO commit, com a linha "baseline dos quadros atualizado: …" no
+`docs/HISTORICO.md`. O branch precisa estar no remoto antes de disparar:
+
+```bash
+git push -u origin lote/vX.Y.Z
+gh workflow run ci.yml -f ref=lote/vX.Y.Z     # job `baseline` (llvmpipe)
+node tools/quadros-baseline.mjs --run <run>   # aplica o artefato em testes/baseline
+git add testes/baseline                       # junto com a mudança visível
+```
+
+Sem esse caminho o lote visível gasta dois pushes e deixa `main` vermelha entre
+eles — era o que acontecia até a v0.26.0. Procedimento completo em
+[`BUILD.md`](BUILD.md).
 
 ## Limites
 

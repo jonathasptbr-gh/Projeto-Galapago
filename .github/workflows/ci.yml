@@ -1,6 +1,8 @@
 name: CI
 
 # testes  → testes headless + oráculo de quadros (artefato `quadros`)
+# preview → comentário no commit/PR com GIF e quadros-chave do lote (celular)
+# baseline→ sob demanda: quadros do llvmpipe para o lote entrar em UM commit
 # apk     → exporta o APK Android (P2) e publica:
 #           push em main  → Release `dev` (pré-release, refeita a cada push)
 #           tag v*        → Release da tag
@@ -12,16 +14,31 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch/commit para gerar o baseline dos quadros (llvmpipe)'
+        required: true
+        type: string
 
 env:
   GODOT_VERSION: "4.7.2"
 
 jobs:
   testes:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+
+      - name: Segredos (o repositório é público)
+        run: |
+          if grep -rInE 'pixl_[0-9a-f]{8}|ghp_[A-Za-z0-9]{8}|github_pat_[A-Za-z0-9]{8}|-----BEGIN [A-Z ]*PRIVATE KEY-----' \
+            --exclude-dir=.git --exclude-dir=.godot --exclude-dir=node_modules . ; then
+            echo "REPROVADO: padrão de segredo no repositório (ver docs/BUILD.md)." >&2
+            exit 1
+          fi
+          echo "nenhum padrão de segredo"
 
       - name: Godot ${{ env.GODOT_VERSION }}
         run: |
@@ -47,6 +64,97 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: quadros
+          path: quadros/
+          retention-days: 7
+
+  # Preview do lote no celular: `_site/` vai para o GitHub Pages e o comentário
+  # no commit/PR leva o link + três quadros inline. `continue-on-error`: um
+  # problema de Pages não pode segurar o APK.
+  preview:
+    needs: testes
+    if: always() && github.event_name != 'workflow_dispatch' && needs.testes.result != 'cancelled'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      - name: Quadros do run
+        continue-on-error: true
+        uses: actions/download-artifact@v7
+        with:
+          name: quadros
+          path: quadros
+
+      - name: Pillow (GIF)
+        continue-on-error: true
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq python3-pil
+
+      - name: Montar o site do lote
+        continue-on-error: true
+        run: node tools/preview.mjs --site
+
+      - name: Enviar ao Pages
+        continue-on-error: true
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Publicar o Pages
+        id: deploy
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+
+      - name: Comentar no commit/PR
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PREVIEW_URL: ${{ steps.deploy.outputs.page_url }}
+        run: node tools/preview.mjs --comentar
+
+  # Baseline sob demanda (workflow_dispatch com `ref`): o llvmpipe do CI gera
+  # os quadros do branch e `tools/quadros-baseline.mjs` aplica; assim o lote
+  # visível entra em UM commit com quadros verdes. Ver docs/ORACULO.md.
+  baseline:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Godot ${{ env.GODOT_VERSION }}
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -fsSL -o g.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q g.zip -d "$HOME/godot" && rm g.zip
+          echo "GODOT=$HOME/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" >> "$GITHUB_ENV"
+
+      - name: Quadros (llvmpipe)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri
+          GALLIUM_DRIVER=llvmpipe tools/quadros.sh 60 quadros
+
+      - name: Baseline como artefato
+        uses: actions/upload-artifact@v7
+        with:
+          name: baseline
           path: quadros/
           retention-days: 7
 

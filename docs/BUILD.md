@@ -2,16 +2,17 @@
 
 ## O rito de entrega (direto em `main`)
 
-1. `tools/testes.sh` verde (guardião documental + testes + parser de todos
-   os `.gd`). Só documentação: `tools/docs.sh` é a checagem rápida offline;
-   o rito completo continua exigindo a suíte. Escopo e limites:
+1. **Iteração:** `tools/verificar.sh` (seletivo: guardião + testes da área +
+   parser dos arquivos tocados; ver `--tudo`). **Gate do commit:**
+   `tools/testes.sh` inteiro — guardião + suíte + parser de todos os `.gd`.
+   Só documentação: `tools/docs.sh`. Escopo e limites:
    [`DOCUMENTACAO.md`](DOCUMENTACAO.md).
 2. Mudou algo visível? `tools/quadros.sh`, **abrir** os PNG e depois
-   `node tools/quadros-diff.mjs quadros` contra `testes/baseline/`. Lote que
-   muda o visível atualiza o baseline **no MESMO commit**
-   (`node tools/quadros-diff.mjs quadros --atualizar`) e registra isso no
-   `docs/HISTORICO.md`; o CI reprova o que sair da tolerância (canal 6,
-   0,1% dos pixels).
+   `node tools/quadros-diff.mjs quadros` contra `testes/baseline/`. O baseline
+   deste celular é `softpipe` e o do CI é `llvmpipe`: o lote visível **gera o
+   baseline pelo CI antes do commit** (ver "Baseline de um lote") e entra em
+   UM commit com quadros verdes; o CI reprova o que sair da tolerância
+   (canal 6, 0,1% dos pixels).
 3. `docs/HISTORICO.md`: seção `## vX.Y.Z — título (data)` no TOPO — o
    `exportar.sh` tira a versão do APK dela.
 4. `docs/RESIDUOS.md`: uma linha por coisa vista e não consertada (ou "nenhum").
@@ -25,6 +26,86 @@
    trocada): `node tools/baixar-apk.mjs` põe o APK em `/sdcard/Download/DSH-Go/`
    (avisando o operador).
 
+## Preview do lote (celular)
+
+Todo push em `main` (e todo PR) ganha o job `preview`: pega o artefato
+`quadros`, monta um **GIF** e três quadros-chave, publica no GitHub Pages
+(`https://jonathasptbr-gh.github.io/Projeto-Galapago/`) e **comenta no
+commit/PR** com o link da página e as três imagens inline.
+
+- `_site/index.html` é a página do lote atual; as imagens ficam em
+  `_site/<run>/` (nome único por run) para o cache de imagem não servir lote
+  velho. A página é substituída a cada push — link de imagem de lote antigo
+  morre; o comentário é atualizado no mesmo lugar (marcador
+  `<!-- galapago-preview -->`).
+- Pages está como **GitHub Actions** (`build_type=workflow`). O branch
+  `gh-pages` existe só porque o Pages exigiu uma origem para ser criado; não é
+  fonte do site.
+- **Por que Pages e não asset de Release:** asset de Release sai como
+  `application/octet-stream` e o proxy de imagem do GitHub não renderiza;
+  o Pages serve `image/png` e `image/gif` de verdade.
+- GIF depende de `python3-pil` no runner; se faltar, a página sai só com os
+  quadros e o job **não** fica vermelho. O Pages pode falhar (ambiente,
+  cota): o `continue-on-error` segura, e o APK não depende dele.
+
+## Baseline de um lote (antes do commit)
+
+O baseline é do `llvmpipe` (x86_64) e este celular renderiza em `softpipe`:
+**não** se gera baseline confiável aqui. O caminho é o CI gerar e o script
+aplicar.
+
+```bash
+# 1. no branch do lote (ou no commit visível), dispare o job `baseline`
+gh workflow run ci.yml -f ref=lote/vX.Y.Z
+#    (ou Actions → CI → Run workflow → ref)
+
+# 2. quando o run terminar, aplique o artefato `baseline`
+node tools/quadros-baseline.mjs --run <numero-do-run>
+
+# 3. o MESMO commit leva a mudança visível + testes/baseline
+git add testes/baseline
+```
+
+O script também aceita `--url <link do run>`, `--zip <arquivo>` e
+`--pasta <quadros já extraídos>`. Ele valida a contagem (mínimo 50 quadros) e
+remove do baseline o que não existe mais. `--atualizar` do
+`quadros-diff.mjs` continua valendo para quem estiver num driver igual ao do
+CI — não é o caso deste aparelho.
+
+## Lote visível com revisão (branch + PR)
+
+O rito acima (direto em `main`) continua valendo para documentação, ferramenta
+e correção de uma linha. **Lote que muda o que o operador vê** (arte, câmera,
+movimento, UI) vai por branch e PR:
+
+```bash
+git switch -c lote/vX.Y.Z
+# ... o lote ...
+git push -u origin lote/vX.Y.Z
+# abrir o PR: o template .github/PULL_REQUEST_TEMPLATE.md já pede aceite,
+# preview, risco, rollback e custo
+```
+
+- O CI roda no PR e o job `preview` comenta as imagens — a revisão acontece
+  ali, não no APK.
+- **O merge é a aprovação do operador.** O agente não faz o merge do próprio
+  PR (dual-control). Depois do merge, o job `apk` publica a `dev`.
+- WIP: **um** lote com PR aberto por vez; nada de dois agentes no mesmo branch.
+- `main` sem proteção de branch hoje (a configuração exige o operador em
+  Settings → Branches); enquanto isso, a regra é de disciplina, não de trava.
+
+## Rollback
+
+Revert + versão nova; o aparelho não desce de versão. Procedimento e ensaio em
+[`ROLLBACK.md`](ROLLBACK.md).
+
+## Métricas
+
+`tools/estado.sh --metricas` imprime, medido no momento: commits, versões no
+histórico, taxa de CI vermelho e mediana de duração dos últimos 20 runs. É o
+que entra no digest de 5 linhas ao operador: feito · em andamento · bloqueado ·
+custo · decisão pendente.
+
 ## Versão
 
 `vX.Y.Z`: Z conserta, Y entrega pacote/sistema, X é marco público (demo).
@@ -34,9 +115,12 @@ APK: `versionName` = `X.Y.Z-b<run>`, `versionCode` = número do run do CI
 
 ## O que o CI faz
 
-`.github/workflows/ci.yml` — job `testes` (testes + oráculo, artefato
-`quadros`) → job `apk` (export Android + Release). Detalhes do export e das
-armadilhas: [`GODOT.md`](GODOT.md#8-exportar-para-android-p2--como-funciona-e-o-que-quebra).
+`.github/workflows/ci.yml` — job `testes` (segredos + testes + oráculo,
+artefato `quadros`) → job `preview` (GIF + quadros-chave comentados no
+commit/PR) → job `apk` (export Android + Release). O job `baseline` roda só
+por `workflow_dispatch` (aba Actions → Run workflow → `ref` do lote) e entrega
+o artefato `baseline`. Detalhes do export e das armadilhas:
+[`GODOT.md`](GODOT.md#8-exportar-para-android-p2--como-funciona-e-o-que-quebra).
 
 ## Atualização automática do app
 

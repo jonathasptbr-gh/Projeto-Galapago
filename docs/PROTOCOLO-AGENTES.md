@@ -32,6 +32,22 @@ Todo briefing tem cinco campos, nesta ordem:
 Contexto fresco é o ponto: o trabalhador recebe o briefing, não o chat. O que
 falta no briefing é falha do gerente, não do trabalhador.
 
+## Critério de aceite e teto de reparo
+
+- Todo lote começa com **critério de aceite observável** — uma frase do que o
+  operador vê ou faz de diferente. Ele abre o briefing e o PR (template em
+  `.github/PULL_REQUEST_TEMPLATE.md`).
+- **Iteração seletiva:** `tools/verificar.sh` (só as áreas tocadas); o commit
+  é gated por `tools/testes.sh` inteiro. Rodar a suíte inteira a cada passo é
+  caro e não prova mais.
+- **Teto de auto-reparo: 3 tentativas ou 20 minutos** no mesmo erro → pare,
+  diga o comando que falhou, a saída e o que já tentou. Laço mudando código no
+  escuro não é progresso.
+- **WIP:** um lote com PR aberto por vez no repositório; um escritor por clone
+  ([`MULTI-AGENTE`](MULTI-AGENTE.md)).
+- Falha de CI que não é do lote (runner, rede, artefato): `node tools/ci-log.mjs`
+  e `tools/estado.sh --metricas` antes de repetir o push.
+
 ## Quando não delegar
 
 - Correção de **uma linha** ou de um link: o custo de briefar é maior que o de

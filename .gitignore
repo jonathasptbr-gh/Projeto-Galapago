@@ -4,6 +4,7 @@
 /android/
 /exportar/
 /quadros/
+/_site/
 *.tmp
 export_presets.cfg.orig
 project.godot.orig

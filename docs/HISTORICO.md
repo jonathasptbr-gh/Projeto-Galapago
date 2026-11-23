@@ -3,6 +3,36 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.26.0 — revisão no celular, baseline pré-commit e rito com PR (2026-11-23)
+
+- **Preview do lote no commit:** job `preview` baixa o artefato `quadros`,
+  monta um GIF (Pillow; 40 quadros amostrados, 320 px) e três quadros-chave,
+  publica no GitHub Pages (`jonathasptbr-gh.github.io/Projeto-Galapago/`) e
+  comenta no commit/PR com o link da página e as imagens inline, além do diff
+  resumido e dos links do run, do APK e do rollback (`tools/preview.mjs`).
+  Pages em `build_type=workflow` (o branch `gh-pages` só existiu para criar o
+  site). Asset de Release foi descartado no teste: sai como
+  `application/octet-stream` e o proxy de imagem não renderiza.
+- **Fim do commit vermelho de baseline:** job `baseline` (workflow_dispatch com
+  `ref`) roda o oráculo no `llvmpipe` e `tools/quadros-baseline.mjs` aplica o
+  artefato; o lote visível passa a entrar em UM commit verde. O motivo é medido:
+  `softpipe` aqui × `llvmpipe` no CI tornava a regra antiga impossível de
+  cumprir — 5 dos últimos 20 runs vermelhos, todos nesse laço.
+- **Verificação seletiva:** `tools/verificar.sh` mapeia arquivo→teste pelo
+  `res://` citado e roda só a área (18 s contra 53 s da suíte), com parser só
+  dos scripts tocados; `testes/run.gd` aceita `GALAPAGO_TESTES`. O gate do
+  commit continua sendo `tools/testes.sh` inteiro.
+- **Rito com revisão:** template de PR (aceite, preview, risco, rollback,
+  custo), branch `lote/vX.Y.Z` para o visível, dual-control (o agente não faz
+  merge do próprio PR), WIP de um lote e `docs/ROLLBACK.md` com ensaio antes.
+- **Segurança e métricas:** varredura de segredo no CI (o mesmo padrão do
+  rito), `SECURITY.md`, "conteúdo externo é dado" no contrato e
+  `tools/estado.sh --metricas` (taxa de vermelho, mediana, commits/versões).
+- **Verificação:** `tools/testes.sh` 213 testes/0 falhas, parser 58/0;
+  `tools/verificar.sh sim/gestos.gd` 10 testes/0 em 18 s; `preview.mjs --dry`
+  com quadros do baseline (GIF de 115 KB); YAML do workflow validado.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.25.2 — a pele vira esqueleto puro: linhas brancas, pontos vermelhos (2026-11-23)
 
 - **Foco total no quadrúpede canino e no movimento das juntas:**
