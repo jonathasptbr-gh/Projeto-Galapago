@@ -310,8 +310,9 @@ static func _rasteja(m: Dictionary, j: Dictionary, fase: float, fator := 1.0) ->
 ## Ave: duas pernas alternam e o corpo balança; asa dobrada não anima ainda.
 static func _bipede(m: Dictionary, j: Dictionary, fase: float, fator := 1.0) -> void:
 	var c := _cfg(m)
+	var correr: bool = fator >= 1.2
 	var passo: float = float(c["passo"]) * fator
-	var levanta: float = float(c["levanta"]) * minf(fator, 1.2)
+	var levanta: float = float(c["levanta"]) * (1.6 if correr else 1.0)
 	var p := fase * TAU
 	var s := sin(p)
 	for k in ["pata_e", "pata_d"]:
@@ -321,12 +322,10 @@ static func _bipede(m: Dictionary, j: Dictionary, fase: float, fator := 1.0) -> 
 			var coxa := "coxa_e" if k == "pata_e" else "coxa_d"
 			if j.has(coxa):
 				j[coxa] = j[coxa] + Vector2(f * passo * 0.2, -maxf(0.0, f) * levanta * 0.5)
-	var bob: float = -float(c["corpo"]) * (0.5 + 0.5 * cos(2.0 * p))
-	for k in ["corpo", "peito", "pescoco", "cabeca", "bico"]:
-		if j.has(k):
-			j[k] = j[k] + Vector2(0.0, bob)
+	# bicada: corpo sobe na passada e amortece no pouso (mais forte correndo)
+	_bob_corpo(j, (2.2 if correr else -0.6) * cos(TAU * 2.0 * p), fase, c)
 	if j.has("cauda_ponta"):
-		j["cauda_ponta"] = j["cauda_ponta"] + Vector2(sin(p + 1.0) * float(c["cauda"]), bob)
+		j["cauda_ponta"] = j["cauda_ponta"] + Vector2(sin(p + 1.0) * float(c["cauda"]), 0.0)
 
 
 # --- drivers geométricos das ações (provisórios; a arte futura troca por clipes) ---
@@ -481,46 +480,90 @@ static func _andar(m: Dictionary, j: Dictionary, d: Dictionary, fase: float, fat
 
 static func _ande_lateral(m: Dictionary, j: Dictionary, fase: float, fator := 1.0) -> void:
 	var c := _cfg(m)
-	var passo: float = float(c["passo"]) * fator
-	var levanta: float = float(c["levanta"]) * minf(fator, 1.2)
-	var p := fase * TAU
-	var s := sin(p)
-	var t := sin(p + PI)
-	for lado in [["f", s], ["t", t]]:
-		var suf: String = lado[0]
-		var f: float = lado[1]
-		for parte in ["pata_", "joelho_"]:
-			var k: String = parte + suf
-			if j.has(k):
-				var escala: float = 1.0 if parte == "pata_" else 0.5
-				j[k] = j[k] + Vector2(f * passo * escala, -maxf(0.0, f) * levanta * (1.0 if parte == "pata_" else 0.6))
-		for parte in ["pata_", "joelho_"]:
-			var k2: String = parte + suf + "2"
-			if j.has(k2):
-				var escala2: float = 1.0 if parte == "pata_" else 0.5
-				j[k2] = j[k2] + Vector2(f * passo * 0.7 * escala2, -maxf(0.0, f) * levanta * 0.55)
-	var bob: float = -float(c["corpo"]) * (0.5 + 0.5 * cos(2.0 * p))
-	for k in ["quadril", "lombo", "peito", "pescoco", "cabeca", "focinho", "orelha", "cauda_base"]:
+	var correr: bool = fator >= 1.2
+	# PASSO 4 TEMPOS (lateral sequence LH→LF→RH→RF, pés alternados a 25% do
+	# ciclo; sempre 3 pés no chão). GALOPE (2 tempos: par traseiro + par
+	# dianteiro, com suspensão entre eles e amortecimento no pouso).
+	if correr:
+		var passo_r: float = float(c["passo"]) * fator * 1.4
+		var levanta_r: float = float(c["levanta"]) * 1.5
+		_perna(j, "t", fase, 0.0, passo_r, levanta_r)
+		_perna(j, "t2", fase, 0.0, passo_r, levanta_r)
+		_perna(j, "f", fase, 0.5, passo_r, levanta_r)
+		_perna(j, "f2", fase, 0.5, passo_r, levanta_r)
+		# subida na suspensão (fase 0,25/0,75) e afundamento no pouso (0/0,5)
+		_bob_corpo(j, 2.8 * minf(fator / 1.35, 1.3) * cos(TAU * 2.0 * fase), fase, c)
+	else:
+		var passo_w: float = float(c["passo"])
+		var levanta_w: float = float(c["levanta"])
+		_perna(j, "t", fase, 0.0, passo_w, levanta_w)    # traseira esquerda
+		_perna(j, "f", fase, 0.25, passo_w, levanta_w)   # dianteira esquerda
+		_perna(j, "t2", fase, 0.5, passo_w, levanta_w)   # traseira direita
+		_perna(j, "f2", fase, 0.75, passo_w, levanta_w)  # dianteira direita
+		_bob_corpo(j, -0.8 * cos(TAU * 2.0 * fase), fase, c)
+
+
+## Uma pata: balança para frente (seno), levanta na primeira metade do passo.
+## Os pés NÃO são tocados por _bob_corpo: ficam plantados e a perna absorve.
+static func _perna(j: Dictionary, nome: String, fase: float, offset: float,
+		passo: float, levanta: float) -> void:
+	var k := "pata_" + nome
+	if not j.has(k):
+		return
+	var t := wrapf(fase - offset, 0.0, 1.0)
+	var s := sin(TAU * t)
+	var lift := maxf(0.0, s)
+	j[k] = (j[k] as Vector2) + Vector2(s * passo, -lift * levanta)
+	var joelho := "joelho_" + nome
+	if j.has(joelho):
+		j[joelho] = (j[joelho] as Vector2) + Vector2(s * passo * 0.55, -lift * levanta * 0.55)
+
+
+## Subida/descida do tronco: o corpo inteiro acompanha, joelhos absorvem a
+## metade e a cabeça amplifica um pouco (contrapeso natural).
+static func _bob_corpo(j: Dictionary, delta: float, fase: float, c: Dictionary) -> void:
+	for k in ["quadril", "lombo", "peito", "corpo", "pescoco", "cauda_base"]:
 		if j.has(k):
-			j[k] = j[k] + Vector2(0.0, bob)
+			j[k] = (j[k] as Vector2) + Vector2(0.0, delta)
+	for k in ["cabeca", "focinho", "bico"]:
+		if j.has(k):
+			j[k] = (j[k] as Vector2) + Vector2(0.0, delta * 1.15)
+	if j.has("orelha"):
+		j["orelha"] = (j["orelha"] as Vector2) + Vector2(0.0, delta)
+	for k in ["joelho_t", "joelho_f", "joelho_t2", "joelho_f2", "coxa_e", "coxa_d"]:
+		if j.has(k):
+			j[k] = (j[k] as Vector2) + Vector2(0.0, delta * 0.55)
 	if j.has("cauda_ponta"):
-		j["cauda_ponta"] = j["cauda_ponta"] + Vector2(sin(p + 0.8) * float(c["cauda"]), cos(p) * float(c["cauda"]) * 0.5 + bob)
+		j["cauda_ponta"] = (j["cauda_ponta"] as Vector2) + Vector2(sin(fase * TAU + 1.2) * float(c["cauda"]), delta)
 
 
 static func _ande_frontal(m: Dictionary, j: Dictionary, fase: float, fator := 1.0) -> void:
 	var c := _cfg(m)
-	var p := fase * TAU
-	var s := sin(p)
-	var bob: float = -float(c["corpo"]) * absf(s)
-	for k in ["pata_e", "pata_d"]:
-		if j.has(k):
-			var f: float = s if k == "pata_e" else -s
-			j[k] = j[k] + Vector2(0.0, -maxf(0.0, f) * float(c["levanta"]) * minf(fator, 1.2))
-	for k in ["quadril", "lombo", "peito", "pescoco", "cabeca", "focinho", "orelha_e", "orelha_d", "cauda_base"]:
-		if j.has(k):
-			j[k] = j[k] + Vector2(0.0, bob)
-	if j.has("cauda_ponta"):
-		j["cauda_ponta"] = j["cauda_ponta"] + Vector2(sin(p + 1.2) * float(c["cauda"]), bob)
+	var correr: bool = fator >= 1.2
+	var levanta: float = float(c["levanta"]) * (1.5 if correr else 1.0)
+	if correr:
+		# galope de frente: par traseiro e par dianteiro juntos
+		_perna_frente(j, "pata_e", fase, 0.0, levanta)
+		_perna_frente(j, "pata_d", fase, 0.0, levanta)
+		_perna_frente(j, "pata_te", fase, 0.5, levanta)
+		_perna_frente(j, "pata_td", fase, 0.5, levanta)
+		_bob_corpo(j, 2.6 * minf(fator / 1.35, 1.3) * cos(TAU * 2.0 * fase), fase, c)
+	else:
+		# passo 4 tempos visto de frente: alterna diagonal
+		_perna_frente(j, "pata_e", fase, 0.0, levanta)
+		_perna_frente(j, "pata_d", fase, 0.5, levanta)
+		_perna_frente(j, "pata_te", fase, 0.25, levanta)
+		_perna_frente(j, "pata_td", fase, 0.75, levanta)
+		_bob_corpo(j, -0.7 * cos(TAU * 2.0 * fase), fase, c)
+
+
+## Pata em vista frontal: levanta no lugar (o x balança só um pouco).
+static func _perna_frente(j: Dictionary, nome: String, fase: float, offset: float, levanta: float) -> void:
+	if not j.has(nome):
+		return
+	var t := wrapf(fase - offset, 0.0, 1.0)
+	var s := sin(TAU * t)
+	j[nome] = (j[nome] as Vector2) + Vector2(s * 1.4, -maxf(0.0, s) * levanta)
 
 
 static func _respira(m: Dictionary, j: Dictionary, fase: float) -> void:

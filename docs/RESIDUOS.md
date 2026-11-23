@@ -4,6 +4,10 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.25.1 | biomecânica | amplitudes (passo 5 px, levantar 3 px, bounce 2,8 px) são ponto de partida; afinar no aparelho com o operador | design | aberto |
+| v0.25.1 | galope | sem inclinação de tronco (pitch) nem curva do dorso; só balanço vertical | médio | aberto |
+| v0.25.1 | marchas | não existe o TROTE intermediário: correr pula direto ao galope | design | aberto |
+| v0.25.1 | serpente | sem revisão de marcha (a ondulação já seguia a biomecânica ofídia) | pequeno | aberto |
 | v0.25.0 | baseline | trocado pelos 60 quadros do CI #57 (llvmpipe) no commit seguinte ao da mudança visível | verificação | resolvido em v0.25.0 |
 | v0.25.0 | animação | `shot` não é acionado no jogo (não há sinal de "acabou de atirar"); `hit`/`death` seguem dormentes | médio | aberto |
 | v0.25.0 | pele | o corpo padrão é o canino; serpente e ave só entram por flag de demo | decisão | aberto |

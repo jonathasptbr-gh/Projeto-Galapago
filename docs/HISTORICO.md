@@ -3,6 +3,29 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.25.1 — biomecânica da passada: passo de 4 tempos e galope (2026-11-23)
+
+- **Passo de 4 tempos** na sequência lateral dos quadrúpedes (LH→LF→RH→RF):
+  uma pata levanta por quarto de ciclo e **sempre três pés ficam no chão**
+  (triângulo de apoio); o corpo quase não balança (±0,8 px). Referência:
+  [How do dogs walk? (The Naked Scientists, 2009)](https://www.thenakedscientists.com/articles/science-news/how-do-dogs-walk).
+- **Galope na corrida**: par traseiro e par dianteiro levantam JUNTOS, com
+  **suspensão** (o lombo sobe ~2,8 px entre os pares) e **amortecimento** no
+  pouso (joelhos absorvem metade da descida, pés plantados). A ave ganhou o
+  mesmo balanço de corpo (mais forte correndo); a serpente segue na ondulação.
+- **Cima/baixo é CAMADA, não ocultação:** a vista frontal ganhou o par
+  traseiro (`pata_te`/`pata_td`); de frente as dianteiras saem do peito e
+  passam POR CIMA do tronco, as traseiras saem do quadril e ficam atrás — e de
+  costas (norte) os pares trocam de lado.
+- **Verificação:** `tools/testes.sh` 212 testes/0 falhas (3 novos: ordem do
+  passo com 3 pés no chão, pares e bounce do galope, dois pares na vista
+  frontal), parser 58 scripts/0 erros; folha de estudo do passo/galope
+  gerada e conferida por medição de pixels (galope oscila 10 px na tela, passo
+  3 px).
+- **Baseline:** o visível mudou; baseline trocado em commit próprio com os
+  quadros do CI (llvmpipe).
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.25.0 — a pele geométrica vira o corpo do jogo (2026-11-23)
 
 - **O jogo normal sai do xadrez:** a criatura nasce com o rig `canino` em

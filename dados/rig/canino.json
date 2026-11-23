@@ -259,6 +259,14 @@
         "cauda_ponta": [
           34,
           48
+        ],
+        "pata_te": [
+          30,
+          50
+        ],
+        "pata_td": [
+          38,
+          50
         ]
       },
       "bones": [
@@ -283,19 +291,29 @@
           "w": 7.0
         },
         {
-          "a": "quadril",
-          "b": "pata_e",
-          "w": 4.5
-        },
-        {
-          "a": "quadril",
-          "b": "pata_d",
-          "w": 4.5
-        },
-        {
           "a": "cauda_base",
           "b": "cauda_ponta",
           "w": 3.5
+        },
+        {
+          "a": "quadril",
+          "b": "pata_te",
+          "w": 4.0
+        },
+        {
+          "a": "quadril",
+          "b": "pata_td",
+          "w": 4.0
+        },
+        {
+          "a": "peito",
+          "b": "pata_e",
+          "w": 4.0
+        },
+        {
+          "a": "peito",
+          "b": "pata_d",
+          "w": 4.0
         }
       ]
     },

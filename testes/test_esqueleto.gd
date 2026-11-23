@@ -121,13 +121,13 @@ func test_ancora_decorre_da_junta() -> void:
 func test_passo_anda_e_fecha_o_loop() -> void:
 	var m := _rig()
 	var a := E.pose(m, "east", 0.25, "walk")
-	var b := E.pose(m, "east", 0.75, "walk")
-	var pa: Vector2 = a["juntas"]["pata_f"]
-	var pb: Vector2 = b["juntas"]["pata_f"]
+	var b := E.pose(m, "east", 0.5, "walk")
+	var pa: Vector2 = a["juntas"]["pata_t"]
+	var pb: Vector2 = b["juntas"]["pata_t"]
 	checar(absf(pa.x - pb.x) > 4.0, "a pata anda entre as fases")
 	var f0 := E.pose(m, "east", 0.0, "walk")
 	var f1 := E.pose(m, "east", 1.0, "walk")
-	perto_v(f0["juntas"]["pata_f"], f1["juntas"]["pata_f"], 0.001, "fase 0 = fase 1 (loop)")
+	perto_v(f0["juntas"]["pata_t"], f1["juntas"]["pata_t"], 0.001, "fase 0 = fase 1 (loop)")
 
 
 func test_pose_nao_inventa() -> void:
@@ -257,3 +257,46 @@ func test_poses_de_mecanica_tem_sentido() -> void:
 	var passo: Vector2 = (E.pose(m, "east", 0.25, "walk")["juntas"] as Dictionary)["pata_f"]
 	var corre: Vector2 = (E.pose(m, "east", 0.25, "run")["juntas"] as Dictionary)["pata_f"]
 	checar(absf(corre.x - 44.0) > absf(passo.x - 44.0), "correr abre mais o passo")
+
+
+func test_passo_quatro_tempos_ordem_lateral() -> void:
+	# Sequência lateral LH→LF→RH→RF: em cada quarto do ciclo EXATAMENTE uma
+	# pata sai do chão e as outras três ficam plantadas (triângulo de apoio).
+	var m := _rig_nome("canino")
+	var esperadas := {0.25: "pata_t", 0.5: "pata_f", 0.75: "pata_t2", 1.0: "pata_f2"}
+	for fase in esperadas:
+		var p := E.pose(m, "east", fase, "walk")
+		var j: Dictionary = p["juntas"]
+		for k in ["pata_t", "pata_f", "pata_t2", "pata_f2"]:
+			var y: float = (j[k] as Vector2).y
+			if k == esperadas[fase]:
+				checar(y < 50.0, "%s levanta na fase %.2f" % [k, fase])
+			else:
+				perto(y, 50.0, 0.001, "%s plantada na fase %.2f" % [k, fase])
+
+
+func test_galope_pares_e_bounce() -> void:
+	var m := _rig_nome("canino")
+	var p := E.pose(m, "east", 0.25, "run")
+	var j: Dictionary = p["juntas"]
+	checar((j["pata_t"] as Vector2).y < 50.0 and (j["pata_t2"] as Vector2).y < 50.0,
+		"par traseiro levanta junto no galope")
+	perto((j["pata_f"] as Vector2).y, 50.0, 0.001, "dianteira plantada")
+	perto((j["pata_f2"] as Vector2).y, 50.0, 0.001, "dianteira 2 plantada")
+	var alto: float = (j["lombo"] as Vector2).y
+	var p0 := E.pose(m, "east", 0.0, "run")
+	var baixo: float = (p0["juntas"]["lombo"] as Vector2).y
+	checar(baixo - alto > 3.0, "corpo sobe na suspensão e desce no pouso")
+	var andar := E.pose(m, "east", 0.25, "walk")
+	var lw: float = (andar["juntas"]["lombo"] as Vector2).y
+	checar(absf(lw - 35.0) < 1.5, "o passo quase não balança o corpo")
+
+
+func test_vista_frontal_tem_os_dois_pares() -> void:
+	var m := _rig_nome("canino")
+	var p := E.pose(m, "south", 0.5, "walk")
+	var j: Dictionary = p["juntas"]
+	checar(j.has("pata_te") and j.has("pata_td"), "par traseiro existe na vista frontal")
+	checar((j["pata_te"] as Vector2).y < 50.0, "traseira esquerda levanta na vez dela")
+	perto((j["pata_e"] as Vector2).y, 50.0, 0.001, "dianteira esquerda plantada")
+	perto((j["pata_td"] as Vector2).y, 50.0, 0.001, "traseira direita plantada")

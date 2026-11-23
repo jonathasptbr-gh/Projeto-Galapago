@@ -129,16 +129,26 @@ static func _quad_frontal(c: CanvasItem, j: Dictionary, base: Vector2, piv: Vect
 	var claro := _cor(cores, "claro")
 	var escuro := _cor(cores, "escuro")
 	var centro := _p((j["lombo"] + j["peito"]) * 0.5, base, piv, s)
-	for k in ["pata_e", "pata_d"]:
+	# CAMADA, não ocultação: o par de TRÁS sai do quadril e fica ATRÁS do
+	# tronco; o par da FRENTE sai do peito e passa POR CIMA do tronco.
+	# De costas (norte), os pares trocam de lado.
+	var atras: Array = ["pata_te", "pata_td"] if not costas else ["pata_e", "pata_d"]
+	var frente: Array = ["pata_e", "pata_d"] if not costas else ["pata_te", "pata_td"]
+	for k in atras:
 		if j.has(k):
+			var raiz := "quadril" if not costas else "peito"
 			var pe := _p(j[k], base, piv, s)
-			c.draw_line(_p(j["quadril"], base, piv, s), pe, tinta, 5.4 * s, true)
-			c.draw_line(_p(j["quadril"], base, piv, s), pe, corpo, 3.8 * s, true)
+			c.draw_line(_p(j[raiz], base, piv, s), pe, tinta, 5.4 * s, true)
+			c.draw_line(_p(j[raiz], base, piv, s), pe, escuro, 3.6 * s, true)
 	_elipse(c, centro, 9.0 * s, 7.6 * s, corpo, tinta)
 	_elipse(c, centro + Vector2(0, 2.4) * s, 5.4 * s, 4.4 * s, claro, Color(0, 0, 0, 0))
-	for k in ["pata_e", "pata_d"]:
+	for k in frente:
 		if j.has(k):
-			_elipse(c, _p(j[k], base, piv, s), 3.3 * s, 2.0 * s, escuro, tinta)
+			var raiz2 := "peito" if not costas else "quadril"
+			var pe2 := _p(j[k], base, piv, s)
+			c.draw_line(_p(j[raiz2], base, piv, s), pe2, tinta, 5.6 * s, true)
+			c.draw_line(_p(j[raiz2], base, piv, s), pe2, corpo, 4.0 * s, true)
+			_elipse(c, pe2, 3.3 * s, 2.0 * s, escuro, tinta)
 	var cab := _p(j["cabeca"], base, piv, s)
 	_elipse(c, cab, 7.0 * s, 6.6 * s, corpo, tinta)
 	for k in ["orelha_e", "orelha_d"]:
