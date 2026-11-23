@@ -4,6 +4,7 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.26.1 | preview | GIF de ~1,1 MB ainda é o arquivo mais pesado da revisão; se doer no celular, cortar quadros | pequeno | aberto |
 | v0.26.0 | preview | GIF depende de `python3-pil` no runner; sem ele o comentário sai só com os quadros-chave | pequeno | aberto |
 | v0.26.0 | preview | o Pages substitui a página a cada push: imagem de lote antigo dá 404 (o comentário é atualizado no lugar) | pequeno | aberto |
 | v0.26.0 | preview | o branch `gh-pages` existe só porque o Pages exigiu uma origem para ser criado; o site vem de `build_type=workflow` | pequeno | aberto |

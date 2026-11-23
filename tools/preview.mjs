@@ -52,6 +52,8 @@ const git = (args, padrao = '') => {
   try { return execFileSync('git', args, { encoding: 'utf8' }).trim(); } catch { return padrao; }
 };
 const assunto = git(['log', '-1', '--format=%s'], `lote ${RUN}`);
+// o assunto do commit já começa com "vX.Y.Z: "; não repetir a versão no título
+const titulo = assunto.startsWith(versao) ? assunto : `${versao} — ${assunto}`;
 const resumo = git(['diff', '--shortstat', 'HEAD^', 'HEAD'], '');
 const tocados = git(['diff', '--name-only', 'HEAD^', 'HEAD'], '').split('\n').filter(Boolean);
 
@@ -70,14 +72,14 @@ import sys, os
 from PIL import Image
 d, out = sys.argv[1], sys.argv[2]
 fs = sorted(f for f in os.listdir(d) if f.startswith('q') and f.endswith('.png'))
-passo = max(1, len(fs) // 40)
+passo = max(1, len(fs) // 24)
 ims = []
 for f in fs[::passo]:
     im = Image.open(os.path.join(d, f)).convert('RGB')
-    w = 320
+    w = 280
     im = im.resize((w, max(1, round(im.height * w / im.width))), Image.LANCZOS)
     ims.append(im)
-ims[0].save(out, save_all=True, append_images=ims[1:], duration=66, loop=0, optimize=True)
+ims[0].save(out, save_all=True, append_images=ims[1:], duration=90, loop=0, optimize=True)
 print(out)
 `;
   try {
@@ -107,7 +109,7 @@ function montarSite() {
 <html lang="pt-BR"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(versao)} — ${esc(assunto)}</title>
+<title>${esc(titulo)}</title>
 <style>
   :root { color-scheme: dark; }
   body { margin:0; padding:16px; background:#12141a; color:#e8e8ee; font:15px/1.45 system-ui,sans-serif; }
@@ -118,7 +120,7 @@ function montarSite() {
   .caixa { background:#1b1e26; border:1px solid #2a2f3a; border-radius:10px; padding:12px; margin:14px 0; }
   .ok { color:#7ddc9a; font-weight:600; }
 </style></head><body>
-<h1>${esc(versao)} — ${esc(assunto)}</h1>
+<h1>${esc(titulo)}</h1>
 <div class="meta">${esc(SHA.slice(0, 7))} · run ${esc(RUN)} · ${esc(new Date().toISOString().slice(0, 16).replace('T', ' '))} UTC</div>
 ${temGif ? `<h2>Movimento</h2><img src="${RUN}/lote.gif" alt="GIF do lote">` : ''}
 <h2>Quadros-chave</h2>
@@ -143,7 +145,7 @@ ${escolhas.map((n) => `<img src="${RUN}/${n}" alt="${n}">`).join('\n')}
 function corpo() {
   const img = (nome) => `![quadro](${PAGINA}${RUN}/${nome})`;
   return `${MARCA}
-## ${versao} — ${assunto}
+## ${titulo}
 
 **[Abrir o preview no celular](${PAGINA})** — GIF e quadros-chave, uma página só.
 

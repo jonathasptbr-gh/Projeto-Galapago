@@ -3,6 +3,16 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.26.1 — preview mais leve e título sem repetir a versão (2026-11-23)
+
+- O GIF do preview caiu de 40 quadros a 320 px (~2,7 MB) para 24 quadros a
+  280 px (~1,1 MB): mesma leitura de movimento, menos dados no celular.
+- A página e o comentário não repetem mais a versão no título — o assunto do
+  commit já começa com `vX.Y.Z:`.
+- **Verificação:** `tools/testes.sh` 213 testes/0 falhas; ensaio
+  `node tools/preview.mjs --dry` com o GIF novo; CI #64 verde e o comentário
+  do lote atualizado no mesmo lugar.
+
 ## v0.26.0 — revisão no celular, baseline pré-commit e rito com PR (2026-11-23)
 
 - **Preview do lote no commit:** job `preview` baixa o artefato `quadros`,
