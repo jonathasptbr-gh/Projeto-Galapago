@@ -4,6 +4,9 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.31.1 | animação | `death`/`get_up` e misturas de clipes não preservam a rigidez de todos os ossos | médio | aberto |
+| v0.31.1 | IK 3D | alvo inalcançável é limitado pelo alcance, mas a pata pode perder apoio | médio | aberto |
+| v0.31.1 | aparelho | revisão das dobras e do apoio no celular do operador pendente | operador | aberto |
 | v0.31.0 | transições | a 30 fps o primeiro quadro da troca fica ~3 px (o <2 px é a 60 fps); o crossfade pode borrar pernas sobrepostas | pequeno | aberto |
 | v0.31.0 | sockets | a visibilidade dos sockets troca pelo clipe novo no primeiro quadro (boca/cauda podem piscar na troca) | pequeno | aberto |
 | v0.31.0 | 2D | só a pele 3D mistura clipes; serpente/ave continuam no corte seco | pequeno | aberto |

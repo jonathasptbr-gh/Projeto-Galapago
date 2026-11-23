@@ -283,9 +283,9 @@ static func pose(m: Dictionary, direcao: String, fase: float, clipe: String = "w
 		var upper := String(perna["upper"])
 		var P: Vector3 = j[upper]
 		var F: Vector3 = patas[nome]
-		var K := _ik(P, F, float(perna["l1"]), float(perna["l2"]), float(perna["bend"]))
-		j["joelho_" + nome] = K
-		j["pata_" + nome] = F
+		var solucao := _ik(P, F, float(perna["l1"]), float(perna["l2"]), float(perna["bend"]))
+		j["joelho_" + nome] = solucao["joelho"]
+		j["pata_" + nome] = solucao["pata"]
 	_extras(j, clipe, f, mo, salto_correndo)
 	if clipe == "death":
 		_deitar(j, f)
@@ -501,7 +501,7 @@ static func _pernas(m: Dictionary) -> Array:
 		var pp := _vec(j[pata])
 		out.append({"nome": nome, "upper": upper, "x": pp.x, "rest_z": pp.z,
 			"l1": pu.distance_to(pk), "l2": pk.distance_to(pp),
-			"bend": 1.0 if upper.begins_with("ombro") else -1.0})
+			"bend": -1.0 if upper.begins_with("ombro") else 1.0})
 	return out
 
 
@@ -851,17 +851,20 @@ static func _deitar(j: Dictionary, f: float) -> void:
 		j[nome] = Vector3(p.x, y, z)
 
 
-## IK de dois ossos no plano y–z de cada lado; mantém o x do ombro/anca.
-static func _ik(P: Vector3, F: Vector3, l1: float, l2: float, bend: float) -> Vector3:
-	var dz := F.z - P.z
-	var dy := F.y - P.y
-	var d := sqrt(dz * dz + dy * dy)
-	d = clampf(d, absf(l1 - l2) + 0.001, l1 + l2 - 0.001)
-	var dir := Vector2(dz, dy) / d
+## IK de dois ossos em 3D: x participa da distância, mas a dobra fica no
+## plano sagital. Alvo impossível é projetado no alcance (não alonga ossos);
+## só nesses casos a pata deixa de coincidir com o alvo/chão.
+static func _ik(P: Vector3, F: Vector3, l1: float, l2: float, bend: float) -> Dictionary:
+	var delta := F - P
+	var distancia := delta.length()
+	var dir := delta / distancia if distancia > 0.000001 else Vector3.DOWN
+	var d := clampf(distancia, maxf(absf(l1 - l2), 0.000001), l1 + l2)
+	var pata := P + dir * d
 	var a := (l1 * l1 - l2 * l2 + d * d) / (2.0 * d)
 	var h := sqrt(maxf(0.0, l1 * l1 - a * a))
-	var perp := Vector2(-dir.y, dir.x) * bend
-	return Vector3(P.x, P.y + dir.y * a + perp.y * h, P.z + dir.x * a + perp.x * h)
+	var perp := Vector3(0.0, dir.z, -dir.y)
+	perp = perp.normalized() if perp.length_squared() > 0.000001 else Vector3.FORWARD
+	return {"joelho": P + dir * a + perp * (bend * h), "pata": pata}
 
 
 # --- projeção, sockets e pose 2D ---

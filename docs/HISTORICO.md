@@ -3,6 +3,23 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.31.1 — dobras caninas e IK 3D (2026-11-23)
+
+- **Dobras anatômicas:** inversão de cotovelos e joelhos corrigida no repouso
+  (`rest`) e na IK; o rig mantém 22 juntas e 21 ossos.
+- **IK 3D:** conserva os comprimentos dos segmentos e limita alvos impossíveis
+  ao alcance da pata, sem prometer apoio em todo alvo inalcançável.
+- **Verificação:** 260 testes/0 falhas, parser 64/0, docs 32/0;
+  `tools/quadros.sh` gerou 60 quadros locais sem falhas. Folha de 8 direções ×
+  7 clipes e quadro `q00000040.png` conferidos.
+- **Baseline dos quadros atualizado:** 60 PNG gerados com `llvmpipe` pelo
+  [CI baseline run 45286353241](https://github.com/jonathasptbr-gh/Projeto-Galapago/actions/runs/45286353241)
+  no commit provisório `495f6dce`, aplicados via
+  `node tools/quadros-baseline.mjs --run 45286353241` no mesmo commit do lote.
+  O diff local com `softpipe` continua não comparável com `llvmpipe`; a prova
+  final é o CI no commit publicado.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.31.0 — biomecânica e transições do cão (2026-11-23)
 
 - **Parado relaxado (2,4 s):** respiração lenta, peso lateral ±0,8 px, cabeça

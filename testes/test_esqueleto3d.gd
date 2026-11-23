@@ -195,6 +195,86 @@ func test_pose_nao_vazia_nos_oito_yaws_e_clipes() -> void:
 					checar((j3[nome] as Vector3).is_finite(), "ponto 3D finito %s/%s/%s" % [dir, clipe, nome])
 
 
+## Dobra anatômica no plano y–z (z cresce para a frente): dianteiras
+## para trás, traseiras para a frente. O sinal usa a reta ombro/anca→pata,
+## sem exigir que uma junta fique sempre atrás/à frente do quadril em corrida.
+func test_dobra_anatomica_em_repouso_idle_walk_run() -> void:
+	var m := _rig()
+	var rest: Dictionary = m["juntas"]
+	checar(float(rest["joelho_fe"][2]) < float(rest["ombro_e"][2]), "cotovelo dianteiro atrás do ombro em repouso")
+	checar(float(rest["joelho_fd"][2]) < float(rest["ombro_d"][2]), "outro cotovelo atrás do ombro")
+	checar(float(rest["joelho_te"][2]) > float(rest["anca_e"][2]), "joelho traseiro à frente da anca em repouso")
+	checar(float(rest["joelho_td"][2]) > float(rest["anca_d"][2]), "outro joelho à frente da anca")
+	for clipe in ["idle", "walk", "run"]:
+		for i in 40:
+			var fase := float(i) / 40.0
+			var p := E3.pose(m, "east", fase, clipe)
+			for par in [["ombro_e", "fe", -1.0], ["ombro_d", "fd", -1.0],
+				["anca_e", "te", 1.0], ["anca_d", "td", 1.0]]:
+				var P := _j3(p, String(par[0]))
+				var K := _j3(p, "joelho_" + String(par[1]))
+				var F := _j3(p, "pata_" + String(par[1]))
+				var cruz := (F.z - P.z) * (K.y - P.y) - (F.y - P.y) * (K.z - P.z)
+				checar(cruz * float(par[2]) >= -0.001,
+					"dobra %s/%s/%.3f: %.3f" % [clipe, par[1], fase, cruz])
+
+
+func test_ik_preserva_ossos_e_alvos_alcancaveis_em_3d() -> void:
+	var m := _rig()
+	var rest: Dictionary = m["juntas"]
+	for clipe in ["idle", "walk", "run"]:
+		for i in 40:
+			var fase := float(i) / 40.0
+			var p := E3.pose(m, "east", fase, clipe)
+			var pernas := E3._pernas(m)
+			var alvos := E3._patas(pernas, clipe, fase, m["motion"])
+			for perna in pernas:
+				var nome := String(perna["nome"])
+				var P := _j3(p, String(perna["upper"]))
+				var K := _j3(p, "joelho_" + nome)
+				var F := _j3(p, "pata_" + nome)
+				var alvo: Vector3 = alvos[nome]
+				var l1 := float(perna["l1"])
+				var l2 := float(perna["l2"])
+				perto(P.distance_to(K), l1, 0.001, "osso superior %s/%s/%.3f" % [clipe, nome, fase])
+				perto(K.distance_to(F), l2, 0.001, "osso inferior %s/%s/%.3f" % [clipe, nome, fase])
+				checar(K.x >= minf(P.x, F.x) - 0.001 and K.x <= maxf(P.x, F.x) + 0.001,
+					"x do joelho acompanha só o bob lateral %s/%s/%.3f" % [clipe, nome, fase])
+				if P.distance_to(alvo) >= absf(l1 - l2) + 0.001 and P.distance_to(alvo) <= l1 + l2 - 0.001:
+					checar(F.distance_to(alvo) < 0.0001, "pata alcançável no alvo %s/%s/%.3f" % [clipe, nome, fase])
+	# Espelhar articulações não altera os comprimentos de repouso, nem x lateral.
+	for perna in E3._pernas(m):
+		var nome := String(perna["nome"])
+		var P := E3._vec(rest[perna["upper"]])
+		var K := E3._vec(rest["joelho_" + nome])
+		var F := E3._vec(rest["pata_" + nome])
+		var comprimento := 10.5 if nome.begins_with("f") else 11.0
+		perto(P.distance_to(K), comprimento, 0.001, "comprimento superior original " + nome)
+		perto(K.distance_to(F), comprimento, 0.001, "comprimento inferior original " + nome)
+
+
+func test_ik_alvos_impossiveis_zero_e_deslocamento_lateral() -> void:
+	var P := Vector3(0.4, 18.0, 7.0)
+	var casos := [Vector3(1.0, 0.0, 9.5), Vector3(0.4, -100.0, 7.0),
+		P, P + Vector3(0.0, 0.0, 0.01), P + Vector3(25.0, 0.0, 0.0)]
+	for F in casos:
+		var solucao := E3._ik(P, F, 10.5, 10.5, -1.0)
+		var K: Vector3 = solucao["joelho"]
+		var pata: Vector3 = solucao["pata"]
+		checar(K.is_finite() and pata.is_finite(), "IK finita para alvo %s" % F)
+		perto(P.distance_to(K), 10.5, 0.001, "l1 não alonga %s" % F)
+		perto(K.distance_to(pata), 10.5, 0.001, "l2 não alonga %s" % F)
+		if P.distance_to(F) > 0.001 and P.distance_to(F) <= 21.0:
+			checar(pata.distance_to(F) < 0.0001, "alvo no alcance preservado %s" % F)
+		elif P.distance_to(F) > 21.0:
+			perto(P.distance_to(pata), 21.0, 0.001, "alvo distante limitado ao alcance %s" % F)
+	# Quando l1 != l2, alvo na origem deve parar no raio mínimo, sem NaN.
+	var curto := E3._ik(P, P, 11.0, 8.0, 1.0)
+	perto(P.distance_to(curto["pata"]), 3.0, 0.001, "alvo zero respeita raio mínimo")
+	perto(P.distance_to(curto["joelho"]), 11.0, 0.001, "raio mínimo sem osso elástico")
+	perto((curto["joelho"] as Vector3).distance_to(curto["pata"]), 8.0, 0.001, "segundo osso rígido")
+
+
 func test_pata_no_chao_do_mundo_e_projecao() -> void:
 	var m := _rig()
 	var pitch_rad := E3.pitch()
