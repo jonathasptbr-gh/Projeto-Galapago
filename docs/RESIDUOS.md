@@ -4,6 +4,13 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.27.0 | CI | o `preview` num PR falha ao criar o deployment do Pages: o ambiente `github-pages` só aceita `main` (`custom_branch_policies`); liberar `lote/*` em Settings → Environments → github-pages, ou revisar pelo artefato `quadros` do run | médio | aberto |
+| v0.27.0 | animação | `Anim.retrato` lê `corpo._fator_sprint()` (método privado) só para a pose de decolagem; se o corpo trocar de API, o retrato quebra no parser | pequeno | aberto |
+| v0.27.0 | pele | a mordida não tem faísca nas vistas de costas (`north`, `north-east`, `north-west`): a boca é oculta nesses setores, então o VFX falha fechado | pequeno | aberto |
+| v0.27.0 | rig | `west`, `north-west` e `south-west` continuam espelhos dos perfis leste/nordeste; são oito setores, mas quatro desenhos base | pequeno | aberto |
+| v0.27.0 | arte | a pele esquelética segue como prova de juntas: nada aqui é arte aprovada | decisão | aberto |
+| v0.27.0 | cadência | 400/300/350/340 ms são ponto de partida; afinar no aparelho com o operador | design | aberto |
+| v0.27.0 | ferramenta | `tools/folha_canino.gd` não tem teste automatizado próprio (o desenho tem) | pequeno | aberto |
 | v0.26.3 | baseline | o artifact de 10 MB pode engasgar na rede do celular; o script tenta 2× e aceita `--zip`/`--pasta` | pequeno | aberto |
 | v0.26.2 | preview | a pausa de 8 s é empírica; se o `deploy-pages` voltar a falhar, aumentar ou trocar por retry com espera | pequeno | aberto |
 | v0.26.1 | preview | GIF de ~1,1 MB ainda é o arquivo mais pesado da revisão; se doer no celular, cortar quadros | pequeno | aberto |

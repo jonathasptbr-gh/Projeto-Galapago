@@ -78,6 +78,10 @@ static func resolver(m: Dictionary, id: String, rig: Dictionary, pose: Dictionar
 	var item: Dictionary = mods[id]
 	if item.get("concede_habilidade") != false:
 		return {}
+	# Um ponto reservado ao impacto não concede uma peça/asa ao canino.
+	var socket: Dictionary = rig.get("sockets", {}).get(String(item["socket"]), {})
+	if socket.get("uso", "") == "vfx":
+		return {}
 	var s := E.socket(rig, pose, direcao, String(item["socket"]))
 	if s.is_empty():
 		return {}

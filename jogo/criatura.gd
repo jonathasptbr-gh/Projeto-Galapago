@@ -68,6 +68,8 @@ func ativar_pele_geometrica(id: String = "canino", debug := false) -> bool:
 	_rig = m
 	_rig_id = id
 	_rig_debug = debug
+	_anim_cat = Anim.para_rig(AnimData.carregar(), m)
+	_anim_mem = {}
 	_tempo_pele = 0.0
 	queue_redraw()
 	return true
@@ -149,12 +151,13 @@ func _draw() -> void:
 		var fase := _fase_forcada
 		if fase < 0.0:
 			fase = Anim.fase(_anim_mem, _anim_cat, _tempo_pele * 1000.0)
-		var pose := Esq.pose(_rig, dir, fase, clipe)
+		var salto_correndo := bool(_anim_mem.get("salto_correndo", false)) and _clipe_forcado == ""
+		var pose := Esq.pose(_rig, dir, fase, clipe, salto_correndo)
 		ModDraw.desenhar(self, _rig, pose, dir, meu, _mod_cat, _mod_ids, "back")
 		PeleGeo.desenhar(self, _rig, dir, fase, clipe, meu, cor, _rig_debug, 1.0, pose)
 		ModDraw.desenhar(self, _rig, pose, dir, meu, _mod_cat, _mod_ids, "front")
 		_desenhar_eventos(meu, pose, dir, fase, clipe)
-		c = _ancora_boca(meu, dir, fase, clipe)
+		c = _ancora_boca(meu, dir, pose)
 		if _rig_debug:
 			var rotulo := clipe + (" (forçado)" if _clipe_forcado != "" else " · " + String(_anim_mem.get("id", "")))
 			draw_string(ThemeDB.fallback_font, meu + Vector2(-30, -58), rotulo,
@@ -185,8 +188,7 @@ func _desenhar_eventos(base: Vector2, pose: Dictionary, direcao: String, fase: f
 
 
 ## O golpe sai da ÂNCORA "boca" quando ela existe; senão do centro do corpo.
-func _ancora_boca(base: Vector2, direcao: String, fase: float, clipe: String) -> Vector2:
-	var pose := Esq.pose(_rig, direcao, fase, clipe)
+func _ancora_boca(base: Vector2, direcao: String, pose: Dictionary) -> Vector2:
 	var a := Esq.socket(_rig, pose, direcao, "boca")
 	if a.is_empty():
 		return base + Vector2(0, -20)

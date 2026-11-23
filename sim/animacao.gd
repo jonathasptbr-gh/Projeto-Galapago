@@ -69,6 +69,20 @@ static func validar(m: Dictionary) -> String:
 	return ""
 
 
+## Catálogo privado da pele: só o canino lê seus tempos mais ágeis.
+## O catálogo comum permanece byte a byte igual para os demais rigs.
+static func para_rig(m: Dictionary, rig: Dictionary) -> Dictionary:
+	var copia := m.duplicate(true)
+	if String(rig.get("familia", "")) != "canino":
+		return copia
+	var cat: Dictionary = copia.get("catalogo", {})
+	var clips: Dictionary = rig.get("clips", {})
+	for id in clips:
+		if cat.has(id):
+			cat[id]["duracao_ms"] = roundi(float(clips[id]["duracao_s"]) * 1000.0)
+	return copia
+
+
 static func clipe(m: Dictionary, id: String) -> Dictionary:
 	var cat: Dictionary = m.get("catalogo", {})
 	return cat.get(id, {})
@@ -95,6 +109,8 @@ static func retrato(corpo: RefCounted, andando: bool, saltou := false, pousou :=
 		"saltou": saltou,
 		"pousou": pousou,
 		"correndo": corpo.correndo(),
+		# Só para a pose de decolagem: cauda física acelera enquanto há rota.
+		"impulso_corrida": andando and corpo.em_rota() and corpo._fator_sprint() > 1.001,
 		"andando": andando,
 		"dormindo": false,
 	}
@@ -135,6 +151,20 @@ static func desejado(entrada: Dictionary, m: Dictionary) -> String:
 ## prioridade MENOR (mais urgente). Loop troca quando o pedido tem prioridade
 ## igual ou menor.
 static func resolver(entrada: Dictionary, m: Dictionary, memoria: Dictionary, agora_ms: float) -> Dictionary:
+	var proxima := _resolver_base(entrada, m, memoria, agora_ms)
+	var id := String(proxima.get("id", ""))
+	if id.begins_with("jump_"):
+		# Metadado exclusivamente visual: conserva o impulso da corrida entre
+		# início, ar e pouso mesmo quando correndo() deixa de valer no ar.
+		var anterior := String(memoria.get("id", ""))
+		if anterior.begins_with("jump_"):
+			proxima["salto_correndo"] = bool(memoria.get("salto_correndo", false))
+		else:
+			proxima["salto_correndo"] = bool(entrada.get("impulso_corrida", false)) or bool(entrada.get("correndo", false)) or anterior == "run"
+	return proxima
+
+
+static func _resolver_base(entrada: Dictionary, m: Dictionary, memoria: Dictionary, agora_ms: float) -> Dictionary:
 	var cat: Dictionary = m.get("catalogo", {})
 	if cat.is_empty():
 		return {"id": "idle", "desde_ms": agora_ms}

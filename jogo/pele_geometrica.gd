@@ -32,7 +32,7 @@ static func desenhar(c: CanvasItem, rig: Dictionary, direcao: String, fase: floa
 			c.draw_line(_p(j[b["a"]], base, piv, escala), _p(j[b["b"]], base, piv, escala),
 				linha, 2.0 * escala, true)
 	for nome in j:
-		c.draw_circle(_p(j[nome], base, piv, escala), 2.2 * escala, ponto, true, -1.0, true)
+		c.draw_circle(_p(j[nome], base, piv, escala), 1.4 * escala, ponto, true, -1.0, true)
 	if debug:
 		_ancoras(c, rig, pose, direcao, base, piv, escala)
 

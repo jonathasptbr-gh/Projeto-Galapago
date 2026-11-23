@@ -1,7 +1,7 @@
 extends "res://testes/caso.gd"
-## Contrato do esqueleto: o rig do canino valida, a pose responde nas quatro
-## direções, o pé fica no chão, o espelho não desloca e a âncora ausente NÃO
-## herda posição. Rig adulterado falha fechado.
+## Contrato do esqueleto: oito direções com frente e costas distintas,
+## pés e âncoras por direção, marcha e ações em fases; sem regressão dos
+## demais rigs. Rig adulterado falha fechado.
 
 const E := preload("res://sim/esqueleto.gd")
 const CAMINHO := "res://dados/rig/canino.json"
@@ -24,7 +24,7 @@ func test_rig_do_projeto_valida() -> void:
 	var m := _rig()
 	igual(E.validar(m), "", "canino sem erro")
 	igual(E.direcoes(m).size(), 8, "oito direções")
-	perto(E.duracao(m, "walk"), 0.5, 0.001, "duração do passo")
+	perto(E.duracao(m, "walk"), 0.4, 0.001, "duração ágil do passo")
 	perto(E.duracao(m, "idle"), 1.0, 0.001, "duração do parado")
 
 
@@ -300,6 +300,75 @@ func test_vista_frontal_tem_os_dois_pares() -> void:
 	checar((j["pata_te"] as Vector2).y < 50.0, "traseira esquerda levanta na vez dela")
 	perto((j["pata_e"] as Vector2).y, 50.0, 0.001, "dianteira esquerda plantada")
 	perto((j["pata_td"] as Vector2).y, 50.0, 0.001, "traseira direita plantada")
+
+
+func test_frente_costas_sao_geometrias_distintas() -> void:
+	var m := _rig()
+	var sul: Dictionary = E.pose(m, "south", 0.0, "idle")["juntas"]
+	var norte: Dictionary = E.pose(m, "north", 0.0, "idle")["juntas"]
+	checar((sul["peito"] as Vector2).y < (sul["quadril"] as Vector2).y, "peito visto pela frente")
+	checar((norte["peito"] as Vector2).y > (norte["quadril"] as Vector2).y, "ombros atrás do quadril de costas")
+	checar((norte["focinho"] as Vector2).y < (norte["cabeca"] as Vector2).y, "focinho aponta norte")
+	var frente: Dictionary = E.pose(m, "south-east", 0.0, "idle")["juntas"]
+	var costas: Dictionary = E.pose(m, "north-east", 0.0, "idle")["juntas"]
+	checar((frente["focinho"] as Vector2).y > (frente["cabeca"] as Vector2).y, "diagonal frontal aponta baixo")
+	checar((costas["focinho"] as Vector2).y < (costas["cabeca"] as Vector2).y, "diagonal dorsal aponta cima")
+
+
+func test_oito_direcoes_e_seis_acoes_animam_em_tres_fases() -> void:
+	var m := _rig()
+	for dir in E.DIRECOES:
+		for clipe in ["walk", "run", "jump_start", "jump_air", "jump_land", "bite", "slam"]:
+			var poses: Array[Dictionary] = []
+			for fase in [0.17, 0.42, 0.73]:
+				var p := E.pose(m, dir, fase, clipe)
+				checar(not p.is_empty(), "%s/%s/fase %.2f" % [dir, clipe, fase])
+				poses.append(p["juntas"])
+			var nomes: Array = ["cabeca", "peito", "focinho"]
+			if poses[0].has("pata_f"):
+				nomes.append("pata_f")
+			else:
+				nomes.append("pata_e")
+			for i in 2:
+				var max_delta := 0.0
+				for nome in nomes:
+					max_delta = maxf(max_delta, (poses[i][nome] as Vector2).distance_to(poses[i + 1][nome]))
+				checar(max_delta > 0.1, "%s/%s muda entre fases %d-%d" % [dir, clipe, i, i + 1])
+		for clipe in ["walk", "run"]:
+			var p0: Dictionary = E.pose(m, dir, 0.0, clipe)["juntas"]
+			var p1: Dictionary = E.pose(m, dir, 1.0, clipe)["juntas"]
+			for nome in p0:
+				perto_v(p0[nome], p1[nome], 0.001, "%s/%s/%s fecha loop" % [dir, clipe, nome])
+		var pb: Dictionary = E.pose(m, dir, 0.5, "bite")["juntas"]
+		var ps: Dictionary = E.pose(m, dir, 0.5, "slam")["juntas"]
+		checar((pb["cabeca"] as Vector2).distance_to(ps["cabeca"]) > 1.0, "%s bite difere de slam" % dir)
+		checar(not E.socket(m, E.pose(m, dir, 0.5, "slam"), dir, "dorso").is_empty(), "%s VFX dorsal alcançável" % dir)
+
+
+func test_mordida_e_esbarrao_apontam_para_norte() -> void:
+	var m := _rig()
+	var base: Dictionary = E.pose(m, "north", 0.5, "idle")["juntas"]
+	for clipe in ["bite", "slam"]:
+		var j: Dictionary = E.pose(m, "north", 0.5, clipe)["juntas"]
+		checar((j["cabeca"] as Vector2).y < (base["cabeca"] as Vector2).y, clipe + " avança para norte")
+		var sul: Dictionary = E.pose(m, "south", 0.5, clipe)["juntas"]
+		var base_sul: Dictionary = E.pose(m, "south", 0.5, "idle")["juntas"]
+		checar((sul["cabeca"] as Vector2).y > (base_sul["cabeca"] as Vector2).y, clipe + " avança para sul")
+
+
+func test_salto_correndo_e_uma_pose_nao_fisica() -> void:
+	var m := _rig()
+	for dir in E.DIRECOES:
+		for clipe in ["jump_start", "jump_air", "jump_land"]:
+			for fase in [0.17, 0.42, 0.73]:
+				var comum: Dictionary = E.pose(m, dir, fase, clipe)["juntas"]
+				var corrida: Dictionary = E.pose(m, dir, fase, clipe, true)["juntas"]
+				checar((comum["cabeca"] as Vector2).distance_to(corrida["cabeca"]) > 1.0,
+					"%s/%s/fase %.2f conserva impulso do sprint" % [dir, clipe, fase])
+	var ave := _rig_nome("ave")
+	perto_v(E.pose(ave, "east", 0.5, "jump_air")["juntas"]["cabeca"],
+		E.pose(ave, "east", 0.5, "jump_air", true)["juntas"]["cabeca"], 0.001,
+		"flag cosmética não altera outra família")
 
 
 func test_todo_ponto_do_canino_tem_osso() -> void:
