@@ -87,6 +87,8 @@ static func validar(m: Dictionary) -> String:
 			return "socket %s com offset inválido" % nome
 		if not (item.get("z") in Z):
 			return "socket %s com z inválido" % nome
+		if item.has("uso") and item["uso"] != "vfx":
+			return "socket %s com uso inválido" % nome
 		if not item.get("oculto_em") is Array:
 			return "socket %s sem oculto_em" % nome
 		for oculta in item["oculto_em"]:
@@ -133,7 +135,8 @@ static func envelope(m: Dictionary) -> Dictionary:
 
 ## Pose em px locais do canvas para (direção, fase 0..1, clipe).
 ## Devolve {} para direção/clipe desconhecido — nunca inventa pose.
-static func pose(m: Dictionary, direcao: String, fase: float, clipe: String = "walk") -> Dictionary:
+static func pose(m: Dictionary, direcao: String, fase: float, clipe: String = "walk",
+		salto_correndo: bool = false) -> Dictionary:
 	if not m.get("directions") is Dictionary or not (m["directions"] as Dictionary).has(direcao):
 		return {}
 	if clipe not in CLIPES:
@@ -152,15 +155,22 @@ static func pose(m: Dictionary, direcao: String, fase: float, clipe: String = "w
 		loop = bool((clips as Dictionary)[clipe].get("loop", true))
 	if loop:
 		f = wrapf(fase, 0.0, 1.0)
-	var frontal := String(d["profile"]) == "frontal"
+	var frontal := String(d["profile"]) in ["frontal", "dorsal"]
+	var canino := String(m.get("familia", "")) == "canino"
 	if clipe == "walk":
 		_andar(m, j, d, f, 1.0)
 	elif clipe == "run":
 		_andar(m, j, d, f, 1.35)
 	elif clipe == "bite":
-		_ataque(j, f, frontal)
+		if canino:
+			_acao_canina(j, f, direcao, false)
+		else:
+			_ataque(j, f, frontal)
 	elif clipe == "slam":
-		_esbarrao(j, f, frontal)
+		if canino:
+			_acao_canina(j, f, direcao, true)
+		else:
+			_esbarrao(j, f, frontal)
 	elif clipe == "shot":
 		_tiro(j, f, frontal)
 	elif clipe == "stunned":
@@ -173,10 +183,16 @@ static func pose(m: Dictionary, direcao: String, fase: float, clipe: String = "w
 		_carrega(j, f, frontal)
 	elif clipe == "jump_start":
 		_pula_inicio(j, f)
+		if canino:
+			_pulo_canino(j, f, clipe, salto_correndo, direcao)
 	elif clipe == "jump_air":
 		_pula_ar(j, f)
+		if canino:
+			_pulo_canino(j, f, clipe, salto_correndo, direcao)
 	elif clipe == "jump_land":
 		_pula_pouso(j, f)
+		if canino:
+			_pulo_canino(j, f, clipe, salto_correndo, direcao)
 	elif clipe == "death":
 		_tomba(m, j, f)
 	elif clipe == "get_up":
@@ -343,6 +359,44 @@ static func _desloca_corpo(j: Dictionary, delta: Vector2) -> void:
 		j[k] = (j[k] as Vector2) + delta
 
 
+## Vetor local ANTES do espelho: oeste reaproveita leste, norte aponta para cima.
+static func _frente_canina(direcao: String) -> Vector2:
+	match direcao:
+		"north":
+			return Vector2.UP
+		"south":
+			return Vector2.DOWN
+		"north-east", "north-west":
+			return Vector2(0.75, -0.66)
+		"south-east", "south-west":
+			return Vector2(0.75, 0.66)
+	return Vector2.RIGHT
+
+
+## Mordida = pescoço/focinho à frente; slam = ombro/tronco baixo e patas firmes.
+## A antecipação curta e a recuperação são só pose, sem alterar o instante de dano.
+static func _acao_canina(j: Dictionary, fase: float, direcao: String, slam: bool) -> void:
+	var frente := _frente_canina(direcao)
+	var ataque := sin(PI * fase) * (0.65 - 0.8 * cos(TAU * fase))
+	var desloc := frente * ataque * (8.0 if slam else 6.0)
+	_desloca_corpo(j, desloc + (Vector2(0.0, 2.5 * sin(PI * fase)) if slam else Vector2.ZERO))
+	if slam:
+		for nome in ["quadril", "lombo", "peito"]:
+			if j.has(nome):
+				j[nome] = (j[nome] as Vector2) + frente * (3.0 * sin(PI * fase))
+		for nome in j:
+			if String(nome).begins_with("pata"):
+				j[nome] = (j[nome] as Vector2) - frente * (2.0 * sin(PI * fase))
+		if j.has("cabeca"):
+			j["cabeca"] = (j["cabeca"] as Vector2) - frente * (3.0 * sin(PI * fase))
+	else:
+		for nome in ["cabeca", "focinho", "pescoco", "orelha", "orelha_e", "orelha_d"]:
+			if j.has(nome):
+				j[nome] = (j[nome] as Vector2) + frente * (5.0 * sin(PI * fase))
+		if j.has("focinho"):
+			j["focinho"] = (j["focinho"] as Vector2) + frente * (2.0 * sin(PI * fase * 3.0))
+
+
 ## Mordida: o corpo avança na direção em que olha e volta (fase 0..1).
 static func _ataque(j: Dictionary, fase: float, frontal: bool) -> void:
 	var s := sin(PI * fase)
@@ -425,6 +479,31 @@ static func _pula_ar(j: Dictionary, fase: float) -> void:
 		j["cauda_ponta"] = (j["cauda_ponta"] as Vector2) + Vector2(0.0, -2.0)
 
 
+## Apresentação do salto canino: recolhe/estende patas em três momentos.
+## Correndo carrega a inclinação do galope para o salto, sem tocar na física.
+static func _pulo_canino(j: Dictionary, fase: float, clipe: String,
+		correndo: bool, direcao: String) -> void:
+	var frente := _frente_canina(direcao)
+	var arco := sin(PI * fase)
+	var impulso := 1.0 if correndo else 0.45
+	var extensao := (sin(TAU * fase) * 2.0 + arco * 1.5) * impulso
+	if clipe == "jump_air":
+		extensao += 2.0 * impulso
+	for nome in j:
+		var k := String(nome)
+		if k.begins_with("pata"):
+			var sinal := -1.0 if k.ends_with("2") or k.ends_with("d") else 1.0
+			j[nome] = (j[nome] as Vector2) + frente * extensao * sinal + Vector2(0, -arco * (2.0 if correndo else 1.0))
+		elif k.begins_with("joelho"):
+			j[nome] = (j[nome] as Vector2) + frente * extensao * 0.45
+	var inclina := frente * (arco * (4.0 if correndo else 1.0))
+	for nome in ["pescoco", "cabeca", "focinho", "orelha", "orelha_e", "orelha_d"]:
+		if j.has(nome):
+			j[nome] = (j[nome] as Vector2) + inclina
+	if j.has("cauda_ponta"):
+		j["cauda_ponta"] = (j["cauda_ponta"] as Vector2) - inclina * 0.6 + Vector2(0, -arco)
+
+
 ## Pouso: amortece (agacha).
 static func _pula_pouso(j: Dictionary, fase: float) -> void:
 	_desloca_corpo(j, Vector2(0.0, 3.0 * sin(PI * fase)))
@@ -472,7 +551,7 @@ static func _andar(m: Dictionary, j: Dictionary, d: Dictionary, fase: float, fat
 		_rasteja(m, j, fase, fator)
 	elif tipo == "ave":
 		_bipede(m, j, fase, fator)
-	elif String(d["profile"]) == "frontal":
+	elif String(d["profile"]) in ["frontal", "dorsal"]:
 		_ande_frontal(m, j, fase, fator)
 	else:
 		_ande_lateral(m, j, fase, fator)

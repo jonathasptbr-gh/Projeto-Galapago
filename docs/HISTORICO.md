@@ -3,6 +3,31 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.27.0 — cão em oito direções: juntas menores, salto com impulso e cadência ágil (2026-11-23)
+
+- **Juntas menores:** a pele esquelética desenha os pontos vermelhos com raio
+  1,4 px (eram 2,2 px) — o movimento das juntas fica legível sem encobrir o
+  osso branco.
+- **Oito direções reais:** `north` ganhou perfil `dorsal` próprio (sem rosto,
+  cauda para baixo, orelhas nas laterais) e as duas diagonais de costas foram
+  reorientadas. Andar, correr, morder e esbarrar seguem o vetor de cada setor:
+  a mordida e o esbarrão ao norte agora avançam para CIMA, não para o sul.
+- **Salto em corrida:** `salto_correndo` é capturado só na decolagem e herdado
+  até o pouso; a pose aceita também o impulso FÍSICO da cauda do sprint
+  (`_fator_sprint`), sem tocar a física nem inventar impulso fora da rota.
+- **Cadência ágil só do canino:** walk 500→400 ms, run 380→300, bite 420→350,
+  slam 450→340, aplicados por catálogo privado (`Anim.para_rig`); o catálogo
+  comum (`dados/animacoes.json`) e as janelas de dano ficam intactos, e
+  serpente/ave não aceleram.
+- **Dorso de VFX:** o socket `dorso` (uso `vfx`) ancora o impacto do esbarrão;
+  módulo cosmético não o usa como asa.
+- **Oráculo auxiliar:** `tools/folha_canino.gd` gera a matriz 8 direções × 7
+  clipes × 3 fases (e a variante `--sprint`) no desenho real da pele.
+- **Verificação:** `tools/testes.sh` 221 testes/0 falhas, parser 59/0, docs
+  32/0; `git diff --check` limpo; baseline dos quadros do llvmpipe atualizado
+  no CI #68 (dispatch `baseline`, artefato aplicado em `testes/baseline`).
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.26.3 — estado.sh não confunde o baseline com o CI do main (2026-11-23)
 
 - `tools/estado.sh --ci` mostra o último run de **push** (o CI do main) e, em

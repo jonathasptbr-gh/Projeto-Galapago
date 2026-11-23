@@ -3,6 +3,7 @@ extends "res://testes/caso.gd"
 ## vez que segura a cena, ameaça que interrompe e fase (loop × fim).
 
 const A := preload("res://sim/animacao.gd")
+const E := preload("res://sim/esqueleto.gd")
 const CAMINHO := "res://dados/animacoes.json"
 
 class Fake extends RefCounted:
@@ -12,6 +13,14 @@ class Fake extends RefCounted:
 	var carga := false
 	var ar := false
 	var sprint := false
+	var cauda := false
+	var rota := true
+
+	func em_rota() -> bool:
+		return rota
+
+	func _fator_sprint() -> float:
+		return 1.6 if sprint or cauda else 1.0
 
 	func atordoado() -> bool:
 		return tonto > 0.0
@@ -126,6 +135,89 @@ func test_retrato_do_corpo() -> void:
 	igual(String(r["golpe"]), "", "sem golpe")
 	f.ataque = "batida"
 	igual(String(A.retrato(f, false)["golpe"]), "batida", "golpe no retrato")
+
+
+func test_salto_em_corrida_preserva_impulso_sem_mudar_catalogo() -> void:
+	var m := _cat()
+	var mem := A.resolver({"andando": true, "correndo": true}, m, {}, 0.0)
+	igual(mem["id"], "run", "sprint ativo")
+	mem = A.resolver({"saltou": true, "no_ar": true}, m, mem, 80.0)
+	igual(mem["id"], "jump_start", "impulso inicial")
+	checar(bool(mem.get("salto_correndo", false)), "salto herda corrida anterior")
+	mem = A.resolver({"no_ar": true}, m, mem, 240.0)
+	igual(mem["id"], "jump_air", "sprint no ar")
+	checar(bool(mem.get("salto_correndo", false)), "ar mantém impulso sem correndo()")
+	mem = A.resolver({"pousou": true}, m, mem, 320.0)
+	igual(mem["id"], "jump_land", "pouso")
+	checar(bool(mem.get("salto_correndo", false)), "pouso mantém impulso")
+	mem = A.resolver({}, m, mem, 510.0)
+	igual(mem["id"], "idle", "retorna ao repouso")
+	checar(not bool(mem.get("salto_correndo", false)), "sinal só existe durante salto")
+	var parado := A.resolver({"saltou": true}, m, {}, 0.0)
+	checar(not bool(parado.get("salto_correndo", false)), "salto parado permanece distinto")
+
+
+func test_salto_parado_nao_vira_sprint_no_ar() -> void:
+	var m := _cat()
+	var mem := A.resolver({"saltou": true, "no_ar": true}, m, {}, 0.0)
+	checar(not bool(mem.get("salto_correndo", false)), "decolou parado")
+	mem = A.resolver({"no_ar": true, "correndo": true, "impulso_corrida": true}, m, mem, 150.0)
+	igual(mem["id"], "jump_air", "entrou no ar")
+	checar(not bool(mem.get("salto_correndo", false)), "sprint surgido no ar não altera pose")
+	mem = A.resolver({"pousou": true, "correndo": true}, m, mem, 200.0)
+	checar(not bool(mem.get("salto_correndo", false)), "pouso também não captura sprint tardio")
+
+
+func test_cauda_fisica_herda_impulso_ao_decolar() -> void:
+	var m := _cat()
+	var f := Fake.new()
+	f.sprint = true
+	var mem := A.resolver(A.retrato(f, true), m, {}, 0.0)
+	igual(mem["id"], "run", "começou em sprint")
+	f.sprint = false
+	f.cauda = true
+	mem = A.resolver(A.retrato(f, true), m, mem, 20.0)
+	igual(mem["id"], "walk", "soltar mudou só apresentação da marcha")
+	f.ar = true
+	var lancamento := A.retrato(f, true, true)
+	checar(bool(lancamento["impulso_corrida"]), "cauda física com deslocamento tem impulso")
+	mem = A.resolver(lancamento, m, mem, 40.0)
+	igual(mem["id"], "jump_start", "saltou na cauda")
+	checar(bool(mem.get("salto_correndo", false)), "pulo herdou impulso mesmo após clipe walk")
+	f.cauda = false
+	mem = A.resolver(A.retrato(f, true), m, mem, 220.0)
+	checar(bool(mem.get("salto_correndo", false)), "sinal permanece no ar após cauda zerar")
+	f.ar = false
+	checar(not bool(A.retrato(f, false, true)["impulso_corrida"]), "sem deslocamento não inventa impulso")
+	f.cauda = true
+	f.rota = false
+	checar(not bool(A.retrato(f, true, true)["impulso_corrida"]), "inércia fora da rota não recebe fator aéreo")
+
+
+func test_duracoes_do_canino_sincronizadas_com_catalogo() -> void:
+	var m := _cat()
+	var rig := E.de_json(FileAccess.get_file_as_string("res://dados/rig/canino.json"))
+	checar(not rig.is_empty(), "rig do cão válido")
+	var canino := A.para_rig(m, rig)
+	igual(A.validar(canino), "", "catálogo especializado válido")
+	for id in E.CLIPES:
+		perto(E.duracao(rig, id) * 1000.0, float(A.clipe(canino, id).get("duracao_ms", 0)),
+			0.01, "duração do cão em %s" % id)
+	for par in [["walk", 400, 500], ["run", 300, 380], ["bite", 350, 420], ["slam", 340, 450]]:
+		var id: String = par[0]
+		igual(int(A.clipe(canino, id)["duracao_ms"]), int(par[1]), "canino ágil: " + id)
+		igual(int(A.clipe(m, id)["duracao_ms"]), int(par[2]), "catálogo base preservado: " + id)
+	# A janela ornamental continua no tempo já declarado; não é regra de dano.
+	igual(int(A.clipe(canino, "bite")["janelas"][0]["ms"]), 180, "janela bite inalterada")
+	igual(int(A.clipe(canino, "slam")["janelas"][0]["ms"]), 160, "janela slam inalterada")
+	for outro in ["serpente", "ave"]:
+		var r := E.de_json(FileAccess.get_file_as_string("res://dados/rig/" + outro + ".json"))
+		var cat_outro := A.para_rig(m, r)
+		for id in ["walk", "run", "bite", "slam"]:
+			igual(int(A.clipe(cat_outro, id)["duracao_ms"]), int(A.clipe(m, id)["duracao_ms"]),
+				outro + " não acelera " + id)
+	perto(A.fase(_mem("run", 0.0), canino, 300.0), 0.0, 0.001, "galope fecha em 300ms")
+	perto(A.fase(_mem("walk", 0.0), canino, 400.0), 0.0, 0.001, "passo fecha em 400ms")
 
 
 func test_corrida_e_transicoes_de_pulo() -> void:
