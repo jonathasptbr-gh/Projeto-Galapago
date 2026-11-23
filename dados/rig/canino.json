@@ -207,6 +207,11 @@
           "a": "joelho_f2",
           "b": "pata_f2",
           "w": 3.5
+        },
+        {
+          "a": "cabeca",
+          "b": "orelha",
+          "w": 3.0
         }
       ]
     },
@@ -314,6 +319,21 @@
           "a": "peito",
           "b": "pata_d",
           "w": 4.0
+        },
+        {
+          "a": "cabeca",
+          "b": "orelha_e",
+          "w": 2.5
+        },
+        {
+          "a": "cabeca",
+          "b": "orelha_d",
+          "w": 2.5
+        },
+        {
+          "a": "cabeca",
+          "b": "focinho",
+          "w": 3.5
         }
       ]
     },
@@ -463,6 +483,11 @@
           "a": "joelho_f2",
           "b": "pata_f2",
           "w": 3.5
+        },
+        {
+          "a": "cabeca",
+          "b": "orelha",
+          "w": 3.0
         }
       ]
     },
@@ -612,6 +637,11 @@
           "a": "joelho_f2",
           "b": "pata_f2",
           "w": 3.5
+        },
+        {
+          "a": "cabeca",
+          "b": "orelha",
+          "w": 3.0
         }
       ]
     }

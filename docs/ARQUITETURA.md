@@ -53,9 +53,10 @@ RETRATO** (720×1280, `canvas_items`, `expand`) com **arte pixelada** (filtro
 ## Pele e esqueleto (v0.22.0)
 
 O desenho da criatura pode vir de dois lados, com o MESMO contrato: o mock de
-xadrez ou a **pele geométrica** (`jogo/pele_geometrica.gd`), que desenha o rig
+xadrez ou a **pele esquelética** (`jogo/pele_geometrica.gd`), que desenha o rig
 de `dados/rig/<familia>.json` validado por `sim/esqueleto.gd` (pose por fase e
-âncora por nome, 8 direções). `sim/direcao.gd` mapeia o olhar em setores;
+âncora por nome, 8 direções) como ossos em linhas brancas e juntas em pontos
+vermelhos — sem corpo preenchido. `sim/direcao.gd` mapeia o olhar em setores;
 `jogo/rigs.gd` carrega e cacheia o rig, fail-closed. A pele de sprite do
 PixelLab entra no mesmo lugar quando a arte for aprovada — a regra de jogo
 nunca pergunta qual pele está ativa.

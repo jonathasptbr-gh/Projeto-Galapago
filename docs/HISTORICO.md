@@ -3,6 +3,22 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.25.2 — a pele vira esqueleto puro: linhas brancas, pontos vermelhos (2026-11-23)
+
+- **Foco total no quadrúpede canino e no movimento das juntas:**
+  `jogo/pele_geometrica.gd` agora desenha SÓ os ossos (linhas brancas de
+  2 px) e as juntas (pontos vermelhos) do rig — os corpos preenchidos saíram
+  de cena. Máquina de estados, clipes, módulos por flag e golpe na âncora
+  continuam iguais.
+- **Renderizador genérico:** serpente e ave passam pelo mesmo caminho, sem
+  polimento dedicado. O canino ganhou ossos de orelha (todas as vistas) e de
+  focinho na frontal, e um teste garante que **toda junta pertence a um osso**
+  (nenhum ponto solto).
+- **Verificação:** `tools/testes.sh` 213 testes/0 falhas (1 novo: cobertura
+  de ossos por perfil), parser 58 scripts/0 erros. Baseline trocado em commit
+  próprio com os quadros do CI (llvmpipe).
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.25.1 — biomecânica da passada: passo de 4 tempos e galope (2026-11-23)
 
 - **Passo de 4 tempos** na sequência lateral dos quadrúpedes (LH→LF→RH→RF):

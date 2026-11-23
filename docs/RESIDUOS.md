@@ -4,6 +4,9 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.25.2 | pele | esqueleto puro é para estudo de juntas; a leitura de personagem no mapa fica de propósito em segundo plano até a arte | decisão | aberto |
+| v0.25.2 | foco | serpente e ave seguem sem ossos completos (pontos soltos como asas) — renderizam, mas não foram polidos | médio | aberto |
+| v0.25.2 | sombra | a sombra elíptica do mock continua sob o esqueleto (ajuda a ler o chão) | pequeno | aberto |
 | v0.25.1 | biomecânica | amplitudes (passo 5 px, levantar 3 px, bounce 2,8 px) são ponto de partida; afinar no aparelho com o operador | design | aberto |
 | v0.25.1 | galope | sem inclinação de tronco (pitch) nem curva do dorso; só balanço vertical | médio | aberto |
 | v0.25.1 | marchas | não existe o TROTE intermediário: correr pula direto ao galope | design | aberto |

@@ -300,3 +300,15 @@ func test_vista_frontal_tem_os_dois_pares() -> void:
 	checar((j["pata_te"] as Vector2).y < 50.0, "traseira esquerda levanta na vez dela")
 	perto((j["pata_e"] as Vector2).y, 50.0, 0.001, "dianteira esquerda plantada")
 	perto((j["pata_td"] as Vector2).y, 50.0, 0.001, "traseira direita plantada")
+
+
+func test_todo_ponto_do_canino_tem_osso() -> void:
+	var m := _rig_nome("canino")
+	for perfil in m["profiles"]:
+		var juntas: Dictionary = m["profiles"][perfil]["joints"]
+		var nos: Dictionary = {}
+		for b in m["profiles"][perfil]["bones"]:
+			nos[b["a"]] = true
+			nos[b["b"]] = true
+		for k in juntas:
+			checar(nos.has(k), "junta %s/%s pertence a um osso" % [perfil, k])
