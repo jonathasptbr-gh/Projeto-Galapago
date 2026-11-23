@@ -47,6 +47,10 @@ commit/PR** com o link da página e as três imagens inline.
 - GIF depende de `python3-pil` no runner; se faltar, a página sai só com os
   quadros e o job **não** fica vermelho. O Pages pode falhar (ambiente,
   cota): o `continue-on-error` segura, e o APK não depende dele.
+- O `deploy-pages` precisa do artefato já indexado: o job dá uma pausa de 8 s
+  e tenta de novo se a primeira falhar ("Fetching artifact metadata failed").
+  Falha dupla = site fica no lote anterior; o comentário aponta para a página
+  mesmo assim.
 
 ## Baseline de um lote (antes do commit)
 

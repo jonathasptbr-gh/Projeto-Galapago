@@ -3,6 +3,16 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.26.2 — deploy do Pages com pausa e segunda tentativa (2026-11-23)
+
+- O run #64 mostrou a corrida: o `deploy-pages` roda no mesmo segundo em que o
+  `upload-pages-artifact` fecha o artefato e falha com "Fetching artifact
+  metadata failed" — o `continue-on-error` segurava o job, mas o site ficava
+  na versão anterior. Agora há uma pausa de 8 s e uma **segunda tentativa**
+  automática quando a primeira falha; o comentário usa a URL da que deu certo.
+- **Verificação:** CI #65 verde e o site do Pages passa a mostrar o lote novo
+  (caminho `<run>/` no ar).
+
 ## v0.26.1 — preview mais leve e título sem repetir a versão (2026-11-23)
 
 - O GIF do preview caiu de 40 quadros a 320 px (~2,7 MB) para 24 quadros a

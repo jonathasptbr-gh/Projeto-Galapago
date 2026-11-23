@@ -112,8 +112,19 @@ jobs:
         with:
           path: _site
 
+      # O Pages precisa indexar o artefato recém-enviado: deployar no mesmo
+      # segundo falha com "Fetching artifact metadata failed" (visto no #64).
+      - name: Pausa (índice do artefato)
+        run: sleep 8
+
       - name: Publicar o Pages
         id: deploy
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+
+      - name: Publicar o Pages (2ª tentativa)
+        id: deploy2
+        if: steps.deploy.outcome == 'failure'
         continue-on-error: true
         uses: actions/deploy-pages@v4
 
@@ -123,7 +134,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GITHUB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          PREVIEW_URL: ${{ steps.deploy.outputs.page_url }}
+          PREVIEW_URL: ${{ steps.deploy.outputs.page_url || steps.deploy2.outputs.page_url }}
         run: node tools/preview.mjs --comentar
 
   # Baseline sob demanda (workflow_dispatch com `ref`): o llvmpipe do CI gera
