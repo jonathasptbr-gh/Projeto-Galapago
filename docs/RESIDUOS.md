@@ -4,6 +4,10 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.23.1 | animação | `run`, `hit` e `death` têm clipe nos rigs, mas o corpo ainda não os aciona (sprint não exposto, sem vida) | médio | aberto |
+| v0.23.1 | animação | 28 ações (T1/T2/T3: comer, dormir, voar, nadar…) continuam só no catálogo, sem desenho | médio | aberto |
+| v0.23.1 | pulo | a máquina usa `jump_air`; `jump_start`/`jump_land` só aparecem quando a apresentação detectar a transição | pequeno | aberto |
+| v0.23.1 | morte | tomba e para, mas não há vida nem renascimento: clipe dormente | design | aberto |
 | v0.23.0 | animação | só `bite`, `stunned`, `dig` e `charge` têm desenho; as outras 37 ações têm catálogo mas ainda não têm clipe na pele | médio | aberto |
 | v0.23.0 | animação | durações e janelas de evento são provisórias (125 ms herdado da E2); ajustar no aparelho | pequeno | aberto |
 | v0.23.0 | vida/dano | `hit`/`death` existem na máquina e no catálogo, mas o jogo não tem vida: ficam dormentes | design | aberto |

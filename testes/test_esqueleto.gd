@@ -224,3 +224,36 @@ func test_ave_bipede_alterna_os_pes() -> void:
 	checar(E.socket(m, norte, "north", "boca").is_empty(), "bico some ao norte")
 	var leste := E.pose(m, "east", 0.0, "idle")
 	checar(not E.socket(m, leste, "east", "boca").is_empty(), "bico existe a leste")
+
+
+func test_clipes_de_mecanica_nos_tres_rigs() -> void:
+	for nome in ["canino", "serpente", "ave"]:
+		var m := _rig_nome(nome)
+		for clipe in E.CLIPES:
+			var p := E.pose(m, "east", 0.5, clipe)
+			checar(not p.is_empty(), "%s/%s" % [nome, clipe])
+			var j: Dictionary = p.get("juntas", {})
+			checar(j.size() >= 8, "juntas %s/%s" % [nome, clipe])
+			for k in j:
+				checar((j[k] as Vector2).is_finite(), "ponto finito %s/%s/%s" % [nome, clipe, k])
+
+
+func test_poses_de_mecanica_tem_sentido() -> void:
+	var m := _rig_nome("canino")
+	var base: Vector2 = (E.pose(m, "east", 0.5, "idle")["juntas"] as Dictionary)["cabeca"]
+	var mordida: Vector2 = (E.pose(m, "east", 0.5, "bite")["juntas"] as Dictionary)["cabeca"]
+	checar(mordida.x > base.x, "mordida avança")
+	var tiro: Vector2 = (E.pose(m, "east", 0.5, "shot")["juntas"] as Dictionary)["cabeca"]
+	checar(tiro.x < base.x, "tiro recua")
+	var esbarrao: Vector2 = (E.pose(m, "east", 0.5, "slam")["juntas"] as Dictionary)["cabeca"]
+	checar(esbarrao.x > base.x, "esbarrão avança")
+	var ar: Dictionary = E.pose(m, "east", 0.5, "jump_air")["juntas"]
+	checar((ar["pata_f"] as Vector2).y < 50.0, "pulo recolhe a pata")
+	var morte: Dictionary = E.pose(m, "east", 1.0, "death")["juntas"]
+	checar((morte["cabeca"] as Vector2).x > base.x, "morte tomba para frente")
+	checar((morte["cabeca"] as Vector2).y > base.y, "cabeça desce ao morrer")
+	var levanta: Dictionary = E.pose(m, "east", 1.0, "get_up")["juntas"]
+	perto_v(levanta["cabeca"], Vector2(48.0, 26.0), 0.6, "get_up termina em pé")
+	var passo: Vector2 = (E.pose(m, "east", 0.25, "walk")["juntas"] as Dictionary)["pata_f"]
+	var corre: Vector2 = (E.pose(m, "east", 0.25, "run")["juntas"] as Dictionary)["pata_f"]
+	checar(absf(corre.x - 44.0) > absf(passo.x - 44.0), "correr abre mais o passo")

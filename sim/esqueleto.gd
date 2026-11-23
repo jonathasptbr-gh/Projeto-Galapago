@@ -16,7 +16,8 @@ extends RefCounted
 
 const DIRECOES := ["south", "south-east", "east", "north-east", "north", "north-west", "west", "south-west"]
 const Z := ["front", "back"]
-const CLIPES := ["idle", "walk", "bite", "stunned", "dig", "charge"]
+const CLIPES := ["idle", "walk", "run", "jump_start", "jump_air", "jump_land", "charge", "shot",
+	"bite", "slam", "dig", "hit", "stunned", "death", "get_up"]
 
 
 ## Lê o JSON e valida. Devolve {} (falha fechada) para texto ou rig inválido.
@@ -143,25 +144,43 @@ static func pose(m: Dictionary, direcao: String, fase: float, clipe: String = "w
 	for nome in bruto:
 		var p: Array = bruto[nome]
 		j[nome] = Vector2(float(p[0]), float(p[1]))
-	var f := wrapf(fase, 0.0, 1.0)
-	var tipo := String(m.get("arquetipo", "quadrupede"))
+	# Loop fecha em 0; clipe de uma vez PARA em 1 (a morte precisa chegar ao fim).
+	var f := clampf(fase, 0.0, 1.0)
+	var loop := true
+	var clips: Variant = m.get("clips", {})
+	if clips is Dictionary and (clips as Dictionary).has(clipe):
+		loop = bool((clips as Dictionary)[clipe].get("loop", true))
+	if loop:
+		f = wrapf(fase, 0.0, 1.0)
+	var frontal := String(d["profile"]) == "frontal"
 	if clipe == "walk":
-		if tipo == "serpente":
-			_rasteja(m, j, f)
-		elif tipo == "ave":
-			_bipede(m, j, f)
-		elif d["profile"] == "frontal":
-			_ande_frontal(m, j, f)
-		else:
-			_ande_lateral(m, j, f)
+		_andar(m, j, d, f, 1.0)
+	elif clipe == "run":
+		_andar(m, j, d, f, 1.35)
 	elif clipe == "bite":
-		_ataque(j, f, String(d["profile"]) == "frontal")
+		_ataque(j, f, frontal)
+	elif clipe == "slam":
+		_esbarrao(j, f, frontal)
+	elif clipe == "shot":
+		_tiro(j, f, frontal)
 	elif clipe == "stunned":
 		_tonto(j, f)
+	elif clipe == "hit":
+		_dano(j, f, frontal)
 	elif clipe == "dig":
 		_cava(j, f)
 	elif clipe == "charge":
-		_carrega(j, f, String(d["profile"]) == "frontal")
+		_carrega(j, f, frontal)
+	elif clipe == "jump_start":
+		_pula_inicio(j, f)
+	elif clipe == "jump_air":
+		_pula_ar(j, f)
+	elif clipe == "jump_land":
+		_pula_pouso(j, f)
+	elif clipe == "death":
+		_tomba(m, j, f)
+	elif clipe == "get_up":
+		_levanta(m, j, f)
 	else:
 		_respira(m, j, f)
 	if bool(d["mirror"]):
@@ -256,9 +275,9 @@ static func _par(v: Variant) -> bool:
 
 
 ## Serpente: onda que corre da cauda (s0) à cabeça pela cadeia de juntas.
-static func _rasteja(m: Dictionary, j: Dictionary, fase: float) -> void:
+static func _rasteja(m: Dictionary, j: Dictionary, fase: float, fator := 1.0) -> void:
 	var c := _cfg(m)
-	var amp: float = c["onda"]
+	var amp: float = float(c["onda"]) * fator
 	var passo_onda: float = c["onda_passo"]
 	var cadeia: Array[String] = []
 	for i in 8:
@@ -289,10 +308,10 @@ static func _rasteja(m: Dictionary, j: Dictionary, fase: float) -> void:
 
 
 ## Ave: duas pernas alternam e o corpo balança; asa dobrada não anima ainda.
-static func _bipede(m: Dictionary, j: Dictionary, fase: float) -> void:
+static func _bipede(m: Dictionary, j: Dictionary, fase: float, fator := 1.0) -> void:
 	var c := _cfg(m)
-	var passo: float = c["passo"]
-	var levanta: float = c["levanta"]
+	var passo: float = float(c["passo"]) * fator
+	var levanta: float = float(c["levanta"]) * minf(fator, 1.2)
 	var p := fase * TAU
 	var s := sin(p)
 	for k in ["pata_e", "pata_d"]:
@@ -364,6 +383,73 @@ static func _carrega(j: Dictionary, fase: float, frontal: bool) -> void:
 		j["bico"] = (j["bico"] as Vector2) + tras
 
 
+## Esbarrão: o corpo avança baixo, sem arrastar os pés.
+static func _esbarrao(j: Dictionary, fase: float, frontal: bool) -> void:
+	var s := sin(PI * fase)
+	var frente := Vector2(0.0, s * 7.0) if frontal else Vector2(s * 7.0, 0.0)
+	_desloca_corpo(j, frente + Vector2(0.0, 1.0))
+	if j.has("cabeca"):
+		j["cabeca"] = (j["cabeca"] as Vector2) + Vector2(0.0, 1.0)
+
+
+## Tiro: recuo curto da cabeça e do tronco.
+static func _tiro(j: Dictionary, fase: float, frontal: bool) -> void:
+	var r := -2.5 * sin(PI * fase)
+	var tras := Vector2(0.0, r) if frontal else Vector2(r, 0.0)
+	_desloca_corpo(j, tras)
+
+
+## Dano: recuo e cabeça baixa.
+static func _dano(j: Dictionary, fase: float, frontal: bool) -> void:
+	var r := -3.0 * sin(PI * fase)
+	var tras := Vector2(0.0, r) if frontal else Vector2(r, 0.0)
+	_desloca_corpo(j, tras)
+	if j.has("cabeca"):
+		j["cabeca"] = (j["cabeca"] as Vector2) + Vector2(0.0, 1.5)
+
+
+## Início do pulo: agacha para pegar impulso.
+static func _pula_inicio(j: Dictionary, fase: float) -> void:
+	_desloca_corpo(j, Vector2(0.0, 2.5 * sin(PI * fase)))
+
+
+## No ar: recolhe as patas (o nó já sobe com `corpo.z`).
+static func _pula_ar(j: Dictionary, fase: float) -> void:
+	for k in j:
+		var nome := String(k)
+		if nome.begins_with("pata"):
+			j[k] = (j[k] as Vector2) + Vector2(0.0, -4.0)
+		elif nome.begins_with("joelho") or nome.begins_with("coxa"):
+			j[k] = (j[k] as Vector2) + Vector2(0.0, -2.5)
+	_desloca_corpo(j, Vector2(0.0, -1.0 + sin(PI * fase) * 0.5))
+	if j.has("cauda_ponta"):
+		j["cauda_ponta"] = (j["cauda_ponta"] as Vector2) + Vector2(0.0, -2.0)
+
+
+## Pouso: amortece (agacha).
+static func _pula_pouso(j: Dictionary, fase: float) -> void:
+	_desloca_corpo(j, Vector2(0.0, 3.0 * sin(PI * fase)))
+
+
+## Tomba em torno dos pés (morte): 80° na direção em que olha.
+static func _tomba(m: Dictionary, j: Dictionary, fase: float) -> void:
+	_gira(j, Vector2(float(m["pivot_px"][0]), float(m["pivot_px"][1])), 80.0 * fase)
+
+
+## Levanta: o inverso de tombar.
+static func _levanta(m: Dictionary, j: Dictionary, fase: float) -> void:
+	_gira(j, Vector2(float(m["pivot_px"][0]), float(m["pivot_px"][1])), 80.0 * (1.0 - fase))
+
+
+static func _gira(j: Dictionary, piv: Vector2, graus: float) -> void:
+	var rad := deg_to_rad(graus)
+	var c := cos(rad)
+	var s := sin(rad)
+	for k in j:
+		var p: Vector2 = (j[k] as Vector2) - piv
+		j[k] = piv + Vector2(p.x * c - p.y * s, p.x * s + p.y * c)
+
+
 # --- marcha provisória (dois perfis); a arte futura substitui por clipes ---
 
 static func _cfg(m: Dictionary) -> Dictionary:
@@ -380,10 +466,23 @@ static func _cfg(m: Dictionary) -> Dictionary:
 	}
 
 
-static func _ande_lateral(m: Dictionary, j: Dictionary, fase: float) -> void:
+## Marcha por arquétipo (walk 1,0×; run 1,35×).
+static func _andar(m: Dictionary, j: Dictionary, d: Dictionary, fase: float, fator: float) -> void:
+	var tipo := String(m.get("arquetipo", "quadrupede"))
+	if tipo == "serpente":
+		_rasteja(m, j, fase, fator)
+	elif tipo == "ave":
+		_bipede(m, j, fase, fator)
+	elif String(d["profile"]) == "frontal":
+		_ande_frontal(m, j, fase, fator)
+	else:
+		_ande_lateral(m, j, fase, fator)
+
+
+static func _ande_lateral(m: Dictionary, j: Dictionary, fase: float, fator := 1.0) -> void:
 	var c := _cfg(m)
-	var passo: float = c["passo"]
-	var levanta: float = c["levanta"]
+	var passo: float = float(c["passo"]) * fator
+	var levanta: float = float(c["levanta"]) * minf(fator, 1.2)
 	var p := fase * TAU
 	var s := sin(p)
 	var t := sin(p + PI)
@@ -408,7 +507,7 @@ static func _ande_lateral(m: Dictionary, j: Dictionary, fase: float) -> void:
 		j["cauda_ponta"] = j["cauda_ponta"] + Vector2(sin(p + 0.8) * float(c["cauda"]), cos(p) * float(c["cauda"]) * 0.5 + bob)
 
 
-static func _ande_frontal(m: Dictionary, j: Dictionary, fase: float) -> void:
+static func _ande_frontal(m: Dictionary, j: Dictionary, fase: float, fator := 1.0) -> void:
 	var c := _cfg(m)
 	var p := fase * TAU
 	var s := sin(p)
@@ -416,7 +515,7 @@ static func _ande_frontal(m: Dictionary, j: Dictionary, fase: float) -> void:
 	for k in ["pata_e", "pata_d"]:
 		if j.has(k):
 			var f: float = s if k == "pata_e" else -s
-			j[k] = j[k] + Vector2(0.0, -maxf(0.0, f) * float(c["levanta"]))
+			j[k] = j[k] + Vector2(0.0, -maxf(0.0, f) * float(c["levanta"]) * minf(fator, 1.2))
 	for k in ["quadril", "lombo", "peito", "pescoco", "cabeca", "focinho", "orelha_e", "orelha_d", "cauda_base"]:
 		if j.has(k):
 			j[k] = j[k] + Vector2(0.0, bob)

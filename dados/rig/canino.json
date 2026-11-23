@@ -666,6 +666,42 @@
     "charge": {
       "duracao_s": 0.6,
       "loop": true
+    },
+    "run": {
+      "duracao_s": 0.38,
+      "loop": true
+    },
+    "jump_start": {
+      "duracao_s": 0.12,
+      "loop": false
+    },
+    "jump_air": {
+      "duracao_s": 0.4,
+      "loop": true
+    },
+    "jump_land": {
+      "duracao_s": 0.15,
+      "loop": false
+    },
+    "shot": {
+      "duracao_s": 0.28,
+      "loop": false
+    },
+    "slam": {
+      "duracao_s": 0.45,
+      "loop": false
+    },
+    "hit": {
+      "duracao_s": 0.25,
+      "loop": false
+    },
+    "death": {
+      "duracao_s": 0.8,
+      "loop": false
+    },
+    "get_up": {
+      "duracao_s": 0.4,
+      "loop": false
     }
   }
 }

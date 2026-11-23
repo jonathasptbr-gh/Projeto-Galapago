@@ -3,6 +3,22 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.23.1 — clipes de mecânica que faltavam (F3b) (2026-11-23)
+
+- **O T0 do catálogo está desenhado nos três rigs:** além de `idle`/`walk`,
+  agora existem `run`, `jump_start`, `jump_air`, `jump_land`, `shot`, `slam`,
+  `hit`, `death` e `get_up`.
+- **Drivers:** correr abre mais o passo (1,35×); o pulo agacha, recolhe as
+  patas e amortece no pouso; o tiro recua; o esbarrão avança baixo; o dano
+  recua com a cabeça baixa; a morte tomba 80° em torno dos pés e `get_up`
+  desfaz.
+- **Correção de contrato:** fase de clipe de uma vez **para em 1** — antes o
+  `wrapf` devolvia 0 no último instante e a morte nunca chegava ao chão.
+- **Verificação:** `tools/testes.sh` 202 testes/0 falhas (2 novos: os 15
+  clipes nos 3 rigs e o sentido de cada pose), parser 55 scripts/0 erros;
+  quadros forçados de pulo, tiro, esbarrão e morte abertos.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.23.0 — máquina de estados da animação (F3) (2026-11-23)
 
 - **Catálogo de 43 ações** em `dados/animacoes.json`: camada, loop, duração,
