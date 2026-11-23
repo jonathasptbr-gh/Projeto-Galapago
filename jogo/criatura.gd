@@ -19,6 +19,7 @@ const Rigs := preload("res://jogo/rigs.gd")
 const PeleGeo := preload("res://jogo/pele_geometrica.gd")
 const Anim := preload("res://sim/animacao.gd")
 const AnimData := preload("res://jogo/animacoes.gd")
+const ModDraw := preload("res://jogo/modulos.gd")
 
 var corpo: RefCounted
 var mundo: RefCounted
@@ -38,11 +39,15 @@ var _anim_cat: Dictionary = {}
 var _anim_mem: Dictionary = {}
 var _clipe_forcado := ""
 var _fase_forcada := -1.0
+# F4: módulos/efeitos presos a socket (dados/modulos.json; cosméticos).
+var _mod_cat: Dictionary = {}
+var _mod_ids := PackedStringArray()
 
 
 func _ready() -> void:
 	_sprite = Mock.criatura(Color("#d9752f"), Color("#f2a45c"), Color("#4a2010"))
 	_anim_cat = AnimData.carregar()
+	_mod_cat = ModDraw.catalogo()
 	if corpo != null:
 		_ultima_pos = corpo.pos
 
@@ -69,6 +74,12 @@ func pele_geometrica_ativa() -> bool:
 func forcar_clipe(id: String, fase := 0.5) -> void:
 	_clipe_forcado = id
 	_fase_forcada = fase
+
+
+## Módulos/efeitos cosméticos presos a socket; nada concede habilidade.
+func ativar_modulos(ids: PackedStringArray) -> void:
+	_mod_ids = ids
+	queue_redraw()
 
 
 func _process(delta: float) -> void:
@@ -126,7 +137,11 @@ func _draw() -> void:
 		var fase := _fase_forcada
 		if fase < 0.0:
 			fase = Anim.fase(_anim_mem, _anim_cat, _tempo_pele * 1000.0)
-		PeleGeo.desenhar(self, _rig, dir, fase, clipe, meu, cor, _rig_debug)
+		var pose := Esq.pose(_rig, dir, fase, clipe)
+		ModDraw.desenhar(self, _rig, pose, dir, meu, _mod_cat, _mod_ids, "back")
+		PeleGeo.desenhar(self, _rig, dir, fase, clipe, meu, cor, _rig_debug, 1.0, pose)
+		ModDraw.desenhar(self, _rig, pose, dir, meu, _mod_cat, _mod_ids, "front")
+		_desenhar_eventos(meu, pose, dir, fase, clipe)
 		c = _ancora_boca(meu, dir, fase, clipe)
 		if _rig_debug:
 			var rotulo := clipe + (" (forçado)" if _clipe_forcado != "" else " · " + String(_anim_mem.get("id", "")))
@@ -142,6 +157,21 @@ func _draw() -> void:
 
 
 ## Estrelinhas girando sobre a cabeça: o corpo não obedece enquanto isso.
+## Faísca/onda nas janelas de evento do clipe (por TEMPO, não por quadro).
+## É só desenho: dano e alcance continuam em sim/corpo.gd.
+func _desenhar_eventos(base: Vector2, pose: Dictionary, direcao: String, fase: float, clipe: String) -> void:
+	if _anim_cat.is_empty() or _mod_cat.is_empty():
+		return
+	var c := Anim.clipe(_anim_cat, clipe)
+	if c.is_empty():
+		return
+	var dur := maxf(float(c["duracao_ms"]), 0.001)
+	var ms := fase * dur
+	for j in Anim.janela_ativa(_anim_cat, clipe, ms):
+		var alfa := 1.0 - clampf((ms - float(j["ms"])) / 150.0, 0.0, 1.0)
+		ModDraw.desenhar_efeito(self, _rig, pose, direcao, base, String(j["socket"]), String(j["evento"]), _mod_cat, alfa)
+
+
 ## O golpe sai da ÂNCORA "boca" quando ela existe; senão do centro do corpo.
 func _ancora_boca(base: Vector2, direcao: String, fase: float, clipe: String) -> Vector2:
 	var pose := Esq.pose(_rig, direcao, fase, clipe)

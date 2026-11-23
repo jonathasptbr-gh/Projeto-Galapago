@@ -3,6 +3,24 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.24.0 — módulos e efeitos por socket (F4) (2026-11-23)
+
+- **Módulo não sabe coordenada:** `dados/modulos.json` declara o socket por
+  NOME (`coroa`, `dorso`, `base_cauda`) e `sim/modulos.gd` resolve posição/z no
+  rig da direção e da pose. Socket ausente naquela direção = módulo **não
+  desenhado** (fail-closed); `concede_habilidade` precisa ser falso.
+- **Efeito por janela de tempo:** `sim/animacao.janela_ativa` lê as janelas do
+  catálogo (ms, socket, evento) e `jogo/modulos.gd` desenha a faísca/onda no
+  socket. Nada disso altera dano, alcance ou tempo.
+- **Na pele:** `--geo-modulos=tufo,espinho_cauda` entra na demo — tufo na
+  coroa, espinho na base da cauda e membrana no dorso (só onde o rig tem o
+  socket). `--geo-estado=bite` mostra a faísca na janela de dano da mordida.
+- **Verificação:** `tools/testes.sh` 208 testes/0 falhas (6 novos: socket por
+  nome, ausência por direção, fail-closed de habilidade, janela por tempo e
+  efeito), parser 56 scripts/0 erros; quadros com módulos no canino e na
+  serpente e com a faísca da mordida, PNGs abertos.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.23.1 — clipes de mecânica que faltavam (F3b) (2026-11-23)
 
 - **O T0 do catálogo está desenhado nos três rigs:** além de `idle`/`walk`,

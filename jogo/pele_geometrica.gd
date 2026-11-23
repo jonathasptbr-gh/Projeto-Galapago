@@ -16,8 +16,11 @@ const PALETAS := {
 
 ## `base` é o ponto do chão da criatura na tela; `tinta` escurece no subsolo.
 static func desenhar(c: CanvasItem, rig: Dictionary, direcao: String, fase: float, clipe: String,
-		base: Vector2, tinta: Color = Color.WHITE, debug: bool = false, escala: float = 1.0) -> void:
-	var pose := E.pose(rig, direcao, fase, clipe)
+		base: Vector2, tinta: Color = Color.WHITE, debug: bool = false, escala: float = 1.0,
+		pose_pronta: Dictionary = {}) -> void:
+	var pose := pose_pronta
+	if pose.is_empty():
+		pose = E.pose(rig, direcao, fase, clipe)
 	if pose.is_empty():
 		return
 	var j: Dictionary = pose["juntas"]

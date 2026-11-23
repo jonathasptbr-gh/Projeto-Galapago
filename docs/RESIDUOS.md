@@ -4,6 +4,10 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.24.0 | módulos | só três formas provisórias (tufo, espinho, membrana) e sem rotação/encaixe fino por direção | pequeno | aberto |
+| v0.24.0 | arte | módulo composto na pele geométrica; a pele de sprite (peças separadas) ainda não existe | médio | aberto |
+| v0.24.0 | VFX | janela fixa de 150 ms e desenho vetorial; partículas e som reais não foram feitos | pequeno | aberto |
+| v0.24.0 | regra | por contrato módulo/efeito não concede habilidade — se um dia conceder, é pacote de regra, não de arte | decisão | aberto |
 | v0.23.1 | animação | `run`, `hit` e `death` têm clipe nos rigs, mas o corpo ainda não os aciona (sprint não exposto, sem vida) | médio | aberto |
 | v0.23.1 | animação | 28 ações (T1/T2/T3: comer, dormir, voar, nadar…) continuam só no catálogo, sem desenho | médio | aberto |
 | v0.23.1 | pulo | a máquina usa `jump_air`; `jump_start`/`jump_land` só aparecem quando a apresentação detectar a transição | pequeno | aberto |

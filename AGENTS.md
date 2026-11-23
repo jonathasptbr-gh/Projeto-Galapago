@@ -87,13 +87,13 @@ sim/                  lógica pura: gestos (1 dedo: caminho, toque=tiro carregad
                        marcas de ataque+autonomia) · alvos · adversario
                        (passeio, hostilidade, preparo+área, esconder) · mundo ·
                        trajetoria (desconto+RDP) ·
-                       esqueleto (pose e âncoras) · direcao (8 setores) · animacao (estados e prioridades) · visibilidade · atualizacao · mapa (Wang, parado)
+                       esqueleto (pose e âncoras) · direcao (8 setores) · animacao (estados e prioridades) · modulos (socket por nome) · visibilidade · atualizacao · mapa (Wang, parado)
 jogo/                 main · criatura · adversario_mock · perigos (área no chão) ·
                        mira (mira+alvo final) · trilha · efeitos (onda/tiro) ·
                        hud (legenda, carga, CONFIG) · demo · mock ·
                        atualizador · camadas/ (chao, subsolo, copa, parallax,
                        objeto_mock)
-dados/                gestos.json · acoes.json · adversario.json · terrenos.json · mapas/ · rig/ · animacoes.json
+dados/                gestos.json · acoes.json · adversario.json · terrenos.json · mapas/ · rig/ · animacoes.json · modulos.json
 testes/               run.gd (executor), caso.gd (base), test_*.gd
 tools/                estado.sh · testes.sh · docs.sh (docs.mjs + docs.test.mjs) ·
                       quadros.sh · godot-api.sh · ci-log.mjs · baixar-apk.mjs ·

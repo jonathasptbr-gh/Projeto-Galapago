@@ -66,6 +66,12 @@ duração, prioridade, janelas de evento por tempo e socket) e
 a desenhar. A prioridade decide quem corta quem; a base troca entre andar e
 parado. Nenhum dano, alcance ou tempo mora aqui.
 
+**Módulos e efeitos (v0.24.0):** `dados/modulos.json` descreve peças
+cosméticas presas a um socket por **nome** e efeitos por evento; `sim/modulos.gd`
+resolve posição/z no rig e recusa qualquer item que declare
+`concede_habilidade`. Efeito nasce nas janelas de tempo do clipe
+(`sim/animacao.janela_ativa`), nunca por índice de quadro.
+
 ## Mundo e mapa
 
 O mapa vem de **dados**: `dados/mapas/<nome>.json` (cantos de terreno + objetos)

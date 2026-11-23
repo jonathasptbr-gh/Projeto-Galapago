@@ -51,6 +51,8 @@ func _init(m: Node) -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--geo-estado="):
 			main.criatura.forcar_clipe(a.split("=")[1], 0.5)
+		if a.begins_with("--geo-modulos="):
+			main.criatura.ativar_modulos(PackedStringArray(a.split("=")[1].split(",")))
 	if "--camera-planalto" in OS.get_cmdline_user_args():
 		main.corpo.pos = main.mundo.centro(Vector2i(8, 8))
 		main.criatura._process(1.0)

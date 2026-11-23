@@ -153,6 +153,20 @@ static func resolver(entrada: Dictionary, m: Dictionary, memoria: Dictionary, ag
 	return {"id": alvo, "desde_ms": agora_ms}
 
 
+## Janelas de evento ativas em `ms` do clipe (largura padrão de 150 ms).
+## O evento é só de DESENHO: dano/alcance continuam em sim/corpo.gd.
+static func janela_ativa(m: Dictionary, id: String, ms: float, largura_ms := 150.0) -> Array:
+	var c := clipe(m, id)
+	if c.is_empty():
+		return []
+	var out: Array = []
+	for j in c.get("janelas", []):
+		var inicio := float(j.get("ms", 0.0))
+		if ms >= inicio and ms <= inicio + largura_ms:
+			out.append(j)
+	return out
+
+
 ## Fase 0..1 (loop fecha em 0; clipe de uma vez para em 1).
 static func fase(memoria: Dictionary, m: Dictionary, agora_ms: float) -> float:
 	var id := String(memoria.get("id", ""))
