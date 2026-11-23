@@ -83,7 +83,7 @@ static func prioridade(m: Dictionary, id: String) -> int:
 
 ## Retrato do corpo: o que a máquina precisa saber. `andando` é medido pela
 ## apresentação (deslocamento por quadro); o resto vem do próprio corpo.
-static func retrato(corpo: RefCounted, andando: bool) -> Dictionary:
+static func retrato(corpo: RefCounted, andando: bool, saltou := false, pousou := false) -> Dictionary:
 	return {
 		"morto": false,
 		"atordoado": corpo.atordoado(),
@@ -92,6 +92,9 @@ static func retrato(corpo: RefCounted, andando: bool) -> Dictionary:
 		"carregando": corpo.carregando(),
 		"escavando": bool(corpo.escavando),
 		"no_ar": corpo.no_ar(),
+		"saltou": saltou,
+		"pousou": pousou,
+		"correndo": corpo.correndo(),
 		"andando": andando,
 		"dormindo": false,
 	}
@@ -112,14 +115,18 @@ static func desejado(entrada: Dictionary, m: Dictionary) -> String:
 			return "slam"
 	if bool(entrada.get("carregando", false)):
 		return "charge"
-	if bool(entrada.get("escavando", false)):
-		return "dig"
+	if bool(entrada.get("saltou", false)):
+		return "jump_start"
+	if bool(entrada.get("pousou", false)):
+		return "jump_land"
 	if bool(entrada.get("no_ar", false)):
 		return "jump_air"
+	if bool(entrada.get("escavando", false)):
+		return "dig"
 	if bool(entrada.get("dormindo", false)):
 		return "sleep"
 	if bool(entrada.get("andando", false)):
-		return "walk"
+		return "run" if bool(entrada.get("correndo", false)) else "walk"
 	return "idle"
 
 
@@ -149,6 +156,10 @@ static func resolver(entrada: Dictionary, m: Dictionary, memoria: Dictionary, ag
 		if p_alvo > p_atual:
 			return {"id": id, "desde_ms": desde}
 		if p_alvo == p_atual and String(atual["camada"]) != "base":
+			# Um clipe de UMA VEZ pedido corta loop de mesma prioridade
+			# (pouso corta o ar; mordida corta a carga).
+			if not bool(clipe(m, alvo).get("loop", true)):
+				return {"id": alvo, "desde_ms": agora_ms}
 			return {"id": id, "desde_ms": desde}
 	return {"id": alvo, "desde_ms": agora_ms}
 

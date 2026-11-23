@@ -42,6 +42,9 @@ var _fase_forcada := -1.0
 # F4: módulos/efeitos presos a socket (dados/modulos.json; cosméticos).
 var _mod_cat: Dictionary = {}
 var _mod_ids := PackedStringArray()
+var _no_ar_antes := false
+var _saltou := false
+var _pousou := false
 
 
 func _ready() -> void:
@@ -50,6 +53,10 @@ func _ready() -> void:
 	_mod_cat = ModDraw.catalogo()
 	if corpo != null:
 		_ultima_pos = corpo.pos
+	# F5 (teste de movimento): a criatura do jogo normal é a pele geométrica.
+	# `--mock` mantém o xadrez antigo; as flags de demo (--geo-*) trocam depois.
+	if not ("--mock" in OS.get_cmdline_user_args()):
+		ativar_pele_geometrica("canino")
 
 
 ## Liga a pele geométrica (F2). Rig inválido/ausente mantém o mock (falha fechada).
@@ -90,8 +97,13 @@ func _process(delta: float) -> void:
 	var desloc: float = (corpo.pos - _ultima_pos).length()
 	_ultima_pos = corpo.pos
 	_andando = desloc > 0.35
+	var ar: bool = corpo.no_ar()
+	_saltou = ar and not _no_ar_antes
+	_pousou = (not ar) and _no_ar_antes
+	_no_ar_antes = ar
 	if not _anim_cat.is_empty():
-		_anim_mem = Anim.resolver(Anim.retrato(corpo, _andando), _anim_cat, _anim_mem, _tempo_pele * 1000.0)
+		_anim_mem = Anim.resolver(Anim.retrato(corpo, _andando, _saltou, _pousou),
+			_anim_cat, _anim_mem, _tempo_pele * 1000.0)
 	position = corpo.pos
 	var celula: Vector2i = mundo.celula_de(corpo.pos)
 	var alt: float = mundo.altura(celula) if corpo.camada == "superficie" else 1.0

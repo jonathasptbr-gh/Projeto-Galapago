@@ -11,6 +11,7 @@ class Fake extends RefCounted:
 	var tonto := 0.0
 	var carga := false
 	var ar := false
+	var sprint := false
 
 	func atordoado() -> bool:
 		return tonto > 0.0
@@ -20,6 +21,9 @@ class Fake extends RefCounted:
 
 	func no_ar() -> bool:
 		return ar
+
+	func correndo() -> bool:
+		return sprint
 
 
 func _cat() -> Dictionary:
@@ -117,6 +121,26 @@ func test_retrato_do_corpo() -> void:
 	checar(bool(r["carregando"]), "carga no retrato")
 	checar(bool(r["no_ar"]), "ar no retrato")
 	checar(bool(r["andando"]), "andando no retrato")
+	f.sprint = true
+	checar(bool(A.retrato(f, true)["correndo"]), "correndo no retrato")
 	igual(String(r["golpe"]), "", "sem golpe")
 	f.ataque = "batida"
 	igual(String(A.retrato(f, false)["golpe"]), "batida", "golpe no retrato")
+
+
+func test_corrida_e_transicoes_de_pulo() -> void:
+	var m := _cat()
+	var mem := A.resolver({"andando": true}, m, _mem("", 0.0), 0.0)
+	igual(mem["id"], "walk", "andar")
+	mem = A.resolver({"andando": true, "correndo": true}, m, mem, 100.0)
+	igual(mem["id"], "run", "correr troca a base")
+	mem = A.resolver({"saltou": true}, m, mem, 200.0)
+	igual(mem["id"], "jump_start", "saída do chão")
+	mem = A.resolver({"no_ar": true}, m, mem, 250.0)
+	igual(mem["id"], "jump_start", "início segura a cena")
+	mem = A.resolver({"no_ar": true}, m, mem, 400.0)
+	igual(mem["id"], "jump_air", "depois vem o ar")
+	mem = A.resolver({"pousou": true}, m, mem, 500.0)
+	igual(mem["id"], "jump_land", "pouso corta o ar")
+	mem = A.resolver({}, m, mem, 700.0)
+	igual(mem["id"], "idle", "pouso termina em parado")

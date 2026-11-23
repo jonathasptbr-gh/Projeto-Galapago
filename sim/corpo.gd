@@ -377,6 +377,11 @@ func atordoado() -> bool:
 	return atordoado_t > 0.0
 
 
+## Está no SPRINT do segurar (correndo)? Só leitura; a regra fica no passo.
+func correndo() -> bool:
+	return _sprint
+
+
 ## Ainda no curto período de invencibilidade depois de um golpe?
 func invencivel() -> bool:
 	return _invencivel_t > 0.0

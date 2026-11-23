@@ -3,6 +3,25 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.25.0 — a pele geométrica vira o corpo do jogo (2026-11-23)
+
+- **O jogo normal sai do xadrez:** a criatura nasce com o rig `canino` em
+  `jogo/criatura._ready`; `--mock` mantém o mock antigo para comparação e as
+  flags de demo (`--geo-*`) continuam trocando a pele. É a versão para testar
+  a movimentação no aparelho.
+- **Movimento básico ligado ao corpo:** andar e **correr**
+  (`corpo.correndo()` novo, só leitura), **saída do chão** (`jump_start`),
+  **ar** (`jump_air`) e **pouso** (`jump_land`) — além de atordoado, golpe,
+  esbarrão, carga, cavar e tiro. Um clipe de UMA VEZ de mesma prioridade agora
+  corta loop (o pouso corta o ar).
+- **Baseline dos quadros:** o visível mudou de propósito; a atualização do
+  baseline sai em commit próprio com os quadros do CI (`llvmpipe`), como manda
+  o [oráculo](ORACULO.md).
+- **Verificação:** `tools/testes.sh` 209 testes/0 falhas (1 novo cobrindo
+  corrida e as transições de pulo), parser 56 scripts/0 erros; quadros locais
+  de 60 abertos.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.24.0 — módulos e efeitos por socket (F4) (2026-11-23)
 
 - **Módulo não sabe coordenada:** `dados/modulos.json` declara o socket por
