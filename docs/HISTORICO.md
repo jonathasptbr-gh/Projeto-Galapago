@@ -22,8 +22,8 @@
   frontal), parser 58 scripts/0 erros; folha de estudo do passo/galope
   gerada e conferida por medição de pixels (galope oscila 10 px na tela, passo
   3 px).
-- **Baseline:** o visível mudou; baseline trocado em commit próprio com os
-  quadros do CI (llvmpipe).
+- **Baseline:** trocado em commit próprio pelos 60 quadros do **CI #59**
+  (llvmpipe).
 - **Resíduos:** ver `docs/RESIDUOS.md`.
 
 ## v0.25.0 — a pele geométrica vira o corpo do jogo (2026-11-23)
