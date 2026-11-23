@@ -10,7 +10,7 @@
 > v0.14.4 e o registro dele fechado na v0.15.0; o P23 (oráculo com baseline)
 > ficou na v0.16.0. Os pacotes feitos moram em
 > [`PEDIDOS-FEITOS.md`](PEDIDOS-FEITOS.md), não aqui. **Nada na fila está
-> autorizado** — restam só pacotes de conteúdo (P5–P8), à escolha do operador.
+> autorizado** — restam só pacotes de conteúdo (P5–P9), à escolha do operador.
 
 | pacote | o quê | depende de | estado |
 |---|---|---|---|
@@ -18,6 +18,7 @@
 | P6 | Âncora de arte: paleta-mestra, câmera, base canina | P1 | na fila |
 | P7 | Fatia vertical: arena + cão + gestos + 1 evolução | P2–P6 | na fila |
 | P8 | GDD do loop diário no laboratório/ilha | — | na fila (design, conversa) |
+| P9 | Camadas de pixel art sobre o esqueleto 3D (fase B) | A: v0.29.0 ✔ | alvo declarado (2026-11-23) |
 
 ---
 
@@ -41,3 +42,13 @@
 ## P8 — GDD do loop diário
 
 - Conversa de design com o operador → `docs/gdd/loop-diario.md`.
+
+## P9 — Camadas de pixel art sobre o esqueleto 3D (fase B)
+
+- **Decisão do operador (2026-11-23):** o alvo final é a fase B — o esqueleto
+  3D da v0.29.0 recebe as camadas de pixel art por osso, com vistas
+  lateral/frontal/costas trocadas por ângulo; câmera **low top-down (20°)**.
+- **Arte:** peças por osso (cabeça, focinho, orelhas, tronco, pernas, cauda)
+  com pivô e vistas por ângulo; medir o custo antes de gerar.
+- **Contrato:** o campo `pecas` do `dados/rig/canino3d.json` já valida; falta
+  o desenho ordenado (pintor) e o pipeline de arte.

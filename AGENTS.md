@@ -101,8 +101,10 @@ sim/                  lógica pura: gestos (1 dedo: caminho, toque=tiro carregad
                        marcas de ataque+autonomia) · alvos · adversario
                        (passeio, hostilidade, preparo+área, esconder) · mundo ·
                        trajetoria (desconto+RDP) ·
-                       esqueleto (pose e âncoras) · direcao (8 setores) · animacao (estados e prioridades) · modulos (socket por nome) · visibilidade · atualizacao · mapa (Wang, parado)
-jogo/                 main · criatura · adversario_mock · perigos (área no chão) ·
+                       esqueleto (pose e âncoras) · esqueleto3d (juntas 3D
+                       projetadas, câmera 20°) · direcao (8 setores) · animacao (estados e prioridades) · modulos (socket por nome) · visibilidade · atualizacao · mapa (Wang, parado)
+jogo/                 main · criatura · rigs3d · pele_geometrica3d ·
+                       adversario_mock · perigos (área no chão) ·
                        mira (mira+alvo final) · trilha · efeitos (onda/tiro) ·
                        hud (legenda, carga, CONFIG) · demo · mock ·
                        atualizador · camadas/ (chao, subsolo, copa, parallax,

@@ -1,0 +1,425 @@
+{
+  "_leia": "RIG 3D do canino (Fase A do plano 3D do cão) — CONTRATO de esqueleto, não arte. `juntas` são pontos de repouso no mundo em unidades do canvas: x lateral (direita positiva), y para cima, z para a frente; o chão é y=0. `ossos` liga duas juntas e `largura` é a espessura do traço (px na escala 1). `sockets` é NOME → junta + offset 3D + z (front/back) + `oculto_em`; o socket some na direção listada (não herda posição). `motion` são os parâmetros da marcha; `clips` declara duração/loop e espelha dados/rig/canino.json. `pecas` é a porta da Fase B: uma lista de peças 2D por osso (poly em (u,v), w, cores), validada mas NÃO desenhada nesta fase. Lido por sim/esqueleto3d.gd.",
+  "schema_version": 2,
+  "id": "canino3d",
+  "arquetipo": "quadrupede",
+  "familia": "canino",
+  "sample": "esqueleto 3D de estudo; NÃO é arte aprovada",
+  "canvas_px": [
+    68,
+    68
+  ],
+  "pivot_px": [
+    34,
+    50
+  ],
+  "envelope_px": {
+    "altura": 32,
+    "comprimento": 39,
+    "largura": 20
+  },
+  "directions": {
+    "south": {
+      "yaw": 90,
+      "mirror": false,
+      "costas": false
+    },
+    "south-east": {
+      "yaw": 45,
+      "mirror": false,
+      "costas": false
+    },
+    "east": {
+      "yaw": 0,
+      "mirror": false,
+      "costas": false
+    },
+    "north-east": {
+      "yaw": 315,
+      "mirror": false,
+      "costas": true
+    },
+    "north": {
+      "yaw": 270,
+      "mirror": false,
+      "costas": true
+    },
+    "north-west": {
+      "yaw": 225,
+      "mirror": true,
+      "costas": true
+    },
+    "west": {
+      "yaw": 180,
+      "mirror": true,
+      "costas": false
+    },
+    "south-west": {
+      "yaw": 135,
+      "mirror": true,
+      "costas": false
+    }
+  },
+  "juntas": {
+    "quadril": [
+      0,
+      20,
+      -11
+    ],
+    "lombo": [
+      0,
+      20.5,
+      -3
+    ],
+    "peito": [
+      0,
+      19.5,
+      6
+    ],
+    "pescoco": [
+      0,
+      23,
+      10.5
+    ],
+    "cabeca": [
+      0,
+      26.5,
+      14
+    ],
+    "focinho": [
+      0,
+      25,
+      18.5
+    ],
+    "orelha_e": [
+      -3.2,
+      32,
+      13
+    ],
+    "orelha_d": [
+      3.2,
+      32,
+      13
+    ],
+    "cauda_base": [
+      0,
+      21,
+      -13
+    ],
+    "cauda_ponta": [
+      0,
+      17,
+      -18.5
+    ],
+    "ombro_e": [
+      -8,
+      18,
+      7
+    ],
+    "ombro_d": [
+      8,
+      18,
+      7
+    ],
+    "anca_e": [
+      -6.5,
+      19,
+      -10.5
+    ],
+    "anca_d": [
+      6.5,
+      19,
+      -10.5
+    ],
+    "joelho_fe": [
+      -8,
+      9.724,
+      13.462
+    ],
+    "pata_fe": [
+      -8,
+      0,
+      9.5
+    ],
+    "joelho_fd": [
+      8,
+      9.724,
+      13.462
+    ],
+    "pata_fd": [
+      8,
+      0,
+      9.5
+    ],
+    "joelho_te": [
+      -6.5,
+      8.667,
+      -14.273
+    ],
+    "pata_te": [
+      -6.5,
+      0,
+      -7.5
+    ],
+    "joelho_td": [
+      6.5,
+      8.667,
+      -14.273
+    ],
+    "pata_td": [
+      6.5,
+      0,
+      -7.5
+    ]
+  },
+  "ossos": [
+    {
+      "a": "quadril",
+      "b": "lombo",
+      "largura": 2.2
+    },
+    {
+      "a": "lombo",
+      "b": "peito",
+      "largura": 2.2
+    },
+    {
+      "a": "peito",
+      "b": "pescoco",
+      "largura": 2.0
+    },
+    {
+      "a": "pescoco",
+      "b": "cabeca",
+      "largura": 2.0
+    },
+    {
+      "a": "cabeca",
+      "b": "focinho",
+      "largura": 1.8
+    },
+    {
+      "a": "cabeca",
+      "b": "orelha_e",
+      "largura": 1.6
+    },
+    {
+      "a": "cabeca",
+      "b": "orelha_d",
+      "largura": 1.6
+    },
+    {
+      "a": "quadril",
+      "b": "cauda_base",
+      "largura": 1.8
+    },
+    {
+      "a": "cauda_base",
+      "b": "cauda_ponta",
+      "largura": 1.6
+    },
+    {
+      "a": "peito",
+      "b": "ombro_e",
+      "largura": 1.8
+    },
+    {
+      "a": "peito",
+      "b": "ombro_d",
+      "largura": 1.8
+    },
+    {
+      "a": "quadril",
+      "b": "anca_e",
+      "largura": 1.8
+    },
+    {
+      "a": "quadril",
+      "b": "anca_d",
+      "largura": 1.8
+    },
+    {
+      "a": "ombro_e",
+      "b": "joelho_fe",
+      "largura": 2.0
+    },
+    {
+      "a": "joelho_fe",
+      "b": "pata_fe",
+      "largura": 1.8
+    },
+    {
+      "a": "ombro_d",
+      "b": "joelho_fd",
+      "largura": 2.0
+    },
+    {
+      "a": "joelho_fd",
+      "b": "pata_fd",
+      "largura": 1.8
+    },
+    {
+      "a": "anca_e",
+      "b": "joelho_te",
+      "largura": 2.0
+    },
+    {
+      "a": "joelho_te",
+      "b": "pata_te",
+      "largura": 1.8
+    },
+    {
+      "a": "anca_d",
+      "b": "joelho_td",
+      "largura": 2.0
+    },
+    {
+      "a": "joelho_td",
+      "b": "pata_td",
+      "largura": 1.8
+    }
+  ],
+  "corpo": [
+    "quadril",
+    "lombo",
+    "peito",
+    "pescoco",
+    "cabeca",
+    "focinho",
+    "orelha_e",
+    "orelha_d",
+    "cauda_base",
+    "cauda_ponta",
+    "ombro_e",
+    "ombro_d",
+    "anca_e",
+    "anca_d"
+  ],
+  "sockets": {
+    "boca": {
+      "joint": "focinho",
+      "offset": [
+        0,
+        0,
+        0.8
+      ],
+      "z": "front",
+      "oculto_em": [
+        "north",
+        "north-east",
+        "north-west"
+      ]
+    },
+    "coroa": {
+      "joint": "cabeca",
+      "offset": [
+        0,
+        7,
+        0
+      ],
+      "z": "front",
+      "oculto_em": []
+    },
+    "base_cauda": {
+      "joint": "cauda_base",
+      "offset": [
+        0,
+        0,
+        -0.5
+      ],
+      "z": "back",
+      "oculto_em": [
+        "south",
+        "south-east",
+        "south-west"
+      ]
+    },
+    "dorso": {
+      "joint": "lombo",
+      "offset": [
+        0,
+        5,
+        0
+      ],
+      "z": "back",
+      "uso": "vfx",
+      "oculto_em": []
+    }
+  },
+  "motion": {
+    "passo_px": 5.0,
+    "levanta_px": 3.0,
+    "corpo_px": 1.1,
+    "cauda_px": 1.8,
+    "respira_px": 0.6,
+    "galope_passo_px": 9.0,
+    "galope_levanta_px": 5.0,
+    "galope_suspensao_px": 2.4,
+    "galope_pitch_graus": 5.0,
+    "duty_walk": 0.65,
+    "duty_galope": 0.25
+  },
+  "clips": {
+    "idle": {
+      "duracao_s": 1.0,
+      "loop": true
+    },
+    "walk": {
+      "duracao_s": 0.4,
+      "loop": true
+    },
+    "bite": {
+      "duracao_s": 0.35,
+      "loop": false
+    },
+    "stunned": {
+      "duracao_s": 0.9,
+      "loop": true
+    },
+    "dig": {
+      "duracao_s": 0.7,
+      "loop": true
+    },
+    "charge": {
+      "duracao_s": 0.6,
+      "loop": true
+    },
+    "run": {
+      "duracao_s": 0.3,
+      "loop": true
+    },
+    "jump_start": {
+      "duracao_s": 0.12,
+      "loop": false
+    },
+    "jump_air": {
+      "duracao_s": 0.4,
+      "loop": true
+    },
+    "jump_land": {
+      "duracao_s": 0.15,
+      "loop": false
+    },
+    "shot": {
+      "duracao_s": 0.28,
+      "loop": false
+    },
+    "slam": {
+      "duracao_s": 0.34,
+      "loop": false
+    },
+    "hit": {
+      "duracao_s": 0.25,
+      "loop": false
+    },
+    "death": {
+      "duracao_s": 0.8,
+      "loop": false
+    },
+    "get_up": {
+      "duracao_s": 0.4,
+      "loop": false
+    }
+  },
+  "pecas": []
+}

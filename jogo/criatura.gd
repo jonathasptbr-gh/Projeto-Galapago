@@ -10,6 +10,8 @@ extends Node2D
 ## - subsolo: apagada, por cima da camada escura.
 ## v0.9: não há mais rastro de esquiva nem anel de defesa — a esquiva é o
 ## próprio caminhar e não existe gesto de defesa.
+## Fase A (3D): o cão usa `dados/rig/canino3d.json` e `sim/esqueleto3d.gd`;
+## serpente/ave continuam no rig 2D e `--canino-2d` força o 2D no cão.
 
 const Mock := preload("res://jogo/mock.gd")
 const V := preload("res://sim/visibilidade.gd")
@@ -20,6 +22,9 @@ const PeleGeo := preload("res://jogo/pele_geometrica.gd")
 const Anim := preload("res://sim/animacao.gd")
 const AnimData := preload("res://jogo/animacoes.gd")
 const ModDraw := preload("res://jogo/modulos.gd")
+const Esq3 := preload("res://sim/esqueleto3d.gd")
+const Rigs3D := preload("res://jogo/rigs3d.gd")
+const PeleGeo3D := preload("res://jogo/pele_geometrica3d.gd")
 
 var corpo: RefCounted
 var mundo: RefCounted
@@ -30,6 +35,10 @@ var _sprite: Texture2D
 # Pele geométrica (F2): vazio = mock de xadrez. O rig vem de dados/rig/*.json.
 var _rig: Dictionary = {}
 var _rig_id := ""
+# Fase A do plano 3D: esqueleto de juntas/ossos 3D projetado em 2D. Vazio =
+# pele 2D/mock; o cão usa o 3D por padrão e `--canino-2d` volta ao rig 2D.
+var _rig3d: Dictionary = {}
+var _rig3d_id := ""
 var _rig_debug := false
 var _tempo_pele := 0.0
 var _ultima_pos := Vector2.ZERO
@@ -54,9 +63,15 @@ func _ready() -> void:
 	if corpo != null:
 		_ultima_pos = corpo.pos
 	# F5 (teste de movimento): a criatura do jogo normal é a pele geométrica.
-	# `--mock` mantém o xadrez antigo; as flags de demo (--geo-*) trocam depois.
-	if not ("--mock" in OS.get_cmdline_user_args()):
-		ativar_pele_geometrica("canino")
+	# `--mock` mantém o xadrez antigo; `--canino-2d` força o rig 2D (debug e
+	# fallback) e as flags de demo (--geo-*) trocam depois. O cão nasce no
+	# esqueleto 3D; serpente e ave continuam no rig 2D.
+	var args := OS.get_cmdline_user_args()
+	if not ("--mock" in args):
+		if "--canino-2d" in args:
+			ativar_pele_geometrica("canino")
+		elif not ativar_esqueleto3d("canino3d"):
+			ativar_pele_geometrica("canino")
 
 
 ## Liga a pele geométrica (F2). Rig inválido/ausente mantém o mock (falha fechada).
@@ -67,6 +82,8 @@ func ativar_pele_geometrica(id: String = "canino", debug := false) -> bool:
 		return false
 	_rig = m
 	_rig_id = id
+	_rig3d = {}
+	_rig3d_id = ""
 	_rig_debug = debug
 	_anim_cat = Anim.para_rig(AnimData.carregar(), m)
 	_anim_mem = {}
@@ -75,8 +92,31 @@ func ativar_pele_geometrica(id: String = "canino", debug := false) -> bool:
 	return true
 
 
+## Liga o esqueleto 3D (Fase A). Rig inválido/ausente devolve false e NÃO
+## troca a pele atual (o `_ready` cai para o rig 2D; falha fechada).
+func ativar_esqueleto3d(id: String = "canino3d", debug := false) -> bool:
+	var m := Rigs3D.carregar(id)
+	if m.is_empty():
+		push_error("esqueleto 3D recusado: rig " + id)
+		return false
+	_rig3d = m
+	_rig3d_id = id
+	_rig = {}
+	_rig_id = ""
+	_rig_debug = debug
+	_anim_cat = Anim.para_rig(AnimData.carregar(), m)
+	_anim_mem = {}
+	_tempo_pele = 0.0
+	queue_redraw()
+	return true
+
+
+func esqueleto3d_ativo() -> bool:
+	return not _rig3d.is_empty()
+
+
 func pele_geometrica_ativa() -> bool:
-	return not _rig.is_empty()
+	return not _rig.is_empty() or not _rig3d.is_empty()
 
 
 ## Só na demo: congela um clipe do catálogo para inspecionar o desenho.
@@ -138,26 +178,44 @@ func _draw() -> void:
 		cor = Color(1.0, 0.58, 0.52)
 		meu += Vector2(sin(_tempo * 57.0) * 2.2, 0.0)
 	var c := meu + Vector2(0, -20)
-	if not _rig.is_empty():
-		# F2/F3: a direção sai do olhar em OITO setores; o clipe e a fase vêm da
-		# máquina de estados (ou do clipe forçado, só na demo); o rig manda no
-		# desenho e o golpe sai da âncora `boca`.
+	var tem_rig: bool = not _rig.is_empty() or not _rig3d.is_empty()
+	if tem_rig:
+		# F2/F3/Fase A: a direção sai do olhar em OITO setores; o clipe e a fase
+		# vêm da máquina de estados (ou do clipe forçado, só na demo); o rig
+		# manda no desenho e o golpe sai da âncora `boca`.
 		var dir := Dir.setor(corpo.olhar)
 		var clipe := String(_anim_mem.get("id", "idle"))
 		if _clipe_forcado != "":
 			clipe = _clipe_forcado
-		if not (_rig.get("clips", {}) as Dictionary).has(clipe):
+		var clips_rig: Dictionary = (_rig3d if not _rig3d.is_empty() else _rig).get("clips", {})
+		if not clips_rig.has(clipe):
 			clipe = "walk" if _andando else "idle"
 		var fase := _fase_forcada
 		if fase < 0.0:
 			fase = Anim.fase(_anim_mem, _anim_cat, _tempo_pele * 1000.0)
 		var salto_correndo := bool(_anim_mem.get("salto_correndo", false)) and _clipe_forcado == ""
-		var pose := Esq.pose(_rig, dir, fase, clipe, salto_correndo)
-		ModDraw.desenhar(self, _rig, pose, dir, meu, _mod_cat, _mod_ids, "back")
-		PeleGeo.desenhar(self, _rig, dir, fase, clipe, meu, cor, _rig_debug, 1.0, pose)
-		ModDraw.desenhar(self, _rig, pose, dir, meu, _mod_cat, _mod_ids, "front")
-		_desenhar_eventos(meu, pose, dir, fase, clipe)
-		c = _ancora_boca(meu, dir, pose)
+		if not _rig3d.is_empty():
+			# O esqueleto 3D projeta; o adaptador entrega rig/pose no MESMO
+			# formato que módulos e VFX já consomem (socket por nome).
+			var pose3 := Esq3.pose(_rig3d, dir, fase, clipe, salto_correndo)
+			if pose3.is_empty():
+				push_error("pose 3D vazia: " + dir + "/" + clipe)
+			else:
+				var adapt := Esq3.adaptar_modulos(_rig3d, pose3, dir)
+				var rig_mod: Dictionary = adapt["rig"]
+				var pose_mod: Dictionary = adapt["pose"]
+				ModDraw.desenhar(self, rig_mod, pose_mod, dir, meu, _mod_cat, _mod_ids, "back")
+				PeleGeo3D.desenhar(self, _rig3d, pose3, meu, cor, _rig_debug, 1.0)
+				ModDraw.desenhar(self, rig_mod, pose_mod, dir, meu, _mod_cat, _mod_ids, "front")
+				_desenhar_eventos(meu, rig_mod, pose_mod, dir, fase, clipe)
+				c = _ancora_boca(meu, rig_mod, pose_mod, dir)
+		else:
+			var pose := Esq.pose(_rig, dir, fase, clipe, salto_correndo)
+			ModDraw.desenhar(self, _rig, pose, dir, meu, _mod_cat, _mod_ids, "back")
+			PeleGeo.desenhar(self, _rig, dir, fase, clipe, meu, cor, _rig_debug, 1.0, pose)
+			ModDraw.desenhar(self, _rig, pose, dir, meu, _mod_cat, _mod_ids, "front")
+			_desenhar_eventos(meu, _rig, pose, dir, fase, clipe)
+			c = _ancora_boca(meu, _rig, pose, dir)
 		if _rig_debug:
 			var rotulo := clipe + (" (forçado)" if _clipe_forcado != "" else " · " + String(_anim_mem.get("id", "")))
 			draw_string(ThemeDB.fallback_font, meu + Vector2(-30, -58), rotulo,
@@ -174,7 +232,7 @@ func _draw() -> void:
 ## Estrelinhas girando sobre a cabeça: o corpo não obedece enquanto isso.
 ## Faísca/onda nas janelas de evento do clipe (por TEMPO, não por quadro).
 ## É só desenho: dano e alcance continuam em sim/corpo.gd.
-func _desenhar_eventos(base: Vector2, pose: Dictionary, direcao: String, fase: float, clipe: String) -> void:
+func _desenhar_eventos(base: Vector2, rig: Dictionary, pose: Dictionary, direcao: String, fase: float, clipe: String) -> void:
 	if _anim_cat.is_empty() or _mod_cat.is_empty():
 		return
 	var c := Anim.clipe(_anim_cat, clipe)
@@ -184,15 +242,15 @@ func _desenhar_eventos(base: Vector2, pose: Dictionary, direcao: String, fase: f
 	var ms := fase * dur
 	for j in Anim.janela_ativa(_anim_cat, clipe, ms):
 		var alfa := 1.0 - clampf((ms - float(j["ms"])) / 150.0, 0.0, 1.0)
-		ModDraw.desenhar_efeito(self, _rig, pose, direcao, base, String(j["socket"]), String(j["evento"]), _mod_cat, alfa)
+		ModDraw.desenhar_efeito(self, rig, pose, direcao, base, String(j["socket"]), String(j["evento"]), _mod_cat, alfa)
 
 
 ## O golpe sai da ÂNCORA "boca" quando ela existe; senão do centro do corpo.
-func _ancora_boca(base: Vector2, direcao: String, pose: Dictionary) -> Vector2:
-	var a := Esq.socket(_rig, pose, direcao, "boca")
+func _ancora_boca(base: Vector2, rig: Dictionary, pose: Dictionary, direcao: String) -> Vector2:
+	var a := Esq.socket(rig, pose, direcao, "boca")
 	if a.is_empty():
 		return base + Vector2(0, -20)
-	var piv := Vector2(float(_rig["pivot_px"][0]), float(_rig["pivot_px"][1]))
+	var piv := Vector2(float(rig["pivot_px"][0]), float(rig["pivot_px"][1]))
 	return base + ((a["pos"] as Vector2) - piv)
 
 

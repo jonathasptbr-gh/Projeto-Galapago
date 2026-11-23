@@ -58,8 +58,10 @@ ferramentas `get_*_capabilities` cotam de graça antes de gastar.
    peças trocáveis (asas, galhada, cauda) compostas na `jogo/`.
    Envelhecimento, elemento e aura saem de **shader de paleta** e partículas,
    não de sprite novo.
-3. **Câmera única:** decidir no P6 entre `side` e `low top-down` para a arena
-   2,5D, e não misturar.
+3. **Câmera única:** **low top-down (20°)** para a arena 2,5D — decidido em
+   2026-11-23 (v0.29.0); não misturar. O cão desenha o esqueleto 3D projetado
+   nessa câmera (`sim/esqueleto3d.gd`, `dados/rig/canino3d.json`); a pele de
+   pixel art em camadas é o alvo seguinte (fila P9).
 4. **Todo asset entra por script de validação** (`tools/`, a criar no P6):
    tamanho múltiplo de 4, cores ⊂ paleta-mestra, fundo transparente, nome no
    padrão. A IA erra em silêncio; o script não.

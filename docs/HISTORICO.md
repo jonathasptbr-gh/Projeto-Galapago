@@ -3,6 +3,24 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.29.0 — cão com esqueleto 3D projetado em 2D (2026-11-23)
+
+- **Fase A do plano 3D:** o cão passa a ser desenhado por 22 juntas e 21 ossos
+  em 3D (`dados/rig/canino3d.json`), projetados ortograficamente na câmera
+  **low top-down de 20°** (`sim/esqueleto3d.gd`). As oito direções saem da
+  mesma geometria — acabam os quatro perfis 2D desenhados à mão.
+- **Regras e módulos intactos:** a pose devolve o contrato 2D (`juntas`) e um
+  adaptador para `sim/modulos.gd`; sockets (boca, coroa, base_cauda, dorso)
+  continuam por nome; `sim/corpo.gd`, `dados/animacoes.json`, serpente e ave
+  não mudaram.
+- **Fallback:** `--canino-2d` força o rig antigo; rig 3D inválido cai para o
+  2D (falha fechada).
+- **Fase B (fila P9):** o campo `pecas` do rig 3D já valida o modelo de peças
+  2D por osso; o desenho das camadas de pixel art ainda não existe.
+- **Verificação:** 240 testes/0, parser 64/0, docs 32/0; folha 8×7×3 e
+  comparação 2D×3D; baseline dos quadros atualizado no CI #75.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.28.0 — ombros e quarto traseiro separados da coluna (2026-11-23)
 
 - **Anatomia:** o canino ganhou `ombro_e/ombro_d` e `anca_e/anca_d` fora da

@@ -4,6 +4,11 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.29.0 | câmera | com 20°, as patas caem em alturas diferentes na tela (spread 5,5–7,6 px); não existe mais a base única do 2D — é a câmera escolhida | design | aberto |
+| v0.29.0 | leitura | em 68 px o esqueleto 3D é mais "arame" e cruzado que o 2D, sobretudo nas diagonais; a leitura de cão é menos imediata | design | aberto |
+| v0.29.0 | fase B | camadas de pixel art por osso ainda não desenhadas (só o campo `pecas` e a validação) | médio | aberto |
+| v0.29.0 | rig | validação estrita de 22 juntas/21 ossos: mudar juntas exige migrar schema e testes | pequeno | aberto |
+| v0.29.0 | aparelho | sem teste no celular (só headless/Xvfb softpipe) | operador | aberto |
 | v0.28.0 | frontal | a anca frontal fica recuada (±4,5 px) para não colidir com a perna dianteira; o quarto largo aparece mais na vista dorsal | design | aberto |
 | v0.28.0 | diagonais | o ombro/anca "longe" fica a ~0,5 px da linha do dorso; no zoom de 5× parece encostado, não articulado | pequeno | aberto |
 | v0.28.0 | arte | a pele esquelética segue como prova de juntas: nada aqui é arte aprovada | decisão | aberto |
