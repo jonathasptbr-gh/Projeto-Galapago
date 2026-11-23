@@ -33,12 +33,16 @@ try {
 } catch {}
 if (!T) try { T = fs.readFileSync(home + '/.dsh-github/token', 'utf8').trim(); } catch {}
 if (!T) { console.log('CI: sem credencial (cofre ou ~/.dsh-github/token)'); process.exit(0); }
-const r = await fetch('https://api.github.com/repos/jonathasptbr-gh/Projeto-Galapago/actions/runs?per_page=1',
+const r = await fetch('https://api.github.com/repos/jonathasptbr-gh/Projeto-Galapago/actions/runs?per_page=10',
   { headers: { Authorization: 'Bearer ' + T, 'User-Agent': 'estado', Accept: 'application/vnd.github+json' } });
 const j = await r.json();
-const run = j.workflow_runs?.[0];
+const runs = j.workflow_runs || [];
+// o run de `baseline` (workflow_dispatch) não é o CI do main: mostre o push.
+const run = runs.find((x) => x.event !== 'workflow_dispatch');
+const disp = runs.find((x) => x.event === 'workflow_dispatch' && (!run || x.created_at > run.created_at));
 console.log(run ? `CI: ${run.name} #${run.run_number} ${run.status}/${run.conclusion ?? '-'} em ${run.head_sha.slice(0, 7)} — ${run.html_url}`
                 : `CI: nenhum run (${r.status} ${j.message ?? ''})`);
+if (disp) console.log(`baseline: #${disp.run_number} ${disp.status}/${disp.conclusion ?? '-'} — ${disp.html_url}`);
 EOF
 fi
 

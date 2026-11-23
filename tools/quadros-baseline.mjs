@@ -49,21 +49,31 @@ async function baixar() {
   const id = idDoRun();
   if (!id) throw new Error('informe --run, --url, --zip ou --pasta');
   const h = { Authorization: 'Bearer ' + token(), 'User-Agent': 'galapago', Accept: 'application/vnd.github+json' };
-  const r = await fetch(`https://api.github.com/repos/${REPO}/actions/runs/${id}/artifacts`, { headers: h });
+  const r = await fetch(`https://api.github.com/repos/${REPO}/actions/runs/${id}/artifacts`, { headers: h, signal: AbortSignal.timeout(60000) });
   if (!r.ok) throw new Error(`artifacts do run ${id}: ${r.status}`);
   const j = await r.json();
   const art = (j.artifacts || []).find((a) => a.name === 'baseline') || (j.artifacts || []).find((a) => a.name === 'quadros');
   if (!art) throw new Error(`run ${id} sem artifact 'baseline' (tem: ${(j.artifacts || []).map((a) => a.name).join(', ') || 'nenhum'})`);
   if (art.expired) throw new Error(`artifact '${art.name}' expirado — dispare o job \`baseline\` de novo`);
   // artifacts exigem o Accept do GitHub; ele redireciona para o blob assinado.
-  const b = await fetch(art.archive_download_url, { headers: { ...h, Accept: 'application/vnd.github+json' } });
-  if (!b.ok) throw new Error(`download do artifact: ${b.status}`);
+  // O blob às vezes engasga no meio do corpo (rede do celular): duas tentativas.
   const tmp = path.join(os.homedir(), 'tmp');
   fs.mkdirSync(tmp, { recursive: true });
   const alvo = path.join(tmp, `galapago-baseline-${id}.zip`);
-  fs.writeFileSync(alvo, Buffer.from(await b.arrayBuffer()));
-  console.log(`artifact '${art.name}' do run ${id} → ${alvo} (${art.size_in_bytes} bytes)`);
-  return alvo;
+  let ultimo = null;
+  for (let tentativa = 1; tentativa <= 2; tentativa++) {
+    try {
+      const b = await fetch(art.archive_download_url, { headers: { ...h, Accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(120000) });
+      if (!b.ok) throw new Error(`HTTP ${b.status}`);
+      fs.writeFileSync(alvo, Buffer.from(await b.arrayBuffer()));
+      console.log(`artifact '${art.name}' do run ${id} → ${alvo} (${art.size_in_bytes} bytes)`);
+      return alvo;
+    } catch (e) {
+      ultimo = e;
+      console.warn(`download tentativa ${tentativa}/2 falhou: ${e.name || ''} ${e.message || ''}`.trim());
+    }
+  }
+  throw new Error(`download do artifact falhou 2× (${ultimo?.name || ultimo?.message}). Tente de novo; se persistir, baixe o zip pelo navegador (Actions → run → Artifacts) e use --zip <arquivo>.`);
 }
 
 function extrair(arquivo) {
@@ -85,7 +95,13 @@ function quadrosDe(dir) {
   return achados.sort((a, b) => path.basename(a).localeCompare(path.basename(b)));
 }
 
-const fonte = pasta || extrair(zip || (await baixar()));
+let fonte;
+try {
+  fonte = pasta || extrair(zip || (await baixar()));
+} catch (e) {
+  console.error(`quadros-baseline: ${e.message || e}`);
+  process.exit(1);
+}
 const quadros = quadrosDe(fonte);
 if (quadros.length < min) {
   console.error(`só ${quadros.length} quadros (< ${min}) em ${fonte} — baseline não tocado`);

@@ -3,6 +3,19 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.26.3 — estado.sh não confunde o baseline com o CI do main (2026-11-23)
+
+- `tools/estado.sh --ci` mostra o último run de **push** (o CI do main) e, em
+  linha separada, o `baseline:` quando um `workflow_dispatch` é o mais novo —
+  antes o job de baseline escondia o estado do main.
+- `tools/quadros-baseline.mjs`: o download do artifact ganhou **duas
+  tentativas** com timeout e erro legível — o blob do GitHub às vezes engasga
+  no meio do corpo na rede do celular; `--zip`/`--pasta` seguem de escape.
+- **Verificação:** `tools/testes.sh` 213/0; dispatch do job `baseline` no main
+  (run #66) gerou o artefato `baseline` de 60 quadros; `estado.sh --ci` mostra
+  #65 verde + `baseline: #66`; o download do artefato do #66 não completou por
+  rede (o caminho `--pasta` foi verificado).
+
 ## v0.26.2 — deploy do Pages com pausa e segunda tentativa (2026-11-23)
 
 - O run #64 mostrou a corrida: o `deploy-pages` roda no mesmo segundo em que o
