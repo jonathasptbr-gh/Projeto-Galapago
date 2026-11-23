@@ -4,6 +4,10 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.31.0 | transições | a 30 fps o primeiro quadro da troca fica ~3 px (o <2 px é a 60 fps); o crossfade pode borrar pernas sobrepostas | pequeno | aberto |
+| v0.31.0 | sockets | a visibilidade dos sockets troca pelo clipe novo no primeiro quadro (boca/cauda podem piscar na troca) | pequeno | aberto |
+| v0.31.0 | 2D | só a pele 3D mistura clipes; serpente/ave continuam no corte seco | pequeno | aberto |
+| v0.31.0 | aparelho | sem teste no celular; GIFs são prova externa (Pillow) | operador | aberto |
 | v0.30.0 | sockets | `boca` e `base_cauda` piscam nas fronteiras de setor (`oculto_em` é por direção) mesmo com o corpo girando suave | pequeno | aberto |
 | v0.30.0 | silhueta | em 90°/270° a vista frontal vira uma linha de 16 px; em 68 px o arame 3D é mais cruzado que o 2D | design | aberto |
 | v0.30.0 | sombra | com pitch 20° o cão "sobe/desce" em relação à sombra ao girar (patas em alturas diferentes) | design | aberto |

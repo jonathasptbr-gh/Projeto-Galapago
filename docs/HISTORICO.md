@@ -3,6 +3,24 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.31.0 — biomecânica e transições do cão (2026-11-23)
+
+- **Parado relaxado (2,4 s):** respiração lenta, peso lateral ±0,8 px, cabeça
+  varrendo ±4°, orelhas baixas e cauda com atraso; patas plantadas.
+- **Caminhada (4 tempos):** peso para o lado do apoio, ombros/ancas em
+  antifase, cabeça estabilizada, saída/pouso com easing e follow-through.
+- **Galope:** flexão/extensão do tronco, pitch +6/−4°, cabeça contrapondo,
+  cauda esticada com chicote, orelhas para trás; suspensão de 2,8 px.
+- **Pulos:** agachar → estender → recolher dianteiras → traseiras → estender
+  antes do pouso; o pulo correndo é mais baixo/horizontal, com derrapagem.
+- **Mordida/esbarrão:** antecipação, impacto e assentamento (fases medidas).
+- **Transições entre clipes:** `Esq3.misturar` e crossfade de 0,08 s só na
+  apresentação (walk→run 7,25→1,51 px; run→jump_start 7,84→1,63 px no
+  primeiro quadro a 60 fps).
+- **Verificação:** 257 testes/0, parser 64/0, docs 32/0; GIFs e tira de
+  transições conferidos; baseline dos quadros atualizado no CI #79.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.30.0 — giro contínuo do cão na apresentação (2026-11-23)
 
 - **Rotação 0–360°:** o skin 3D usa o ângulo real do olhar (`yaw_graus` em

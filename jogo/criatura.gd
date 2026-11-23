@@ -47,6 +47,13 @@ var _tempo_pele := 0.0
 # Yaw de APRESENTAÇÃO (graus) com suavização angular só visual; NaN = ainda
 # não inicializado. Não é `corpo.olhar` e não decide setor/regra nenhuma.
 var _yaw_vis := NAN
+# TRANSIÇÃO ENTRE CLIPES (só apresentação, v0.31.0): a pose do quadro da troca
+# é misturada com a nova por `TRANSICAO_S`; nada disso toca na simulação.
+const TRANSICAO_S := 0.08
+var _pose_de: Dictionary = {}
+var _pose_ultima: Dictionary = {}
+var _clipe_pose := ""
+var _inicio_transicao := -1.0
 var _ultima_pos := Vector2.ZERO
 var _andando := false
 # F3: máquina de estados da animação (catálogo em dados/animacoes.json).
@@ -95,6 +102,10 @@ func ativar_pele_geometrica(id: String = "canino", debug := false) -> bool:
 	_anim_mem = {}
 	_tempo_pele = 0.0
 	_yaw_vis = NAN
+	_pose_de = {}
+	_pose_ultima = {}
+	_clipe_pose = ""
+	_inicio_transicao = -1.0
 	queue_redraw()
 	return true
 
@@ -115,6 +126,10 @@ func ativar_esqueleto3d(id: String = "canino3d", debug := false) -> bool:
 	_anim_mem = {}
 	_tempo_pele = 0.0
 	_yaw_vis = NAN
+	_pose_de = {}
+	_pose_ultima = {}
+	_clipe_pose = ""
+	_inicio_transicao = -1.0
 	queue_redraw()
 	return true
 
@@ -161,6 +176,33 @@ func _atualizar_yaw_apresentacao(delta: float) -> void:
 		_yaw_vis = alvo
 		return
 	_yaw_vis = _suavizar_yaw(_yaw_vis, alvo, maxf(delta, 0.0) * rad_to_deg(VEL_YAW_RAD_S))
+
+
+## Registra o clipe DESENHADO. Troca de clipe guarda a última pose desenhada
+## como origem; clipe repetido NÃO reinicia a transição.
+func _registrar_clipe(clipe: String, agora: float) -> void:
+	if _clipe_pose != "" and _clipe_pose != clipe and not _pose_ultima.is_empty():
+		_pose_de = _pose_ultima
+		_inicio_transicao = agora
+	_clipe_pose = clipe
+
+
+## Peso da mistura: 0→1 linear em `TRANSICAO_S`. No primeiro quadro a pose
+## anda só ~delta/0,08 do caminho (≈0,21 a 60 fps => <2 px). Só apresentação.
+func _peso_transicao(t: float) -> float:
+	return clampf(t / TRANSICAO_S, 0.0, 1.0)
+
+
+func _pose_com_transicao(pose_atual: Dictionary, agora: float) -> Dictionary:
+	if _inicio_transicao < 0.0 or _pose_de.is_empty():
+		return pose_atual
+	var decorrido := agora - _inicio_transicao
+	var t := decorrido / TRANSICAO_S
+	if t >= 1.0:
+		_inicio_transicao = -1.0
+		_pose_de = {}
+		return pose_atual
+	return Esq3.misturar(_pose_de, pose_atual, _peso_transicao(decorrido))
 
 
 ## Só na demo: congela um clipe do catálogo para inspecionar o desenho.
@@ -249,6 +291,17 @@ func _draw() -> void:
 			if pose3.is_empty():
 				push_error("pose 3D vazia: " + dir + "/" + clipe)
 			else:
+				# Transição de clipe: a origem é a ÚLTIMA pose desenhada; o
+				# peso vai de 0 a 1 em `TRANSICAO_S` (linear), então o primeiro
+				# quadro anda ~1,5 px. Clipe forçado (demo) não mistura.
+				if _clipe_forcado == "":
+					_registrar_clipe(clipe, _tempo_pele)
+					pose3 = _pose_com_transicao(pose3, _tempo_pele)
+				else:
+					_clipe_pose = clipe
+					_inicio_transicao = -1.0
+					_pose_de = {}
+				_pose_ultima = pose3
 				var adapt := Esq3.adaptar_modulos(_rig3d, pose3, dir)
 				var rig_mod: Dictionary = adapt["rig"]
 				var pose_mod: Dictionary = adapt["pose"]

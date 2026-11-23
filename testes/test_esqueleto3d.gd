@@ -51,6 +51,18 @@ func _direcao_espelho(dir: String) -> String:
 	return dir
 
 
+func _j3(p: Dictionary, nome: String) -> Vector3:
+	return p["juntas_3d"][nome]
+
+
+## Inclinação do tronco (quadril→peito) em graus, com sinal de nariz para
+## baixo positivo. É a leitura usada no teste do galope.
+func _pitch_corpo(p: Dictionary) -> float:
+	var a := _j3(p, "quadril")
+	var b := _j3(p, "peito")
+	return -rad_to_deg(atan2(b.y - a.y, b.z - a.z))
+
+
 func test_rig_3d_do_projeto_valida() -> void:
 	var m := _rig()
 	igual(E3.validar(m), "", "canino3d sem erro")
@@ -533,6 +545,280 @@ func test_salto_de_olhar_e_passo_do_amortecimento() -> void:
 		y = c._suavizar_yaw(y, 180.0, passo)
 		frames += 1
 	checar(frames <= 11, "180° em no máximo 11 quadros de 60 fps (veio %d = %.4f s)" % [frames, float(frames) / 60.0])
+	c.free()
+
+
+func test_idle_relaxado() -> void:
+	var m := _rig()
+	perto(float(m["clips"]["idle"]["duracao_s"]), 2.4, 0.001, "idle de 2,4 s")
+	perto(float(m["motion"]["respira_px"]), 0.5, 0.001, "respiração 0,5 px")
+	perto(float(m["motion"]["idle_peso_lateral_px"]), 0.8, 0.001, "peso lateral ±0,8")
+	perto(float(m["motion"]["idle_cabeca_graus"]), 4.0, 0.001, "cabeça ±4°")
+	var lxmin := 1e9
+	var lxmax := -1e9
+	var fxmin := 1e9
+	var fxmax := -1e9
+	var tmin := 1e9
+	var tmax := -1e9
+	for i in 41:
+		var f := float(i) / 40.0
+		var p := E3.pose(m, "east", f, "idle")
+		checar(not p.is_empty(), "idle pose f=%.2f" % f)
+		for k in PATAS:
+			perto(_j3(p, k).y, 0.0, 0.000001, "idle pata plantada f=%.2f/%s" % [f, k])
+		var lombo := _j3(p, "lombo")
+		lxmin = minf(lxmin, lombo.x)
+		lxmax = maxf(lxmax, lombo.x)
+		var foc := _j3(p, "focinho")
+		fxmin = minf(fxmin, foc.x)
+		fxmax = maxf(fxmax, foc.x)
+		var rel := _j3(p, "cauda_ponta").x - lombo.x
+		tmin = minf(tmin, rel)
+		tmax = maxf(tmax, rel)
+	checar(lxmax - lxmin > 1.2, "peso lateral ±0,8 (range %.2f px)" % (lxmax - lxmin))
+	checar(tmax - tmin > 2.6, "cauda ±1,5 relativa ao lombo (range %.2f px)" % (tmax - tmin))
+	checar(fxmax - fxmin > 0.3, "cabeça varre ±4° (range x %.2f px)" % (fxmax - fxmin))
+	var p0 := E3.pose(m, "east", 0.0, "idle")
+	checar(_j3(p0, "orelha_e").y < float(m["juntas"]["orelha_e"][1]) - 0.3,
+		"orelha relaxada/baixa")
+
+
+func test_walk_dinamica() -> void:
+	var m := _rig()
+	perto(float(m["motion"]["duty_walk"]), 0.65, 0.001, "duty walk 0,65")
+	perto(float(m["motion"]["walk_balanco_lateral_px"]), 0.7, 0.001, "balanço lateral ±0,7")
+	perto(float(m["motion"]["walk_transversa_px"]), 1.5, 0.001, "transversa ±1,5")
+	var lxmin := 1e9
+	var lxmax := -1e9
+	var hmin := 1e9
+	var hmax := -1e9
+	var bmin := 1e9
+	var bmax := -1e9
+	for i in 41:
+		var f := float(i) / 40.0
+		var p := E3.pose(m, "east", f, "walk")
+		var lombo := _j3(p, "lombo")
+		lxmin = minf(lxmin, lombo.x)
+		lxmax = maxf(lxmax, lombo.x)
+		var h := _j3(p, "cabeca")
+		hmin = minf(hmin, h.y)
+		hmax = maxf(hmax, h.y)
+		bmin = minf(bmin, lombo.y)
+		bmax = maxf(bmax, lombo.y)
+	checar(lxmax - lxmin > 1.2, "balanço lateral ±0,7 (range %.2f px)" % (lxmax - lxmin))
+	var p25 := E3.pose(m, "east", 0.25, "walk")
+	var p75 := E3.pose(m, "east", 0.75, "walk")
+	var d25 := _j3(p25, "peito").z - _j3(p25, "quadril").z
+	var d75 := _j3(p75, "peito").z - _j3(p75, "quadril").z
+	checar(d25 - d75 > 5.0, "ombros/ancas em antifase (%.2f px)" % (d25 - d75))
+	checar(hmax - hmin < (bmax - bmin) * 0.5,
+		"cabeça estabilizada contra o bob (head %.2f / corpo %.2f)" % [hmax - hmin, bmax - bmin])
+
+
+func test_run_dinamica() -> void:
+	var m := _rig()
+	perto(float(m["motion"]["duty_galope"]), 0.25, 0.001, "duty galope 0,25")
+	perto(float(m["motion"]["galope_suspensao_px"]), 2.8, 0.001, "suspensão 2,8 px")
+	perto(float(m["motion"]["galope_passo_px"]), 9.5, 0.001, "passo 9,5 px")
+	perto(float(m["motion"]["galope_levanta_px"]), 5.5, 0.001, "levanta 5,5 px")
+	perto(float(m["motion"]["run_pitch_gather_graus"]), 6.0, 0.001, "pitch gather +6°")
+	perto(float(m["motion"]["run_pitch_suspensao_graus"]), -4.0, 0.001, "pitch suspensão -4°")
+	var p0 := E3.pose(m, "east", 0.0, "run")
+	var p25 := E3.pose(m, "east", 0.25, "run")
+	checar(_pitch_corpo(p0) > _pitch_corpo(p25) + 8.0,
+		"gather nariz baixo > suspensão (%+.2f° / %+.2f°)" % [_pitch_corpo(p0), _pitch_corpo(p25)])
+	var fmin := 1e9
+	var fmax := -1e9
+	for i in 41:
+		var f := float(i) / 40.0
+		var p := E3.pose(m, "east", f, "run")
+		var d := _j3(p, "peito").z - _j3(p, "quadril").z
+		fmin = minf(fmin, d)
+		fmax = maxf(fmax, d)
+	checar(fmax - fmin > 2.5, "flexão do tronco (%.2f px)" % (fmax - fmin))
+	var p35 := E3.pose(m, "east", 0.35, "run")
+	for k in PATAS:
+		checar(_j3(p35, k).y > 0.5, "suspensão tira a pata do chão: " + k)
+	var idle5 := E3.pose(m, "east", 0.5, "idle")
+	checar(_j3(p25, "orelha_e").z < _j3(idle5, "orelha_e").z - 1.0, "orelhas para trás")
+	var len_run := _j3(p25, "cauda_base").distance_to(_j3(p25, "cauda_ponta"))
+	var len_idle := _j3(idle5, "cauda_base").distance_to(_j3(idle5, "cauda_ponta"))
+	checar(len_run > len_idle + 0.8, "cauda esticada (%.2f > %.2f)" % [len_run, len_idle])
+
+
+func test_pulo_parado() -> void:
+	var m := _rig()
+	var idle5 := E3.pose(m, "east", 0.5, "idle")
+	var js5 := E3.pose(m, "east", 0.5, "jump_start")
+	checar(_j3(js5, "lombo").y < _j3(idle5, "lombo").y - 2.5, "agacha ~3 px")
+	var head_rel_js := _j3(js5, "cabeca").y - _j3(js5, "lombo").y
+	var head_rel_idle := _j3(idle5, "cabeca").y - _j3(idle5, "lombo").y
+	checar(head_rel_js > head_rel_idle + 1.0, "cabeça sobe na antecipação")
+	var ja2 := E3.pose(m, "east", 0.2, "jump_air")
+	var ja65 := E3.pose(m, "east", 0.65, "jump_air")
+	var ja9 := E3.pose(m, "east", 0.9, "jump_air")
+	checar(_j3(ja2, "pata_fe").y > _j3(ja2, "pata_te").y + 2.0, "dianteiras recolhem primeiro")
+	checar(_j3(ja65, "pata_te").y > _j3(ja65, "pata_fe").y + 0.8, "traseiras recolhem depois")
+	checar(_j3(ja9, "pata_fe").y < _j3(ja65, "pata_fe").y - 2.0, "dianteiras estendem antes do pouso")
+	var jl5 := E3.pose(m, "east", 0.5, "jump_land")
+	checar(_j3(jl5, "lombo").y < _j3(idle5, "lombo").y - 2.5, "pouso absorve ~3 px")
+	# Sem teleporte de pata nas emendas dos clipes.
+	var js_fim := E3.pose(m, "east", 0.99, "jump_start")
+	var ja_ini := E3.pose(m, "east", 0.0, "jump_air")
+	var ja_fim := E3.pose(m, "east", 0.99, "jump_air")
+	var jl_ini := E3.pose(m, "east", 0.0, "jump_land")
+	for k in PATAS:
+		checar(_j3(js_fim, k).distance_to(_j3(ja_ini, k)) < 0.5, "emenda jump_start→jump_air: " + k)
+		checar(_j3(ja_fim, k).distance_to(_j3(jl_ini, k)) < 0.5, "emenda jump_air→jump_land: " + k)
+
+
+func test_pulo_correndo() -> void:
+	var m := _rig()
+	var parado := E3.pose(m, "east", 0.5, "jump_air", false)
+	var correndo := E3.pose(m, "east", 0.5, "jump_air", true)
+	checar(_j3(correndo, "pata_fe").z > _j3(parado, "pata_fe").z + 2.5,
+		"pulo correndo alcança +3 z (%.2f)" % (_j3(correndo, "pata_fe").z - _j3(parado, "pata_fe").z))
+	checar(_j3(correndo, "lombo").y < _j3(parado, "lombo").y - 0.5,
+		"pulo correndo mais baixo (%.2f < %.2f)" % [_j3(correndo, "lombo").y, _j3(parado, "lombo").y])
+	var land_c := E3.pose(m, "east", 0.2, "jump_land", true)
+	var land_p := E3.pose(m, "east", 0.2, "jump_land", false)
+	checar(_j3(land_c, "pata_fe").z > _j3(land_p, "pata_fe").z + 2.0,
+		"pouso correndo derrapa com a pata à frente")
+
+
+func test_mordida_fases() -> void:
+	var m := _rig()
+	var b15 := E3.pose(m, "east", 0.15, "bite")
+	var b4 := E3.pose(m, "east", 0.4, "bite")
+	var b65 := E3.pose(m, "east", 0.65, "bite")
+	var b1 := E3.pose(m, "east", 1.0, "bite")
+	checar(_j3(b15, "cabeca").z < _j3(b4, "cabeca").z - 3.0,
+		"antecipação−ataque no z da cabeça (%.2f < %.2f)" % [_j3(b15, "cabeca").z, _j3(b4, "cabeca").z])
+	checar(_j3(b4, "focinho").z > _j3(b15, "focinho").z + 3.0,
+		"focinho avança no ataque")
+	checar(_j3(b4, "focinho").z - _j3(b4, "cabeca").z > 5.0, "focinho abre +2 z")
+	checar(_j3(b65, "cabeca").z > _j3(b4, "cabeca").z + 1.0, "cabeça passa do alvo no follow-through")
+	checar(_j3(b1, "cabeca").z < _j3(b65, "cabeca").z - 5.0, "follow-through assenta")
+
+
+func test_esbarrao_fases() -> void:
+	var m := _rig()
+	var idle4 := E3.pose(m, "east", 0.4, "idle")
+	var s4 := E3.pose(m, "east", 0.4, "slam")
+	var s7 := E3.pose(m, "east", 0.7, "slam")
+	var idle5 := E3.pose(m, "east", 0.5, "idle")
+	var s5 := E3.pose(m, "east", 0.5, "slam")
+	checar(_j3(s4, "lombo").z - _j3(idle4, "lombo").z > 9.0,
+		"pico de dz ~0,4 (%.2f px)" % (_j3(s4, "lombo").z - _j3(idle4, "lombo").z))
+	checar(_j3(s7, "lombo").z < _j3(s4, "lombo").z - 0.5, "recua depois do impacto")
+	checar(_j3(s4, "lombo").y < _j3(idle4, "lombo").y - 0.5, "corpo baixo no disparo")
+	checar(_j3(s5, "cabeca").y < _j3(idle5, "cabeca").y - 1.0, "cabeça baixa no impacto")
+
+
+func test_fluidez_entre_clipes() -> void:
+	var m := _rig()
+	var walk_fim := E3.pose(m, "east", 0.99, "walk")
+	var run_ini := E3.pose(m, "east", 0.0, "run")
+	var run_fim := E3.pose(m, "east", 0.99, "run")
+	var jump_ini := E3.pose(m, "east", 0.0, "jump_start")
+	var d_wr := _max_dist(walk_fim, run_ini)
+	var d_rj := _max_dist(run_fim, jump_ini)
+	checar(d_wr < 9.0, "walk→run sem salto grande (%.2f px)" % d_wr)
+	checar(d_rj < 9.0, "run→jump_start sem salto grande (%.2f px)" % d_rj)
+	var passo_i := _maior_passo(m, "idle")
+	var passo_w := _maior_passo(m, "walk")
+	var passo_r := _maior_passo(m, "run")
+	checar(passo_i < 1.0, "idle a 60 fps sem pico (%.2f px/quadro)" % passo_i)
+	checar(passo_w < 2.0, "walk a 60 fps sem pico (%.2f px/quadro)" % passo_w)
+	checar(passo_r < 2.0, "run a 60 fps sem pico (%.2f px/quadro)" % passo_r)
+
+
+func _max_dist(a: Dictionary, b: Dictionary) -> float:
+	var md := 0.0
+	for nome in a["juntas"]:
+		md = maxf(md, (a["juntas"][nome] as Vector2).distance_to(b["juntas"][nome]))
+	return md
+
+
+func _maior_passo(m: Dictionary, clipe: String) -> float:
+	var md := 0.0
+	for i in 60:
+		var a := E3.pose(m, "east", float(i) / 60.0, clipe)
+		var b := E3.pose(m, "east", float(i + 1) / 60.0, clipe)
+		md = maxf(md, _max_dist(a, b))
+	return md
+
+
+func test_misturar_poses() -> void:
+	var m := _rig()
+	var a := E3.pose(m, "east", 0.99, "walk")
+	var b := E3.pose(m, "east", 0.0, "run")
+	var z := E3.misturar(a, b, 0.0)
+	var o := E3.misturar(a, b, 1.0)
+	var meio := E3.misturar(a, b, 0.5)
+	for nome in a["juntas"]:
+		perto_v(z["juntas"][nome], a["juntas"][nome], 0.000001, "misturar w=0 junta " + nome)
+		perto_v(o["juntas"][nome], b["juntas"][nome], 0.000001, "misturar w=1 junta " + nome)
+		perto_v(meio["juntas"][nome],
+			(a["juntas"][nome] as Vector2).lerp(b["juntas"][nome], 0.5), 0.000001,
+			"misturar 0,5 junta " + nome)
+		perto(float(meio["profundidade"][nome]),
+			lerpf(float(a["profundidade"][nome]), float(b["profundidade"][nome]), 0.5), 0.000001,
+			"misturar 0,5 profundidade " + nome)
+	for nome in a["sockets"]:
+		perto_v(z["sockets"][nome]["pos"], a["sockets"][nome]["pos"], 0.000001,
+			"misturar w=0 socket " + nome)
+		perto_v(o["sockets"][nome]["pos"], b["sockets"][nome]["pos"], 0.000001,
+			"misturar w=1 socket " + nome)
+		perto(float(z["sockets"][nome]["profundidade"]), float(a["sockets"][nome]["profundidade"]),
+			0.000001, "misturar w=0 socket prof " + nome)
+		perto(float(o["sockets"][nome]["profundidade"]), float(b["sockets"][nome]["profundidade"]),
+			0.000001, "misturar w=1 socket prof " + nome)
+		perto_v(meio["sockets"][nome]["pos"],
+			(a["sockets"][nome]["pos"] as Vector2).lerp(b["sockets"][nome]["pos"], 0.5), 0.000001,
+			"misturar 0,5 socket " + nome)
+		perto(float(meio["sockets"][nome]["profundidade"]),
+			lerpf(float(a["sockets"][nome]["profundidade"]), float(b["sockets"][nome]["profundidade"]), 0.5),
+			0.000001, "misturar 0,5 socket prof " + nome)
+	# A origem e o destino não são mutados.
+	perto_v(a["juntas"]["peito"], (E3.pose(m, "east", 0.99, "walk")["juntas"]["peito"] as Vector2), 0.000001,
+		"misturar não muta a")
+	perto_v(b["juntas"]["peito"], (E3.pose(m, "east", 0.0, "run")["juntas"]["peito"] as Vector2), 0.000001,
+		"misturar não muta b")
+
+
+func test_transicao_walk_run_primeiro_quadro() -> void:
+	var c := Criatura.new()
+	c._ready()
+	var m := c._rig3d
+	var walk := E3.pose(m, "east", 0.99, "walk")
+	var run := E3.pose(m, "east", 0.0, "run")
+	var sem := _max_dist(walk, run)
+	checar(sem > 5.0, "sem mistura o salto walk→run é >5 px (%.2f)" % sem)
+	c._clipe_pose = "walk"
+	c._pose_ultima = walk
+	c._inicio_transicao = -1.0
+	c._pose_de = {}
+	c._registrar_clipe("run", 1.0)
+	var com := c._pose_com_transicao(run, 1.0 + 1.0 / 60.0)
+	var d_com := _max_dist(walk, com)
+	checar(d_com < 2.0, "com mistura o primeiro quadro fica <2 px (%.2f)" % d_com)
+	# Clipe repetido não reinicia a transição.
+	var origem_antes: Vector2 = c._pose_de["juntas"]["lombo"]
+	var inicio_antes := c._inicio_transicao
+	c._registrar_clipe("run", 1.0 + 2.0 / 60.0)
+	perto_v(c._pose_de["juntas"]["lombo"], origem_antes, 0.000001, "clipe repetido não troca a origem")
+	perto(c._inicio_transicao, inicio_antes, 0.000001, "clipe repetido não reinicia o tempo")
+	# run→jump_start também entra abaixo de 2 px.
+	var r := E3.pose(m, "east", 0.99, "run")
+	var j := E3.pose(m, "east", 0.0, "jump_start")
+	c._clipe_pose = "run"
+	c._pose_ultima = r
+	c._inicio_transicao = -1.0
+	c._pose_de = {}
+	c._registrar_clipe("jump_start", 2.0)
+	var com_j := c._pose_com_transicao(j, 2.0 + 1.0 / 60.0)
+	checar(_max_dist(r, com_j) < 2.0, "run→jump_start com mistura <2 px")
 	c.free()
 
 

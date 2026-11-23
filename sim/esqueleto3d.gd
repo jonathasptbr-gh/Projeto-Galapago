@@ -276,8 +276,8 @@ static func pose(m: Dictionary, direcao: String, fase: float, clipe: String = "w
 		f = wrapf(fase, 0.0, 1.0)
 	var mo: Dictionary = m.get("motion", {})
 	var pernas := _pernas(m)
-	var patas := _patas(pernas, clipe, f, mo)
-	_mover_corpo(m, j, clipe, f, mo)
+	var patas := _patas(pernas, clipe, f, mo, salto_correndo)
+	_mover_corpo(m, j, clipe, f, mo, salto_correndo)
 	for perna in pernas:
 		var nome := String(perna["nome"])
 		var upper := String(perna["upper"])
@@ -286,7 +286,7 @@ static func pose(m: Dictionary, direcao: String, fase: float, clipe: String = "w
 		var K := _ik(P, F, float(perna["l1"]), float(perna["l2"]), float(perna["bend"]))
 		j["joelho_" + nome] = K
 		j["pata_" + nome] = F
-	_extras(j, clipe, f, mo)
+	_extras(j, clipe, f, mo, salto_correndo)
 	if clipe == "death":
 		_deitar(j, f)
 	elif clipe == "get_up":
@@ -386,6 +386,91 @@ static func adaptar_modulos(rig: Dictionary, p: Dictionary, direcao: String) -> 
 	return {"rig": rig_mod, "pose": pose_mod}
 
 
+## Mistura de APRESENTAÇÃO entre duas poses (a antiga e a nova). Interpola
+## `juntas`, `sockets[*].pos`, `sockets[*].profundidade` e `profundidade`;
+## `juntas_3d`, quando existe nos dois, também acompanha. w=0 devolve `a` e
+## w=1 devolve `b`; a visibilidade/z dos sockets vem de `b` (a pose nova).
+## É pura e NÃO altera `pose`/`validar`: a troca de clipe decide o w.
+static func misturar(a: Dictionary, b: Dictionary, w: float) -> Dictionary:
+	if a.is_empty():
+		return b
+	if b.is_empty():
+		return a
+	var t := clampf(w, 0.0, 1.0)
+	if t <= 0.0:
+		return a
+	if t >= 1.0:
+		return b
+	var out: Dictionary = b.duplicate(true)
+	out["juntas"] = _misturar_vec2(a.get("juntas", {}), b.get("juntas", {}), t)
+	out["profundidade"] = _misturar_float(a.get("profundidade", {}), b.get("profundidade", {}), t)
+	if a.has("juntas_3d") and b.has("juntas_3d"):
+		out["juntas_3d"] = _misturar_vec3(a["juntas_3d"], b["juntas_3d"], t)
+	var sa: Variant = a.get("sockets", {})
+	var sb: Variant = b.get("sockets", {})
+	if sa is Dictionary and sb is Dictionary:
+		var socks: Dictionary = {}
+		for nome in sb:
+			var item: Dictionary = ((sb as Dictionary)[nome] as Dictionary).duplicate(true)
+			if (sa as Dictionary).has(nome):
+				var antigo: Dictionary = (sa as Dictionary)[nome]
+				if antigo.has("pos") and item.has("pos"):
+					item["pos"] = (antigo["pos"] as Vector2).lerp(item["pos"], t)
+				if antigo.has("profundidade") and item.has("profundidade"):
+					item["profundidade"] = lerpf(float(antigo["profundidade"]), float(item["profundidade"]), t)
+			socks[nome] = item
+		for nome in sa:
+			if not socks.has(nome):
+				socks[nome] = (sa as Dictionary)[nome]
+		out["sockets"] = socks
+	return out
+
+
+static func _misturar_vec2(a: Variant, b: Variant, t: float) -> Dictionary:
+	var out: Dictionary = {}
+	var da: Dictionary = a if a is Dictionary else {}
+	var db: Dictionary = b if b is Dictionary else {}
+	for nome in db:
+		if da.has(nome):
+			out[nome] = (da[nome] as Vector2).lerp(db[nome], t)
+		else:
+			out[nome] = db[nome]
+	for nome in da:
+		if not out.has(nome):
+			out[nome] = da[nome]
+	return out
+
+
+static func _misturar_vec3(a: Variant, b: Variant, t: float) -> Dictionary:
+	var out: Dictionary = {}
+	var da: Dictionary = a if a is Dictionary else {}
+	var db: Dictionary = b if b is Dictionary else {}
+	for nome in db:
+		if da.has(nome):
+			out[nome] = (da[nome] as Vector3).lerp(db[nome], t)
+		else:
+			out[nome] = db[nome]
+	for nome in da:
+		if not out.has(nome):
+			out[nome] = da[nome]
+	return out
+
+
+static func _misturar_float(a: Variant, b: Variant, t: float) -> Dictionary:
+	var out: Dictionary = {}
+	var da: Dictionary = a if a is Dictionary else {}
+	var db: Dictionary = b if b is Dictionary else {}
+	for nome in db:
+		if da.has(nome):
+			out[nome] = lerpf(float(da[nome]), float(db[nome]), t)
+		else:
+			out[nome] = db[nome]
+	for nome in da:
+		if not out.has(nome):
+			out[nome] = da[nome]
+	return out
+
+
 # --- pose: montagem ---
 
 static func _juntas_rest(m: Dictionary) -> Dictionary:
@@ -420,16 +505,85 @@ static func _pernas(m: Dictionary) -> Array:
 	return out
 
 
+## Curva de easing suave (0→1) usada nas chaves e no recolhimento das patas.
+static func _smoothstep(a: float, b: float, x: float) -> float:
+	var t := clampf((x - a) / maxf(b - a, 0.000001), 0.0, 1.0)
+	return t * t * (3.0 - 2.0 * t)
+
+
+## Pulso 0→1→0 entre a..b (sobe) e c..d (desce); serve para recolher/estender
+## as patas do pulo em tempos diferentes.
+static func _pulso(f: float, a: float, b: float, c: float, d: float) -> float:
+	return _smoothstep(a, b, f) * (1.0 - _smoothstep(c, d, f))
+
+
+## Amostra periódica com interpolação smoothstep (4 valores = um por quarto
+## do passo). Serve para o peso lateral seguir o lado do apoio.
+static func _amostra_periodica(vals: Array, f: float) -> float:
+	var n := vals.size()
+	if n == 0:
+		return 0.0
+	var x := fposmod(f, 1.0) * float(n)
+	var i := int(floorf(x))
+	var u := x - float(i)
+	return lerpf(float(vals[i % n]), float(vals[(i + 1) % n]), _smoothstep(0.0, 1.0, u))
+
+
+## Interpolação por chaves [[t, valor], ...] com smoothstep entre elas. É a
+## base das ações de uma vez (mordida, esbarrão, pulo).
+static func _chave(chaves: Array, f: float) -> float:
+	if chaves.is_empty():
+		return 0.0
+	if f <= float(chaves[0][0]):
+		return float(chaves[0][1])
+	for i in range(1, chaves.size()):
+		var t0 := float(chaves[i - 1][0])
+		var v0 := float(chaves[i - 1][1])
+		var t1 := float(chaves[i][0])
+		var v1 := float(chaves[i][1])
+		if f <= t1:
+			return lerpf(v0, v1, _smoothstep(t0, t1, f))
+	return float(chaves[chaves.size() - 1][1])
+
+
+static func _girar_x_nomes(j: Dictionary, nomes: Array, piv: Vector3, ang: float) -> void:
+	var c := cos(ang)
+	var s := sin(ang)
+	for nome in nomes:
+		if not j.has(nome):
+			continue
+		var p: Vector3 = j[nome]
+		var dy := p.y - piv.y
+		var dz := p.z - piv.z
+		j[nome] = Vector3(p.x, piv.y + dy * c - dz * s, piv.z + dy * s + dz * c)
+
+
+static func _girar_y_nomes(j: Dictionary, nomes: Array, piv: Vector3, ang: float) -> void:
+	var c := cos(ang)
+	var s := sin(ang)
+	for nome in nomes:
+		if not j.has(nome):
+			continue
+		var p: Vector3 = j[nome]
+		var dx := p.x - piv.x
+		var dz := p.z - piv.z
+		j[nome] = Vector3(piv.x + dx * c - dz * s, p.y, piv.z + dx * s + dz * c)
+
+
 ## Alvos de pata. Apoio = y 0 (chão do MUNDO); balanço = arco em y. A marcha
 ## de 4 tempos usa LH→LF→RH→RF; o galope usa o par traseiro e depois o
-## dianteiro, com suspensão. Nos clipes de ação as patas ficam plantadas.
-static func _patas(pernas: Array, clipe: String, f: float, mo: Dictionary) -> Dictionary:
+## dianteiro, com suspensão. A saída do balanço é rápida e o pouso macio
+## (`pow(sin, easing)` no y, ease-out no z). Nos clipes de ação as patas ficam
+## plantadas, salvo o pulo (recolhe/estende) e o pouso correndo (derrapagem).
+static func _patas(pernas: Array, clipe: String, f: float, mo: Dictionary,
+		salto_correndo: bool = false) -> Dictionary:
 	var out: Dictionary = {}
 	for perna in pernas:
 		var nome := String(perna["nome"])
 		var x := float(perna["x"])
 		var z := float(perna["rest_z"])
 		var y := 0.0
+		var frente := String(perna["upper"]).begins_with("ombro")
 		if clipe == "walk":
 			var duty := float(mo.get("duty_walk", 0.65))
 			var offs := {"te": 0.0, "fe": 0.25, "td": 0.5, "fd": 0.75}
@@ -439,55 +593,95 @@ static func _patas(pernas: Array, clipe: String, f: float, mo: Dictionary) -> Di
 				z += passo * 0.5 - passo * (c / duty)
 			else:
 				var t := (c - duty) / (1.0 - duty)
-				z += -passo * 0.5 + passo * t
-				y = float(mo.get("levanta_px", 3.0)) * sin(PI * t)
+				z += -passo * 0.5 + passo * (1.0 - pow(1.0 - t, 2.0))
+				y = float(mo.get("levanta_px", 3.0)) * pow(maxf(0.0, sin(PI * t)),
+					float(mo.get("easing_levanta", 0.72)))
 		elif clipe == "run":
 			var duty := float(mo.get("duty_galope", 0.25))
 			var off := 0.0 if nome in ["te", "td"] else 0.5
-			var passo := float(mo.get("galope_passo_px", 9.0))
+			var passo := float(mo.get("galope_passo_px", 9.5))
 			var c := fposmod(f - off, 1.0)
 			if c < duty:
 				z += passo * 0.5 - passo * (c / duty)
 			else:
 				var t := (c - duty) / (1.0 - duty)
-				z += -passo * 0.5 + passo * t
-				y = float(mo.get("galope_levanta_px", 5.0)) * sin(PI * t)
+				z += -passo * 0.5 + passo * (1.0 - pow(1.0 - t, 2.0))
+				y = float(mo.get("galope_levanta_px", 5.5)) * pow(maxf(0.0, sin(PI * t)),
+					float(mo.get("easing_levanta", 0.72)))
 		elif clipe == "jump_air":
-			var arco := sin(PI * f)
-			y = 3.5 + 1.5 * arco
-			z += (1.5 if String(perna["upper"]).begins_with("ombro") else -1.0) * arco
+			# Dianteiras recolhem primeiro; traseiras depois. Antes do pouso as
+			# dianteiras voltam a estender.
+			var pulso := _pulso(f, 0.0, 0.25, 0.55, 0.85) if frente else _pulso(f, 0.15, 0.4, 0.7, 1.0)
+			y = float(mo.get("pulo_levanta_px", 5.0)) * pulso
+			z += (1.5 if frente else -1.0) * pulso
+			if salto_correndo:
+				# Salto horizontal: dianteiras alcançam mais à frente.
+				var alcance := _smoothstep(0.0, 0.2, f)
+				z += (float(mo.get("pulo_alcance_dianteiro_px", 3.0)) if frente
+					else float(mo.get("pulo_alcance_traseiro_px", 2.0))) * alcance
+		elif clipe == "jump_land":
+			if salto_correndo:
+				# Derrapagem curta: as patas ficam à frente no primeiro contato
+				# e voltam ao chão normal até o fim do clipe.
+				var derr := 1.0 - _smoothstep(0.0, 0.6, f)
+				z += (float(mo.get("pulo_alcance_dianteiro_px", 3.0)) if frente
+					else float(mo.get("pulo_alcance_traseiro_px", 2.0))) * derr
 		elif clipe == "slam":
-			z -= 2.0 * sin(PI * f)
+			z -= 1.0 * sin(PI * f)
 		out[nome] = Vector3(x, y, z)
 	return out
 
 
 ## Movimento do tronco por clipe. Só as juntas do corpo; as patas são alvos
-## no chão e a IK resolve a perna depois.
-static func _mover_corpo(m: Dictionary, j: Dictionary, clipe: String, f: float, mo: Dictionary) -> void:
+## no chão e a IK resolve a perna depois. `twist` (transversa) e `flex` (flexão
+## do tronco) movem a frente e o traseiro em sentidos opostos; a cabeça é
+## contra-rotacionada para não bater no bob/pitch.
+static func _mover_corpo(m: Dictionary, j: Dictionary, clipe: String, f: float, mo: Dictionary,
+		salto_correndo: bool = false) -> void:
 	var dy := 0.0
 	var dz := 0.0
 	var dx := 0.0
 	var pitch_corpo := 0.0
+	var twist := 0.0
+	var flex := 0.0
 	match clipe:
 		"idle":
-			dy = float(mo.get("respira_px", 0.6)) * sin(TAU * f)
+			dy = float(mo.get("respira_px", 0.5)) * sin(TAU * f)
+			dx = float(mo.get("idle_peso_lateral_px", 0.8)) * sin(TAU * f)
 		"walk":
 			dy = float(mo.get("corpo_px", 1.1)) * sin(TAU * f * 2.0 + 0.8)
+			# Peso para o lado do apoio: soma dos pés plantados por quarto de
+			# passo (+8, -6,5, -8, +6,5), suavizada.
+			var apoio := _amostra_periodica([8.0, -6.5, -8.0, 6.5], f) / 8.0
+			dx = float(mo.get("walk_balanco_lateral_px", 0.7)) * apoio
+			twist = float(mo.get("walk_transversa_px", 1.5)) * sin(TAU * f)
 		"run":
 			var susp := 0.0
 			for inicio in [0.25, 0.75]:
 				var t := (f - float(inicio)) / 0.25
 				if t >= 0.0 and t <= 1.0:
-					susp = maxf(susp, float(mo.get("galope_suspensao_px", 2.4)) * sin(PI * t))
+					susp = maxf(susp, float(mo.get("galope_suspensao_px", 2.8)) * sin(PI * t))
 			dy = susp + 1.2 * sin(TAU * f * 2.0)
-			pitch_corpo = deg_to_rad(float(mo.get("galope_pitch_graus", 5.0))) * sin(TAU * f + 0.6)
+			var g := float(mo.get("run_pitch_gather_graus", 6.0))
+			var s := float(mo.get("run_pitch_suspensao_graus", -4.0))
+			pitch_corpo = deg_to_rad((g + s) * 0.5 + (g - s) * 0.5 * cos(TAU * f * 2.0))
+			flex = -0.5 * float(mo.get("run_flexao_px", 1.5)) * cos(TAU * f * 2.0)
 		"jump_start":
-			dy = -2.5 * sin(PI * f)
+			dy = -float(mo.get("pulo_agacha_px", 3.0)) * sin(PI * f)
+			dy += 1.2 * _smoothstep(0.6, 1.0, f)
+			if salto_correndo:
+				dy -= 0.8
+				pitch_corpo += deg_to_rad(6.0) * _smoothstep(0.1, 0.8, f)
 		"jump_air":
 			dy = 1.0 + 0.5 * sin(PI * f)
+			if salto_correndo:
+				dy = 0.2 + 0.2 * sin(PI * f)
+				pitch_corpo = deg_to_rad(8.0)
 		"jump_land":
 			dy = -3.0 * sin(PI * f)
+			if salto_correndo:
+				dy -= 0.5
+				pitch_corpo = deg_to_rad(5.0) * sin(PI * f)
 		"charge":
 			dy = -2.5
 		"shot":
@@ -498,53 +692,133 @@ static func _mover_corpo(m: Dictionary, j: Dictionary, clipe: String, f: float, 
 			dy = -5.0
 		"stunned":
 			dx = 2.6 * sin(TAU * f * 3.0)
+		"bite":
+			var ant := _chave([[0.0, 0.0], [0.2, 1.0], [0.45, 0.0], [1.0, 0.0]], f)
+			dy = -1.0 * ant
+			dz = -0.8 * ant
 		"slam":
-			# O esbarrão avança mais do que agacha: em north (câmera dorsal) o
-			# +z projeta para CIMA e um agachamento fundo cancelaria o sentido.
-			dy = -0.8 * sin(PI * f)
-			dz = 11.0 * sin(PI * f)
+			# 0–15% agacha/junta; 15–40% dispara para frente; 40–60% impacto
+			# baixo; 60–100% recuo/assenta. O +z projeta para CIMA em north.
+			dz = _chave([[0.0, 0.0], [0.15, -1.0], [0.4, 11.0], [0.6, 11.0], [1.0, 0.0]], f)
+			dy = _chave([[0.0, 0.0], [0.15, -1.5], [0.4, -1.0], [0.6, -1.0], [1.0, 0.0]], f)
+	var frente := ["peito", "pescoco", "cabeca", "focinho", "orelha_e", "orelha_d",
+		"ombro_e", "ombro_d"]
+	var tras := ["quadril", "anca_e", "anca_d", "cauda_base", "cauda_ponta"]
 	var centro := Vector3(0.0, 18.0, -2.0)
 	for nome in m.get("corpo", []):
 		if not j.has(nome):
 			continue
 		var q: Vector3 = j[nome]
 		q += Vector3(dx, dy, dz)
+		if nome in frente:
+			q.z += twist + flex
+		elif nome in tras:
+			q.z -= twist + flex
 		if absf(pitch_corpo) > 0.00001:
 			var ry := q.y - centro.y
 			var rz := q.z - centro.z
 			q.y = centro.y + ry * cos(pitch_corpo) - rz * sin(pitch_corpo)
 			q.z = centro.z + ry * sin(pitch_corpo) + rz * cos(pitch_corpo)
 		j[nome] = q
-	if clipe == "slam":
-		var extra := 3.0 * sin(PI * f)
-		for nome in ["quadril", "peito", "ombro_e", "ombro_d", "anca_e", "anca_d"]:
+	# Estabilização da cabeça: no passo ela absorve a maior parte do bob; no
+	# galope contra-rotaciona o pitch do tronco em torno do pescoço.
+	if clipe == "walk":
+		var counter := -dy * float(mo.get("walk_cabeca_estabiliza", 0.75))
+		for nome in ["cabeca", "focinho", "orelha_e", "orelha_d"]:
 			if j.has(nome):
-				j[nome] = (j[nome] as Vector3) + Vector3(0, 0, extra)
+				j[nome] = (j[nome] as Vector3) + Vector3(0, counter, 0)
+	elif clipe == "run" and absf(pitch_corpo) > 0.00001:
+		_girar_x_nomes(j, ["cabeca", "focinho", "orelha_e", "orelha_d"],
+			j["pescoco"], -pitch_corpo * 0.8)
 
 
 ## Cabeça, cauda e orelhas: gesto de leitura do clipe (não mexe em regra).
-static func _extras(j: Dictionary, clipe: String, f: float, mo: Dictionary) -> void:
-	if j.has("cauda_ponta") and clipe in ["idle", "walk", "run"]:
-		var a := float(mo.get("cauda_px", 1.8)) * sin(TAU * f)
-		j["cauda_base"] = (j["cauda_base"] as Vector3) + Vector3(a * 0.25, 0, 0)
-		j["cauda_ponta"] = (j["cauda_ponta"] as Vector3) + Vector3(a * 0.85, 0, 0)
+## A cauda e as orelhas usam atraso de fase (follow-through); o idle mantém a
+## cauda baixa e as orelhas relaxadas, sem picos.
+static func _extras(j: Dictionary, clipe: String, f: float, mo: Dictionary,
+		salto_correndo: bool = false) -> void:
+	var cauda := float(mo.get("cauda_px", 1.8))
+	var atraso := float(mo.get("walk_atraso_fase", 0.1))
 	if clipe == "idle":
-		var resp := float(mo.get("respira_px", 0.6))
+		var idle_c := float(mo.get("idle_cauda_px", 1.5))
+		if j.has("cauda_base"):
+			j["cauda_base"] = (j["cauda_base"] as Vector3) + Vector3(
+				idle_c * 0.25 * sin(TAU * f), 0.0,
+				idle_c * 0.15 * sin(TAU * (f - atraso)))
+		if j.has("cauda_ponta"):
+			j["cauda_ponta"] = (j["cauda_ponta"] as Vector3) + Vector3(
+				idle_c * 1.00 * sin(TAU * f),
+				idle_c * 0.25 * sin(TAU * (f - atraso)),
+				idle_c * 0.20 * sin(TAU * (f - atraso)))
+		var bob := float(mo.get("idle_cabeca_bob_px", 0.6))
 		for nome in ["cabeca", "focinho"]:
 			if j.has(nome):
-				j[nome] = (j[nome] as Vector3) + Vector3(0, sin(TAU * f + 0.4) * resp * 1.4, 0)
+				j[nome] = (j[nome] as Vector3) + Vector3(0, bob * sin(TAU * f + 0.4), 0)
+		var orelha := float(mo.get("idle_orelha_px", 0.4))
+		for nome in ["orelha_e", "orelha_d"]:
+			if j.has(nome):
+				j[nome] = (j[nome] as Vector3) + Vector3(0,
+					-0.6 + orelha * sin(TAU * (f - atraso)), 0)
+		_girar_y_nomes(j, ["cabeca", "focinho", "orelha_e", "orelha_d"], j["pescoco"],
+			deg_to_rad(float(mo.get("idle_cabeca_graus", 4.0))) * sin(TAU * f))
+	elif clipe == "walk":
+		var a := cauda * sin(TAU * (f - atraso))
+		if j.has("cauda_base"):
+			j["cauda_base"] = (j["cauda_base"] as Vector3) + Vector3(a * 0.25, 0, 0)
+		if j.has("cauda_ponta"):
+			j["cauda_ponta"] = (j["cauda_ponta"] as Vector3) + Vector3(a * 0.75, 0, 0)
+		for nome in ["orelha_e", "orelha_d"]:
+			if j.has(nome):
+				j[nome] = (j[nome] as Vector3) + Vector3(0, 0.35 * sin(TAU * (f - atraso)), 0)
+	elif clipe == "run":
+		var chicote := float(mo.get("run_cauda_chicote_px", 2.0))
+		if j.has("cauda_base"):
+			j["cauda_base"] = (j["cauda_base"] as Vector3) + Vector3(0, 2.0, -2.0)
+		if j.has("cauda_ponta"):
+			j["cauda_ponta"] = (j["cauda_ponta"] as Vector3) + Vector3(
+				chicote * sin(TAU * (f - atraso)), 5.5, -4.0)
+		for nome in ["orelha_e", "orelha_d"]:
+			if j.has(nome):
+				j[nome] = (j[nome] as Vector3) + Vector3(0, -0.5, -1.5)
+	elif clipe == "jump_start":
+		var arco := sin(PI * f)
+		for nome in ["cabeca", "focinho"]:
+			if j.has(nome):
+				j[nome] = (j[nome] as Vector3) + Vector3(0, 2.0 * arco, 0)
+	elif clipe == "jump_air":
+		if j.has("cauda_ponta"):
+			var extra := 1.0 if salto_correndo else 0.0
+			j["cauda_ponta"] = (j["cauda_ponta"] as Vector3) + Vector3(0, 2.0 + extra, -1.0)
+		for nome in ["orelha_e", "orelha_d"]:
+			if j.has(nome):
+				j[nome] = (j[nome] as Vector3) + Vector3(0, 1.0, -0.8)
+	elif clipe == "jump_land":
+		var arco := sin(PI * f)
+		for nome in ["cabeca", "focinho"]:
+			if j.has(nome):
+				j[nome] = (j[nome] as Vector3) + Vector3(0, -1.0 * arco, 0)
 	elif clipe == "bite":
-		var a := 6.0 * sin(PI * f)
+		# 0–20% antecipa (-2 z), 20–45% ataca (+6 z e focinho +2),
+		# 45–100% passa do alvo (+8) e assenta.
+		var zc := _chave([[0.0, 0.0], [0.2, -2.0], [0.45, 6.0], [0.65, 8.0], [1.0, 0.0]], f)
 		for nome in ["pescoco", "cabeca", "focinho", "orelha_e", "orelha_d"]:
 			if j.has(nome):
-				j[nome] = (j[nome] as Vector3) + Vector3(0, 0, a)
+				j[nome] = (j[nome] as Vector3) + Vector3(0, 0, zc)
 		if j.has("focinho"):
-			j["focinho"] = (j["focinho"] as Vector3) + Vector3(0, 0, 2.0 * sin(PI * f * 3.0))
+			var abre := _chave([[0.0, 0.0], [0.2, -0.5], [0.42, 2.0], [0.65, 1.0], [1.0, 0.0]], f)
+			j["focinho"] = (j["focinho"] as Vector3) + Vector3(0, 0, abre)
+		if j.has("cauda_ponta"):
+			var contra := _chave([[0.0, 0.0], [0.2, 1.2], [0.45, -1.0], [1.0, 0.0]], f)
+			j["cauda_ponta"] = (j["cauda_ponta"] as Vector3) + Vector3(contra, 0, 0)
 	elif clipe == "slam":
-		var a := 3.0 * sin(PI * f)
-		for nome in ["pescoco", "cabeca", "focinho", "orelha_e", "orelha_d"]:
+		# Impacto baixo e cabeça para baixo; o corpo já avançou no _mover_corpo.
+		var baixa := _chave([[0.0, 0.0], [0.15, 0.0], [0.4, 1.2], [0.6, 1.5], [1.0, 0.0]], f)
+		for nome in ["cabeca", "focinho", "orelha_e", "orelha_d"]:
 			if j.has(nome):
-				j[nome] = (j[nome] as Vector3) - Vector3(0, 0, a)
+				j[nome] = (j[nome] as Vector3) - Vector3(0, baixa, 0)
+		if j.has("cauda_ponta"):
+			var chicote := _chave([[0.0, 0.0], [0.15, 1.5], [0.5, -2.0], [1.0, 0.0]], f)
+			j["cauda_ponta"] = (j["cauda_ponta"] as Vector3) + Vector3(chicote, 0, 0)
 	elif clipe == "shot":
 		var a := 2.5 * sin(PI * f)
 		for nome in ["cabeca", "focinho"]:
@@ -564,12 +838,6 @@ static func _extras(j: Dictionary, clipe: String, f: float, mo: Dictionary) -> v
 		for nome in ["cabeca", "focinho"]:
 			if j.has(nome):
 				j[nome] = (j[nome] as Vector3) - Vector3(0, 3.0, 0)
-	elif clipe == "jump_air":
-		if j.has("cauda_ponta"):
-			j["cauda_ponta"] = (j["cauda_ponta"] as Vector3) + Vector3(0, 2.0, 0)
-		for nome in ["orelha_e", "orelha_d"]:
-			if j.has(nome):
-				j[nome] = (j[nome] as Vector3) + Vector3(0, 1.0, 0)
 
 
 ## Tomba/levanta: baixa o corpo e estende o focinho no chão, sem sair do
