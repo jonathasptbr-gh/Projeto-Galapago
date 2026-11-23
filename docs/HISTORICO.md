@@ -3,6 +3,25 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.21.0 — esqueleto: contrato de pose e âncoras (2026-11-23)
+
+- **Camada nova, pura e sem desenho.** `sim/esqueleto.gd` lê um rig de dado
+  (`dados/rig/<familia>.json`), valida fail-closed, avalia a pose por fase
+  (`pose(direção, fase, clipe)`) e resolve âncora por NOME (`boca`, `coroa`,
+  `base_cauda`) com `front/back` e ausência explícita — invisível não herda
+  posição. Nada decide regra: dano, alcance e tempo seguem em `sim/corpo.gd`;
+  socket **decora, não decide**.
+- **Rig do canino (âncora):** 2 perfis (lateral/frontal), 4 direções por
+  espelho em torno do pivô, clipes `idle` (1,0 s) e `walk` (0,5 s), envelope
+  32×39×20 px e pivô nos pés (34,50) no canvas 68×68. Marcha provisória por
+  parâmetros; a pele de arte futura substitui o driver sem tocar na mecânica.
+- **Ainda NÃO ligado ao desenho:** o jogo normal continua no mock; a pele
+  geométrica (F2) e a troca para sprite (F5) não foram feitas. Nenhuma mudança
+  visível, então o baseline do oráculo não foi tocado.
+- **Verificação:** `tools/testes.sh` 199 testes/0 falhas (11 novos em
+  `test_esqueleto.gd`), parser 56 scripts/0 erros; `git diff --check` limpo.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.20.2 — caminho nascido do segurar começa na posição atual (2026-11-22)
 
 - **Bug do operador:** correndo em sprint (segurar), mover o dedo sem levantar

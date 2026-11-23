@@ -4,6 +4,12 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.21.0 | `dados/rig/` | só o canino; serpente e ave (as outras âncoras) ainda sem rig | médio | aberto |
+| v0.21.0 | `sim/esqueleto.gd` | só `idle`/`walk`; as 43 ações do catálogo e a máquina de estados são F3 | médio | aberto |
+| v0.21.0 | `jogo/` | nenhuma pele usa o esqueleto; integração visual é F2 e troca para sprite é F5 | decisão | aberto |
+| v0.21.0 | docs | `ARQUITETURA.md` e `AGENTS.md` não listam `dados/rig/` nem a camada do esqueleto (árvore ocupada por outra sessão) | pequeno | aberto |
+| v0.21.0 | combate | `hit`/`death` existem no catálogo, mas o jogo não tem regra de vida (só atordoado/empurrão) | design | aberto |
+| v0.21.0 | arte | rig geométrico provisório; nada de arte aprovada e nenhuma geração PixelLab gasta | decisão | aberto |
 | v0.20.2 | oráculo | 60 quadros não encenam segurar→mover; a prova desse caso é teste headless, e a divergência local q36/q37 continua pré-existente (softpipe × llvmpipe), baseline preservado | verificação | aberto |
 | v0.20.2 | controles | o caminho nascido do segurar foi verificado em teste e em integração headless, mas ainda não no toque físico do aparelho | verificação / operador | aberto |
 | v0.20.2 | `jogo/main.gd` | no desenho NORMAL, um primeiro `tracar` recusado por traço curto ainda marca `_traco_iniciado` (comportamento antigo preservado); só o recomeço do segurar espera o `ok` | pequeno | aberto |
