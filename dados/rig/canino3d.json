@@ -1,6 +1,6 @@
 {
   "_leia": "RIG 3D do canino (Fase A do plano 3D do cão) — CONTRATO de esqueleto, não arte. `juntas` são pontos de repouso no mundo em unidades do canvas: x lateral (direita positiva), y para cima, z para a frente; o chão é y=0. `ossos` liga duas juntas e `largura` é a espessura do traço (px na escala 1). `sockets` é NOME → junta + offset 3D + z (front/back) + `oculto_em`; o socket some na direção listada (não herda posição). `motion` são os parâmetros da marcha; `clips` declara duração/loop e espelha dados/rig/canino.json. `pecas` é a porta da Fase B: uma lista de peças 2D por osso (poly em (u,v), w, cores), validada mas NÃO desenhada nesta fase. Lido por sim/esqueleto3d.gd.",
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "canino3d",
   "arquetipo": "quadrupede",
   "familia": "canino",
@@ -156,6 +156,11 @@
       10.332178,
       -3.726870
     ],
+    "jarrete_te": [
+      -6.5,
+      5,
+      -12
+    ],
     "pata_te": [
       -6.5,
       0,
@@ -165,6 +170,11 @@
       6.5,
       10.332178,
       -3.726870
+    ],
+    "jarrete_td": [
+      6.5,
+      5,
+      -12
     ],
     "pata_td": [
       6.5,
@@ -265,8 +275,13 @@
     },
     {
       "a": "joelho_te",
-      "b": "pata_te",
+      "b": "jarrete_te",
       "largura": 1.8
+    },
+    {
+      "a": "jarrete_te",
+      "b": "pata_te",
+      "largura": 1.5
     },
     {
       "a": "anca_d",
@@ -275,8 +290,13 @@
     },
     {
       "a": "joelho_td",
-      "b": "pata_td",
+      "b": "jarrete_td",
       "largura": 1.8
+    },
+    {
+      "a": "jarrete_td",
+      "b": "pata_td",
+      "largura": 1.5
     }
   ],
   "corpo": [

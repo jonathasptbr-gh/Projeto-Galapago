@@ -1,5 +1,5 @@
 extends "res://testes/caso.gd"
-## Contrato do esqueleto 3D do canino (Fase A): 22 juntas / 21 ossos em 3D,
+## Contrato do esqueleto 3D do canino (Fase A): 24 juntas / 23 ossos em 3D,
 ## projeção ortográfica com pitch 20°, oito yaws, socket por nome e a mesma
 ## pose que módulos/VFX já consomem. Rig adulterado falha fechado; as peças 2D
 ## por osso (Fase B) são aceitas no dado, mas não desenhadas.
@@ -67,8 +67,8 @@ func test_rig_3d_do_projeto_valida() -> void:
 	var m := _rig()
 	igual(E3.validar(m), "", "canino3d sem erro")
 	igual(E3.direcoes(m).size(), 8, "oito direções")
-	igual((m["juntas"] as Dictionary).size(), 22, "22 juntas")
-	igual((m["ossos"] as Array).size(), 21, "21 ossos")
+	igual((m["juntas"] as Dictionary).size(), 24, "24 juntas")
+	igual((m["ossos"] as Array).size(), 23, "23 ossos")
 	igual((m["pecas"] as Array).size(), 0, "peças 2D desligadas nesta fase")
 	perto(float(m["pivot_px"][0]), 34.0, 0.001, "pivô x do chão")
 	perto(float(m["pivot_px"][1]), 50.0, 0.001, "pivô y do chão")
@@ -84,12 +84,25 @@ func test_rig_3d_do_projeto_valida() -> void:
 func test_rig_3d_adulterado_falha_fechado() -> void:
 	var m := _rig()
 	var copia := m.duplicate(true)
-	copia["schema_version"] = 1
-	checar(E3.validar(copia) != "", "schema 1 não vira rig 3D")
+	copia["schema_version"] = 2
+	checar(E3.validar(copia) != "" and E3.de_json(JSON.stringify(copia)).is_empty(),
+		"schema anterior 2 recusado sem adaptação silenciosa")
+	igual(int(m["schema_version"]), 3, "topologia traseira define schema 3")
+
+	for nome in ["anca_e", "joelho_te", "jarrete_te", "pata_te",
+		"anca_d", "joelho_td", "jarrete_td", "pata_td"]:
+		copia = m.duplicate(true)
+		copia["juntas"].erase(nome)
+		copia["juntas"]["fantasma"] = [0, 0, 0]
+		checar(E3.validar(copia) != "", "junta traseira obrigatória %s" % nome)
+
+	copia = m.duplicate(true)
+	copia["ossos"][18]["b"] = "pata_te"
+	checar(E3.validar(copia) != "", "cadeia traseira não pode saltar o jarrete")
 
 	copia = m.duplicate(true)
 	copia["juntas"].erase("focinho")
-	checar(E3.validar(copia) != "", "21 juntas quebra o contrato")
+	checar(E3.validar(copia) != "", "23 juntas quebra o contrato")
 
 	copia = m.duplicate(true)
 	copia["ossos"][0]["b"] = "fantasma"
@@ -187,8 +200,8 @@ func test_pose_nao_vazia_nos_oito_yaws_e_clipes() -> void:
 					continue
 				var j: Dictionary = p["juntas"]
 				var j3: Dictionary = p["juntas_3d"]
-				igual(j.size(), 22, "22 juntas projetadas %s/%s" % [dir, clipe])
-				igual(j3.size(), 22, "22 juntas 3D %s/%s" % [dir, clipe])
+				igual(j.size(), 24, "24 juntas projetadas %s/%s" % [dir, clipe])
+				igual(j3.size(), 24, "24 juntas 3D %s/%s" % [dir, clipe])
 				igual((p["sockets"] as Dictionary).size(), 4, "4 sockets %s/%s" % [dir, clipe])
 				for nome in j:
 					checar((j[nome] as Vector2).is_finite(), "ponto 2D finito %s/%s/%s" % [dir, clipe, nome])
@@ -205,6 +218,13 @@ func test_dobra_anatomica_em_repouso_idle_walk_run() -> void:
 	checar(float(rest["joelho_fd"][2]) < float(rest["ombro_d"][2]), "outro cotovelo atrás do ombro")
 	checar(float(rest["joelho_te"][2]) > float(rest["anca_e"][2]), "joelho traseiro à frente da anca em repouso")
 	checar(float(rest["joelho_td"][2]) > float(rest["anca_d"][2]), "outro joelho à frente da anca")
+	for lado in ["te", "td"]:
+		var K := E3._vec(rest["joelho_" + lado])
+		var H := E3._vec(rest["jarrete_" + lado])
+		var F := E3._vec(rest["pata_" + lado])
+		checar(H.z < K.z and H.z < F.z and H.y > 0.0,
+			"zigzag traseiro no repouso: jarrete atrás e alto " + lado)
+		perto(H.distance_to(F), 6.72681, 0.001, "metatarso longo " + lado)
 	for clipe in ["idle", "walk", "run"]:
 		for i in 40:
 			var fase := float(i) / 40.0
@@ -213,7 +233,8 @@ func test_dobra_anatomica_em_repouso_idle_walk_run() -> void:
 				["anca_e", "te", 1.0], ["anca_d", "td", 1.0]]:
 				var P := _j3(p, String(par[0]))
 				var K := _j3(p, "joelho_" + String(par[1]))
-				var F := _j3(p, "pata_" + String(par[1]))
+				var fim := "pata_" if String(par[1]).begins_with("f") else "jarrete_"
+				var F := _j3(p, fim + String(par[1]))
 				var cruz := (F.z - P.z) * (K.y - P.y) - (F.y - P.y) * (K.z - P.z)
 				checar(cruz * float(par[2]) >= -0.001,
 					"dobra %s/%s/%.3f: %.3f" % [clipe, par[1], fase, cruz])
@@ -237,20 +258,129 @@ func test_ik_preserva_ossos_e_alvos_alcancaveis_em_3d() -> void:
 				var l1 := float(perna["l1"])
 				var l2 := float(perna["l2"])
 				perto(P.distance_to(K), l1, 0.001, "osso superior %s/%s/%.3f" % [clipe, nome, fase])
-				perto(K.distance_to(F), l2, 0.001, "osso inferior %s/%s/%.3f" % [clipe, nome, fase])
-				checar(K.x >= minf(P.x, F.x) - 0.001 and K.x <= maxf(P.x, F.x) + 0.001,
-					"x do joelho acompanha só o bob lateral %s/%s/%.3f" % [clipe, nome, fase])
-				if P.distance_to(alvo) >= absf(l1 - l2) + 0.001 and P.distance_to(alvo) <= l1 + l2 - 0.001:
-					checar(F.distance_to(alvo) < 0.0001, "pata alcançável no alvo %s/%s/%.3f" % [clipe, nome, fase])
-	# Espelhar articulações não altera os comprimentos de repouso, nem x lateral.
+				if perna.has("l3"):
+					var H := _j3(p, "jarrete_" + nome)
+					perto(K.distance_to(H), l2, 0.001, "tíbia rígida %s/%s/%.3f" % [clipe, nome, fase])
+					perto(H.distance_to(F), float(perna["l3"]), 0.001,
+						"metatarso rígido %s/%s/%.3f" % [clipe, nome, fase])
+					checar(H.z < K.z + 0.5 and H.y > -1.0,
+						"jarrete não inverte grosseiramente %s/%s/%.3f" % [clipe, nome, fase])
+					var esperado := E3._jarrete_alcancavel(P, alvo, l1, l2,
+						float(perna["l3"]), perna["offset_jarr"])
+					if P.distance_to(esperado) <= l1 + l2 + 0.0001 and P.distance_to(esperado) >= absf(l1 - l2) - 0.0001:
+						checar(F.distance_to(alvo) < 0.001,
+							"contato alcançável preservado %s/%s/%.3f (%.4f)" % [clipe, nome, fase, F.distance_to(alvo)])
+				else:
+					var antigo := E3._ik(P, alvo, l1, l2, -1.0)
+					checar(K.distance_to(antigo["joelho"]) < 0.00001 and
+						F.distance_to(antigo["pata"]) < 0.00001,
+						"dianteira usa a mesma IK %s/%s/%.3f" % [clipe, nome, fase])
+					perto(K.distance_to(F), l2, 0.001, "dianteiro inferior %s/%s/%.3f" % [clipe, nome, fase])
+					checar(K.x >= minf(P.x, F.x) - 0.001 and K.x <= maxf(P.x, F.x) + 0.001,
+						"x do joelho dianteiro %s/%s/%.3f" % [clipe, nome, fase])
+					if P.distance_to(alvo) >= absf(l1 - l2) + 0.001 and P.distance_to(alvo) <= l1 + l2 - 0.001:
+						checar(F.distance_to(alvo) < 0.0001, "dianteira no alvo %s/%s/%.3f" % [clipe, nome, fase])
+	# Repouso conserva os dois ossos dianteiros e os três traseiros.
 	for perna in E3._pernas(m):
 		var nome := String(perna["nome"])
 		var P := E3._vec(rest[perna["upper"]])
 		var K := E3._vec(rest["joelho_" + nome])
 		var F := E3._vec(rest["pata_" + nome])
-		var comprimento := 10.5 if nome.begins_with("f") else 11.0
-		perto(P.distance_to(K), comprimento, 0.001, "comprimento superior original " + nome)
-		perto(K.distance_to(F), comprimento, 0.001, "comprimento inferior original " + nome)
+		perto(P.distance_to(K), 10.5 if nome.begins_with("f") else 11.0, 0.001,
+			"comprimento superior original " + nome)
+		if perna.has("l3"):
+			var H := E3._vec(rest["jarrete_" + nome])
+			perto(K.distance_to(H), 9.84260, 0.001, "tíbia original " + nome)
+			perto(H.distance_to(F), 6.72681, 0.001, "metatarso original " + nome)
+		else:
+			perto(K.distance_to(F), 10.5, 0.001, "antebraço original " + nome)
+
+
+func test_jarrete_todos_os_yaws_clipes_e_saltos_sem_stretch() -> void:
+	var m := _rig()
+	var pernas := E3._pernas(m)
+	for dir in E3.DIRECOES:
+		for clipe in E3.CLIPES:
+			for i in 20:
+				var f := float(i) / 20.0
+				for correndo in [false, true]:
+					if correndo and clipe not in ["jump_air", "jump_land", "jump_start"]:
+						continue
+					var p := E3.pose(m, dir, f, clipe, correndo)
+					var alvos := E3._patas(pernas, clipe, f, m["motion"], correndo)
+					for perna in pernas:
+						if not perna.has("l3"):
+							continue
+						var nome := String(perna["nome"])
+						var P := _j3(p, String(perna["upper"]))
+						var K := _j3(p, "joelho_" + nome)
+						var H := _j3(p, "jarrete_" + nome)
+						var F := _j3(p, "pata_" + nome)
+						var tag := "%s/%s/%.2f/%s" % [dir, clipe, f, nome]
+						checar(H.is_finite() and F.is_finite(), "jarrete e pata finitos " + tag)
+						if clipe in ["death", "get_up"]:
+							# _deitar deforma TODAS as juntas por design anterior, inclusive os ossos.
+							continue
+						perto(P.distance_to(K), float(perna["l1"]), 0.002, "fêmur " + tag)
+						perto(K.distance_to(H), float(perna["l2"]), 0.002, "tíbia " + tag)
+						perto(H.distance_to(F), float(perna["l3"]), 0.002, "metatarso " + tag)
+						var alvo: Vector3 = alvos[nome]
+						var H0 := E3._jarrete_alcancavel(P, alvo, float(perna["l1"]),
+							float(perna["l2"]), float(perna["l3"]), perna["offset_jarr"])
+						if P.distance_to(H0) <= float(perna["l1"]) + float(perna["l2"]) + 0.0001 and P.distance_to(H0) >= absf(float(perna["l1"]) - float(perna["l2"])) - 0.0001:
+							checar(F.distance_to(alvo) < 0.002, "contato de pata alcançável " + tag)
+							if clipe in ["idle", "walk", "run"] and alvo.y == 0.0:
+								perto(F.y, 0.0, 0.002, "chão do mundo " + tag)
+
+
+func test_jarrete_extremo_corrige_contato_sem_teleporte_ou_stretch() -> void:
+	var m := _rig()
+	var perna: Dictionary = E3._pernas(m)[2]
+	var P := E3._vec(m["juntas"]["anca_e"])
+	var l1 := float(perna["l1"])
+	var l2 := float(perna["l2"])
+	var l3 := float(perna["l3"])
+	var F := E3._vec(m["juntas"]["pata_te"])
+	var anterior := F
+	for passo in 25:
+		var alvo := F + Vector3(0, -float(passo) * 2.0, 0)
+		var H := E3._jarrete_alcancavel(P, alvo, l1, l2, l3, perna["offset_jarr"])
+		var sol := E3._ik(P, H, l1, l2, 1.0)
+		var K: Vector3 = sol["joelho"]
+		var jarrete: Vector3 = sol["pata"]
+		var pata := jarrete + (alvo - H).normalized() * l3
+		checar(K.is_finite() and jarrete.is_finite() and pata.is_finite(), "extremo finito %d" % passo)
+		perto(P.distance_to(K), l1, 0.002, "fêmur extremo %d" % passo)
+		perto(K.distance_to(jarrete), l2, 0.002, "tíbia extremo %d" % passo)
+		perto(jarrete.distance_to(pata), l3, 0.002, "metatarso extremo %d" % passo)
+		checar(pata.distance_to(anterior) < 3.0, "extremo sem teleporte %d" % passo)
+		anterior = pata
+	checar(anterior.distance_to(F + Vector3(0, -48, 0)) > 10.0,
+		"alvo impossível corrige contato em vez de esticar ossos")
+
+
+## Ramo angular: o offset rígido põe o jarrete em cima do quadril (fora do
+## alcance), mas a pata continua alcançável. O solver precisa girar o jarrete
+## pelo círculo do metatarso e preservar a pata — sem repetir a própria função.
+func test_jarrete_ramo_angular_gira_circulo_e_preserva_pata() -> void:
+	var m := _rig()
+	var perna: Dictionary = E3._pernas(m)[2]
+	var P := E3._vec(m["juntas"]["anca_e"])
+	var l1 := float(perna["l1"])
+	var l2 := float(perna["l2"])
+	var l3 := float(perna["l3"])
+	var offset: Vector3 = perna["offset_jarr"]
+	var F: Vector3 = P - offset
+	var H := E3._jarrete_alcancavel(P, F, l1, l2, l3, offset)
+	checar(H.distance_to(P) > 0.1, "jarrete não fica em cima do quadril")
+	perto(H.distance_to(F), l3, 0.001, "jarrete continua no círculo do metatarso")
+	var d := P.distance_to(H)
+	checar(d >= absf(l1 - l2) - 0.001 and d <= l1 + l2 + 0.001,
+		"jarrete girado entra no alcance (%.3f)" % d)
+	var sol := E3._ik(P, H, l1, l2, 1.0)
+	var jarrete: Vector3 = sol["pata"]
+	var pata := jarrete + (F - H).normalized() * l3
+	checar(pata.distance_to(F) < 0.001, "pata preservada no ramo angular")
 
 
 func test_ik_alvos_impossiveis_zero_e_deslocamento_lateral() -> void:
@@ -386,7 +516,7 @@ func test_ordem_de_profundidade_deterministica() -> void:
 		var p := E3.pose(m, dir, 0.42, "run")
 		var a := E3.ordem_pintor(m, p)
 		var b := E3.ordem_pintor(m, p)
-		igual(a.size(), 43, "21 ossos + 22 juntas no pintor: " + dir)
+		igual(a.size(), 47, "23 ossos + 24 juntas no pintor: " + dir)
 		igual(a.size(), b.size(), "mesmo tamanho de ordem: " + dir)
 		for i in a.size():
 			igual(String(a[i]["id"]), String(b[i]["id"]), "ordem estável %s/%d" % [dir, i])

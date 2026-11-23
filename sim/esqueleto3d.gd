@@ -23,8 +23,8 @@ const YAW_GRAUS := {
 const CLIPES := ["idle", "walk", "run", "jump_start", "jump_air", "jump_land", "charge", "shot",
 	"bite", "slam", "dig", "hit", "stunned", "death", "get_up"]
 const PITCH_GRAUS := 20.0
-const JUNTAS_ESPERADAS := 22
-const OSSOS_ESPERADOS := 21
+const JUNTAS_ESPERADAS := 24
+const OSSOS_ESPERADOS := 23
 const SOCKETS_OBRIGATORIOS := ["boca", "coroa", "base_cauda", "dorso"]
 const Z := ["front", "back"]
 
@@ -42,8 +42,8 @@ static func de_json(texto: String) -> Dictionary:
 
 ## Primeiro erro encontrado; vazio = rig 3D válido.
 static func validar(m: Dictionary) -> String:
-	if int(m.get("schema_version", 0)) != 2:
-		return "schema_version != 2"
+	if int(m.get("schema_version", 0)) != 3:
+		return "schema_version != 3"
 	if not m.get("id") is String or (m["id"] as String).is_empty():
 		return "id ausente"
 	if m.get("arquetipo") != "quadrupede":
@@ -70,6 +70,11 @@ static func validar(m: Dictionary) -> String:
 	for nome in juntas:
 		if not _v3(juntas[nome]):
 			return "junta %s inválida" % nome
+	# Schema 3 exige a cadeia traseira completa, não só a contagem correta.
+	for lado in ["e", "d"]:
+		for nome in ["anca_" + lado, "joelho_t" + lado, "jarrete_t" + lado, "pata_t" + lado]:
+			if not (juntas as Dictionary).has(nome):
+				return "junta traseira obrigatória ausente: " + nome
 
 	var ossos: Variant = m.get("ossos")
 	if not ossos is Array:
@@ -77,6 +82,7 @@ static func validar(m: Dictionary) -> String:
 	if (ossos as Array).size() != OSSOS_ESPERADOS:
 		return "ossos: esperado %d, veio %d" % [OSSOS_ESPERADOS, (ossos as Array).size()]
 	var usados: Dictionary = {}
+	var arestas: Dictionary = {}
 	for i in (ossos as Array).size():
 		var b: Variant = (ossos as Array)[i]
 		if not b is Dictionary:
@@ -95,6 +101,14 @@ static func validar(m: Dictionary) -> String:
 			return "osso %d sem largura positiva" % i
 		usados[a] = true
 		usados[bb] = true
+		arestas[String(a) + ">" + String(bb)] = true
+	for lado in ["e", "d"]:
+		var sufixo: String = "t" + String(lado)
+		for trecho in [["anca_" + lado, "joelho_" + sufixo],
+			["joelho_" + sufixo, "jarrete_" + sufixo],
+			["jarrete_" + sufixo, "pata_" + sufixo]]:
+			if not arestas.has(String(trecho[0]) + ">" + String(trecho[1])):
+				return "osso traseiro obrigatório ausente: %s>%s" % trecho
 	for nome in juntas:
 		if not usados.has(nome):
 			return "junta %s não pertence a osso" % nome
@@ -283,9 +297,21 @@ static func pose(m: Dictionary, direcao: String, fase: float, clipe: String = "w
 		var upper := String(perna["upper"])
 		var P: Vector3 = j[upper]
 		var F: Vector3 = patas[nome]
-		var solucao := _ik(P, F, float(perna["l1"]), float(perna["l2"]), float(perna["bend"]))
-		j["joelho_" + nome] = solucao["joelho"]
-		j["pata_" + nome] = solucao["pata"]
+		if perna.has("l3"):
+			var l3 := float(perna["l3"])
+			var H := _jarrete_alcancavel(P, F, float(perna["l1"]),
+				float(perna["l2"]), l3, perna["offset_jarr"])
+			var solucao := _ik(P, H, float(perna["l1"]), float(perna["l2"]), 1.0)
+			var jarrete: Vector3 = solucao["pata"]
+			j["joelho_" + nome] = solucao["joelho"]
+			j["jarrete_" + nome] = jarrete
+			# Enquanto o círculo do jarrete toca o alcance do joelho, F é exato.
+			# Se nem o círculo toca, corrige só o contato, nunca estica os ossos.
+			j["pata_" + nome] = jarrete + (F - H).normalized() * l3
+		else:
+			var solucao := _ik(P, F, float(perna["l1"]), float(perna["l2"]), float(perna["bend"]))
+			j["joelho_" + nome] = solucao["joelho"]
+			j["pata_" + nome] = solucao["pata"]
 	_extras(j, clipe, f, mo, salto_correndo)
 	if clipe == "death":
 		_deitar(j, f)
@@ -388,7 +414,10 @@ static func adaptar_modulos(rig: Dictionary, p: Dictionary, direcao: String) -> 
 
 ## Mistura de APRESENTAÇÃO entre duas poses (a antiga e a nova). Interpola
 ## `juntas`, `sockets[*].pos`, `sockets[*].profundidade` e `profundidade`;
-## `juntas_3d`, quando existe nos dois, também acompanha. w=0 devolve `a` e
+## `juntas_3d`, quando existe nos dois, também acompanha. O blend linear
+## de apresentação NÃO conserva comprimentos ósseos (comportamento anterior).
+## O mesmo vale para _deitar em death/get_up; a IK da marcha continua rígida.
+## w=0 devolve `a` e
 ## w=1 devolve `b`; a visibilidade/z dos sockets vem de `b` (a pose nova).
 ## É pura e NÃO altera `pose`/`validar`: a troca de clipe decide o w.
 static func misturar(a: Dictionary, b: Dictionary, w: float) -> Dictionary:
@@ -483,8 +512,8 @@ static func _juntas_rest(m: Dictionary) -> Dictionary:
 	return j
 
 
-## As quatro pernas, derivadas das juntas de repouso (sem metadado extra):
-## `upper` → `joelho` → `pata`; o comprimento de cada osso sai do próprio rig.
+## As quatro pernas derivam os comprimentos do repouso: dianteiras conservam
+## upper→joelho→pata; traseiras usam anca→joelho→jarrete→pata.
 static func _pernas(m: Dictionary) -> Array:
 	var out: Array = []
 	var j: Dictionary = m.get("juntas", {})
@@ -499,9 +528,15 @@ static func _pernas(m: Dictionary) -> Array:
 		var pu := _vec(j[upper])
 		var pk := _vec(j[joelho])
 		var pp := _vec(j[pata])
-		out.append({"nome": nome, "upper": upper, "x": pp.x, "rest_z": pp.z,
+		var perna := {"nome": nome, "upper": upper, "x": pp.x, "rest_z": pp.z,
 			"l1": pu.distance_to(pk), "l2": pk.distance_to(pp),
-			"bend": -1.0 if upper.begins_with("ombro") else 1.0})
+			"bend": -1.0 if upper.begins_with("ombro") else 1.0}
+		if nome.begins_with("t"):
+			var ph := _vec(j["jarrete_" + nome])
+			perna["l2"] = pk.distance_to(ph)
+			perna["l3"] = ph.distance_to(pp)
+			perna["offset_jarr"] = ph - pp
+		out.append(perna)
 	return out
 
 
@@ -849,6 +884,41 @@ static func _deitar(j: Dictionary, f: float) -> void:
 		var y := p.y * (1.0 - 0.82 * q)
 		var z := p.z + (p.y - y) * 0.35
 		j[nome] = Vector3(p.x, y, z)
+
+
+## Escolhe o jarrete no círculo rígido de raio l3 em torno do alvo da pata.
+## Preserva o offset de repouso se alcançável; caso contrário escolhe o ponto
+## angularmente mais próximo que alcança a cadeia anca→joelho→jarrete. O círculo
+## pode não tocar a faixa de alcance (alvo extremo): devolve seu ponto mais
+## próximo e a correção de contato em pose() fica explícita, sem NaN/stretch.
+static func _jarrete_alcancavel(P: Vector3, F: Vector3, l1: float, l2: float,
+		l3: float, offset: Vector3) -> Vector3:
+	var alvo := F + offset
+	var minimo := absf(l1 - l2)
+	var maximo := l1 + l2
+	var d := P.distance_to(alvo)
+	if d >= minimo and d <= maximo:
+		return alvo
+	var yz := Vector2(P.y - F.y, P.z - F.z)
+	var raio := yz.length()
+	if raio < 0.000001 or l3 < 0.000001:
+		return alvo
+	var base := (P - F).length_squared() + l3 * l3
+	var divisor := 2.0 * l3 * raio
+	var c_min := (base - maximo * maximo) / divisor
+	var c_max := (base - minimo * minimo) / divisor
+	var phi := yz.angle()
+	var inicio := Vector2(offset.y, offset.z).angle()
+	if c_min > 1.0:
+		return F + Vector3(0.0, l3 * cos(phi), l3 * sin(phi))
+	if c_max < -1.0:
+		return F - Vector3(0.0, l3 * cos(phi), l3 * sin(phi))
+	var c := clampf(cos(inicio - phi), maxf(-1.0, c_min), minf(1.0, c_max))
+	var ang := acos(clampf(c, -1.0, 1.0))
+	var a := phi + ang
+	var b := phi - ang
+	var theta := a if absf(wrapf(a - inicio, -PI, PI)) <= absf(wrapf(b - inicio, -PI, PI)) else b
+	return F + Vector3(0.0, l3 * cos(theta), l3 * sin(theta))
 
 
 ## IK de dois ossos em 3D: x participa da distância, mas a dobra fica no

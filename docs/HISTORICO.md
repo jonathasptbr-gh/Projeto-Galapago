@@ -3,6 +3,27 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.31.2 — jarrete e metatarso do cão (2026-11-23)
+
+- **Rig canino:** 22 juntas/21 ossos (schema 2) passam a 24/23 (schema 3) —
+  duas juntas novas (`jarrete_te`/`jarrete_td`) e dois ossos `jarrete→pata`
+  nas pernas traseiras.
+- **Repouso:** jarrete em (±6,5; 5; −12), com o joelho à frente da anca e o
+  jarrete atrás do joelho e da pata; o metatarso mede ~6,73 px.
+- **IK 3D:** o solver escolhe o jarrete no círculo rígido do metatarso,
+  preserva a pata quando o alvo é alcançável e corrige o contato em alvo
+  impossível sem esticar ossos. As dianteiras ficam intactas.
+- **Verificação:** 263 testes/0 falhas e parser 64/0; `tools/quadros.sh` gerou
+  60 quadros em `/root/tmp/galapago-jarrete-v0312` e a folha lateral
+  `/root/tmp/galapago-jarrete-folha.png` foi ampliada e revisada.
+- **Baseline dos quadros atualizado:** 60 PNG gerados com `llvmpipe` pelo
+  [CI baseline run 45292419910](https://github.com/jonathasptbr-gh/Projeto-Galapago/actions/runs/45292419910)
+  no commit provisório `93d57ad` do branch `lote/v0.31.2`, aplicados via
+  `node tools/quadros-baseline.mjs --run 45292419910` no mesmo commit do lote.
+  O diff local com `softpipe` continua não comparável com `llvmpipe`; a prova
+  final é o CI no commit publicado.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.31.1 — dobras caninas e IK 3D (2026-11-23)
 
 - **Dobras anatômicas:** inversão de cotovelos e joelhos corrigida no repouso

@@ -4,6 +4,9 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.31.2 | IK 3D | alvo inalcançável extremo corrige o contato, mas a pata pode sair do alvo | médio | aberto |
+| v0.31.2 | animação | `death`/`get_up` e misturas de clipes continuam deformando ossos | médio | aberto |
+| v0.31.2 | aparelho | revisão das pernas traseiras no celular do operador pendente | operador | aberto |
 | v0.31.1 | animação | `death`/`get_up` e misturas de clipes não preservam a rigidez de todos os ossos | médio | aberto |
 | v0.31.1 | IK 3D | alvo inalcançável é limitado pelo alcance, mas a pata pode perder apoio | médio | aberto |
 | v0.31.1 | aparelho | revisão das dobras e do apoio no celular do operador pendente | operador | aberto |
