@@ -3,6 +3,8 @@ extends SceneTree
 ## Uso: LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=softpipe xvfb-run -a \
 ##   godot --path . --rendering-driver opengl3 --resolution 1470x720 \
 ##   -s res://tools/folha_canino.gd -- /root/tmp/canino-folha.png
+## Variante do sprint (impulso de corrida): troque o destino por
+##   `-- --sprint /root/tmp/canino-folha-sprint.png`.
 
 const Rigs := preload("res://jogo/rigs.gd")
 
@@ -46,8 +48,12 @@ func _initialize() -> void:
 func _gravar() -> void:
 	await process_frame
 	await RenderingServer.frame_post_draw
-	var args := OS.get_cmdline_user_args()
-	var destino := args[0] if not args.is_empty() else "/root/tmp/canino-folha.png"
+	# O primeiro argumento que NÃO é opção é o destino; `--sprint` é só flag.
+	var destino := "/root/tmp/canino-folha.png"
+	for arg in OS.get_cmdline_user_args():
+		if not String(arg).begins_with("--"):
+			destino = arg
+			break
 	var erro := root.get_texture().get_image().save_png(destino)
 	print("folha canino: ", destino, " (erro=", erro, ")")
 	quit(0 if erro == OK else 1)

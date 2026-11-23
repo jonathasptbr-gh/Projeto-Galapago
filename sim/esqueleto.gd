@@ -381,7 +381,9 @@ static func _acao_canina(j: Dictionary, fase: float, direcao: String, slam: bool
 	var desloc := frente * ataque * (8.0 if slam else 6.0)
 	_desloca_corpo(j, desloc + (Vector2(0.0, 2.5 * sin(PI * fase)) if slam else Vector2.ZERO))
 	if slam:
-		for nome in ["quadril", "lombo", "peito"]:
+		for nome in ["quadril", "lombo", "peito",
+				"ombro_e", "ombro_d", "ombro_f", "ombro_f2",
+				"anca_e", "anca_d", "anca_f", "anca_f2"]:
 			if j.has(nome):
 				j[nome] = (j[nome] as Vector2) + frente * (3.0 * sin(PI * fase))
 		for nome in j:
@@ -601,7 +603,11 @@ static func _perna(j: Dictionary, nome: String, fase: float, offset: float,
 ## Subida/descida do tronco: o corpo inteiro acompanha, joelhos absorvem a
 ## metade e a cabeça amplifica um pouco (contrapeso natural).
 static func _bob_corpo(j: Dictionary, delta: float, fase: float, c: Dictionary) -> void:
-	for k in ["quadril", "lombo", "peito", "corpo", "pescoco", "cauda_base"]:
+	# O tronco carrega o conjunto peito+OMBROS e quadril+ANCAS: sem isso a
+	# clavícula e o osso da anca esticariam a cada passo.
+	for k in ["quadril", "lombo", "peito", "corpo", "pescoco", "cauda_base",
+			"ombro_e", "ombro_d", "ombro_f", "ombro_f2",
+			"anca_e", "anca_d", "anca_f", "anca_f2"]:
 		if j.has(k):
 			j[k] = (j[k] as Vector2) + Vector2(0.0, delta)
 	for k in ["cabeca", "focinho", "bico"]:
@@ -609,7 +615,8 @@ static func _bob_corpo(j: Dictionary, delta: float, fase: float, c: Dictionary) 
 			j[k] = (j[k] as Vector2) + Vector2(0.0, delta * 1.15)
 	if j.has("orelha"):
 		j["orelha"] = (j["orelha"] as Vector2) + Vector2(0.0, delta)
-	for k in ["joelho_t", "joelho_f", "joelho_t2", "joelho_f2", "coxa_e", "coxa_d"]:
+	for k in ["joelho_t", "joelho_f", "joelho_t2", "joelho_f2",
+			"joelho_e", "joelho_d", "joelho_te", "joelho_td", "coxa_e", "coxa_d"]:
 		if j.has(k):
 			j[k] = (j[k] as Vector2) + Vector2(0.0, delta * 0.55)
 	if j.has("cauda_ponta"):
@@ -649,7 +656,10 @@ static func _respira(m: Dictionary, j: Dictionary, fase: float) -> void:
 	var c := _cfg(m)
 	var p := fase * TAU
 	var respira: float = c["respira"]
-	for k in ["quadril", "lombo", "peito", "corpo", "pescoco"]:
+	# A respiração sobe o tórax inteiro (peito+ombros) e a bacia (quadril+ancas).
+	for k in ["quadril", "lombo", "peito", "corpo", "pescoco",
+			"ombro_e", "ombro_d", "ombro_f", "ombro_f2",
+			"anca_e", "anca_d", "anca_f", "anca_f2"]:
 		if j.has(k):
 			j[k] = j[k] + Vector2(0.0, sin(p) * respira)
 	if j.has("cabeca"):

@@ -1,7 +1,7 @@
 extends "res://testes/caso.gd"
 ## Contrato do esqueleto: oito direções com frente e costas distintas,
-## pés e âncoras por direção, marcha e ações em fases; sem regressão dos
-## demais rigs. Rig adulterado falha fechado.
+## pés e âncoras por direção, ombros e ancas com osso próprio, marcha e ações
+## em fases; sem regressão dos demais rigs. Rig adulterado falha fechado.
 
 const E := preload("res://sim/esqueleto.gd")
 const CAMINHO := "res://dados/rig/canino.json"
@@ -307,7 +307,14 @@ func test_frente_costas_sao_geometrias_distintas() -> void:
 	var sul: Dictionary = E.pose(m, "south", 0.0, "idle")["juntas"]
 	var norte: Dictionary = E.pose(m, "north", 0.0, "idle")["juntas"]
 	checar((sul["peito"] as Vector2).y < (sul["quadril"] as Vector2).y, "peito visto pela frente")
-	checar((norte["peito"] as Vector2).y > (norte["quadril"] as Vector2).y, "ombros atrás do quadril de costas")
+	# De costas o quarto é o mais PERTO (embaixo na tela) e o tórax o mais
+	# LONGE (em cima): a ordem em y é a mesma da frente, não espelhada.
+	checar((norte["peito"] as Vector2).y < (norte["quadril"] as Vector2).y,
+		"de costas o tórax fica longe e o quarto perto")
+	checar((norte["ombro_e"] as Vector2).y < (norte["anca_e"] as Vector2).y,
+		"ombro dorsal acima da anca")
+	checar((norte["pata_e"] as Vector2).y < (norte["pata_te"] as Vector2).y,
+		"pata dianteira dorsal mais longe (acima) que a traseira")
 	checar((norte["focinho"] as Vector2).y < (norte["cabeca"] as Vector2).y, "focinho aponta norte")
 	var frente: Dictionary = E.pose(m, "south-east", 0.0, "idle")["juntas"]
 	var costas: Dictionary = E.pose(m, "north-east", 0.0, "idle")["juntas"]
@@ -381,3 +388,114 @@ func test_todo_ponto_do_canino_tem_osso() -> void:
 			nos[b["b"]] = true
 		for k in juntas:
 			checar(nos.has(k), "junta %s/%s pertence a um osso" % [perfil, k])
+
+
+# --- v0.28.0: ombros e ancas fora da coluna --------------------------------
+
+func test_pernas_saem_de_ombro_e_anca() -> void:
+	# Cada perna é uma cadeia própria: ombro/anca → joelho → pata. Nenhuma
+	# pata pende mais do peito ou do quadril (era o desenho da v0.27).
+	var m := _rig()
+	for perfil in m["profiles"]:
+		for b in m["profiles"][perfil]["bones"]:
+			var a := String(b["a"])
+			var bb := String(b["b"])
+			if bb.begins_with("joelho"):
+				checar(a.begins_with("ombro") or a.begins_with("anca"),
+					"%s: %s→%s desce do ombro/anca" % [perfil, a, bb])
+			if bb.begins_with("pata"):
+				checar(a.begins_with("joelho"),
+					"%s: %s→%s desce do joelho" % [perfil, a, bb])
+
+
+func test_todo_perfil_tem_ombro_e_anca_com_osso_proprio() -> void:
+	var m := _rig()
+	for perfil in m["profiles"]:
+		var p: Dictionary = m["profiles"][perfil]
+		var juntas: Dictionary = p["joints"]
+		var nos: Dictionary = {}
+		for b in p["bones"]:
+			nos[b["a"]] = true
+			nos[b["b"]] = true
+		var ombros := 0
+		var ancas := 0
+		for nome in juntas:
+			var k := String(nome)
+			if k.begins_with("ombro"):
+				ombros += 1
+				checar(nos.has(k), "ombro %s/%s tem osso" % [perfil, k])
+			elif k.begins_with("anca"):
+				ancas += 1
+				checar(nos.has(k), "anca %s/%s tem osso" % [perfil, k])
+		checar(ombros >= 1, "perfil %s tem ombro" % perfil)
+		checar(ancas >= 1, "perfil %s tem anca" % perfil)
+
+
+func test_ombros_e_ancas_abrem_a_largura_do_corpo() -> void:
+	var m := _rig()
+	var sul: Dictionary = E.pose(m, "south", 0.0, "idle")["juntas"]
+	var norte: Dictionary = E.pose(m, "north", 0.0, "idle")["juntas"]
+	# Frontal: tórax visível = ombros afastados da coluna (x = pivô 34).
+	checar(absf((sul["ombro_e"] as Vector2).x - 34.0) >= 6.0, "ombro esquerdo afastado da coluna")
+	checar(absf((sul["ombro_d"] as Vector2).x - 34.0) >= 6.0, "ombro direito afastado da coluna")
+	checar(absf((sul["ombro_e"] as Vector2).x - (sul["ombro_d"] as Vector2).x) >= 14.0,
+		"tórax frontal com 14+ px entre os ombros")
+	checar(absf((sul["anca_e"] as Vector2).x - (sul["anca_d"] as Vector2).x) >= 8.0,
+		"quarto traseiro frontal com 8+ px entre as ancas")
+	# A anca frontal fica recuada: a perna dianteira passa POR FORA dela.
+	checar(absf((sul["anca_e"] as Vector2).x - (sul["pata_e"] as Vector2).x) >= 2.0,
+		"anca frontal não encosta na perna dianteira")
+	# Dorsal: o quarto (perto) abre; o tórax (longe) aparece por dentro dele.
+	checar(absf((norte["anca_e"] as Vector2).x - (norte["anca_d"] as Vector2).x) >= 14.0,
+		"quarto traseiro dorsal com 14+ px entre as ancas")
+	checar(absf((norte["ombro_e"] as Vector2).x - (norte["ombro_d"] as Vector2).x) >= 8.0,
+		"tórax dorsal visível entre os ombros")
+	# Diagonais: perto e longe têm articulações distintas (z-order).
+	for dir in ["south-east", "north-east"]:
+		var d: Dictionary = E.pose(m, dir, 0.0, "idle")["juntas"]
+		checar((d["ombro_f"] as Vector2).distance_to(d["ombro_f2"]) >= 3.0,
+			"diagonal %s separa ombro perto/longe" % dir)
+		checar((d["anca_f"] as Vector2).distance_to(d["anca_f2"]) >= 3.0,
+			"diagonal %s separa anca perto/longe" % dir)
+
+
+func test_ombros_e_ancas_cabem_no_canvas() -> void:
+	var m := _rig()
+	var largura := float(m["canvas_px"][0])
+	var altura := float(m["canvas_px"][1])
+	for dir in E.DIRECOES:
+		var j: Dictionary = E.pose(m, dir, 0.0, "idle")["juntas"]
+		for nome in j:
+			var p: Vector2 = j[nome]
+			checar(p.x > 0.0 and p.x < largura and p.y >= 0.0 and p.y < altura,
+				"junta %s/%s dentro do canvas" % [dir, nome])
+			if String(nome).begins_with("ombro") or String(nome).begins_with("anca"):
+				checar(absf(p.x - largura * 0.5) <= 12.0,
+					"ombro/anca %s/%s dentro do envelope de largura" % [dir, nome])
+
+
+func test_ombro_e_anca_acompanham_o_tronco() -> void:
+	# O conjunto peito+ombros e quadril+ancas anda junto: a clavícula e o osso
+	# da anca não esticam no passo, na corrida, na mordida nem no ar.
+	var m := _rig()
+	for dir in E.DIRECOES:
+		for clipe in ["idle", "walk", "run", "bite", "jump_air"]:
+			var base: Dictionary = E.pose(m, dir, 0.0, clipe)["juntas"]
+			var pai := {}
+			var dist := {}
+			for nome in base:
+				var k := String(nome)
+				var p := ""
+				if k.begins_with("ombro"):
+					p = "peito"
+				elif k.begins_with("anca"):
+					p = "quadril"
+				if p == "":
+					continue
+				pai[k] = p
+				dist[k] = (base[p] as Vector2).distance_to(base[k])
+			for fase in [0.25, 0.5, 0.75]:
+				var j: Dictionary = E.pose(m, dir, fase, clipe)["juntas"]
+				for k in pai:
+					perto((j[pai[k]] as Vector2).distance_to(j[k]), dist[k], 0.01,
+						"%s/%s/fase %.2f mantém %s" % [dir, clipe, fase, k])

@@ -1,5 +1,5 @@
 {
-  "_leia": "RIG do canino (v0.21.1) — CONTRATO de pose e âncoras, não arte. `joints` são px locais do canvas (origem no canto superior esquerdo); `pivot_px` é o ponto de chão (pés). OITO direções: `frontal` (south), `dorsal` (north), `lateral` (east/west) e duas de 3/4 (`diagonal` = frente-direita, `diagonal_costas` = costas-direita), espelhadas em x no pivô. `mirror` espelha; `costas` diz que a face não aparece. `bones` é só o desenho (o avaliador não depende dele). `sockets` é NOME → osso + deslocamento + z; `oculto_em` diz onde a âncora NÃO existe (null, não herda quadro). `motion` são parâmetros da marcha provisória; o clipe de arte futuro substitui isso sem mexer na mecânica. `envelope_px` é o que a arte real precisa respeitar. `clips` só declara duração/loop. Lido por sim/esqueleto.gd.",
+  "_leia": "RIG do canino (v0.28.0) — CONTRATO de pose e âncoras, não arte. `joints` são px locais do canvas (origem no canto superior esquerdo); `pivot_px` é o ponto de chão (pés). OITO direções: `frontal` (south), `dorsal` (north), `lateral` (east/west) e duas de 3/4 (`diagonal` = frente-direita, `diagonal_costas` = costas-direita), espelhadas em x no pivô. `mirror` espelha; `costas` diz que a face não aparece. `bones` é só o desenho (o avaliador não depende dele). `sockets` é NOME → osso + deslocamento + z; `oculto_em` diz onde a âncora NÃO existe (null, não herda quadro). `motion` são parâmetros da marcha provisória; o clipe de arte futuro substitui isso sem mexer na mecânica. `envelope_px` é o que a arte real precisa respeitar. `clips` só declara duração/loop. Lido por sim/esqueleto.gd.",
   "schema_version": 1,
   "id": "canino",
   "arquetipo": "quadrupede",
@@ -67,12 +67,20 @@
           28,
           37
         ],
+        "anca_f": [
+          26,
+          38
+        ],
         "lombo": [
           34,
           35
         ],
         "peito": [
           40,
+          34
+        ],
+        "ombro_f": [
+          38,
           34
         ],
         "pescoco": [
@@ -170,6 +178,11 @@
         },
         {
           "a": "quadril",
+          "b": "anca_f",
+          "w": 5.5
+        },
+        {
+          "a": "anca_f",
           "b": "joelho_t",
           "w": 4.0
         },
@@ -180,6 +193,11 @@
         },
         {
           "a": "peito",
+          "b": "ombro_f",
+          "w": 5.5
+        },
+        {
+          "a": "ombro_f",
           "b": "joelho_f",
           "w": 4.0
         },
@@ -189,7 +207,7 @@
           "w": 3.5
         },
         {
-          "a": "quadril",
+          "a": "anca_f",
           "b": "joelho_t2",
           "w": 4.0
         },
@@ -199,7 +217,7 @@
           "w": 3.5
         },
         {
-          "a": "peito",
+          "a": "ombro_f",
           "b": "joelho_f2",
           "w": 4.0
         },
@@ -249,12 +267,52 @@
           39,
           17
         ],
+        "ombro_e": [
+          26,
+          33
+        ],
+        "ombro_d": [
+          42,
+          33
+        ],
+        "anca_e": [
+          29.5,
+          39
+        ],
+        "anca_d": [
+          38.5,
+          39
+        ],
+        "joelho_e": [
+          27,
+          42
+        ],
+        "joelho_d": [
+          41,
+          42
+        ],
         "pata_e": [
-          28,
+          27,
           50
         ],
         "pata_d": [
-          40,
+          41,
+          50
+        ],
+        "joelho_te": [
+          29.5,
+          43
+        ],
+        "joelho_td": [
+          38.5,
+          43
+        ],
+        "pata_te": [
+          29.5,
+          50
+        ],
+        "pata_td": [
+          38.5,
           50
         ],
         "cauda_base": [
@@ -264,14 +322,6 @@
         "cauda_ponta": [
           34,
           48
-        ],
-        "pata_te": [
-          30,
-          50
-        ],
-        "pata_td": [
-          38,
-          50
         ]
       },
       "bones": [
@@ -302,23 +352,63 @@
         },
         {
           "a": "quadril",
-          "b": "pata_te",
-          "w": 4.0
+          "b": "anca_e",
+          "w": 5.5
         },
         {
           "a": "quadril",
+          "b": "anca_d",
+          "w": 5.5
+        },
+        {
+          "a": "anca_e",
+          "b": "joelho_te",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_te",
+          "b": "pata_te",
+          "w": 3.5
+        },
+        {
+          "a": "anca_d",
+          "b": "joelho_td",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_td",
           "b": "pata_td",
-          "w": 4.0
+          "w": 3.5
         },
         {
           "a": "peito",
+          "b": "ombro_e",
+          "w": 5.5
+        },
+        {
+          "a": "peito",
+          "b": "ombro_d",
+          "w": 5.5
+        },
+        {
+          "a": "ombro_e",
+          "b": "joelho_e",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_e",
           "b": "pata_e",
+          "w": 3.5
+        },
+        {
+          "a": "ombro_d",
+          "b": "joelho_d",
           "w": 4.0
         },
         {
-          "a": "peito",
+          "a": "joelho_d",
           "b": "pata_d",
-          "w": 4.0
+          "w": 3.5
         },
         {
           "a": "cabeca",
@@ -375,6 +465,22 @@
           20,
           32
         ],
+        "ombro_f": [
+          39.5,
+          36
+        ],
+        "ombro_f2": [
+          36.5,
+          34.5
+        ],
+        "anca_f": [
+          30.5,
+          39
+        ],
+        "anca_f2": [
+          28.5,
+          35
+        ],
         "joelho_t": [
           27,
           42
@@ -446,26 +552,11 @@
         },
         {
           "a": "quadril",
-          "b": "joelho_t",
-          "w": 4.0
+          "b": "anca_f2",
+          "w": 5.5
         },
         {
-          "a": "joelho_t",
-          "b": "pata_t",
-          "w": 3.5
-        },
-        {
-          "a": "peito",
-          "b": "joelho_f",
-          "w": 4.0
-        },
-        {
-          "a": "joelho_f",
-          "b": "pata_f",
-          "w": 3.5
-        },
-        {
-          "a": "quadril",
+          "a": "anca_f2",
           "b": "joelho_t2",
           "w": 4.0
         },
@@ -476,12 +567,47 @@
         },
         {
           "a": "peito",
+          "b": "ombro_f2",
+          "w": 5.5
+        },
+        {
+          "a": "ombro_f2",
           "b": "joelho_f2",
           "w": 4.0
         },
         {
           "a": "joelho_f2",
           "b": "pata_f2",
+          "w": 3.5
+        },
+        {
+          "a": "quadril",
+          "b": "anca_f",
+          "w": 5.5
+        },
+        {
+          "a": "anca_f",
+          "b": "joelho_t",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_t",
+          "b": "pata_t",
+          "w": 3.5
+        },
+        {
+          "a": "peito",
+          "b": "ombro_f",
+          "w": 5.5
+        },
+        {
+          "a": "ombro_f",
+          "b": "joelho_f",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_f",
+          "b": "pata_f",
           "w": 3.5
         },
         {
@@ -529,6 +655,22 @@
           19,
           43
         ],
+        "ombro_f": [
+          39.5,
+          36
+        ],
+        "ombro_f2": [
+          36.5,
+          34.5
+        ],
+        "anca_f": [
+          30.5,
+          39
+        ],
+        "anca_f2": [
+          28.5,
+          35
+        ],
         "joelho_t": [
           27,
           42
@@ -600,26 +742,11 @@
         },
         {
           "a": "quadril",
-          "b": "joelho_t",
-          "w": 4.0
+          "b": "anca_f2",
+          "w": 5.5
         },
         {
-          "a": "joelho_t",
-          "b": "pata_t",
-          "w": 3.5
-        },
-        {
-          "a": "peito",
-          "b": "joelho_f",
-          "w": 4.0
-        },
-        {
-          "a": "joelho_f",
-          "b": "pata_f",
-          "w": 3.5
-        },
-        {
-          "a": "quadril",
+          "a": "anca_f2",
           "b": "joelho_t2",
           "w": 4.0
         },
@@ -630,12 +757,47 @@
         },
         {
           "a": "peito",
+          "b": "ombro_f2",
+          "w": 5.5
+        },
+        {
+          "a": "ombro_f2",
           "b": "joelho_f2",
           "w": 4.0
         },
         {
           "a": "joelho_f2",
           "b": "pata_f2",
+          "w": 3.5
+        },
+        {
+          "a": "quadril",
+          "b": "anca_f",
+          "w": 5.5
+        },
+        {
+          "a": "anca_f",
+          "b": "joelho_t",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_t",
+          "b": "pata_t",
+          "w": 3.5
+        },
+        {
+          "a": "peito",
+          "b": "ombro_f",
+          "w": 5.5
+        },
+        {
+          "a": "ombro_f",
+          "b": "joelho_f",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_f",
+          "b": "pata_f",
           "w": 3.5
         },
         {
@@ -649,7 +811,7 @@
       "joints": {
         "quadril": [
           34,
-          35
+          40
         ],
         "lombo": [
           34,
@@ -657,7 +819,7 @@
         ],
         "peito": [
           34,
-          40
+          34
         ],
         "pescoco": [
           34,
@@ -679,29 +841,61 @@
           39,
           18
         ],
+        "ombro_e": [
+          29,
+          36
+        ],
+        "ombro_d": [
+          39,
+          36
+        ],
+        "anca_e": [
+          26,
+          40
+        ],
+        "anca_d": [
+          42,
+          40
+        ],
+        "joelho_e": [
+          29,
+          41
+        ],
+        "joelho_d": [
+          39,
+          41
+        ],
         "pata_e": [
           29,
-          48
+          46
         ],
         "pata_d": [
           39,
-          48
+          46
+        ],
+        "joelho_te": [
+          26,
+          45
+        ],
+        "joelho_td": [
+          42,
+          45
+        ],
+        "pata_te": [
+          26,
+          50
+        ],
+        "pata_td": [
+          42,
+          50
         ],
         "cauda_base": [
           34,
-          37
+          39
         ],
         "cauda_ponta": [
           34,
           46
-        ],
-        "pata_te": [
-          27,
-          50
-        ],
-        "pata_td": [
-          41,
-          50
         ]
       },
       "bones": [
@@ -731,24 +925,64 @@
           "w": 3.5
         },
         {
-          "a": "quadril",
-          "b": "pata_te",
-          "w": 4.0
-        },
-        {
-          "a": "quadril",
-          "b": "pata_td",
-          "w": 4.0
+          "a": "peito",
+          "b": "ombro_e",
+          "w": 5.5
         },
         {
           "a": "peito",
+          "b": "ombro_d",
+          "w": 5.5
+        },
+        {
+          "a": "ombro_e",
+          "b": "joelho_e",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_e",
           "b": "pata_e",
+          "w": 3.5
+        },
+        {
+          "a": "ombro_d",
+          "b": "joelho_d",
           "w": 4.0
         },
         {
-          "a": "peito",
+          "a": "joelho_d",
           "b": "pata_d",
+          "w": 3.5
+        },
+        {
+          "a": "quadril",
+          "b": "anca_e",
+          "w": 5.5
+        },
+        {
+          "a": "quadril",
+          "b": "anca_d",
+          "w": 5.5
+        },
+        {
+          "a": "anca_e",
+          "b": "joelho_te",
           "w": 4.0
+        },
+        {
+          "a": "joelho_te",
+          "b": "pata_te",
+          "w": 3.5
+        },
+        {
+          "a": "anca_d",
+          "b": "joelho_td",
+          "w": 4.0
+        },
+        {
+          "a": "joelho_td",
+          "b": "pata_td",
+          "w": 3.5
         },
         {
           "a": "cabeca",

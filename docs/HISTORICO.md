@@ -3,6 +3,24 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.28.0 — ombros e quarto traseiro separados da coluna (2026-11-23)
+
+- **Anatomia:** o canino ganhou `ombro_e/ombro_d` e `anca_e/anca_d` fora da
+  coluna, com clavícula (`peito→ombro`) e bacia (`quadril→anca`) próprias; as
+  patas pendem dos ombros/ancas, não do peito/quadril. No perfil entram
+  `ombro_f`/`anca_f` (escápula e quadril); nas diagonais há ombro e anca
+  perto/longe com z-order.
+- **Largura:** frontal com 16 px entre ombros e 9 px entre ancas recuadas (a
+  perna dianteira passa por fora, sem encostar); dorsal com 16 px entre ancas
+  (quarto perto) e 10 px entre ombros (tórax longe). De costas a profundidade
+  foi corrigida: tórax em cima (longe), quarto embaixo (perto).
+- **Marcha:** ombros/ancas entram no tronco do balanço (`_bob_corpo`) e na
+  respiração; clavícula e bacia não esticam, e os joelhos novos absorvem o
+  pouso do galope.
+- **Verificação:** 226 testes/0, parser 59/0, docs 32/0; folha 8×7×3 e zoom 5×
+  conferidos; baseline dos quadros atualizado no CI #73.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.27.1 — aprovação só no chat e merge direto do agente (2026-11-23)
 
 - **Canal único:** o chat do DSH é o **único** meio de comunicação e

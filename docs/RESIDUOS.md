@@ -4,6 +4,9 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.28.0 | frontal | a anca frontal fica recuada (±4,5 px) para não colidir com a perna dianteira; o quarto largo aparece mais na vista dorsal | design | aberto |
+| v0.28.0 | diagonais | o ombro/anca "longe" fica a ~0,5 px da linha do dorso; no zoom de 5× parece encostado, não articulado | pequeno | aberto |
+| v0.28.0 | arte | a pele esquelética segue como prova de juntas: nada aqui é arte aprovada | decisão | aberto |
 | v0.27.1 | — | nenhum | — | — |
 | v0.27.0 | CI | o `preview` num PR falha ao criar o deployment do Pages: o ambiente `github-pages` só aceita `main` (`custom_branch_policies`); liberar `lote/*` em Settings → Environments → github-pages, ou revisar pelo artefato `quadros` do run | médio | aberto |
 | v0.27.0 | animação | `Anim.retrato` lê `corpo._fator_sprint()` (método privado) só para a pose de decolagem; se o corpo trocar de API, o retrato quebra no parser | pequeno | aberto |
