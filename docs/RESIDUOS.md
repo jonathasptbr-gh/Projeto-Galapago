@@ -4,7 +4,7 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
-| v0.25.0 | baseline | o visível mudou; o baseline será trocado no commit seguinte com os quadros do CI (llvmpipe) | verificação | em andamento |
+| v0.25.0 | baseline | trocado pelos 60 quadros do CI #57 (llvmpipe) no commit seguinte ao da mudança visível | verificação | resolvido em v0.25.0 |
 | v0.25.0 | animação | `shot` não é acionado no jogo (não há sinal de "acabou de atirar"); `hit`/`death` seguem dormentes | médio | aberto |
 | v0.25.0 | pele | o corpo padrão é o canino; serpente e ave só entram por flag de demo | decisão | aberto |
 | v0.25.0 | aparelho | falta o teste de toque e leitura no celular do operador (é o objetivo deste lote) | operador | aberto |

@@ -14,9 +14,9 @@
   **ar** (`jump_air`) e **pouso** (`jump_land`) — além de atordoado, golpe,
   esbarrão, carga, cavar e tiro. Um clipe de UMA VEZ de mesma prioridade agora
   corta loop (o pouso corta o ar).
-- **Baseline dos quadros:** o visível mudou de propósito; a atualização do
-  baseline sai em commit próprio com os quadros do CI (`llvmpipe`), como manda
-  o [oráculo](ORACULO.md).
+- **Baseline dos quadros:** o visível mudou de propósito; o baseline foi
+  trocado em commit próprio pelos 60 quadros do **CI #57** (`llvmpipe`), como
+  manda o [oráculo](ORACULO.md).
 - **Verificação:** `tools/testes.sh` 209 testes/0 falhas (1 novo cobrindo
   corrida e as transições de pulo), parser 56 scripts/0 erros; quadros locais
   de 60 abertos.
