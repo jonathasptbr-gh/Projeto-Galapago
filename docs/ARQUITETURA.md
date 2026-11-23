@@ -50,6 +50,16 @@ RETRATO** (720×1280, `canvas_items`, `expand`) com **arte pixelada** (filtro
 *nearest*, câmera com **zoom 1,6** desde a v0.11.4 — era inteiro 2, ver
 `jogo/mock.gd`): linhas, sombras, efeitos e texto são lisos. Detalhes em [`GODOT.md`](GODOT.md#6-pixel-art-no-godot).
 
+## Pele e esqueleto (v0.22.0)
+
+O desenho da criatura pode vir de dois lados, com o MESMO contrato: o mock de
+xadrez ou a **pele geométrica** (`jogo/pele_geometrica.gd`), que desenha o rig
+de `dados/rig/<familia>.json` validado por `sim/esqueleto.gd` (pose por fase e
+âncora por nome, 8 direções). `sim/direcao.gd` mapeia o olhar em setores;
+`jogo/rigs.gd` carrega e cacheia o rig, fail-closed. A pele de sprite do
+PixelLab entra no mesmo lugar quando a arte for aprovada — a regra de jogo
+nunca pergunta qual pele está ativa.
+
 ## Mundo e mapa
 
 O mapa vem de **dados**: `dados/mapas/<nome>.json` (cantos de terreno + objetos)

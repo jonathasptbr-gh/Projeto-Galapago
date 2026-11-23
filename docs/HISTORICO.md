@@ -3,6 +3,25 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.22.0 — pele geométrica no jogo (F2) (2026-11-23)
+
+- **A criatura pode ser desenhada pelo esqueleto**, não pelo xadrez:
+  `--demo --geo-canino|serpente|ave` liga `jogo/pele_geometrica.gd`, que
+  desenha o rig de `dados/rig/` sem asset nenhum. O padrão continua o mock;
+  sem a flag, nada muda na tela.
+- **Direção e clipe vêm do corpo:** `sim/direcao.gd` (puro, testado) mapeia
+  `corpo.olhar` em 8 setores; o clipe é `walk` quando a posição andou no quadro
+  e `idle` quando não; a fase usa a duração do rig. O cone do golpe passa a
+  sair da âncora `boca` quando ela existe (antes, do centro do corpo).
+- **Três âncoras no mesmo caminho:** canino, serpente (rastejo) e ave
+  (bípede) desenham com a mesma pele; `--geo-debug` mostra ossos, juntas e
+  âncoras. `jogo/rigs.gd` carrega e cacheia o rig, fail-closed.
+- **Verificação:** `tools/testes.sh` 192 testes/0 falhas (novos: oito setores
+  de direção e o carregador de rigs), parser 52 scripts/0 erros; quadros do
+  oráculo nas duas câmeras com os três rigs, PNGs abertos; o mock padrão
+  continua idêntico, então baseline do oráculo não foi tocado.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.21.2 — rigs de serpente e ave (2026-11-23)
 
 - **As três famílias-âncora têm rig.** `dados/rig/serpente.json` (11 juntas,

@@ -13,6 +13,10 @@ extends Node2D
 
 const Mock := preload("res://jogo/mock.gd")
 const V := preload("res://sim/visibilidade.gd")
+const Esq := preload("res://sim/esqueleto.gd")
+const Dir := preload("res://sim/direcao.gd")
+const Rigs := preload("res://jogo/rigs.gd")
+const PeleGeo := preload("res://jogo/pele_geometrica.gd")
 
 var corpo: RefCounted
 var mundo: RefCounted
@@ -20,16 +24,47 @@ var inclinacao := 1.0
 var _desnivel := 0.0
 var _tempo := 0.0
 var _sprite: Texture2D
+# Pele geométrica (F2): vazio = mock de xadrez. O rig vem de dados/rig/*.json.
+var _rig: Dictionary = {}
+var _rig_id := ""
+var _rig_debug := false
+var _tempo_pele := 0.0
+var _ultima_pos := Vector2.ZERO
+var _andando := false
 
 
 func _ready() -> void:
 	_sprite = Mock.criatura(Color("#d9752f"), Color("#f2a45c"), Color("#4a2010"))
+	if corpo != null:
+		_ultima_pos = corpo.pos
+
+
+## Liga a pele geométrica (F2). Rig inválido/ausente mantém o mock (falha fechada).
+func ativar_pele_geometrica(id: String = "canino", debug := false) -> bool:
+	var m := Rigs.carregar(id)
+	if m.is_empty():
+		push_error("pele geométrica recusada: rig " + id)
+		return false
+	_rig = m
+	_rig_id = id
+	_rig_debug = debug
+	_tempo_pele = 0.0
+	queue_redraw()
+	return true
+
+
+func pele_geometrica_ativa() -> bool:
+	return not _rig.is_empty()
 
 
 func _process(delta: float) -> void:
 	if corpo == null:
 		return
 	_tempo += delta
+	_tempo_pele += delta
+	var desloc: float = (corpo.pos - _ultima_pos).length()
+	_ultima_pos = corpo.pos
+	_andando = desloc > 0.35
 	position = corpo.pos
 	var celula: Vector2i = mundo.celula_de(corpo.pos)
 	var alt: float = mundo.altura(celula) if corpo.camada == "superficie" else 1.0
@@ -61,16 +96,36 @@ func _draw() -> void:
 	if tonta:
 		cor = Color(1.0, 0.58, 0.52)
 		meu += Vector2(sin(_tempo * 57.0) * 2.2, 0.0)
-	draw_texture_rect(_sprite, Rect2(meu + Vector2(-32, -52), Vector2(64, 64)), false, cor)
 	var c := meu + Vector2(0, -20)
-	var o: Vector2 = corpo.olhar if corpo.olhar.length() > 0.01 else Vector2.RIGHT
-	draw_colored_polygon(PackedVector2Array([c + o * 30.0, c + o * 18.0 + o.orthogonal() * 7.0, c + o * 18.0 - o.orthogonal() * 7.0]), Color(1, 1, 1, 0.9))
+	if not _rig.is_empty():
+		# F2: o corpo é o esqueleto; a direção sai do olhar em OITO setores e a
+		# fase do clipe do relógio da própria pele (duração vem do rig).
+		var dir := Dir.setor(corpo.olhar)
+		var clipe := "walk" if _andando else "idle"
+		var dur := Esq.duracao(_rig, clipe)
+		var fase := fmod(_tempo_pele / maxf(dur, 0.001), 1.0)
+		PeleGeo.desenhar(self, _rig, dir, fase, clipe, meu, cor, _rig_debug)
+		c = _ancora_boca(meu, dir, fase, clipe)
+	else:
+		draw_texture_rect(_sprite, Rect2(meu + Vector2(-32, -52), Vector2(64, 64)), false, cor)
+		var o: Vector2 = corpo.olhar if corpo.olhar.length() > 0.01 else Vector2.RIGHT
+		draw_colored_polygon(PackedVector2Array([c + o * 30.0, c + o * 18.0 + o.orthogonal() * 7.0, c + o * 18.0 - o.orthogonal() * 7.0]), Color(1, 1, 1, 0.9))
 	_desenhar_acoes(c)
 	if tonta:
 		_desenhar_estrelas(Vector2(0, -66))
 
 
 ## Estrelinhas girando sobre a cabeça: o corpo não obedece enquanto isso.
+## O golpe sai da ÂNCORA "boca" quando ela existe; senão do centro do corpo.
+func _ancora_boca(base: Vector2, direcao: String, fase: float, clipe: String) -> Vector2:
+	var pose := Esq.pose(_rig, direcao, fase, clipe)
+	var a := Esq.socket(_rig, pose, direcao, "boca")
+	if a.is_empty():
+		return base + Vector2(0, -20)
+	var piv := Vector2(float(_rig["pivot_px"][0]), float(_rig["pivot_px"][1]))
+	return base + ((a["pos"] as Vector2) - piv)
+
+
 func _desenhar_estrelas(base: Vector2) -> void:
 	for i in 3:
 		var a := _tempo * 7.0 + i * TAU / 3.0

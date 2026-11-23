@@ -4,6 +4,11 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.22.0 | arte | pele geométrica provisória (silhuetas de ave/serpente ainda fracas); a arte real é a F5 | médio | aberto |
+| v0.22.0 | jogo | a pele só liga na demo (`--geo-*`); o jogo normal continua no mock de xadrez | decisão | aberto |
+| v0.22.0 | animação | só `idle`/`walk`; as demais 41 ações e a máquina de estados são a F3 | médio | aberto |
+| v0.22.0 | escala | canino 68×68, serpente 96×64 e ave 64×64 sem régua de porte comum entre arquétipos | design | aberto |
+| v0.22.0 | golpe | a âncora `boca` só move a ORIGEM do cone; dano, alcance e regra seguem em `sim/corpo.gd` | pequeno | aberto |
 | v0.21.2 | arte | rigs geométricos de serpente e ave provisórios, ainda sem validação visual (depende da F2) | médio | aberto |
 | v0.21.2 | dados/rig | escalas diferentes por família (canino 68×68, serpente 96×64, ave 64×64); a regra de porte entre arquétipos continua em aberto | design | aberto |
 | v0.21.2 | dados/rig | serpente e ave só têm `idle`/`walk`; voo, nado e as demais 41 ações do catálogo ficam para a F3 | médio | aberto |

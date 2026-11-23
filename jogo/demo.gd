@@ -39,6 +39,14 @@ var _cavar_limite := 0.0
 
 func _init(m: Node) -> void:
 	main = m
+	# PELE GEOMÉTRICA (F2): só sob flag explicitamente pedida; o padrão é o mock.
+	var debug_geo := "--geo-debug" in OS.get_cmdline_user_args()
+	if "--geo-canino" in OS.get_cmdline_user_args():
+		main.criatura.ativar_pele_geometrica("canino", debug_geo)
+	elif "--geo-serpente" in OS.get_cmdline_user_args():
+		main.criatura.ativar_pele_geometrica("serpente", debug_geo)
+	elif "--geo-ave" in OS.get_cmdline_user_args():
+		main.criatura.ativar_pele_geometrica("ave", debug_geo)
 	if "--camera-planalto" in OS.get_cmdline_user_args():
 		main.corpo.pos = main.mundo.centro(Vector2i(8, 8))
 		main.criatura._process(1.0)
