@@ -236,18 +236,58 @@ func _varredura_z(m: Dictionary, pata: String) -> float:
 	return zmax - zmin
 
 
-## Métrica (NÃO falha — dívida do Lote 3): a passada que a arte declara não é
-## igual ao avanço do corpo no apoio (`duty × ciclo_px`). O descompasso é o
-## quanto o pé plantado teria de deslizar por projeto; o teste só registra.
+## Métrica e invariante: o ciclo agora é DERIVADO (`passo_px / duty`), então
+## `duty × ciclo` é a própria passada e o descompasso é zero por construção.
+## A métrica continua impressa para auditoria e o teste exige zero — se alguém
+## voltar a declarar ciclo à mão, quebra aqui.
 func test_metricas_das_marchas_declaradas() -> void:
 	for nome in ["canino3d", "equino3d"]:
 		var m := Rigs.carregar(nome)
 		for clipe in ["walk", "run"]:
 			var marcha := E3._marcha(m["motion"], clipe)
 			var passada := float(marcha.get("passo_px", 0.0))
-			var avanco := float(marcha.get("duty", 0.0)) * float(marcha.get("ciclo_px", 0.0))
+			var avanco := float(marcha.get("duty", 0.0)) * E3._ciclo(marcha)
+			perto(avanco, passada, 0.000001,
+				"descompasso zero em %s/%s (passada = duty × ciclo derivado)" % [nome, clipe])
 			print("métrica marcha %s/%s: passada=%.6f duty*ciclo=%.6f descompasso=%.6f px"
 				% [nome, clipe, passada, avanco, passada - avanco])
+
+
+## Prova de construção, SEM âncora: com o ciclo derivado a pata plantada fica
+## parada no mundo só pela pose — nenhum `alvos` entra no `E3.pose` aqui. O
+## corpo anda 1,83 px por quadro e a pose recua a pata na mesma medida durante
+## o apoio; a variação da posição de mundo tem de ser zero (tolerância 0,01
+## px). Sem essa identidade, quem segura o pé é a âncora.
+func test_derrapagem_zero_sem_ancora_na_passada() -> void:
+	var m := Rigs.carregar("canino3d")
+	var piv := Vector2(float(m["pivot_px"][0]), float(m["pivot_px"][1]))
+	for clipe in ["walk", "run"]:
+		var pior := 0.0
+		var amostras := 0
+		var primeira := {}
+		var estado: Dictionary = {}
+		var anterior := Vector2.ZERO
+		for i in 80:
+			var pos := Vector2(float(i) * 1.83, 0.0)
+			estado = Loc.avancar(m, estado, pos, "east", 0.0, clipe, pos - anterior)
+			anterior = pos
+			# Pose PURA: sem `alvos`, o apoio não vem de âncora nenhuma.
+			var p := E3.pose(m, "east", estado["fase"], clipe)
+			for perna in E3._pernas(m):
+				var nome := String(perna["nome"])
+				if not (estado["alvos"] as Dictionary).has(nome):
+					primeira.erase(nome)
+					continue
+				var foot := String(perna["foot"])
+				var mundo: Vector2 = pos + (p["juntas"][foot] as Vector2) - piv
+				if not primeira.has(nome):
+					primeira[nome] = mundo
+					continue
+				pior = maxf(pior, mundo.distance_to(primeira[nome]))
+				amostras += 1
+		checar(amostras > 12, "apoios sem âncora suficientes em %s: %d" % [clipe, amostras])
+		checar(pior < 0.01, "derrapagem sem âncora em %s: %.6f px (<0,01)" % [clipe, pior])
+		print("métrica derrapagem sem âncora %s: %.6f px em %d apoios" % [clipe, pior, amostras])
 
 
 ## Terceira marcha declarada SÓ EM DADOS: trote diagonal (te+fd juntos, fe+td
@@ -268,7 +308,6 @@ func test_terceira_marcha_so_em_dados_anda_com_quatro_apoios() -> void:
 			"traseira": {"curva": "ease_out", "expoente": 2.0},
 		},
 		"defasagem": {"te": 0.0, "fe": 0.5, "td": 0.5, "fd": 0.0},
-		"ciclo_px": 35.2,
 	}
 	m["motion"]["clipe_marcha"]["walk"] = "trote"
 	var pronto := E3.preparar(m)
@@ -319,7 +358,8 @@ func test_terceira_marcha_so_em_dados_anda_com_quatro_apoios() -> void:
 	for nome in ["te", "fd"]:
 		perto(float(apoio_por_pata.get(nome, 0)) / 80.0, 0.4, 0.08,
 			"fração em apoio de %s = duty 0,4 da tabela" % nome)
-	var passada := float(pronto["motion"]["marchas"]["trote"]["passo_px"])
-	var avanco := 0.4 * 35.2
+	var trote: Dictionary = pronto["motion"]["marchas"]["trote"]
+	var passada := float(trote["passo_px"])
+	var avanco := float(trote["duty"]) * E3._ciclo(trote)
 	print("métrica marcha trote: passada=%.6f duty*ciclo=%.6f descompasso=%.6f px"
 		% [passada, avanco, passada - avanco])

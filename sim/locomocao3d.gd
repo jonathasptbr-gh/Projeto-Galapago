@@ -31,7 +31,7 @@ static func avancar(rig: Dictionary, anterior: Dictionary, pos: Vector2,
 		estado["apoiando"] = {}
 		estado["alvos"] = {}
 		return estado
-	var ciclo := float(marcha.get("ciclo_px", 0.0))
+	var ciclo := E3._ciclo(marcha)
 	var antigo := float(estado.get("fase", 0.0))
 	var fase := fposmod(antigo + delta.length() / maxf(ciclo, 1.0), 1.0)
 	estado["fase"] = fase

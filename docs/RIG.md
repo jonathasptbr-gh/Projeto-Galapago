@@ -62,11 +62,16 @@ das poses.
 O motor já não decide a pata por clipe: desde a v0.33.3, walk e galope vêm da
 tabela `marchas` do rig (`clipe_marcha` liga o clipe à marcha), e
 [`sim/locomocao3d.gd`](../sim/locomocao3d.gd) tira ciclo, duty e defasagem da
-mesma tabela. O que **ainda** não segue o método é o **descompasso**: a
-passada declarada não é igual ao avanço do corpo no apoio (`duty × ciclo`) —
-12,0 contra 19,36 px no walk do cão — e é a âncora no mundo que esconde a
-diferença. Reconciliar isso é o item (3): o apoio tem de sair do contato, não
-da correção.
+mesma tabela. O **descompasso é zero por construção**: o ciclo não é
+declarado, é derivado de `passo_px / duty` por `E3._ciclo`
+([`sim/esqueleto3d.gd`](../sim/esqueleto3d.gd):745), então `duty × ciclo` é a
+própria passada e a pata plantada não desliza por projeto. A âncora no mundo
+virou **só verificação**: o teste novo mede a pata em pose pura, **sem
+`alvos`**, e exige a posição de mundo parada durante o apoio
+([`testes/test_parametrico3d.gd`](../testes/test_parametrico3d.gd):261). Um
+`ciclo_px` legado que divirja do derivado reprova em `validar` (tolerância
+1e-6) — a chave deixou de existir nos rigs. **Proporções do cão** continuam
+pendentes: é outro eixo do item (3), não este.
 
 ## As cinco primitivas de locomoção
 
@@ -116,8 +121,9 @@ Sem promessa de prazo; cada item começa com o anterior provado.
 1. Separar **porte** de **quadro**, com teste — **feito** (v0.33.2).
 2. **Marcha por contato** no lugar do `if clipe` — **feito** (v0.33.3): walk e
    galope em dados, e um trote declarado só em dados como prova.
-3. **Proporções e passada do cão** — e **reconciliar** `passada` com
-   `duty × ciclo`.
+3. **Proporções e passada do cão** — **reconciliação feita**: `passada` e
+   `duty × ciclo` são a mesma conta (ciclo derivado, descompasso zero por
+   construção, provado sem âncora). **Pendente:** as **proporções do cão**.
 4. **Curva + despacho por arquétipo**.
 5. **Inseto de 6 patas** como prova (opcional).
 
@@ -130,7 +136,10 @@ Sem promessa de prazo; cada item começa com o anterior provado.
 - No lote v0.33.0: 176 apoios alcançáveis, erro máximo 0,002 px; voo 1,97:1;
   giro 4/4 (§P10). O lote v0.33.3 provou a troca por dados com **poses
   idênticas bit a bit** (sha256 do dump) e passou a imprimir o **descompasso**
-  de cada marcha (`passada` × `duty × ciclo`).
+  de cada marcha (`passada` × `duty × ciclo`). Na reconciliação do item (3):
+  **187 apoios alcançáveis**, erro máximo **0,000004 px**, **descompasso 0**
+  nas quatro marchas e derrapagem em pose pura (sem âncora) **0,000008 px** no
+  walk e **0,000004 px** no galope.
 
 ## O que este documento não cobre
 

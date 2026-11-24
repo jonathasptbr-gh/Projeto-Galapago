@@ -4,6 +4,8 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.33.4 | animação | cadência do walk subiu ~61% com a reconciliação (0,198 s por ciclo aos 110 px/s); julgar no aparelho — o candidato C existe se ficar miúdo demais | design | aberto |
+| v0.33.4 | rig | proporções do cão (item 3 da ordem) continuam pendentes: pernas, tronco e pescoço ainda são os do ajuste manual, não uma régua anatômica | médio | aberto |
 | v0.33.3 | rig | descompasso entre `passada` e `duty × ciclo` (walk do cão −7,36 px; galope +1,90 px): a âncora no mundo esconde a diferença; reconciliar é o item (3) | médio | aberto |
 | v0.33.3 | rig | `motion` ainda guarda chaves legadas (`duty_walk`, `galope_passo_px`, `run_baixa_px`, …) só porque `testes/test_esqueleto3d.gd` as lê; o motor não as usa | pequeno | aberto |
 | v0.33.3 | rig | `_validar_marchas` assume exatamente 4 patas (`MARCHA_PATAS`); N pernas exige mexer em `_pernas`/topologia — bloqueio do inseto | pequeno | aberto |

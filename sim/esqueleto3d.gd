@@ -737,6 +737,15 @@ static func _marcha(mo: Dictionary, clipe: String) -> Dictionary:
 	return marcha if marcha is Dictionary else {}
 
 
+## Ciclo derivado da própria marcha: `passo_px / duty`. Uma fonte só — no
+## apoio o corpo anda `duty × ciclo` e essa conta tem de ser a própria
+## passada, então ciclo não é valor declarado (a chave `ciclo_px` deixou de
+## existir nos rigs). Se um rig antigo ainda a trouxer, `validar` só a confere
+## contra este derivado; o motor não a lê.
+static func _ciclo(marcha: Dictionary) -> float:
+	return float(marcha.get("passo_px", 0.0)) / maxf(float(marcha.get("duty", 0.0)), 0.000001)
+
+
 ## Alvo do pé [z, y] no instante `f` de uma marcha em dados. Apoio: a pata
 ## recua a passada inteira em z. Balanço: volta com a curva de `avanco` do
 ## LADO (dianteira/traseira) — `ease_out` chega cedo, `ease_in` fica para trás
@@ -1242,9 +1251,15 @@ static func _validar_marchas(motion: Dictionary) -> String:
 		var duty: Variant = marcha.get("duty")
 		if not _num(duty) or float(duty) <= 0.0 or float(duty) >= 1.0:
 			return "marcha %s com duty fora de (0,1)" % nome
-		for chave in ["passo_px", "ciclo_px"]:
-			if not _num(marcha.get(chave)) or float(marcha.get(chave)) <= 0.0:
-				return "marcha %s com %s inválido" % [nome, chave]
+		if not _num(marcha.get("passo_px")) or float(marcha.get("passo_px")) <= 0.0:
+			return "marcha %s com passo_px inválido" % nome
+		# Chave legada, não fonte: se o dado ainda declarar `ciclo_px`, ele
+		# tem de ser exatamente `passo_px / duty` — divergir reprova.
+		if marcha.has("ciclo_px"):
+			if not _num(marcha.get("ciclo_px")):
+				return "marcha %s com ciclo_px inválido" % nome
+			if absf(float(marcha.get("ciclo_px")) - _ciclo(marcha)) > 0.000001:
+				return "marcha %s com ciclo_px divergente de passo_px / duty" % nome
 		if not _num(marcha.get("levanta_px")) or float(marcha.get("levanta_px")) < 0.0:
 			return "marcha %s com levanta_px inválido" % nome
 		if not _num(marcha.get("easing_levanta")) \

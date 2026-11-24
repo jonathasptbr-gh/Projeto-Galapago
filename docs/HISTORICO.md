@@ -3,6 +3,25 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.33.4 — passada e ciclo reconciliados: apoio sem âncora (2026-11-24)
+
+- **Decisão do operador (2026-11-24), candidato B:** a passada fica e o ciclo
+  cede. O ciclo passou a ser **derivado** — `ciclo = passada ÷ duty` (walk
+  21,82; galope 60,0 no cão) — então `passada == duty × ciclo` por construção.
+  A chave `ciclo_px` saiu do JSON e a validação reprova quem declarar ciclo
+  divergente do derivado.
+- **A âncora deixou de ser o que segura o pé:** teste novo mede a pata no
+  mundo a partir da pose **pura** (sem `alvos`) e exige variação < 0,01 px —
+  medido **0,000008 px** no walk (158 apoios) e **0,000004 px** no galope (72).
+- **Custo medido:** a cadência do walk sobe ~61% (0,198 s por ciclo aos
+  110 px/s); o galope fica praticamente igual (razão do voo 1,966, idêntica).
+  Julgar no aparelho.
+- **Verificação:** 278 testes/0, parser 67/0, docs 34/0; 187 apoios
+  alcançáveis com erro máximo de 0,000004 px; descompasso **0** nas quatro
+  marchas do quadrúpede e no trote.
+- **Baseline:** atualizado pelo CI no branch do lote.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.33.3 — marcha em dados: walk e galope fora do código (2026-11-24)
 
 - **A pata deixou de ser decidida por clipe:** walk e galope saem da tabela
