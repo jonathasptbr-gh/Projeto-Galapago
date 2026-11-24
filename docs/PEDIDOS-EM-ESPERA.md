@@ -68,10 +68,11 @@
   voo 1,97:1 (era 0,93); reancoragem 4/4 (era 3/4).
 - **Próximo:** (1) revisar o cão nas 8 direções e o canvas no aparelho;
   (2) as chaves do voo no equino (hoje herdam default e o teste de voo só roda
-  no cão); (3) as interfaces de bípede, ave e serpente; (4) escrever o método
-  (`docs/RIG.md`), hoje só existe em código.
-- **Decisões pendentes do operador:** teto de 20 juntas (o cão tem 24), caixa
-  por clipe × por animal, qualidade da patinagem (âncora real).
+  no cão); (3) as interfaces de bípede, ave e serpente. O método está escrito
+  em [`RIG.md`](RIG.md); o motor ainda não o segue (ordem de trabalho, itens 1–2).
+- **Decisões do operador (2026-11-24):** 1C — teto de juntas por arquétipo
+  (quadrúpede 24); 2A — quadro por animal, não por clipe; 3B — patinagem
+  < 1 px também em curva e diagonal.
 - **Aceite:** segundo quadrúpede sem editar o solver; menos de 1 px de
   patinação por apoio em reta; voo entre 1,8 e 2,0; testes verdes; imagens
   revisadas no chat.

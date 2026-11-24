@@ -4,6 +4,7 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.33.1 | RIG | o método está escrito, mas o motor ainda decide a pata por clipe (`_patas`) e o inseto continua bloqueado pelo schema 2+2 — os lotes 1–5 da ordem de trabalho não foram feitos | médio | aberto |
 | v0.33.0 | P10 | bípede, ave e serpente compilam (schema 4) mas seguem sem marcha: `locomocao_suportada` é falso e não há teste de passada para eles | médio | aberto |
 | v0.33.0 | P10 | as cinco chaves do voo só existem no `canino3d.json`; o equino herda os defaults e o teste de voo só roda no cão | médio | aberto |
 | v0.33.0 | P10 | decisões de raiz abertas: teto de 20 juntas (o cão tem 24), caixa por clipe × por animal e régua de porte entre arquétipos (canino 68×68, serpente 96×64, ave 64×64) | decisão | aberto |

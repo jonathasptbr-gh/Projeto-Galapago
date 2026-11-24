@@ -130,6 +130,7 @@ uma vez). Referências externas vendorizadas ficam no catálogo, não se repetem
 
 - Design: [conceito](docs/CONCEITO.md), [história](docs/gdd/historia.md), [gestos e ações](docs/gdd/gestos-e-acoes.md), [mapa](docs/gdd/mapa.md).
 - Código e ambiente: [arquitetura](docs/ARQUITETURA.md), [Godot](docs/GODOT.md), [ambiente](docs/AMBIENTE.md).
+- Esqueleto: [método do rig](docs/RIG.md).
 - Verificação e entrega: [oráculo](docs/ORACULO.md), [build](docs/BUILD.md), [rollback](docs/ROLLBACK.md), [guardião documental](docs/DOCUMENTACAO.md).
 - Arte: [pipeline](docs/ARTE.md), [PixelLab](docs/PIXELLAB.md), [catálogo gerado](docs/pixellab/CATALOGO.md).
 - Continuidade: [fila](docs/PEDIDOS-EM-ESPERA.md), [feitos](docs/PEDIDOS-FEITOS.md), [histórico](docs/HISTORICO.md), [resíduos](docs/RESIDUOS.md).

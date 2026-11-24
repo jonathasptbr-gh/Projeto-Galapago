@@ -3,6 +3,19 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.33.1 — método do rig documentado (2026-11-24)
+
+- **Novo [`RIG.md`](RIG.md):** densidade de arte × porte × quadro × pivô;
+  contato primeiro e ângulo depois; as cinco primitivas de locomoção com status
+  honesto (quadrúpede implementada, inseto planejada, bípede/ave/serpente
+  conceito); autoridade por arquétipo, não por clipe; decisões 1C/2A/3B; ordem
+  de trabalho em seis itens.
+- **Inventário:** o guia entra no mapa documental de `AGENTS.md`, uma vez.
+- **Sem código:** nada de `sim/`, `jogo/`, `dados/` ou `testes/` mudou; o jogo
+  continua com o comportamento da v0.33.0.
+- **Verificação:** docs 34/0 e guardião 42/0.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.33.0 — esqueleto paramétrico no jogo: voo esticado e giro 4/4 (2026-11-24)
 
 - **P10 entra na `main`:** `sim/topologia3d.gd` (schema 4 com papéis;
