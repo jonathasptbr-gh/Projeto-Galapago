@@ -4,6 +4,10 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.34.1 | fluidez | pico do joelho traseiro em 3,48 px/quadro a 60 fps (teto do teste subiu 2,5→3,5); o pé não acelera — vigiar "piscada" no jarrete no aparelho | pequeno | aberto |
+| v0.34.1 | rig | punho não existe com 24 juntas: antebraço e metacarpo são UM osso (só a razão da referência foi aplicada); punho próprio = +2 juntas, teto 26 (decisão 1C) | médio | aberto |
+| v0.34.1 | rig | omoplata a 62° (prancha: 45°); 45° exigiria o ombro ~6 px à frente da cernelha e prende o fim do apoio do galope em z=12,4 | pequeno | aberto |
+| v0.34.1 | pose | a fase reunida da prancha não é reproduzida: extensão 1,69 cernelhas (prancha 1,89) e compressão 0,67 (prancha 0,23) — tronco inclina ao contrário | médio | aberto |
 | v0.34.0 | fluidez | com a passada maior, os tetos do teste subiram (transição walk→run 15 px; pico do run 2,5 px/quadro a 60 fps) — vigiar "estalo" na troca no aparelho | pequeno | aberto |
 | v0.34.0 | sprint | a corrida acelerada usa a MESMA marcha do galope (muda só a velocidade); marcha própria de sprint (passada/voo maiores) exige perna mais longa | médio | aberto |
 | v0.34.0 | câmera | no modo perto o segurar, sem rota, ainda cai na habilidade (cavar): o modo não alimenta o reconhecedor, mas o comando existe | pequeno | aberto |

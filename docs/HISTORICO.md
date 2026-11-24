@@ -3,6 +3,27 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.34.1 — ossos do cão pela anatomia de referência (2026-11-24)
+
+- **Omoplata de verdade:** a cernelha subiu 19,1 → **22,0** e a raiz do membro
+  dianteiro desceu 18,0 → **15,4**; o osso `peito→ombro` (a omoplata) passou de
+  **1,70 px para 8,56 px** (11,0 px de osso) a 62° — antes ela não aparecia.
+- **Barras pela referência do operador:** úmero **8,25** / antebraço+metacarpo
+  **12,75** (0,393:0,607) e tíbia **8,97** / metatarso **7,60** (razão 1,18) —
+  o osso do meio encurtou e o último alongou, como pedido.
+- **Alcance preservado:** somas dianteira 21,0 e traseira 27,57; **passadas
+  13,8 / 17,0 mantidas** — walk 80,3% e galope 97,1% do alcance no ciclo.
+- **Custo medido:** o pico do joelho traseiro subiu para **3,48 px/quadro** a
+  60 fps (era 1,9); o teto do teste de fluidez foi de 2,5 para 3,5 com motivo
+  (metatarso mais longo sobe o jarrete 1,3 px). **O pé não acelera.**
+- **Prancha do galope (2ª referência):** a extensão do rig é 1,69 cernelhas
+  (prancha 1,89) e +4,9° de tronco (prancha +9,6°); na compressão o rig não
+  reúne as patas (0,67 contra 0,23) — é dívida de **pose**, não de osso.
+- **Verificação:** 284 testes/0, parser 67/0; voo 2,2103 (banda 1,8–2,3);
+  derrapagem sem âncora 0,000004 px; descompasso 0.
+- **Baseline:** refeito pelo CI no branch do lote.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.34.0 — locomoção por câmera e cão comprido (L2) (2026-11-24)
 
 - **O modo da câmera manda na locomoção** (decisão do operador): **perto**

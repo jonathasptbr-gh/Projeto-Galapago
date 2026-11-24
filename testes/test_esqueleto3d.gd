@@ -224,7 +224,10 @@ func test_dobra_anatomica_em_repouso_idle_walk_run() -> void:
 		var F := E3._vec(rest["pata_" + lado])
 		checar(H.z < K.z and H.z < F.z and H.y > 0.0,
 			"zigzag traseiro no repouso: jarrete atrás e alto " + lado)
-		perto(H.distance_to(F), 6.72681, 0.001, "metatarso longo " + lado)
+		# Lote 3C: o metatarso passou de 6,73 para 7,60 px e a tíbia de 9,84
+		# para 8,97 (tíbia/metatarso 1,18, medido na prancha do galope) — a
+		# soma traseira fica igual, o jarrete sobe 1,3 px.
+		perto(H.distance_to(F), 7.6, 0.001, "metatarso longo " + lado)
 	for clipe in ["idle", "walk", "run"]:
 		for i in 40:
 			var fase := float(i) / 40.0
@@ -286,14 +289,17 @@ func test_ik_preserva_ossos_e_alvos_alcancaveis_em_3d() -> void:
 		var P := E3._vec(rest[perna["upper"]])
 		var K := E3._vec(rest["joelho_" + nome])
 		var F := E3._vec(rest["pata_" + nome])
-		perto(P.distance_to(K), 10.5 if nome.begins_with("f") else 11.0, 0.001,
+		# Lote 3C: repartição de referência (úmero:antebraço+metacarpo =
+		# 0,393:0,607; tíbia:metatarso = 1:1,18) com a SOMA de cada perna
+		# mantida — é a soma que a passada 13,8/17,0 exige.
+		perto(P.distance_to(K), 8.253 if nome.begins_with("f") else 11.0, 0.001,
 			"comprimento superior original " + nome)
 		if perna.has("l3"):
 			var H := E3._vec(rest["jarrete_" + nome])
-			perto(K.distance_to(H), 9.84260, 0.001, "tíbia original " + nome)
-			perto(H.distance_to(F), 6.72681, 0.001, "metatarso original " + nome)
+			perto(K.distance_to(H), 8.97000, 0.001, "tíbia original " + nome)
+			perto(H.distance_to(F), 7.6, 0.001, "metatarso original " + nome)
 		else:
-			perto(K.distance_to(F), 10.5, 0.001, "antebraço original " + nome)
+			perto(K.distance_to(F), 12.747, 0.001, "antebraço original " + nome)
 
 
 func test_jarrete_todos_os_yaws_clipes_e_saltos_sem_stretch() -> void:
@@ -1010,7 +1016,12 @@ func test_fluidez_entre_clipes() -> void:
 	checar(passo_w < 2.0, "walk a 60 fps sem pico (%.2f px/quadro)" % passo_w)
 	# O galope tem passada 17 px e só 20% de apoio: o balanço varre mais rápido
 	# e o pico do jarrete sobe de ~1,9 para 2,31 px/quadro.
-	checar(passo_r < 2.5, "run a 60 fps sem pico (%.2f px/quadro)" % passo_r)
+	# Lote 3C: o metatarso mais longo (7,60) sobe o jarrete 1,3 px e a tíbia
+	# mais curta (8,97) aproxima a cadeia coxa→joelho→jarrete do recolhimento
+	# total (|l1−l2| = 2,03) no balanço do galope: o pico do joelho traseiro
+	# (joelho_td, fase 0,733) medido é 3,48 px/quadro. Teto 2,5 → 3,5 com o
+	# motivo declarado; a pata NÃO acelera (o pico é do joelho, não do pé).
+	checar(passo_r < 3.5, "run a 60 fps sem pico (%.2f px/quadro)" % passo_r)
 
 
 func _max_dist(a: Dictionary, b: Dictionary) -> float:
