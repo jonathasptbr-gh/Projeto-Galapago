@@ -28,6 +28,18 @@ const JUNTAS_ESPERADAS := 24
 const OSSOS_ESPERADOS := 23
 const SOCKETS_OBRIGATORIOS := ["boca", "coroa", "base_cauda", "dorso"]
 const Z := ["front", "back"]
+## Patas da marcha em dados (mesmos nomes de `_pernas`): traseira/dianteira
+## esquerda e direita. A defasagem de cada uma vem do JSON, nunca do motor.
+const MARCHA_PATAS := ["te", "fe", "td", "fd"]
+## Chaves numéricas obrigatórias de cada bloco opcional de uma marcha. Um bloco
+## que existe tem todas elas; um bloco ausente simplesmente não se aplica.
+const MARCHA_BLOCOS := {
+	"voo": ["expoente", "baixa_px", "pescoco_graus", "levanta_extra"],
+	"corpo": ["suspensao_px", "suspensao_largura", "bob_px", "baixa_px", "estica_px",
+		"flexao_px", "pitch_gather_graus", "pitch_suspensao_graus", "cabeca_contra_pitch"],
+	"extras": ["cauda_chicote_px", "orelha_tras_px", "orelha_baixa_px", "cauda_voo_y",
+		"cauda_voo_z", "cauda_ponta_voo_y", "cauda_ponta_voo_z"],
+}
 
 
 ## Lê o JSON e valida. Devolve {} (falha fechada) para texto ou rig inválido.
@@ -190,9 +202,16 @@ static func validar(m: Dictionary) -> String:
 	if not motion is Dictionary:
 		return "motion inválido"
 	for chave in motion:
+		# As marchas são o único bloco não numérico do motion; têm validação
+		# própria logo abaixo.
+		if String(chave) in ["marchas", "clipe_marcha"]:
+			continue
 		var v2: Variant = (motion as Dictionary)[chave]
 		if not (v2 is int or v2 is float) or not is_finite(float(v2)):
 			return "motion.%s inválido" % chave
+	var erro_marcha := _validar_marchas(motion)
+	if erro_marcha != "":
+		return erro_marcha
 
 	# Fase B: o modelo de dados já aceita peças 2D por osso; nada as desenha.
 	var pecas: Variant = m.get("pecas", [])
@@ -360,7 +379,8 @@ static func pose(m: Dictionary, direcao: String, fase: float, clipe: String = "w
 	var mo: Dictionary = m.get("motion", {})
 	var pernas := _pernas(m)
 	var patas := _patas(pernas, clipe, f, mo, salto_correndo)
-	if clipe in ["walk", "run"]:
+	# Âncoras de chão só fazem sentido num clipe com marcha declarada.
+	if not _marcha(mo, clipe).is_empty():
 		for nome in alvos:
 			if patas.has(nome) and alvos[nome] is Vector3:
 				patas[nome] = alvos[nome]
@@ -625,18 +645,19 @@ static func _smoothstep(a: float, b: float, x: float) -> float:
 	return t * t * (3.0 - 2.0 * t)
 
 
-## Envelope do VOO do galope (0..1): máximo no meio de cada suspensão, que
-## começa em 0,25 e em 0,75 e dura `duty_galope` — daí as cristas em
-## 0,25+duty/2 e 0,75+duty/2 (0,375 e 0,875 com duty 0,25, o canino), mínimo um
+## Envelope de VOO da marcha (0..1): máximo no meio de cada suspensão, que
+## começa em 0,25 e em 0,75 e dura `duty` — daí as cristas em 0,25+duty/2 e
+## 0,75+duty/2 (0,375 e 0,875 com duty 0,25, o galope do canino), mínimo um
 ## quarto de ciclo depois e ~0,31 na emenda do ciclo — o cão chega quase "em
-## pé" em jump_start. A potência 1,7 estreita a crista: sem ela a cabeça
+## pé" em jump_start. `voo.expoente` (1,7) estreita a crista: sem ele a cabeça
 ## (alavanca longa) teria de voltar rápido demais e o passo por quadro do
-## clipe estouraria. O duty vem do rig para outro animal herdar o voo sem
-## editar o motor.
-static func _voo_galope(f: float, mo: Dictionary) -> float:
-	var duty := float(mo.get("duty_galope", 0.25))
+## clipe estouraria. O duty e o expoente vêm da marcha em dados; outra marcha
+## herda o voo sem editar o motor.
+static func _voo_galope(f: float, marcha: Dictionary) -> float:
+	var duty := float(marcha.get("duty", 0.0))
 	var crista := 0.25 + duty * 0.5
-	return pow(0.5 + 0.5 * cos(TAU * 2.0 * (f - crista)), 1.7)
+	return pow(0.5 + 0.5 * cos(TAU * 2.0 * (f - crista)),
+		float((marcha.get("voo", {}) as Dictionary).get("expoente", 0.0)))
 
 
 ## Pulso 0→1→0 entre a..b (sobe) e c..d (desce); serve para recolher/estender
@@ -698,55 +719,76 @@ static func _girar_y_nomes(j: Dictionary, nomes: Array, piv: Vector3, ang: float
 		j[nome] = Vector3(piv.x + dx * c - dz * s, p.y, piv.z + dx * s + dz * c)
 
 
+## Marcha que dirige o clipe: `clipe_marcha` escolhe a tabela em `marchas`.
+## Devolve {} quando o mapa não aponta o clipe (o clipe sem marcha não anda).
+## `validar` exige walk e run mapeados e reprova o rig sem a tabela — o motor
+## não tem fallback de gait.
+static func _marcha(mo: Dictionary, clipe: String) -> Dictionary:
+	var mapa: Variant = mo.get("clipe_marcha", {})
+	if not mapa is Dictionary or not (mapa as Dictionary).has(clipe):
+		return {}
+	var tabela: Variant = mo.get("marchas", {})
+	if not tabela is Dictionary:
+		return {}
+	var nome: Variant = (mapa as Dictionary)[clipe]
+	if not nome is String:
+		return {}
+	var marcha: Variant = (tabela as Dictionary).get(nome)
+	return marcha if marcha is Dictionary else {}
+
+
+## Alvo do pé [z, y] no instante `f` de uma marcha em dados. Apoio: a pata
+## recua a passada inteira em z. Balanço: volta com a curva de `avanco` do
+## LADO (dianteira/traseira) — `ease_out` chega cedo, `ease_in` fica para trás
+## e varre no fim — e sobe em arco; se a marcha tem bloco `voo`, as quatro
+## patas recolhem mais no voo (`levanta_extra`). Nada aqui conhece nome de
+## clipe. Array (e não Vector2) para o cálculo seguir em double, como antes de
+## a marcha sair do motor.
+static func _pe_da_marcha(marcha: Dictionary, pata: String, frente: bool, f: float) -> Array:
+	var defas: Dictionary = marcha.get("defasagem", {})
+	var duty := float(marcha.get("duty", 0.0))
+	var passo := float(marcha.get("passo_px", 0.0))
+	var c := fposmod(f - float(defas.get(pata, 0.0)), 1.0)
+	if c < duty:
+		return [passo * 0.5 - passo * (c / duty), 0.0]
+	var t := (c - duty) / (1.0 - duty)
+	var lado := "dianteira" if frente else "traseira"
+	var curva: Dictionary = (marcha.get("avanco", {}) as Dictionary).get(lado, {})
+	var expoente := float(curva.get("expoente", 0.0))
+	var avanca := (pow(t, expoente) if String(curva.get("curva", "")) == "ease_in"
+		else 1.0 - pow(1.0 - t, expoente))
+	var z := -passo * 0.5 + passo * avanca
+	var y := float(marcha.get("levanta_px", 0.0))
+	var voo: Variant = marcha.get("voo")
+	if voo is Dictionary:
+		y = y * (1.0 + float((voo as Dictionary).get("levanta_extra", 0.0))
+			* _voo_galope(f, marcha))
+	y = y * pow(maxf(0.0, sin(PI * t)), float(marcha.get("easing_levanta", 0.0)))
+	return [z, y]
+
+
 ## Alvos de pata. Apoio = y 0 (chão do MUNDO); balanço = arco em y. A marcha
 ## de 4 tempos usa LH→LF→RH→RF; o galope usa o par traseiro e depois o
 ## dianteiro, com suspensão. A saída do balanço é rápida e o pouso macio
-## (`pow(sin, easing)` no y, ease-out no z). Nos clipes de ação as patas ficam
-## plantadas, salvo o pulo (recolhe/estende) e o pouso correndo (derrapagem).
+## (`pow(sin, easing)` no y, curva de `avanco` no z). Qualquer clipe que tenha
+## marcha em `clipe_marcha` é resolvido pela tabela `marchas` do rig —
+## defasagem, passada, altura, easings, lados e voo vêm do JSON. Nos demais
+## clipes as patas ficam plantadas, salvo o pulo (recolhe/estende) e o pouso
+## correndo (derrapagem).
 static func _patas(pernas: Array, clipe: String, f: float, mo: Dictionary,
 		salto_correndo: bool = false) -> Dictionary:
 	var out: Dictionary = {}
+	var marcha := _marcha(mo, clipe)
 	for perna in pernas:
 		var nome := String(perna["nome"])
 		var x := float(perna["x"])
 		var z := float(perna["rest_z"])
 		var y := 0.0
 		var frente := String(perna["upper"]).begins_with("ombro")
-		if clipe == "walk":
-			var duty := float(mo.get("duty_walk", 0.65))
-			var offs := {"te": 0.0, "fe": 0.25, "td": 0.5, "fd": 0.75}
-			var passo := float(mo.get("passo_px", 5.0))
-			var c := fposmod(f - float(offs.get(nome, 0.0)), 1.0)
-			if c < duty:
-				z += passo * 0.5 - passo * (c / duty)
-			else:
-				var t := (c - duty) / (1.0 - duty)
-				z += -passo * 0.5 + passo * (1.0 - pow(1.0 - t, 2.0))
-				y = float(mo.get("levanta_px", 3.0)) * pow(maxf(0.0, sin(PI * t)),
-					float(mo.get("easing_levanta", 0.72)))
-		elif clipe == "run":
-			var duty := float(mo.get("duty_galope", 0.25))
-			var off := 0.0 if nome in ["te", "td"] else 0.5
-			var passo := float(mo.get("galope_passo_px", 9.5))
-			var c := fposmod(f - off, 1.0)
-			if c < duty:
-				z += passo * 0.5 - passo * (c / duty)
-			else:
-				var t := (c - duty) / (1.0 - duty)
-				# As duas pontas do galope voam em sentidos opostos: a dianteira
-				# alcança à frente (ease-out, chega cedo no ápice) e a traseira
-				# fica para trás depois do impulso (ease-in) antes de varrer.
-				# É isso que abre o cão no ar em comprimento, sem mudar a passada.
-				var avanca := (1.0 - pow(1.0 - t, 2.0)) if frente \
-					else pow(t, float(mo.get("run_easing_traseiro", 2.0)))
-				z += -passo * 0.5 + passo * avanca
-				# No voo as quatro patas sobem mais (fração do levanta): o cão
-				# fica baixo e comprido, com as patas recolhidas na linha do
-				# tronco em vez de penduradas no chão.
-				var voo := _voo_galope(f, mo)
-				y = float(mo.get("galope_levanta_px", 5.5)) \
-					* (1.0 + float(mo.get("run_voo_levanta", 0.0)) * voo) \
-					* pow(maxf(0.0, sin(PI * t)), float(mo.get("easing_levanta", 0.72)))
+		if not marcha.is_empty():
+			var pe := _pe_da_marcha(marcha, nome, frente, f)
+			z += float(pe[0])
+			y = float(pe[1])
 		elif clipe == "jump_air":
 			# Dianteiras recolhem primeiro; traseiras depois. Antes do pouso as
 			# dianteiras voltam a estender.
@@ -774,7 +816,9 @@ static func _patas(pernas: Array, clipe: String, f: float, mo: Dictionary,
 ## Movimento do tronco por clipe. Só as juntas do corpo; as patas são alvos
 ## no chão e a IK resolve a perna depois. `twist` (transversa) e `flex` (flexão
 ## do tronco) movem a frente e o traseiro em sentidos opostos; a cabeça é
-## contra-rotacionada para não bater no bob/pitch.
+## contra-rotacionada para não bater no bob/pitch. O tronco do galope (agachar,
+## alongar, pitch, suspensão, bob e o afundamento no voo) é o bloco `corpo` da
+## marcha em dados — nenhum clipe é consultado pelo nome aqui.
 static func _mover_corpo(m: Dictionary, j: Dictionary, clipe: String, f: float, mo: Dictionary,
 		salto_correndo: bool = false) -> void:
 	var dy := 0.0
@@ -783,8 +827,33 @@ static func _mover_corpo(m: Dictionary, j: Dictionary, clipe: String, f: float, 
 	var pitch_corpo := 0.0
 	var twist := 0.0
 	var flex := 0.0
-	# 0..1 dentro das duas janelas de suspensão do galope (fase e meia-fase).
-	var voo := 0.0
+	var marcha := _marcha(mo, clipe)
+	var corpo: Dictionary = marcha.get("corpo", {}) if marcha.get("corpo") is Dictionary else {}
+	var voo_bloco: Dictionary = marcha.get("voo", {}) if marcha.get("voo") is Dictionary else {}
+	# 0..1 no envelope de suspensão da marcha (fase e meia-fase).
+	var voo := _voo_galope(f, marcha) if not voo_bloco.is_empty() else 0.0
+	if not corpo.is_empty():
+		var susp := 0.0
+		var fases: Array = corpo.get("suspensao_fases", [])
+		var largura := float(corpo.get("suspensao_largura", 0.0))
+		for inicio in fases:
+			var ts := (f - float(inicio)) / largura
+			if ts >= 0.0 and ts <= 1.0:
+				susp = maxf(susp, float(corpo.get("suspensao_px", 0.0)) * sin(PI * ts))
+		# A corrida anda agachada e alongada o tempo todo: a descida e a
+		# extensão do tronco são constantes, SOMADAS à oscilação da marcha
+		# (não é física nova — só a pose do clipe). As patas seguem no chão
+		# (alvo y=0) e a IK resolve o resto.
+		# No voo o tronco ainda AFUNDA: o galope esticado é baixo e longo
+		# (patas à frente e atrás), não um pulo em pé.
+		dy = susp + float(corpo.get("bob_px", 0.0)) * sin(TAU * f * 2.0) \
+			- float(corpo.get("baixa_px", 0.0)) \
+			- float(voo_bloco.get("baixa_px", 0.0)) * voo
+		var g := float(corpo.get("pitch_gather_graus", 0.0))
+		var s := float(corpo.get("pitch_suspensao_graus", 0.0))
+		pitch_corpo = deg_to_rad((g + s) * 0.5 + (g - s) * 0.5 * cos(TAU * f * 2.0))
+		flex = (-0.5 * float(corpo.get("flexao_px", 0.0)) * cos(TAU * f * 2.0)
+			+ float(corpo.get("estica_px", 0.0)))
 	match clipe:
 		"idle":
 			dy = float(mo.get("respira_px", 0.5)) * sin(TAU * f)
@@ -796,26 +865,6 @@ static func _mover_corpo(m: Dictionary, j: Dictionary, clipe: String, f: float, 
 			var apoio := _amostra_periodica([8.0, -6.5, -8.0, 6.5], f) / 8.0
 			dx = float(mo.get("walk_balanco_lateral_px", 0.7)) * apoio
 			twist = float(mo.get("walk_transversa_px", 1.5)) * sin(TAU * f)
-		"run":
-			var susp := 0.0
-			for inicio in [0.25, 0.75]:
-				var t := (f - float(inicio)) / 0.25
-				if t >= 0.0 and t <= 1.0:
-					susp = maxf(susp, float(mo.get("galope_suspensao_px", 4.2)) * sin(PI * t))
-			voo = _voo_galope(f, mo)
-			# A corrida anda agachada e alongada o tempo todo: a descida e a
-			# extensão do tronco são constantes, SOMADAS à oscilação do galope
-			# (não é física nova — só a pose do clipe). As patas seguem no chão
-			# (alvo y=0) e a IK resolve o resto.
-			# No voo o tronco ainda AFUNDA: o galope esticado é baixo e longo
-			# (patas à frente e atrás), não um pulo em pé.
-			dy = susp + 1.2 * sin(TAU * f * 2.0) - float(mo.get("run_baixa_px", 1.6)) \
-				- float(mo.get("run_voo_baixa_px", 0.0)) * voo
-			var g := float(mo.get("run_pitch_gather_graus", 9.0))
-			var s := float(mo.get("run_pitch_suspensao_graus", -6.0))
-			pitch_corpo = deg_to_rad((g + s) * 0.5 + (g - s) * 0.5 * cos(TAU * f * 2.0))
-			flex = (-0.5 * float(mo.get("run_flexao_px", 3.5)) * cos(TAU * f * 2.0)
-				+ float(mo.get("run_estica_px", 2.5)))
 		"jump_start":
 			dy = -float(mo.get("pulo_agacha_px", 3.0)) * sin(PI * f)
 			dy += 1.2 * _smoothstep(0.6, 1.0, f)
@@ -870,21 +919,22 @@ static func _mover_corpo(m: Dictionary, j: Dictionary, clipe: String, f: float, 
 			q.y = centro.y + ry * cos(pitch_corpo) - rz * sin(pitch_corpo)
 			q.z = centro.z + ry * sin(pitch_corpo) + rz * cos(pitch_corpo)
 		j[nome] = q
-	# Estabilização da cabeça: no passo ela absorve a maior parte do bob; no
-	# galope contra-rotaciona o pitch do tronco em torno do pescoço.
+	# Estabilização da cabeça: no passo ela absorve a maior parte do bob; na
+	# marcha com bloco `corpo` contra-rotaciona o pitch do tronco em torno do
+	# pescoço (`cabeca_contra_pitch` vem do JSON).
 	if clipe == "walk":
 		var counter := -dy * float(mo.get("walk_cabeca_estabiliza", 0.75))
 		for nome in ["cabeca", "focinho", "orelha_e", "orelha_d"]:
 			if j.has(nome):
 				j[nome] = (j[nome] as Vector3) + Vector3(0, counter, 0)
-	elif clipe == "run" and absf(pitch_corpo) > 0.00001:
+	elif not corpo.is_empty() and absf(pitch_corpo) > 0.00001:
 		_girar_x_nomes(j, ["cabeca", "focinho", "orelha_e", "orelha_d"],
-			j["pescoco"], -pitch_corpo * 0.8)
-	# Voo do galope: o pescoço se estende à frente e para baixo até a cabeça
+			j["pescoco"], -pitch_corpo * float(corpo.get("cabeca_contra_pitch", 0.0)))
+	# Voo da marcha: o pescoço se estende à frente e para baixo até a cabeça
 	# ficar na linha do dorso, e as orelhas vão junto. Sem isso o alto da
 	# silhueta continua sendo a orelha e o cão corre em pé, não esticado.
-	if clipe == "run" and voo > 0.0 and j.has("peito") and j.has("pescoco"):
-		var angulo := deg_to_rad(float(mo.get("run_voo_pescoco_graus", 0.0))) * voo
+	if not voo_bloco.is_empty() and voo > 0.0 and j.has("peito") and j.has("pescoco"):
+		var angulo := deg_to_rad(float(voo_bloco.get("pescoco_graus", 0.0))) * voo
 		if absf(angulo) > 0.00001:
 			_girar_x_nomes(j, ["pescoco", "cabeca", "focinho", "orelha_e", "orelha_d"],
 				j["peito"], angulo)
@@ -892,12 +942,38 @@ static func _mover_corpo(m: Dictionary, j: Dictionary, clipe: String, f: float, 
 
 ## Cabeça, cauda e orelhas: gesto de leitura do clipe (não mexe em regra).
 ## A cauda e as orelhas usam atraso de fase (follow-through); o idle mantém a
-## cauda baixa e as orelhas relaxadas, sem picos.
+## cauda baixa e as orelhas relaxadas, sem picos. O bloco `extras` da marcha
+## (chicote da cauda e orelha varrida no voo) vale para qualquer clipe que a
+## declare — nunca pelo nome do clipe.
 static func _extras(j: Dictionary, clipe: String, f: float, mo: Dictionary,
 		salto_correndo: bool = false) -> void:
 	var cauda := float(mo.get("cauda_px", 1.8))
 	var atraso := float(mo.get("walk_atraso_fase", 0.1))
-	if clipe == "idle":
+	var marcha := _marcha(mo, clipe)
+	var extras: Dictionary = marcha.get("extras", {}) if marcha.get("extras") is Dictionary else {}
+	if not extras.is_empty():
+		var chicote := float(extras.get("cauda_chicote_px", 0.0))
+		# A cauda vai baixa e comprida, na linha do dorso: no galope esticado o
+		# que alonga a cauda é o z (para trás), não o y. Subir a base criava o
+		# ponto mais alto da silhueta, justamente o que o voo precisa achatar.
+		var voo := _voo_galope(f, marcha)
+		if j.has("cauda_base"):
+			j["cauda_base"] = (j["cauda_base"] as Vector3) + Vector3(0,
+				float(extras.get("cauda_voo_y", 0.0)) * voo,
+				float(extras.get("cauda_voo_z", 0.0)) * voo)
+		if j.has("cauda_ponta"):
+			j["cauda_ponta"] = (j["cauda_ponta"] as Vector3) + Vector3(
+				chicote * sin(TAU * (f - atraso)),
+				float(extras.get("cauda_ponta_voo_y", 0.0)) * voo,
+				float(extras.get("cauda_ponta_voo_z", 0.0)) * voo)
+		# O pescoço esticado leva a cabeça para +z; as orelhas varridas para
+		# trás (coladas no pescoço) recuperam a leitura de galope.
+		var tras := float(extras.get("orelha_tras_px", 0.0))
+		for nome in ["orelha_e", "orelha_d"]:
+			if j.has(nome):
+				j[nome] = (j[nome] as Vector3) + Vector3(0,
+					-float(extras.get("orelha_baixa_px", 0.0)), -tras)
+	elif clipe == "idle":
 		var idle_c := float(mo.get("idle_cauda_px", 1.5))
 		if j.has("cauda_base"):
 			j["cauda_base"] = (j["cauda_base"] as Vector3) + Vector3(
@@ -928,23 +1004,6 @@ static func _extras(j: Dictionary, clipe: String, f: float, mo: Dictionary,
 		for nome in ["orelha_e", "orelha_d"]:
 			if j.has(nome):
 				j[nome] = (j[nome] as Vector3) + Vector3(0, 0.35 * sin(TAU * (f - atraso)), 0)
-	elif clipe == "run":
-		var chicote := float(mo.get("run_cauda_chicote_px", 2.0))
-		# A cauda vai baixa e comprida, na linha do dorso: no galope esticado o
-		# que alonga a cauda é o z (para trás), não o y. Subir a base criava o
-		# ponto mais alto da silhueta, justamente o que o voo precisa achatar.
-		var voo := _voo_galope(f, mo)
-		if j.has("cauda_base"):
-			j["cauda_base"] = (j["cauda_base"] as Vector3) + Vector3(0, 1.5 * voo, -3.2 * voo)
-		if j.has("cauda_ponta"):
-			j["cauda_ponta"] = (j["cauda_ponta"] as Vector3) + Vector3(
-				chicote * sin(TAU * (f - atraso)), 2.5 * voo, -8.5 * voo)
-		# O pescoço esticado leva a cabeça para +z; as orelhas varridas para
-		# trás (coladas no pescoço) recuperam a leitura de galope.
-		var tras := float(mo.get("run_orelha_tras_px", 9.0))
-		for nome in ["orelha_e", "orelha_d"]:
-			if j.has(nome):
-				j[nome] = (j[nome] as Vector3) + Vector3(0, -0.5, -tras)
 	elif clipe == "jump_start":
 		var arco := sin(PI * f)
 		for nome in ["cabeca", "focinho"]:
@@ -1160,3 +1219,88 @@ static func _par(v: Variant) -> bool:
 		if not (n is int or n is float) or not is_finite(float(n)):
 			return false
 	return true
+
+
+static func _num(v: Variant) -> bool:
+	return (v is int or v is float) and is_finite(float(v))
+
+
+## Marcha é dado OBRIGATÓRIO: `motion.marchas` (tabela por nome) e
+## `motion.clipe_marcha` (clipe→marcha, com `walk` e `run` mapeados). Os blocos
+## opcionais (`voo`, `corpo`, `extras`) também são dado: se um deles existe,
+## todas as suas chaves são exigidas — o motor não completa valor por conta
+## própria. Sem fallback de gait: rig sem a seção reprova aqui, fail-closed.
+static func _validar_marchas(motion: Dictionary) -> String:
+	var marchas: Variant = motion.get("marchas")
+	if not marchas is Dictionary or (marchas as Dictionary).is_empty():
+		return "motion.marchas ausente"
+	for nome in marchas:
+		var bruto: Variant = (marchas as Dictionary)[nome]
+		if not bruto is Dictionary:
+			return "marcha %s não é objeto" % nome
+		var marcha: Dictionary = bruto
+		var duty: Variant = marcha.get("duty")
+		if not _num(duty) or float(duty) <= 0.0 or float(duty) >= 1.0:
+			return "marcha %s com duty fora de (0,1)" % nome
+		for chave in ["passo_px", "ciclo_px"]:
+			if not _num(marcha.get(chave)) or float(marcha.get(chave)) <= 0.0:
+				return "marcha %s com %s inválido" % [nome, chave]
+		if not _num(marcha.get("levanta_px")) or float(marcha.get("levanta_px")) < 0.0:
+			return "marcha %s com levanta_px inválido" % nome
+		if not _num(marcha.get("easing_levanta")) \
+				or float(marcha.get("easing_levanta")) <= 0.0:
+			return "marcha %s com easing_levanta inválido" % nome
+		var avanco: Variant = marcha.get("avanco")
+		if not avanco is Dictionary:
+			return "marcha %s sem avanco" % nome
+		for lado in ["dianteira", "traseira"]:
+			var spec: Variant = (avanco as Dictionary).get(lado)
+			if not spec is Dictionary:
+				return "marcha %s sem avanco.%s" % [nome, lado]
+			if String((spec as Dictionary).get("curva", "")) not in ["ease_in", "ease_out"]:
+				return "marcha %s com avanco.%s.curva inválida" % [nome, lado]
+			if not _num((spec as Dictionary).get("expoente")):
+				return "marcha %s com avanco.%s.expoente inválido" % [nome, lado]
+		for lado in avanco:
+			if String(lado) not in ["dianteira", "traseira"]:
+				return "marcha %s com lado desconhecido: %s" % [nome, str(lado)]
+		var defas: Variant = marcha.get("defasagem")
+		if not defas is Dictionary:
+			return "marcha %s sem defasagem" % nome
+		for pata in MARCHA_PATAS:
+			if not _num((defas as Dictionary).get(pata)):
+				return "marcha %s sem defasagem.%s" % [nome, pata]
+		for pata in defas:
+			if String(pata) not in MARCHA_PATAS:
+				return "marcha %s com pata desconhecida: %s" % [nome, str(pata)]
+		for bloco in MARCHA_BLOCOS:
+			if not marcha.has(bloco):
+				continue
+			var b: Variant = marcha[bloco]
+			if not b is Dictionary:
+				return "marcha %s com %s não é objeto" % [nome, bloco]
+			for chave in MARCHA_BLOCOS[bloco]:
+				if not _num((b as Dictionary).get(chave)):
+					return "marcha %s com %s.%s inválido" % [nome, bloco, chave]
+		if marcha.has("corpo"):
+			var fases: Variant = (marcha["corpo"] as Dictionary).get("suspensao_fases")
+			if not fases is Array or (fases as Array).is_empty():
+				return "marcha %s sem corpo.suspensao_fases" % nome
+			for v in fases:
+				if not _num(v):
+					return "marcha %s com corpo.suspensao_fases inválido" % nome
+		if marcha.has("extras") and not marcha.has("voo"):
+			return "marcha %s com extras sem voo" % nome
+	var mapa: Variant = motion.get("clipe_marcha")
+	if not mapa is Dictionary:
+		return "motion.clipe_marcha ausente"
+	for clipe in ["walk", "run"]:
+		if not (mapa as Dictionary).has(clipe):
+			return "clipe_marcha sem " + clipe
+	for clipe in mapa:
+		if String(clipe) not in CLIPES:
+			return "clipe_marcha com clipe desconhecido: " + str(clipe)
+		var alvo: Variant = (mapa as Dictionary)[clipe]
+		if not alvo is String or not (marchas as Dictionary).has(alvo):
+			return "clipe_marcha.%s aponta marcha inexistente" % clipe
+	return ""

@@ -3,6 +3,28 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.33.3 — marcha em dados: walk e galope fora do código (2026-11-24)
+
+- **A pata deixou de ser decidida por clipe:** walk e galope saem da tabela
+  `motion.marchas` do rig, ligada por `clipe_marcha`; `_patas` tem **um** ramo
+  para qualquer clipe com marcha. `grep 'clipe == "run"'` no motor = 0.
+- **O que virou dado:** duty, passada, altura, easings, defasagem por pata,
+  curva por lado (dianteira ease-out, traseira ease-in), envelope de voo
+  (expoente, afundar do tronco, pescoço), corpo (suspensão, bob, baixa, estica,
+  flexão, pitch) e extras (cauda, orelha). `locomocao3d` tira ciclo, duty e
+  defasagem da mesma tabela — as chaves soltas de `motion` saíram.
+- **Prova de que nada se moveu:** dump de 39.360 poses (2 rigs × 15 clipes ×
+  8 direções × 41 fases × salto × yaw) com **sha256 idêntico**
+  (`9a4d759a…905`); métricas de voo e marcha bit a bit iguais.
+- **Terceira marcha só em dados:** um **trote** declarado dentro do teste
+  (duty 0,4, par diagonal) anda com 4 apoios e sem derrapagem, **sem edição no
+  motor** — é a prova de que o mecanismo é geral, não canino.
+- **Dívida medida, não escondida:** o teste imprime o **descompasso**
+  (`passada` × `duty × ciclo`): −7,36 px no walk do cão, +1,90 px no galope.
+  Reconciliar é o item (3) da ordem, com as proporções do cão.
+- **Verificação:** 277 testes/0, parser 67/0, docs 34/0.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.33.2 — porte e quadro separados no rig (2026-11-24)
 
 - **Duas grandezas:** o rig declara `porte_px` (o cão: 68×68), **imutável**, e

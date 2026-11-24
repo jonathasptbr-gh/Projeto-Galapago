@@ -324,7 +324,6 @@
   },
   "motion": {
     "passo_px": 17.0,
-    "levanta_px": 3.0,
     "corpo_px": 1.1,
     "cauda_px": 1.8,
     "respira_px": 0.5,
@@ -342,19 +341,96 @@
     "walk_transversa_px": 1.5,
     "walk_cabeca_estabiliza": 0.75,
     "walk_atraso_fase": 0.1,
-    "easing_levanta": 0.72,
     "run_pitch_gather_graus": 9.0,
     "run_pitch_suspensao_graus": -6.0,
-    "run_flexao_px": 3.5,
     "run_baixa_px": 1.6,
     "run_estica_px": 2.5,
-    "run_cauda_chicote_px": 2.0,
     "pulo_agacha_px": 3.0,
     "pulo_levanta_px": 5.0,
     "pulo_alcance_dianteiro_px": 3.0,
     "pulo_alcance_traseiro_px": 2.0,
-    "ciclo_walk_px": 46.0,
-    "ciclo_run_px": 64.0
+    "marchas": {
+      "passo": {
+        "duty": 0.55,
+        "passo_px": 17.0,
+        "levanta_px": 3.0,
+        "easing_levanta": 0.72,
+        "avanco": {
+          "dianteira": {
+            "curva": "ease_out",
+            "expoente": 2.0
+          },
+          "traseira": {
+            "curva": "ease_out",
+            "expoente": 2.0
+          }
+        },
+        "defasagem": {
+          "te": 0.0,
+          "fe": 0.25,
+          "td": 0.5,
+          "fd": 0.75
+        },
+        "ciclo_px": 46.0
+      },
+      "galope": {
+        "duty": 0.25,
+        "passo_px": 21.0,
+        "levanta_px": 5.5,
+        "easing_levanta": 0.72,
+        "avanco": {
+          "dianteira": {
+            "curva": "ease_out",
+            "expoente": 2.0
+          },
+          "traseira": {
+            "curva": "ease_in",
+            "expoente": 2.0
+          }
+        },
+        "defasagem": {
+          "te": 0.0,
+          "fe": 0.5,
+          "td": 0.0,
+          "fd": 0.5
+        },
+        "ciclo_px": 64.0,
+        "voo": {
+          "expoente": 1.7,
+          "baixa_px": 0.0,
+          "pescoco_graus": 0.0,
+          "levanta_extra": 0.0
+        },
+        "corpo": {
+          "suspensao_px": 4.2,
+          "suspensao_fases": [
+            0.25,
+            0.75
+          ],
+          "suspensao_largura": 0.25,
+          "bob_px": 1.2,
+          "baixa_px": 1.6,
+          "estica_px": 2.5,
+          "flexao_px": 3.5,
+          "pitch_gather_graus": 9.0,
+          "pitch_suspensao_graus": -6.0,
+          "cabeca_contra_pitch": 0.8
+        },
+        "extras": {
+          "cauda_chicote_px": 2.0,
+          "orelha_tras_px": 9.0,
+          "orelha_baixa_px": 0.5,
+          "cauda_voo_y": 1.5,
+          "cauda_voo_z": -3.2,
+          "cauda_ponta_voo_y": 2.5,
+          "cauda_ponta_voo_z": -8.5
+        }
+      }
+    },
+    "clipe_marcha": {
+      "walk": "passo",
+      "run": "galope"
+    }
   },
   "clips": {
     "idle": {

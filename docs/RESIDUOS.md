@@ -4,6 +4,9 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.33.3 | rig | descompasso entre `passada` e `duty × ciclo` (walk do cão −7,36 px; galope +1,90 px): a âncora no mundo esconde a diferença; reconciliar é o item (3) | médio | aberto |
+| v0.33.3 | rig | `motion` ainda guarda chaves legadas (`duty_walk`, `galope_passo_px`, `run_baixa_px`, …) só porque `testes/test_esqueleto3d.gd` as lê; o motor não as usa | pequeno | aberto |
+| v0.33.3 | rig | `_validar_marchas` assume exatamente 4 patas (`MARCHA_PATAS`); N pernas exige mexer em `_pernas`/topologia — bloqueio do inseto | pequeno | aberto |
 | v0.33.2 | rig | o equino declara `porte_px` 68×68, o mesmo do cão — a régua de porte por arquétipo/família (decisão 1C) ainda não foi aplicada | médio | aberto |
 | v0.33.2 | rig | `_patas` continua decidindo a pata por clipe, com defasagens cravadas no código; o item (2) da ordem (marcha por contato) é o próximo | médio | aberto |
 | v0.33.1 | RIG | o método está escrito, mas o motor ainda decide a pata por clipe (`_patas`) e o inseto continua bloqueado pelo schema 2+2 — os lotes 1–5 da ordem de trabalho não foram feitos | médio | aberto |

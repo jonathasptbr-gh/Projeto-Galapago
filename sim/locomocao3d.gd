@@ -1,6 +1,8 @@
 extends RefCounted
 ## Estado puro da marcha: a fase acompanha distância de corpo, os apoios são
 ## pontos de chão do mundo. Sem movimento, não existe avanço de passada.
+## Ciclo, duty e defasagem de cada pata vêm da tabela `marchas` do rig (via
+## `clipe_marcha`); um clipe sem marcha declarada não avança fase.
 const E3 := preload("res://sim/esqueleto3d.gd")
 const INCLINACAO := sin(deg_to_rad(20.0))
 
@@ -8,7 +10,9 @@ const INCLINACAO := sin(deg_to_rad(20.0))
 static func avancar(rig: Dictionary, anterior: Dictionary, pos: Vector2,
 		dir: String, yaw_graus: float, clipe: String, delta: Vector2) -> Dictionary:
 	var estado: Dictionary = anterior.duplicate(true)
-	var tipo := clipe if clipe in ["walk", "run"] else ""
+	var mo: Dictionary = rig.get("motion", {})
+	var marcha := E3._marcha(mo, clipe)
+	var tipo := clipe if not marcha.is_empty() else ""
 	var yaw := deg_to_rad(E3.yaw_efetivo(dir, yaw_graus))
 	var mudou: bool = String(estado.get("tipo", "")) != tipo
 	var giro: float = absf(wrapf(yaw - float(estado.get("yaw", yaw)), -PI, PI))
@@ -27,8 +31,7 @@ static func avancar(rig: Dictionary, anterior: Dictionary, pos: Vector2,
 		estado["apoiando"] = {}
 		estado["alvos"] = {}
 		return estado
-	var mo: Dictionary = rig.get("motion", {})
-	var ciclo := float(mo.get("ciclo_walk_px", 35.2)) if tipo == "walk" else float(mo.get("ciclo_run_px", 52.4))
+	var ciclo := float(marcha.get("ciclo_px", 0.0))
 	var antigo := float(estado.get("fase", 0.0))
 	var fase := fposmod(antigo + delta.length() / maxf(ciclo, 1.0), 1.0)
 	estado["fase"] = fase
@@ -39,11 +42,12 @@ static func avancar(rig: Dictionary, anterior: Dictionary, pos: Vector2,
 	if base.is_empty():
 		return estado
 	var piv := Vector2(float(rig["pivot_px"][0]), float(rig["pivot_px"][1]))
-	var duty := float(mo.get("duty_walk", 0.55)) if tipo == "walk" else float(mo.get("duty_galope", 0.25))
+	var duty := float(marcha.get("duty", 0.0))
+	var defas: Dictionary = marcha.get("defasagem", {})
 	for perna in E3._pernas(rig):
 		var nome := String(perna["nome"])
 		var pata := String(perna["foot"])
-		var off := float({"te": 0.0, "fe": 0.25, "td": 0.5, "fd": 0.75}.get(nome, 0.0)) if tipo == "walk" else (0.0 if nome in ["te", "td"] else 0.5)
+		var off := float(defas.get(nome, 0.0))
 		var contato := fposmod(fase - off, 1.0) < duty
 		if not contato:
 			if reancorar:

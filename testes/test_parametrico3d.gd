@@ -200,3 +200,126 @@ func test_quadro_contem_o_porte_e_rig_antigo_reprova() -> void:
 	igual(E3.validar(antigo), "porte_px inválido", "campo antigo não passa calado")
 	checar(E3.de_json(JSON.stringify(antigo)).is_empty(), "de_json fecha a porta")
 	checar(E3.preparar(antigo).is_empty(), "preparar fecha a porta")
+
+
+## A marcha é DADO: `motion.clipe_marcha` aponta o walk para `motion.marchas.passo`.
+## Dobrar a passada SÓ no JSON (em memória) e reprepare tem de dobrar a varredura
+## do pé no apoio — prova de que a pose obedece à tabela, não ao motor. Sem a
+## tabela o validador reprova (o motor não tem fallback de marcha).
+func test_marcha_em_dados_comanda_a_passada_do_walk() -> void:
+	var cru := _raw("canino3d")
+	var passo := float(cru["motion"]["marchas"]["passo"]["passo_px"])
+	var base := Rigs.carregar("canino3d")
+	perto(float(E3._marcha(base["motion"], "walk").get("passo_px", -1.0)), passo, 0.001,
+		"walk resolvido pela marcha `passo` da tabela")
+	var antes := _varredura_z(base, "pata_te")
+	perto(antes, passo, 0.01, "varredura do pé no apoio = passada da tabela")
+	var dobrado := cru.duplicate(true)
+	dobrado["motion"]["marchas"]["passo"]["passo_px"] = passo * 2.0
+	var pronto := E3.preparar(dobrado)
+	checar(not pronto.is_empty(), "rig com a marcha dobrada prepara")
+	var depois := _varredura_z(pronto, "pata_te")
+	perto(depois, antes * 2.0, 0.02, "passada dobrada dobra a varredura do pé (%.3f)" % depois)
+	var sem := cru.duplicate(true)
+	sem["motion"].erase("marchas")
+	checar(E3.validar(sem) != "", "rig sem `marchas` reprova (fail-closed, sem fallback)")
+
+
+func _varredura_z(m: Dictionary, pata: String) -> float:
+	var zmin := INF
+	var zmax := -INF
+	for i in 41:
+		var p := E3.pose(m, "east", float(i) / 40.0, "walk")
+		var z := float((p["juntas_3d"][pata] as Vector3).z)
+		zmin = minf(zmin, z)
+		zmax = maxf(zmax, z)
+	return zmax - zmin
+
+
+## Métrica (NÃO falha — dívida do Lote 3): a passada que a arte declara não é
+## igual ao avanço do corpo no apoio (`duty × ciclo_px`). O descompasso é o
+## quanto o pé plantado teria de deslizar por projeto; o teste só registra.
+func test_metricas_das_marchas_declaradas() -> void:
+	for nome in ["canino3d", "equino3d"]:
+		var m := Rigs.carregar(nome)
+		for clipe in ["walk", "run"]:
+			var marcha := E3._marcha(m["motion"], clipe)
+			var passada := float(marcha.get("passo_px", 0.0))
+			var avanco := float(marcha.get("duty", 0.0)) * float(marcha.get("ciclo_px", 0.0))
+			print("métrica marcha %s/%s: passada=%.6f duty*ciclo=%.6f descompasso=%.6f px"
+				% [nome, clipe, passada, avanco, passada - avanco])
+
+
+## Terceira marcha declarada SÓ EM DADOS: trote diagonal (te+fd juntos, fe+td
+## meio ciclo depois, duty 0,4). O motor não conhece o nome — `clipe_marcha.walk`
+## aponta para ela e pose/ancoragem saem da tabela, sem edição de motor. As
+## quatro patas passam pelo apoio (dois pares diagonais) e o pé plantado não
+## desliza (erro < 1 px), o mesmo contrato do walk.
+func test_terceira_marcha_so_em_dados_anda_com_quatro_apoios() -> void:
+	var cru := _raw("canino3d")
+	var m := cru.duplicate(true)
+	m["motion"]["marchas"]["trote"] = {
+		"duty": 0.4,
+		"passo_px": 12.0,
+		"levanta_px": 3.0,
+		"easing_levanta": 0.72,
+		"avanco": {
+			"dianteira": {"curva": "ease_out", "expoente": 2.0},
+			"traseira": {"curva": "ease_out", "expoente": 2.0},
+		},
+		"defasagem": {"te": 0.0, "fe": 0.5, "td": 0.5, "fd": 0.0},
+		"ciclo_px": 35.2,
+	}
+	m["motion"]["clipe_marcha"]["walk"] = "trote"
+	var pronto := E3.preparar(m)
+	checar(not pronto.is_empty(), "rig com a terceira marcha prepara")
+	igual(String(pronto["motion"]["clipe_marcha"]["walk"]), "trote",
+		"walk aponta a marcha nova em dados")
+	perto(float(E3._marcha(pronto["motion"], "walk").get("duty", -1.0)), 0.4, 0.0001,
+		"o motor lê duty 0,4 da tabela, sem conhecer o nome")
+	var estado: Dictionary = {}
+	var anterior := Vector2.ZERO
+	var em_apoio: Dictionary = {}
+	var apoio_por_pata: Dictionary = {}
+	var pior := 0.0
+	var amostras := 0
+	var max_simult := 0
+	var min_simult := 999
+	for i in 80:
+		var pos := Vector2(float(i) * 1.83, 0.0)
+		estado = Loc.avancar(pronto, estado, pos, "east", 0.0, "walk", pos - anterior)
+		anterior = pos
+		max_simult = maxi(max_simult, (estado["alvos"] as Dictionary).size())
+		min_simult = mini(min_simult, (estado["alvos"] as Dictionary).size())
+		var p := E3.pose(pronto, "east", estado["fase"], "walk", false, 0.0, estado["alvos"])
+		var piv := Vector2(float(pronto["pivot_px"][0]), float(pronto["pivot_px"][1]))
+		for perna in E3._pernas(pronto):
+			var nome := String(perna["nome"])
+			if not estado["alvos"].has(nome):
+				continue
+			em_apoio[nome] = true
+			apoio_por_pata[nome] = int(apoio_por_pata.get(nome, 0)) + 1
+			var alvo: Vector3 = estado["alvos"][nome]
+			var upper: Vector3 = p["juntas_3d"][perna["upper"]]
+			var raio := float(perna["l1"]) + float(perna["l2"]) + float(perna.get("l3", 0.0))
+			if upper.distance_to(alvo) > raio - 0.4:
+				continue
+			var foot := String(perna["foot"])
+			var mundo_pata: Vector2 = pos + (p["juntas"][foot] as Vector2) - piv
+			pior = maxf(pior, mundo_pata.distance_to(estado["apoios"][nome]))
+			amostras += 1
+	igual(em_apoio.size(), 4, "as quatro patas passam pelo apoio no trote")
+	checar(amostras > 12, "apoios viáveis no trote: %d" % amostras)
+	checar(pior < 1.0, "trote sem derrapar em apoio alcançável %.3f px (<1)" % pior)
+	# Assinatura do dado, não do nome: dois pares diagonais apoiando juntos e
+	# suspensão entre eles (duty 0,4). O walk (duty 0,55, defasagem em quartos)
+	# chega a três patas no chão e nunca fica sem apoio.
+	checar(max_simult <= 2, "trote apoia no máximo um par diagonal (%d)" % max_simult)
+	igual(min_simult, 0, "trote tem suspensão entre os pares (duty 0,4 da tabela)")
+	for nome in ["te", "fd"]:
+		perto(float(apoio_por_pata.get(nome, 0)) / 80.0, 0.4, 0.08,
+			"fração em apoio de %s = duty 0,4 da tabela" % nome)
+	var passada := float(pronto["motion"]["marchas"]["trote"]["passo_px"])
+	var avanco := 0.4 * 35.2
+	print("métrica marcha trote: passada=%.6f duty*ciclo=%.6f descompasso=%.6f px"
+		% [passada, avanco, passada - avanco])

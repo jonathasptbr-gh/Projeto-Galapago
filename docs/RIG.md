@@ -59,12 +59,14 @@ das poses.
    comprimento ÷ altura e a direção anatômica das patas
    ([`testes/test_parametrico3d.gd`](../testes/test_parametrico3d.gd):109).
 
-O motor de hoje anda meio caminho: [`sim/locomocao3d.gd`](../sim/locomocao3d.gd)
-avança a fase por distância e ancora os apoios no mundo, mas o apoio nasce da
-pose e volta como alvo de IK. O método quer o inverso: o contato nasce
-declarado e a pose segue dele. E `_patas` ainda decide a trajetória por clipe,
-com defasagens cravadas no código (`te` 0, `fe` 0.25, `td` 0.5, `fd` 0.75,
-[`sim/esqueleto3d.gd`](../sim/esqueleto3d.gd):706).
+O motor já não decide a pata por clipe: desde a v0.33.3, walk e galope vêm da
+tabela `marchas` do rig (`clipe_marcha` liga o clipe à marcha), e
+[`sim/locomocao3d.gd`](../sim/locomocao3d.gd) tira ciclo, duty e defasagem da
+mesma tabela. O que **ainda** não segue o método é o **descompasso**: a
+passada declarada não é igual ao avanço do corpo no apoio (`duty × ciclo`) —
+12,0 contra 19,36 px no walk do cão — e é a âncora no mundo que esconde a
+diferença. Reconciliar isso é o item (3): o apoio tem de sair do contato, não
+da correção.
 
 ## As cinco primitivas de locomoção
 
@@ -111,9 +113,11 @@ primitiva resolvida: só a primeira anda.
 Sem promessa de prazo; cada item começa com o anterior provado.
 
 0. Este documento.
-1. Separar **porte** de **quadro**, com teste — **feito**.
-2. **Marcha por contato** no lugar do `if clipe`.
-3. **Proporções e passada do cão**.
+1. Separar **porte** de **quadro**, com teste — **feito** (v0.33.2).
+2. **Marcha por contato** no lugar do `if clipe` — **feito** (v0.33.3): walk e
+   galope em dados, e um trote declarado só em dados como prova.
+3. **Proporções e passada do cão** — e **reconciliar** `passada` com
+   `duty × ciclo`.
 4. **Curva + despacho por arquétipo**.
 5. **Inseto de 6 patas** como prova (opcional).
 
@@ -121,9 +125,12 @@ Sem promessa de prazo; cada item começa com o anterior provado.
 
 - `tools/testes.sh` roda [`testes/test_parametrico3d.gd`](../testes/test_parametrico3d.gd):
   compilador legado e segunda espécie, interfaces sem marcha, IK com polo,
-  porte/quadro/pivô (imutabilidade e fail-closed), voo e apoios.
+  porte/quadro/pivô (imutabilidade e fail-closed), voo, apoios e a **marcha em
+  dados** — incluindo um **trote** declarado só no teste, sem tocar no motor.
 - No lote v0.33.0: 176 apoios alcançáveis, erro máximo 0,002 px; voo 1,97:1;
-  giro 4/4 (§P10).
+  giro 4/4 (§P10). O lote v0.33.3 provou a troca por dados com **poses
+  idênticas bit a bit** (sha256 do dump) e passou a imprimir o **descompasso**
+  de cada marcha (`passada` × `duty × ciclo`).
 
 ## O que este documento não cobre
 
