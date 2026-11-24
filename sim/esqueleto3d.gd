@@ -625,6 +625,20 @@ static func _smoothstep(a: float, b: float, x: float) -> float:
 	return t * t * (3.0 - 2.0 * t)
 
 
+## Envelope do VOO do galope (0..1): máximo no meio de cada suspensão, que
+## começa em 0,25 e em 0,75 e dura `duty_galope` — daí as cristas em
+## 0,25+duty/2 e 0,75+duty/2 (0,375 e 0,875 com duty 0,25, o canino), mínimo um
+## quarto de ciclo depois e ~0,31 na emenda do ciclo — o cão chega quase "em
+## pé" em jump_start. A potência 1,7 estreita a crista: sem ela a cabeça
+## (alavanca longa) teria de voltar rápido demais e o passo por quadro do
+## clipe estouraria. O duty vem do rig para outro animal herdar o voo sem
+## editar o motor.
+static func _voo_galope(f: float, mo: Dictionary) -> float:
+	var duty := float(mo.get("duty_galope", 0.25))
+	var crista := 0.25 + duty * 0.5
+	return pow(0.5 + 0.5 * cos(TAU * 2.0 * (f - crista)), 1.7)
+
+
 ## Pulso 0→1→0 entre a..b (sobe) e c..d (desce); serve para recolher/estender
 ## as patas do pulo em tempos diferentes.
 static func _pulso(f: float, a: float, b: float, c: float, d: float) -> float:
@@ -719,9 +733,20 @@ static func _patas(pernas: Array, clipe: String, f: float, mo: Dictionary,
 				z += passo * 0.5 - passo * (c / duty)
 			else:
 				var t := (c - duty) / (1.0 - duty)
-				z += -passo * 0.5 + passo * (1.0 - pow(1.0 - t, 2.0))
-				y = float(mo.get("galope_levanta_px", 5.5)) * pow(maxf(0.0, sin(PI * t)),
-					float(mo.get("easing_levanta", 0.72)))
+				# As duas pontas do galope voam em sentidos opostos: a dianteira
+				# alcança à frente (ease-out, chega cedo no ápice) e a traseira
+				# fica para trás depois do impulso (ease-in) antes de varrer.
+				# É isso que abre o cão no ar em comprimento, sem mudar a passada.
+				var avanca := (1.0 - pow(1.0 - t, 2.0)) if frente \
+					else pow(t, float(mo.get("run_easing_traseiro", 2.0)))
+				z += -passo * 0.5 + passo * avanca
+				# No voo as quatro patas sobem mais (fração do levanta): o cão
+				# fica baixo e comprido, com as patas recolhidas na linha do
+				# tronco em vez de penduradas no chão.
+				var voo := _voo_galope(f, mo)
+				y = float(mo.get("galope_levanta_px", 5.5)) \
+					* (1.0 + float(mo.get("run_voo_levanta", 0.0)) * voo) \
+					* pow(maxf(0.0, sin(PI * t)), float(mo.get("easing_levanta", 0.72)))
 		elif clipe == "jump_air":
 			# Dianteiras recolhem primeiro; traseiras depois. Antes do pouso as
 			# dianteiras voltam a estender.
@@ -758,6 +783,8 @@ static func _mover_corpo(m: Dictionary, j: Dictionary, clipe: String, f: float, 
 	var pitch_corpo := 0.0
 	var twist := 0.0
 	var flex := 0.0
+	# 0..1 dentro das duas janelas de suspensão do galope (fase e meia-fase).
+	var voo := 0.0
 	match clipe:
 		"idle":
 			dy = float(mo.get("respira_px", 0.5)) * sin(TAU * f)
@@ -775,11 +802,15 @@ static func _mover_corpo(m: Dictionary, j: Dictionary, clipe: String, f: float, 
 				var t := (f - float(inicio)) / 0.25
 				if t >= 0.0 and t <= 1.0:
 					susp = maxf(susp, float(mo.get("galope_suspensao_px", 4.2)) * sin(PI * t))
+			voo = _voo_galope(f, mo)
 			# A corrida anda agachada e alongada o tempo todo: a descida e a
 			# extensão do tronco são constantes, SOMADAS à oscilação do galope
 			# (não é física nova — só a pose do clipe). As patas seguem no chão
 			# (alvo y=0) e a IK resolve o resto.
-			dy = susp + 1.2 * sin(TAU * f * 2.0) - float(mo.get("run_baixa_px", 1.6))
+			# No voo o tronco ainda AFUNDA: o galope esticado é baixo e longo
+			# (patas à frente e atrás), não um pulo em pé.
+			dy = susp + 1.2 * sin(TAU * f * 2.0) - float(mo.get("run_baixa_px", 1.6)) \
+				- float(mo.get("run_voo_baixa_px", 0.0)) * voo
 			var g := float(mo.get("run_pitch_gather_graus", 9.0))
 			var s := float(mo.get("run_pitch_suspensao_graus", -6.0))
 			pitch_corpo = deg_to_rad((g + s) * 0.5 + (g - s) * 0.5 * cos(TAU * f * 2.0))
@@ -849,6 +880,14 @@ static func _mover_corpo(m: Dictionary, j: Dictionary, clipe: String, f: float, 
 	elif clipe == "run" and absf(pitch_corpo) > 0.00001:
 		_girar_x_nomes(j, ["cabeca", "focinho", "orelha_e", "orelha_d"],
 			j["pescoco"], -pitch_corpo * 0.8)
+	# Voo do galope: o pescoço se estende à frente e para baixo até a cabeça
+	# ficar na linha do dorso, e as orelhas vão junto. Sem isso o alto da
+	# silhueta continua sendo a orelha e o cão corre em pé, não esticado.
+	if clipe == "run" and voo > 0.0 and j.has("peito") and j.has("pescoco"):
+		var angulo := deg_to_rad(float(mo.get("run_voo_pescoco_graus", 0.0))) * voo
+		if absf(angulo) > 0.00001:
+			_girar_x_nomes(j, ["pescoco", "cabeca", "focinho", "orelha_e", "orelha_d"],
+				j["peito"], angulo)
 
 
 ## Cabeça, cauda e orelhas: gesto de leitura do clipe (não mexe em regra).
@@ -891,19 +930,21 @@ static func _extras(j: Dictionary, clipe: String, f: float, mo: Dictionary,
 				j[nome] = (j[nome] as Vector3) + Vector3(0, 0.35 * sin(TAU * (f - atraso)), 0)
 	elif clipe == "run":
 		var chicote := float(mo.get("run_cauda_chicote_px", 2.0))
-		# A cauda sobe na base e a ponta chicoteia: no galope ela fica mais
-		# esticada (comprimento base→ponta) sem empurrar a ponta mais para trás,
-		# o que manteria o salto run→jump_start grande.
+		# A cauda vai baixa e comprida, na linha do dorso: no galope esticado o
+		# que alonga a cauda é o z (para trás), não o y. Subir a base criava o
+		# ponto mais alto da silhueta, justamente o que o voo precisa achatar.
+		var voo := _voo_galope(f, mo)
 		if j.has("cauda_base"):
-			j["cauda_base"] = (j["cauda_base"] as Vector3) + Vector3(0, 4.0, -2.0)
+			j["cauda_base"] = (j["cauda_base"] as Vector3) + Vector3(0, 1.5 * voo, -3.2 * voo)
 		if j.has("cauda_ponta"):
 			j["cauda_ponta"] = (j["cauda_ponta"] as Vector3) + Vector3(
-				chicote * sin(TAU * (f - atraso)), 5.5, -4.0)
+				chicote * sin(TAU * (f - atraso)), 2.5 * voo, -8.5 * voo)
+		# O pescoço esticado leva a cabeça para +z; as orelhas varridas para
+		# trás (coladas no pescoço) recuperam a leitura de galope.
+		var tras := float(mo.get("run_orelha_tras_px", 9.0))
 		for nome in ["orelha_e", "orelha_d"]:
 			if j.has(nome):
-				# O tronco esticado leva a frente para +z; as orelhas varridas
-				# para trás recuperam a leitura de galope.
-				j[nome] = (j[nome] as Vector3) + Vector3(0, -0.5, -5.0)
+				j[nome] = (j[nome] as Vector3) + Vector3(0, -0.5, -tras)
 	elif clipe == "jump_start":
 		var arco := sin(PI * f)
 		for nome in ["cabeca", "focinho"]:

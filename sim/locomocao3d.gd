@@ -12,7 +12,11 @@ static func avancar(rig: Dictionary, anterior: Dictionary, pos: Vector2,
 	var yaw := deg_to_rad(E3.yaw_efetivo(dir, yaw_graus))
 	var mudou: bool = String(estado.get("tipo", "")) != tipo
 	var giro: float = absf(wrapf(yaw - float(estado.get("yaw", yaw)), -PI, PI))
-	if mudou or giro > deg_to_rad(35.0) or delta.length() > 40.0:
+	# Reset de fase e de ancoragem: o quadro que reseta não transporta âncora
+	# nenhuma. Isso vale para a troca de clipe, para o giro de mais de 35° e
+	# para o salto de mais de 40 px de uma vez.
+	var reancorar: bool = mudou or giro > deg_to_rad(35.0) or delta.length() > 40.0
+	if reancorar:
 		estado = {"fase": 0.0, "apoios": {}, "apoiando": {}, "tipo": tipo}
 	else:
 		estado["apoios"] = (estado.get("apoios", {}) as Dictionary).duplicate()
@@ -38,13 +42,21 @@ static func avancar(rig: Dictionary, anterior: Dictionary, pos: Vector2,
 	var duty := float(mo.get("duty_walk", 0.55)) if tipo == "walk" else float(mo.get("duty_galope", 0.25))
 	for perna in E3._pernas(rig):
 		var nome := String(perna["nome"])
+		var pata := String(perna["foot"])
 		var off := float({"te": 0.0, "fe": 0.25, "td": 0.5, "fd": 0.75}.get(nome, 0.0)) if tipo == "walk" else (0.0 if nome in ["te", "td"] else 0.5)
 		var contato := fposmod(fase - off, 1.0) < duty
 		if not contato:
-			apoios.erase(nome)
+			if reancorar:
+				# No quadro do reset as QUATRO patas são replantadas onde estão,
+				# inclusive as que já estão no ar (sem `apoiando`, então a
+				# primeira volta ao contato ancora de novo). A âncora do giro é
+				# uma foto da pose atual: nenhuma pata atravessa o corpo presa
+				# a um ponto de chão do yaw antigo.
+				apoios[nome] = pos + (base["juntas"][pata] as Vector2) - piv
+			else:
+				apoios.erase(nome)
 			apoiando[nome] = false
 			continue
-		var pata := String(perna["foot"])
 		if not bool(apoiando.get(nome, false)) or not apoios.has(nome):
 			apoios[nome] = pos + (base["juntas"][pata] as Vector2) - piv
 		apoiando[nome] = true
