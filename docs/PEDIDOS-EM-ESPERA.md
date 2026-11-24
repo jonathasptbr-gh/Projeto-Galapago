@@ -20,7 +20,7 @@
 | P7 | Fatia vertical: arena + cão + gestos + 1 evolução | P2–P6 | na fila |
 | P8 | GDD do loop diário no laboratório/ilha | — | na fila (design, conversa) |
 | P9 | Camadas de pixel art sobre o esqueleto 3D (fase B) | A: v0.29.0 ✔ | alvo declarado (2026-11-23) |
-| P10 | Esqueleto 3D paramétrico por arquétipo e locomoção | — | **em andamento (WIP)** |
+| P10 | Esqueleto 3D paramétrico por arquétipo e locomoção | — | **núcleo entregue (v0.33.0)**; resta interface e decisões |
 
 ---
 
@@ -57,20 +57,19 @@
 
 ## P10 — Esqueleto 3D paramétrico por arquétipo e locomoção
 
-- **Estado:** WIP no branch `wip/rig-parametrico-3d`, commit `3f7843c`, fora
-  da `main`. Medido: 272 testes, **2 falhas** — voo em 0,93:1 (meta 1,8–2,0)
-  e reancoragem no giro em 3 de 4 patas. Não entregar como está.
+- **Estado:** núcleo ENTREGUE na `main` na v0.33.0 — voo 1,97:1, giro 4/4,
+  272 testes/0. O que resta é interface e decisão, não conserto.
 - **O que já existe:** `sim/topologia3d.gd` (schema 3 adaptado e schema 4 com
   papéis; quadrupede/bípede/ave/serpente; membros e pole), `sim/locomocao3d.gd`
   (fase por distância e apoios ancorados no mundo), mudanças em
   `sim/esqueleto3d.gd`, `jogo/criatura.gd` e `jogo/rigs3d.gd`, preset
   `dados/rig/equino3d.json` e `testes/test_parametrico3d.gd`.
-- **Medido no WIP:** 176 apoios alcançáveis com erro máximo de 0,002 px; voo
-  0,93:1; reancoragem 3/4.
-- **Próximo:** (1) pose de voo com dianteiras à frente e traseiras atrás;
-  (2) corrigir a reancoragem no giro; (3) revisar o cão nas 8 direções e o
-  canvas 68×68; (4) gate, baseline e CI; (5) só depois as interfaces de
-  bípede, ave e serpente.
+- **Medido na v0.33.0:** 176 apoios alcançáveis com erro máximo de 0,002 px;
+  voo 1,97:1 (era 0,93); reancoragem 4/4 (era 3/4).
+- **Próximo:** (1) revisar o cão nas 8 direções e o canvas no aparelho;
+  (2) as chaves do voo no equino (hoje herdam default e o teste de voo só roda
+  no cão); (3) as interfaces de bípede, ave e serpente; (4) escrever o método
+  (`docs/RIG.md`), hoje só existe em código.
 - **Decisões pendentes do operador:** teto de 20 juntas (o cão tem 24), caixa
   por clipe × por animal, qualidade da patinagem (âncora real).
 - **Aceite:** segundo quadrúpede sem editar o solver; menos de 1 px de

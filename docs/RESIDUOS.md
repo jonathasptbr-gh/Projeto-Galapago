@@ -4,6 +4,11 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.33.0 | P10 | bípede, ave e serpente compilam (schema 4) mas seguem sem marcha: `locomocao_suportada` é falso e não há teste de passada para eles | médio | aberto |
+| v0.33.0 | P10 | as cinco chaves do voo só existem no `canino3d.json`; o equino herda os defaults e o teste de voo só roda no cão | médio | aberto |
+| v0.33.0 | P10 | decisões de raiz abertas: teto de 20 juntas (o cão tem 24), caixa por clipe × por animal e régua de porte entre arquétipos (canino 68×68, serpente 96×64, ave 64×64) | decisão | aberto |
+| v0.33.0 | P10 | revisão do cão nas 8 direções e do canvas no aparelho do operador pendente | operador | aberto |
+| v0.33.0 | clone | outra sessão commitou a `v0.32.0` (história) dentro do branch do lote às 12:01; o lote foi reconstruído sobre `origin/main` sem perda e o branch antigo `lote/v0.31.6` fica como evidência | pequeno | resolvido |
 | v0.32.0 | história | decisões pendentes do GDD (ver docs/gdd/historia.md §Decisões pendentes) | design | aberto |
 | v0.31.5 | notificações | o comentário automático saiu, mas e-mail de falha de workflow e de revisão ainda depende das configurações pessoais do GitHub | pequeno | aberto |
 | v0.31.4 | P10 | rig paramétrico em WIP no branch `wip/rig-parametrico-3d` (voo 0,93:1; reancoragem 3/4); não entregue | médio | aberto |

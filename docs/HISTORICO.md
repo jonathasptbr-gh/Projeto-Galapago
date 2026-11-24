@@ -3,6 +3,31 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.33.0 — esqueleto paramétrico no jogo: voo esticado e giro 4/4 (2026-11-24)
+
+- **P10 entra na `main`:** `sim/topologia3d.gd` (schema 4 com papéis;
+  quadrupede/bípede/ave/serpente), `sim/locomocao3d.gd` (fase por distância e
+  apoios ancorados no mundo), preset `dados/rig/equino3d.json` (20 juntas) e
+  `testes/test_parametrico3d.gd`. O cão continua no schema 3; o equino é a
+  prova de "segundo quadrúpede sem editar o solver".
+- **Voo do galope: 0,93 → 1,97.** O envelope deixou de ter a fase cravada:
+  `_voo_galope(f, mo)` calcula a crista em `0,25 + duty/2` a partir do
+  `duty_galope` do rig (com 0,25 o resultado é idêntico ao anterior). No voo o
+  tronco afunda, as quatro patas recolhem 1,3×, o pescoço estende 40° e a
+  cauda vai baixa em vez de subir. Medido no `canino3d`, fase 0,375: 31,17 ×
+  15,85 px.
+- **Giro reancora 4/4:** no quadro de reset (clipe novo, giro > 35° ou salto
+  > 40 px) as quatro patas são replantadas na posição atual; fora do reset a
+  pata no ar continua perdendo a âncora. A marcha segue com 176 apoios
+  alcançáveis e erro máximo de 0,002 px.
+- **Dados:** cinco chaves novas em `canino3d.json` (`run_voo_baixa_px`,
+  `run_voo_pescoco_graus`, `run_easing_traseiro`, `run_voo_levanta`,
+  `run_orelha_tras_px`); nenhuma constante antiga mudou.
+- **Verificação:** 272 testes/0, parser 67/0, docs 33/0; 60 quadros revisados
+  no oráculo.
+- **Baseline:** gerado pelo CI no branch do lote e aplicado neste commit.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.32.0 — história: IA no robô solar, drone e chat dos cientistas (2026-11-24)
 
 - **Avatar:** o jogador deixa de ser a criatura; é uma **IA num corpo robótico
