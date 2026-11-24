@@ -26,6 +26,11 @@ static func carregar(id: String) -> Dictionary:
 		var erro := "JSON ilegível" if not bruto is Dictionary else Esq3.validar(bruto)
 		push_error("rig 3D inválido: " + caminho + " — " + erro)
 		return {}
+	# Compila o mesmo rig uma vez por espécie: todas as poses compartilham
+	# pivô global e bounds (nunca recenter por clipe).
+	m = Esq3.preparar(m)
+	if m.is_empty():
+		return {}
 	_cache[id] = m
 	return m
 

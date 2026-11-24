@@ -23,6 +23,7 @@ const Anim := preload("res://sim/animacao.gd")
 const AnimData := preload("res://jogo/animacoes.gd")
 const ModDraw := preload("res://jogo/modulos.gd")
 const Esq3 := preload("res://sim/esqueleto3d.gd")
+const Loc3 := preload("res://sim/locomocao3d.gd")
 # Teto do amortecimento angular da CÂMERA de apresentação (rad/s). Só se
 # aplica a curvas suaves; ataque/salto de olhar vai direto ao alvo.
 const VEL_YAW_RAD_S := 18.0
@@ -56,6 +57,7 @@ var _clipe_pose := ""
 var _inicio_transicao := -1.0
 var _ultima_pos := Vector2.ZERO
 var _andando := false
+var _marcha3d: Dictionary = {}
 # F3: máquina de estados da animação (catálogo em dados/animacoes.json).
 var _anim_cat: Dictionary = {}
 var _anim_mem: Dictionary = {}
@@ -106,6 +108,7 @@ func ativar_pele_geometrica(id: String = "canino", debug := false) -> bool:
 	_pose_ultima = {}
 	_clipe_pose = ""
 	_inicio_transicao = -1.0
+	_marcha3d = {}
 	queue_redraw()
 	return true
 
@@ -130,6 +133,7 @@ func ativar_esqueleto3d(id: String = "canino3d", debug := false) -> bool:
 	_pose_ultima = {}
 	_clipe_pose = ""
 	_inicio_transicao = -1.0
+	_marcha3d = {}
 	queue_redraw()
 	return true
 
@@ -226,7 +230,8 @@ func _process(delta: float) -> void:
 	# CÂMERA 3D: segue o olhar já suavizado pelo corpo. Ataque/salto de olhar
 	# vai direto; só curvas suaves são amortecidas (18 rad/s × delta).
 	_atualizar_yaw_apresentacao(delta)
-	var desloc: float = (corpo.pos - _ultima_pos).length()
+	var desloc_v: Vector2 = corpo.pos - _ultima_pos
+	var desloc: float = desloc_v.length()
 	_ultima_pos = corpo.pos
 	_andando = desloc > 0.35
 	var ar: bool = corpo.no_ar()
@@ -236,6 +241,9 @@ func _process(delta: float) -> void:
 	if not _anim_cat.is_empty():
 		_anim_mem = Anim.resolver(Anim.retrato(corpo, _andando, _saltou, _pousou),
 			_anim_cat, _anim_mem, _tempo_pele * 1000.0)
+	if not _rig3d.is_empty():
+		_marcha3d = Loc3.avancar(_rig3d, _marcha3d, corpo.pos, Dir.setor(corpo.olhar),
+			yaw_desenho(), String(_anim_mem.get("id", "idle")), desloc_v)
 	position = corpo.pos
 	var celula: Vector2i = mundo.celula_de(corpo.pos)
 	var alt: float = mundo.altura(celula) if corpo.camada == "superficie" else 1.0
@@ -282,13 +290,16 @@ func _draw() -> void:
 			clipe = "walk" if _andando else "idle"
 		var fase := _fase_forcada
 		if fase < 0.0:
-			fase = Anim.fase(_anim_mem, _anim_cat, _tempo_pele * 1000.0)
+			fase = (float(_marcha3d.get("fase", 0.0)) if not _rig3d.is_empty()
+				and clipe in ["walk", "run"] else Anim.fase(_anim_mem, _anim_cat, _tempo_pele * 1000.0))
 		var salto_correndo := bool(_anim_mem.get("salto_correndo", false)) and _clipe_forcado == ""
 		if not _rig3d.is_empty():
 			# O esqueleto 3D projeta; o adaptador entrega rig/pose no MESMO
 			# formato que módulos e VFX já consomem (socket por nome). A
 			# direção decide sockets; o yaw contínuo decide só a câmera.
-			var pose3 := Esq3.pose(_rig3d, dir, fase, clipe, salto_correndo, yaw_desenho())
+			var alvos: Dictionary = _marcha3d.get("alvos", {}) if _clipe_forcado == "" else {}
+			var pose3 := Esq3.pose(_rig3d, dir, fase, clipe, salto_correndo,
+				yaw_desenho(), alvos)
 			if pose3.is_empty():
 				push_error("pose 3D vazia: " + dir + "/" + clipe)
 			else:

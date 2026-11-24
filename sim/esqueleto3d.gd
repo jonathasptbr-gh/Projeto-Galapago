@@ -15,6 +15,7 @@ extends RefCounted
 ## esperam: `juntas` (Vector2 no canvas) + `sockets` resolvidos. As peças 2D
 ## por osso (`pecas`) já são validadas, mas NÃO são desenhadas nesta fase.
 
+const Topologia := preload("res://sim/topologia3d.gd")
 const DIRECOES := ["south", "south-east", "east", "north-east", "north", "north-west", "west", "south-west"]
 const YAW_GRAUS := {
 	"south": 90.0, "south-east": 45.0, "east": 0.0, "north-east": 315.0,
@@ -42,12 +43,15 @@ static func de_json(texto: String) -> Dictionary:
 
 ## Primeiro erro encontrado; vazio = rig 3D válido.
 static func validar(m: Dictionary) -> String:
-	if int(m.get("schema_version", 0)) != 3:
-		return "schema_version != 3"
+	var schema := int(m.get("schema_version", 0))
+	if schema not in [3, 4]:
+		return "schema_version != 3/4"
+	if Topologia.compilar(m).is_empty():
+		return "topologia inválida (grafo, papéis ou membros)"
 	if not m.get("id") is String or (m["id"] as String).is_empty():
 		return "id ausente"
-	if m.get("arquetipo") != "quadrupede":
-		return "arquetipo != quadrupede"
+	if m.get("arquetipo") not in Topologia.ARQUETIPOS:
+		return "arquétipo desconhecido"
 	for chave in ["canvas_px", "pivot_px"]:
 		if not _par(m.get(chave)):
 			return chave + " inválido"
@@ -65,21 +69,22 @@ static func validar(m: Dictionary) -> String:
 	var juntas: Variant = m.get("juntas")
 	if not juntas is Dictionary:
 		return "juntas inválido"
-	if (juntas as Dictionary).size() != JUNTAS_ESPERADAS:
+	if schema == 3 and (juntas as Dictionary).size() != JUNTAS_ESPERADAS:
 		return "juntas: esperado %d, veio %d" % [JUNTAS_ESPERADAS, (juntas as Dictionary).size()]
 	for nome in juntas:
 		if not _v3(juntas[nome]):
 			return "junta %s inválida" % nome
-	# Schema 3 exige a cadeia traseira completa, não só a contagem correta.
-	for lado in ["e", "d"]:
-		for nome in ["anca_" + lado, "joelho_t" + lado, "jarrete_t" + lado, "pata_t" + lado]:
-			if not (juntas as Dictionary).has(nome):
-				return "junta traseira obrigatória ausente: " + nome
+	# A topologia compilada valida as cadeias; o schema 3 preserva o contrato legado.
+	if schema == 3:
+		for lado in ["e", "d"]:
+			for nome in ["anca_" + lado, "joelho_t" + lado, "jarrete_t" + lado, "pata_t" + lado]:
+				if not (juntas as Dictionary).has(nome):
+					return "junta traseira obrigatória ausente: " + nome
 
 	var ossos: Variant = m.get("ossos")
 	if not ossos is Array:
 		return "ossos inválido"
-	if (ossos as Array).size() != OSSOS_ESPERADOS:
+	if schema == 3 and (ossos as Array).size() != OSSOS_ESPERADOS:
 		return "ossos: esperado %d, veio %d" % [OSSOS_ESPERADOS, (ossos as Array).size()]
 	var usados: Dictionary = {}
 	var arestas: Dictionary = {}
@@ -102,13 +107,14 @@ static func validar(m: Dictionary) -> String:
 		usados[a] = true
 		usados[bb] = true
 		arestas[String(a) + ">" + String(bb)] = true
-	for lado in ["e", "d"]:
-		var sufixo: String = "t" + String(lado)
-		for trecho in [["anca_" + lado, "joelho_" + sufixo],
-			["joelho_" + sufixo, "jarrete_" + sufixo],
-			["jarrete_" + sufixo, "pata_" + sufixo]]:
-			if not arestas.has(String(trecho[0]) + ">" + String(trecho[1])):
-				return "osso traseiro obrigatório ausente: %s>%s" % trecho
+	if schema == 3:
+		for lado in ["e", "d"]:
+			var sufixo: String = "t" + String(lado)
+			for trecho in [["anca_" + lado, "joelho_" + sufixo],
+				["joelho_" + sufixo, "jarrete_" + sufixo],
+				["jarrete_" + sufixo, "pata_" + sufixo]]:
+				if not arestas.has(String(trecho[0]) + ">" + String(trecho[1])):
+					return "osso traseiro obrigatório ausente: %s>%s" % trecho
 	for nome in juntas:
 		if not usados.has(nome):
 			return "junta %s não pertence a osso" % nome
@@ -235,6 +241,66 @@ static func envelope(m: Dictionary) -> Dictionary:
 	return env if env is Dictionary else {}
 
 
+## Um único pivô para TODOS os clipes: bbox amostrada em 16 yaws e 32
+## fases por clipe, com margem de 6px para interpolação e traço. Para a
+## marcha em mundo, reserva ainda o alcance analítico completo das patas.
+## A imagem é procedural: canvas é metadado, nunca recorte físico nem escala.
+static func calcular_canvas(m: Dictionary) -> Dictionary:
+	var minimo := Vector2(INF, INF)
+	var maximo := Vector2(-INF, -INF)
+	var clipes: Dictionary = {}
+	var margem := 6.0
+	for osso in m.get("ossos", []):
+		margem = maxf(margem, float(osso.get("largura", 1.0)) * 0.5 + 4.0)
+	var antigo := Vector2(float(m["pivot_px"][0]), float(m["pivot_px"][1]))
+	for clipe in CLIPES:
+		var lo := Vector2(INF, INF)
+		var hi := Vector2(-INF, -INF)
+		for yaw_i in 16:
+			var angulo := float(yaw_i) * 22.5
+			for f_i in 33:
+				for sprint in ([false, true] if clipe.begins_with("jump_") else [false]):
+					var p := pose(m, "south", float(f_i) / 32.0, clipe, sprint, angulo)
+					for pt in p.get("juntas", {}).values():
+						lo = lo.min((pt as Vector2) - antigo)
+						hi = hi.max((pt as Vector2) - antigo)
+					for sock in p.get("sockets", {}).values():
+						lo = lo.min((sock["pos"] as Vector2) - antigo)
+						hi = hi.max((sock["pos"] as Vector2) - antigo)
+		clipes[clipe] = Rect2(lo - Vector2.ONE * margem, hi - lo + Vector2.ONE * margem * 2.0)
+		minimo = minimo.min(lo)
+		maximo = maximo.max(hi)
+	# Polos de alcance em mundo: o apoio pode estar em qualquer ponto da esfera
+	# atingível; a projeção ortográfica nunca ultrapassa esse raio por eixo.
+	for perna in _pernas(m):
+		var upper := _vec(m["juntas"][perna["upper"]])
+		var raio := float(perna["l1"]) + float(perna["l2"]) + float(perna.get("l3", 0.0))
+		for i in 16:
+			var ang := deg_to_rad(float(i) * 22.5)
+			var centro := projetar(upper, ang, pitch())
+			minimo = minimo.min(Vector2(centro.x, centro.y) - Vector2.ONE * raio)
+			maximo = maximo.max(Vector2(centro.x, centro.y) + Vector2.ONE * raio)
+	var pivot := Vector2(ceilf(maxf(antigo.x, -minimo.x + margem)),
+		ceilf(maxf(antigo.y, -minimo.y + margem)))
+	var canvas := Vector2(ceilf(maxf(float(m["canvas_px"][0]), pivot.x + maximo.x + margem)),
+		ceilf(maxf(float(m["canvas_px"][1]), pivot.y + maximo.y + margem)))
+	for clipe in clipes:
+		var r: Rect2 = clipes[clipe]
+		clipes[clipe] = Rect2(r.position + pivot, r.size)
+	return {"canvas_px": [int(canvas.x), int(canvas.y)],
+		"pivot_px": [int(pivot.x), int(pivot.y)], "bounds_clipes": clipes}
+
+
+static func preparar(m: Dictionary) -> Dictionary:
+	if validar(m) != "":
+		return {}
+	var out := m.duplicate(true)
+	out["topologia_compilada"] = Topologia.compilar(out)
+	if out["topologia_compilada"]["locomocao_suportada"]:
+		out.merge(calcular_canvas(out), true)
+	return out
+
+
 static func yaw(direcao: String) -> float:
 	if not YAW_GRAUS.has(direcao):
 		return NAN
@@ -271,8 +337,11 @@ static func pitch() -> float:
 ## um valor contínuo gira a projeção sem tocar em nenhuma regra. Convenção:
 ## 0° = east, 90° = south, 180° = west, 270° = north.
 static func pose(m: Dictionary, direcao: String, fase: float, clipe: String = "walk",
-		salto_correndo: bool = false, yaw_graus: float = NAN) -> Dictionary:
+		salto_correndo: bool = false, yaw_graus: float = NAN, alvos: Dictionary = {}) -> Dictionary:
 	if m.is_empty() or not m.get("directions") is Dictionary:
+		return {}
+	# Os outros arquétipos já têm contrato topológico, mas ainda não gait/pose.
+	if String(m.get("arquetipo", "")) != "quadrupede":
 		return {}
 	if not (m["directions"] as Dictionary).has(direcao):
 		return {}
@@ -291,6 +360,10 @@ static func pose(m: Dictionary, direcao: String, fase: float, clipe: String = "w
 	var mo: Dictionary = m.get("motion", {})
 	var pernas := _pernas(m)
 	var patas := _patas(pernas, clipe, f, mo, salto_correndo)
+	if clipe in ["walk", "run"]:
+		for nome in alvos:
+			if patas.has(nome) and alvos[nome] is Vector3:
+				patas[nome] = alvos[nome]
 	_mover_corpo(m, j, clipe, f, mo, salto_correndo)
 	for perna in pernas:
 		var nome := String(perna["nome"])
@@ -301,17 +374,21 @@ static func pose(m: Dictionary, direcao: String, fase: float, clipe: String = "w
 			var l3 := float(perna["l3"])
 			var H := _jarrete_alcancavel(P, F, float(perna["l1"]),
 				float(perna["l2"]), l3, perna["offset_jarr"])
-			var solucao := _ik(P, H, float(perna["l1"]), float(perna["l2"]), 1.0)
+			var solucao := (ik_pole(P, H, float(perna["l1"]), float(perna["l2"]),
+				perna["pole"], 0.9999) if alvos.has(nome) or int(m.get("schema_version", 3)) == 4
+				else _ik(P, H, float(perna["l1"]), float(perna["l2"]), 1.0))
 			var jarrete: Vector3 = solucao["pata"]
-			j["joelho_" + nome] = solucao["joelho"]
-			j["jarrete_" + nome] = jarrete
+			j[String(perna["joint1"])] = solucao["joelho"]
+			j[String(perna["joint2"])] = jarrete
 			# Enquanto o círculo do jarrete toca o alcance do joelho, F é exato.
 			# Se nem o círculo toca, corrige só o contato, nunca estica os ossos.
-			j["pata_" + nome] = jarrete + (F - H).normalized() * l3
+			j[String(perna["foot"])] = jarrete + (F - H).normalized() * l3
 		else:
-			var solucao := _ik(P, F, float(perna["l1"]), float(perna["l2"]), float(perna["bend"]))
-			j["joelho_" + nome] = solucao["joelho"]
-			j["pata_" + nome] = solucao["pata"]
+			var solucao := (ik_pole(P, F, float(perna["l1"]), float(perna["l2"]),
+				perna["pole"], 0.9999) if alvos.has(nome) or int(m.get("schema_version", 3)) == 4
+				else _ik(P, F, float(perna["l1"]), float(perna["l2"]), -1.0))
+			j[String(perna["joint1"])] = solucao["joelho"]
+			j[String(perna["foot"])] = solucao["pata"]
 	_extras(j, clipe, f, mo, salto_correndo)
 	if clipe == "death":
 		_deitar(j, f)
@@ -517,22 +594,24 @@ static func _juntas_rest(m: Dictionary) -> Dictionary:
 static func _pernas(m: Dictionary) -> Array:
 	var out: Array = []
 	var j: Dictionary = m.get("juntas", {})
-	var defs := [["fe", "ombro_e"], ["fd", "ombro_d"], ["te", "anca_e"], ["td", "anca_d"]]
-	for d in defs:
-		var nome := String(d[0])
-		var upper := String(d[1])
-		var joelho := "joelho_" + nome
-		var pata := "pata_" + nome
-		if not j.has(upper) or not j.has(joelho) or not j.has(pata):
-			continue
+	var topo: Dictionary = m.get("topologia_compilada", {})
+	if topo.is_empty():
+		topo = Topologia.compilar(m)
+	for membro in topo.get("membros", []):
+		var cadeia: Array = membro["cadeia"]
+		var upper := String(cadeia[0])
+		var joelho := String(cadeia[1])
+		var pata := String(cadeia[-1])
+		var nome := ("f" if membro["papel"] == "limb_front" else "t") + String(membro["lado"])
 		var pu := _vec(j[upper])
 		var pk := _vec(j[joelho])
 		var pp := _vec(j[pata])
-		var perna := {"nome": nome, "upper": upper, "x": pp.x, "rest_z": pp.z,
-			"l1": pu.distance_to(pk), "l2": pk.distance_to(pp),
-			"bend": -1.0 if upper.begins_with("ombro") else 1.0}
-		if nome.begins_with("t"):
-			var ph := _vec(j["jarrete_" + nome])
+		var perna := {"nome": nome, "upper": upper, "joint1": joelho, "foot": pata,
+			"pole": _vec(membro["pole"]), "x": pp.x, "rest_z": pp.z,
+			"l1": pu.distance_to(pk), "l2": pk.distance_to(pp)}
+		if cadeia.size() == 4:
+			var ph := _vec(j[cadeia[2]])
+			perna["joint2"] = String(cadeia[2])
 			perna["l2"] = pk.distance_to(ph)
 			perna["l3"] = ph.distance_to(pp)
 			perna["offset_jarr"] = ph - pp
@@ -544,6 +623,20 @@ static func _pernas(m: Dictionary) -> Array:
 static func _smoothstep(a: float, b: float, x: float) -> float:
 	var t := clampf((x - a) / maxf(b - a, 0.000001), 0.0, 1.0)
 	return t * t * (3.0 - 2.0 * t)
+
+
+## Envelope do VOO do galope (0..1): máximo no meio de cada suspensão, que
+## começa em 0,25 e em 0,75 e dura `duty_galope` — daí as cristas em
+## 0,25+duty/2 e 0,75+duty/2 (0,375 e 0,875 com duty 0,25, o canino), mínimo um
+## quarto de ciclo depois e ~0,31 na emenda do ciclo — o cão chega quase "em
+## pé" em jump_start. A potência 1,7 estreita a crista: sem ela a cabeça
+## (alavanca longa) teria de voltar rápido demais e o passo por quadro do
+## clipe estouraria. O duty vem do rig para outro animal herdar o voo sem
+## editar o motor.
+static func _voo_galope(f: float, mo: Dictionary) -> float:
+	var duty := float(mo.get("duty_galope", 0.25))
+	var crista := 0.25 + duty * 0.5
+	return pow(0.5 + 0.5 * cos(TAU * 2.0 * (f - crista)), 1.7)
 
 
 ## Pulso 0→1→0 entre a..b (sobe) e c..d (desce); serve para recolher/estender
@@ -640,9 +733,20 @@ static func _patas(pernas: Array, clipe: String, f: float, mo: Dictionary,
 				z += passo * 0.5 - passo * (c / duty)
 			else:
 				var t := (c - duty) / (1.0 - duty)
-				z += -passo * 0.5 + passo * (1.0 - pow(1.0 - t, 2.0))
-				y = float(mo.get("galope_levanta_px", 5.5)) * pow(maxf(0.0, sin(PI * t)),
-					float(mo.get("easing_levanta", 0.72)))
+				# As duas pontas do galope voam em sentidos opostos: a dianteira
+				# alcança à frente (ease-out, chega cedo no ápice) e a traseira
+				# fica para trás depois do impulso (ease-in) antes de varrer.
+				# É isso que abre o cão no ar em comprimento, sem mudar a passada.
+				var avanca := (1.0 - pow(1.0 - t, 2.0)) if frente \
+					else pow(t, float(mo.get("run_easing_traseiro", 2.0)))
+				z += -passo * 0.5 + passo * avanca
+				# No voo as quatro patas sobem mais (fração do levanta): o cão
+				# fica baixo e comprido, com as patas recolhidas na linha do
+				# tronco em vez de penduradas no chão.
+				var voo := _voo_galope(f, mo)
+				y = float(mo.get("galope_levanta_px", 5.5)) \
+					* (1.0 + float(mo.get("run_voo_levanta", 0.0)) * voo) \
+					* pow(maxf(0.0, sin(PI * t)), float(mo.get("easing_levanta", 0.72)))
 		elif clipe == "jump_air":
 			# Dianteiras recolhem primeiro; traseiras depois. Antes do pouso as
 			# dianteiras voltam a estender.
@@ -679,6 +783,8 @@ static func _mover_corpo(m: Dictionary, j: Dictionary, clipe: String, f: float, 
 	var pitch_corpo := 0.0
 	var twist := 0.0
 	var flex := 0.0
+	# 0..1 dentro das duas janelas de suspensão do galope (fase e meia-fase).
+	var voo := 0.0
 	match clipe:
 		"idle":
 			dy = float(mo.get("respira_px", 0.5)) * sin(TAU * f)
@@ -696,11 +802,15 @@ static func _mover_corpo(m: Dictionary, j: Dictionary, clipe: String, f: float, 
 				var t := (f - float(inicio)) / 0.25
 				if t >= 0.0 and t <= 1.0:
 					susp = maxf(susp, float(mo.get("galope_suspensao_px", 4.2)) * sin(PI * t))
+			voo = _voo_galope(f, mo)
 			# A corrida anda agachada e alongada o tempo todo: a descida e a
 			# extensão do tronco são constantes, SOMADAS à oscilação do galope
 			# (não é física nova — só a pose do clipe). As patas seguem no chão
 			# (alvo y=0) e a IK resolve o resto.
-			dy = susp + 1.2 * sin(TAU * f * 2.0) - float(mo.get("run_baixa_px", 1.6))
+			# No voo o tronco ainda AFUNDA: o galope esticado é baixo e longo
+			# (patas à frente e atrás), não um pulo em pé.
+			dy = susp + 1.2 * sin(TAU * f * 2.0) - float(mo.get("run_baixa_px", 1.6)) \
+				- float(mo.get("run_voo_baixa_px", 0.0)) * voo
 			var g := float(mo.get("run_pitch_gather_graus", 9.0))
 			var s := float(mo.get("run_pitch_suspensao_graus", -6.0))
 			pitch_corpo = deg_to_rad((g + s) * 0.5 + (g - s) * 0.5 * cos(TAU * f * 2.0))
@@ -770,6 +880,14 @@ static func _mover_corpo(m: Dictionary, j: Dictionary, clipe: String, f: float, 
 	elif clipe == "run" and absf(pitch_corpo) > 0.00001:
 		_girar_x_nomes(j, ["cabeca", "focinho", "orelha_e", "orelha_d"],
 			j["pescoco"], -pitch_corpo * 0.8)
+	# Voo do galope: o pescoço se estende à frente e para baixo até a cabeça
+	# ficar na linha do dorso, e as orelhas vão junto. Sem isso o alto da
+	# silhueta continua sendo a orelha e o cão corre em pé, não esticado.
+	if clipe == "run" and voo > 0.0 and j.has("peito") and j.has("pescoco"):
+		var angulo := deg_to_rad(float(mo.get("run_voo_pescoco_graus", 0.0))) * voo
+		if absf(angulo) > 0.00001:
+			_girar_x_nomes(j, ["pescoco", "cabeca", "focinho", "orelha_e", "orelha_d"],
+				j["peito"], angulo)
 
 
 ## Cabeça, cauda e orelhas: gesto de leitura do clipe (não mexe em regra).
@@ -812,19 +930,21 @@ static func _extras(j: Dictionary, clipe: String, f: float, mo: Dictionary,
 				j[nome] = (j[nome] as Vector3) + Vector3(0, 0.35 * sin(TAU * (f - atraso)), 0)
 	elif clipe == "run":
 		var chicote := float(mo.get("run_cauda_chicote_px", 2.0))
-		# A cauda sobe na base e a ponta chicoteia: no galope ela fica mais
-		# esticada (comprimento base→ponta) sem empurrar a ponta mais para trás,
-		# o que manteria o salto run→jump_start grande.
+		# A cauda vai baixa e comprida, na linha do dorso: no galope esticado o
+		# que alonga a cauda é o z (para trás), não o y. Subir a base criava o
+		# ponto mais alto da silhueta, justamente o que o voo precisa achatar.
+		var voo := _voo_galope(f, mo)
 		if j.has("cauda_base"):
-			j["cauda_base"] = (j["cauda_base"] as Vector3) + Vector3(0, 4.0, -2.0)
+			j["cauda_base"] = (j["cauda_base"] as Vector3) + Vector3(0, 1.5 * voo, -3.2 * voo)
 		if j.has("cauda_ponta"):
 			j["cauda_ponta"] = (j["cauda_ponta"] as Vector3) + Vector3(
-				chicote * sin(TAU * (f - atraso)), 5.5, -4.0)
+				chicote * sin(TAU * (f - atraso)), 2.5 * voo, -8.5 * voo)
+		# O pescoço esticado leva a cabeça para +z; as orelhas varridas para
+		# trás (coladas no pescoço) recuperam a leitura de galope.
+		var tras := float(mo.get("run_orelha_tras_px", 9.0))
 		for nome in ["orelha_e", "orelha_d"]:
 			if j.has(nome):
-				# O tronco esticado leva a frente para +z; as orelhas varridas
-				# para trás recuperam a leitura de galope.
-				j[nome] = (j[nome] as Vector3) + Vector3(0, -0.5, -5.0)
+				j[nome] = (j[nome] as Vector3) + Vector3(0, -0.5, -tras)
 	elif clipe == "jump_start":
 		var arco := sin(PI * f)
 		for nome in ["cabeca", "focinho"]:
@@ -931,9 +1051,30 @@ static func _jarrete_alcancavel(P: Vector3, F: Vector3, l1: float, l2: float,
 	return F + Vector3(0.0, l3 * cos(theta), l3 * sin(theta))
 
 
-## IK de dois ossos em 3D: x participa da distância, mas a dobra fica no
-## plano sagital. Alvo impossível é projetado no alcance (não alonga ossos);
-## só nesses casos a pata deixa de coincidir com o alvo/chão.
+## IK espacial estável: polo autoral define o semiplano, sem inversão de joelho
+## quando a direção muda; a extensão reserva 2% para evitar singularidade.
+## Ao mirar fora de alcance a pata aproxima o alvo sem esticar os segmentos.
+static func ik_pole(p: Vector3, alvo: Vector3, l1: float, l2: float,
+		pole: Vector3, limite := 0.98) -> Dictionary:
+	if l1 <= 0.0 or l2 <= 0.0 or pole.length_squared() < 0.000001:
+		return {}
+	var delta := alvo - p
+	var distancia := delta.length()
+	var dir := delta / distancia if distancia > 0.000001 else Vector3.DOWN
+	var minimo := absf(l1 - l2) + 0.00001
+	var d := clampf(distancia, minimo, (l1 + l2) * clampf(limite, 0.5, 0.9999))
+	var radial := pole - dir * pole.dot(dir)
+	if radial.length_squared() < 0.000001:
+		var fallback := Vector3.RIGHT if absf(dir.x) < 0.8 else Vector3.FORWARD
+		radial = fallback - dir * fallback.dot(dir)
+	radial = radial.normalized()
+	var a := (l1 * l1 - l2 * l2 + d * d) / (2.0 * d)
+	var h := sqrt(maxf(0.0, l1 * l1 - a * a))
+	return {"joelho": p + dir * a + radial * h, "pata": p + dir * d,
+		"alcancavel": distancia >= minimo and distancia <= d + 0.0001}
+
+
+## Adaptador matemático legado; testes antigos medem exatamente sua curva.
 static func _ik(P: Vector3, F: Vector3, l1: float, l2: float, bend: float) -> Dictionary:
 	var delta := F - P
 	var distancia := delta.length()
