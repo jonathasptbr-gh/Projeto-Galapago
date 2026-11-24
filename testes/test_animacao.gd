@@ -203,7 +203,7 @@ func test_duracoes_do_canino_sincronizadas_com_catalogo() -> void:
 	for id in E.CLIPES:
 		perto(E.duracao(rig, id) * 1000.0, float(A.clipe(canino, id).get("duracao_ms", 0)),
 			0.01, "duração do cão em %s" % id)
-	for par in [["walk", 400, 500], ["run", 300, 380], ["bite", 350, 420], ["slam", 340, 450]]:
+	for par in [["walk", 320, 500], ["run", 280, 380], ["bite", 350, 420], ["slam", 340, 450]]:
 		var id: String = par[0]
 		igual(int(A.clipe(canino, id)["duracao_ms"]), int(par[1]), "canino ágil: " + id)
 		igual(int(A.clipe(m, id)["duracao_ms"]), int(par[2]), "catálogo base preservado: " + id)
@@ -216,8 +216,8 @@ func test_duracoes_do_canino_sincronizadas_com_catalogo() -> void:
 		for id in ["walk", "run", "bite", "slam"]:
 			igual(int(A.clipe(cat_outro, id)["duracao_ms"]), int(A.clipe(m, id)["duracao_ms"]),
 				outro + " não acelera " + id)
-	perto(A.fase(_mem("run", 0.0), canino, 300.0), 0.0, 0.001, "galope fecha em 300ms")
-	perto(A.fase(_mem("walk", 0.0), canino, 400.0), 0.0, 0.001, "passo fecha em 400ms")
+	perto(A.fase(_mem("run", 0.0), canino, 280.0), 0.0, 0.001, "galope fecha em 280ms")
+	perto(A.fase(_mem("walk", 0.0), canino, 320.0), 0.0, 0.001, "passo fecha em 320ms")
 
 
 func test_corrida_e_transicoes_de_pulo() -> void:

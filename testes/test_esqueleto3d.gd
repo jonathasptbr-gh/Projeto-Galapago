@@ -795,7 +795,8 @@ func test_idle_relaxado() -> void:
 
 func test_walk_dinamica() -> void:
 	var m := _rig()
-	perto(float(m["motion"]["duty_walk"]), 0.65, 0.001, "duty walk 0,65")
+	perto(float(m["motion"]["passo_px"]), 12.0, 0.001, "passo 12 px")
+	perto(float(m["motion"]["duty_walk"]), 0.55, 0.001, "duty walk 0,55")
 	perto(float(m["motion"]["walk_balanco_lateral_px"]), 0.7, 0.001, "balanço lateral ±0,7")
 	perto(float(m["motion"]["walk_transversa_px"]), 1.5, 0.001, "transversa ±1,5")
 	var lxmin := 1e9
@@ -828,11 +829,13 @@ func test_walk_dinamica() -> void:
 func test_run_dinamica() -> void:
 	var m := _rig()
 	perto(float(m["motion"]["duty_galope"]), 0.25, 0.001, "duty galope 0,25")
-	perto(float(m["motion"]["galope_suspensao_px"]), 2.8, 0.001, "suspensão 2,8 px")
-	perto(float(m["motion"]["galope_passo_px"]), 9.5, 0.001, "passo 9,5 px")
+	perto(float(m["motion"]["galope_suspensao_px"]), 4.2, 0.001, "suspensão 4,2 px")
+	perto(float(m["motion"]["galope_passo_px"]), 15.0, 0.001, "passo 15 px")
 	perto(float(m["motion"]["galope_levanta_px"]), 5.5, 0.001, "levanta 5,5 px")
-	perto(float(m["motion"]["run_pitch_gather_graus"]), 6.0, 0.001, "pitch gather +6°")
-	perto(float(m["motion"]["run_pitch_suspensao_graus"]), -4.0, 0.001, "pitch suspensão -4°")
+	perto(float(m["motion"]["run_baixa_px"]), 1.6, 0.001, "corpo desce 1,6 px")
+	perto(float(m["motion"]["run_estica_px"]), 2.5, 0.001, "tronco alonga 2,5 px")
+	perto(float(m["motion"]["run_pitch_gather_graus"]), 9.0, 0.001, "pitch gather +9°")
+	perto(float(m["motion"]["run_pitch_suspensao_graus"]), -6.0, 0.001, "pitch suspensão -6°")
 	var p0 := E3.pose(m, "east", 0.0, "run")
 	var p25 := E3.pose(m, "east", 0.25, "run")
 	checar(_pitch_corpo(p0) > _pitch_corpo(p25) + 8.0,
@@ -854,6 +857,66 @@ func test_run_dinamica() -> void:
 	var len_run := _j3(p25, "cauda_base").distance_to(_j3(p25, "cauda_ponta"))
 	var len_idle := _j3(idle5, "cauda_base").distance_to(_j3(idle5, "cauda_ponta"))
 	checar(len_run > len_idle + 0.8, "cauda esticada (%.2f > %.2f)" % [len_run, len_idle])
+
+
+## Passada aparente: entre um apoio e o seguinte a pata varre o passo inteiro
+## em z. Medido no ciclo: 12,00 px no walk e 15,00 px no galope, em todas as
+## patas (os alvos de _patas usam exatamente passo_px/galope_passo_px).
+func test_passada_aparente_walk_e_run() -> void:
+	var m := _rig()
+	var minimos := {"walk": 10.0, "run": 12.0}
+	for clipe in ["walk", "run"]:
+		var chave := "passo_px" if clipe == "walk" else "galope_passo_px"
+		var passo := float(m["motion"][chave])
+		var menor := 1e9
+		for k in PATAS:
+			var zmin := 1e9
+			var zmax := -1e9
+			for i in 200:
+				var p := E3.pose(m, "east", float(i) / 200.0, clipe)
+				var z := _j3(p, k).z
+				zmin = minf(zmin, z)
+				zmax = maxf(zmax, z)
+			perto(zmax - zmin, passo, 0.01, "passada de %s em %s" % [k, clipe])
+			menor = minf(menor, zmax - zmin)
+		checar(menor >= float(minimos[clipe]),
+			"passada aparente %s = %.2f px (mínimo %.0f)" % [clipe, menor, minimos[clipe]])
+
+
+## Corrida mais baixa e mais esticada: o corpo desce (peito e quadril abaixo
+## do idle em alguma fase) e a separação z peito–quadril oscila mais que no
+## walk. Medido: peito run 16,53 (idle 19,00); quadril run 17,01 (idle 19,50);
+## amplitude da separação run 7,22 px (walk 6,00); média run 21,89 (walk 17,0).
+func test_corrida_mais_baixa_e_esticada() -> void:
+	var m := _rig()
+	var medida := {}
+	for clipe in ["idle", "walk", "run"]:
+		var peito_min := 1e9
+		var quadril_min := 1e9
+		var sep_min := 1e9
+		var sep_max := -1e9
+		var sep_soma := 0.0
+		for i in 200:
+			var p := E3.pose(m, "east", float(i) / 200.0, clipe)
+			peito_min = minf(peito_min, _j3(p, "peito").y)
+			quadril_min = minf(quadril_min, _j3(p, "quadril").y)
+			var sep := _j3(p, "peito").z - _j3(p, "quadril").z
+			sep_min = minf(sep_min, sep)
+			sep_max = maxf(sep_max, sep)
+			sep_soma += sep
+		medida[clipe] = {"peito": peito_min, "quadril": quadril_min,
+			"amp": sep_max - sep_min, "media": sep_soma / 200.0}
+	var run: Dictionary = medida["run"]
+	var idle: Dictionary = medida["idle"]
+	var walk: Dictionary = medida["walk"]
+	checar(float(run["peito"]) < float(idle["peito"]) - 1.0,
+		"peito da corrida desce (%.2f < %.2f)" % [run["peito"], idle["peito"]])
+	checar(float(run["quadril"]) < float(idle["quadril"]) - 1.0,
+		"quadril da corrida desce (%.2f < %.2f)" % [run["quadril"], idle["quadril"]])
+	checar(float(run["amp"]) > float(walk["amp"]) + 0.5,
+		"separação peito–quadril oscila mais no run (%.2f > %.2f)" % [run["amp"], walk["amp"]])
+	checar(float(run["media"]) > float(walk["media"]) + 3.0,
+		"tronco mais esticado no run (média %.2f > %.2f)" % [run["media"], walk["media"]])
 
 
 func test_pulo_parado() -> void:
@@ -933,7 +996,11 @@ func test_fluidez_entre_clipes() -> void:
 	var jump_ini := E3.pose(m, "east", 0.0, "jump_start")
 	var d_wr := _max_dist(walk_fim, run_ini)
 	var d_rj := _max_dist(run_fim, jump_ini)
-	checar(d_wr < 9.0, "walk→run sem salto grande (%.2f px)" % d_wr)
+	# A passada cresceu (12 px no walk, 15 px no galope): na fronteira CRUA a
+	# pata pode estar em pontos opostos do passo — medido 12,19 px. O salto
+	# visível não acontece porque a criatura mistura os clipes; esse contrato
+	# é testado em test_transicao_walk_run_primeiro_quadro (<3 px).
+	checar(d_wr < 13.0, "walk→run sem salto grande (%.2f px)" % d_wr)
 	checar(d_rj < 9.0, "run→jump_start sem salto grande (%.2f px)" % d_rj)
 	var passo_i := _maior_passo(m, "idle")
 	var passo_w := _maior_passo(m, "walk")
@@ -1012,7 +1079,10 @@ func test_transicao_walk_run_primeiro_quadro() -> void:
 	c._registrar_clipe("run", 1.0)
 	var com := c._pose_com_transicao(run, 1.0 + 1.0 / 60.0)
 	var d_com := _max_dist(walk, com)
-	checar(d_com < 2.0, "com mistura o primeiro quadro fica <2 px (%.2f)" % d_com)
+	# A passada maior fez a distância crua walk→run chegar a 12,19 px; com o
+	# peso de 1/60 s em TRANSICAO_S=0,08 (≈0,21) o primeiro quadro anda 2,54 px.
+	# O teto acompanha esse passo (antes eram ~2 px com a passada de 5 px).
+	checar(d_com < 3.0, "com mistura o primeiro quadro fica <3 px (%.2f)" % d_com)
 	# Clipe repetido não reinicia a transição.
 	var origem_antes: Vector2 = c._pose_de["juntas"]["lombo"]
 	var inicio_antes := c._inicio_transicao

@@ -3,6 +3,36 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.31.3 — passada longa e corrida baixa (2026-11-23)
+
+- **Passada longa:** `passo_px` 5→12 px no walk e `galope_passo_px` 9,5→15 px
+  no run, nos dois rigs; `duty_walk` 0,65→0,55 (apoio mais curto, mais tempo
+  no ar).
+- **Cadência:** `walk` 0,4→0,32 s e `run` 0,3→0,28 s em
+  `dados/rig/canino.json` e `dados/rig/canino3d.json`.
+- **Corrida baixa e esticada:** `run_baixa_px` 1,6 (o corpo desce),
+  `run_estica_px` 2,5 (o tronco alonga), `galope_suspensao_px` 2,8→4,2,
+  pitch +9/−6° e `run_flexao_px` 1,5→3,5; orelhas varridas 5 px para trás e
+  cauda esticada (a base sobe sem empurrar a ponta para trás).
+- **Silhueta:** o cão continua dentro de 68×68 px (bbox x 4,50–63,50,
+  y 13,11–55,00).
+- **Transição:** walk→run no primeiro quadro fica em 2,54 px a 60 fps com a
+  mistura de 0,08 s; a distância CRUA na fronteira é 12,19 px porque as patas
+  caem em pontos opostos do passo maior — o teste do cru passou de teto 9 para
+  13 e o da transição de 2 para 3.
+- **Teste 2D ajustado:** `testes/test_esqueleto.gd:27` lê `canino.json`; como a
+  duração do `walk` caiu de 0,4 para 0,32 s, a expectativa acompanha.
+- **Verificação:** 265 testes/0 falhas e parser 64/0; a folha
+  `/root/tmp/galapago-passada-folha.png` e os recortes
+  `/root/tmp/passada-{east,south,north}-{walk,run}.png` foram revisados.
+- **Baseline dos quadros atualizado:** 60 PNG gerados com `llvmpipe` pelo
+  [CI baseline run 45296670332](https://github.com/jonathasptbr-gh/Projeto-Galapago/actions/runs/45296670332)
+  no commit provisório `ffa5ee8` do branch `lote/v0.31.3`, aplicados via
+  `node tools/quadros-baseline.mjs --run 45296670332` no mesmo commit do lote.
+  O diff local com `softpipe` continua não comparável com `llvmpipe`; a prova
+  final é o CI no commit publicado.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.31.2 — jarrete e metatarso do cão (2026-11-23)
 
 - **Rig canino:** 22 juntas/21 ossos (schema 2) passam a 24/23 (schema 3) —

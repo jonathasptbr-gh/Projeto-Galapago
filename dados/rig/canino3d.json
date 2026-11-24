@@ -367,15 +367,15 @@
     }
   },
   "motion": {
-    "passo_px": 5.0,
+    "passo_px": 12.0,
     "levanta_px": 3.0,
     "corpo_px": 1.1,
     "cauda_px": 1.8,
     "respira_px": 0.5,
-    "galope_passo_px": 9.5,
+    "galope_passo_px": 15.0,
     "galope_levanta_px": 5.5,
-    "galope_suspensao_px": 2.8,
-    "duty_walk": 0.65,
+    "galope_suspensao_px": 4.2,
+    "duty_walk": 0.55,
     "duty_galope": 0.25,
     "idle_peso_lateral_px": 0.8,
     "idle_cabeca_graus": 4.0,
@@ -387,9 +387,11 @@
     "walk_cabeca_estabiliza": 0.75,
     "walk_atraso_fase": 0.1,
     "easing_levanta": 0.72,
-    "run_pitch_gather_graus": 6.0,
-    "run_pitch_suspensao_graus": -4.0,
-    "run_flexao_px": 1.5,
+    "run_pitch_gather_graus": 9.0,
+    "run_pitch_suspensao_graus": -6.0,
+    "run_flexao_px": 3.5,
+    "run_baixa_px": 1.6,
+    "run_estica_px": 2.5,
     "run_cauda_chicote_px": 2.0,
     "pulo_agacha_px": 3.0,
     "pulo_levanta_px": 5.0,
@@ -402,7 +404,7 @@
       "loop": true
     },
     "walk": {
-      "duracao_s": 0.4,
+      "duracao_s": 0.32,
       "loop": true
     },
     "bite": {
@@ -422,7 +424,7 @@
       "loop": true
     },
     "run": {
-      "duracao_s": 0.3,
+      "duracao_s": 0.28,
       "loop": true
     },
     "jump_start": {

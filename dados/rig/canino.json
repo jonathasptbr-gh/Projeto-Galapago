@@ -1062,7 +1062,7 @@
       "loop": true
     },
     "walk": {
-      "duracao_s": 0.4,
+      "duracao_s": 0.32,
       "loop": true
     },
     "bite": {
@@ -1082,7 +1082,7 @@
       "loop": true
     },
     "run": {
-      "duracao_s": 0.3,
+      "duracao_s": 0.28,
       "loop": true
     },
     "jump_start": {

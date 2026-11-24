@@ -695,12 +695,17 @@ static func _mover_corpo(m: Dictionary, j: Dictionary, clipe: String, f: float, 
 			for inicio in [0.25, 0.75]:
 				var t := (f - float(inicio)) / 0.25
 				if t >= 0.0 and t <= 1.0:
-					susp = maxf(susp, float(mo.get("galope_suspensao_px", 2.8)) * sin(PI * t))
-			dy = susp + 1.2 * sin(TAU * f * 2.0)
-			var g := float(mo.get("run_pitch_gather_graus", 6.0))
-			var s := float(mo.get("run_pitch_suspensao_graus", -4.0))
+					susp = maxf(susp, float(mo.get("galope_suspensao_px", 4.2)) * sin(PI * t))
+			# A corrida anda agachada e alongada o tempo todo: a descida e a
+			# extensão do tronco são constantes, SOMADAS à oscilação do galope
+			# (não é física nova — só a pose do clipe). As patas seguem no chão
+			# (alvo y=0) e a IK resolve o resto.
+			dy = susp + 1.2 * sin(TAU * f * 2.0) - float(mo.get("run_baixa_px", 1.6))
+			var g := float(mo.get("run_pitch_gather_graus", 9.0))
+			var s := float(mo.get("run_pitch_suspensao_graus", -6.0))
 			pitch_corpo = deg_to_rad((g + s) * 0.5 + (g - s) * 0.5 * cos(TAU * f * 2.0))
-			flex = -0.5 * float(mo.get("run_flexao_px", 1.5)) * cos(TAU * f * 2.0)
+			flex = (-0.5 * float(mo.get("run_flexao_px", 3.5)) * cos(TAU * f * 2.0)
+				+ float(mo.get("run_estica_px", 2.5)))
 		"jump_start":
 			dy = -float(mo.get("pulo_agacha_px", 3.0)) * sin(PI * f)
 			dy += 1.2 * _smoothstep(0.6, 1.0, f)
@@ -807,14 +812,19 @@ static func _extras(j: Dictionary, clipe: String, f: float, mo: Dictionary,
 				j[nome] = (j[nome] as Vector3) + Vector3(0, 0.35 * sin(TAU * (f - atraso)), 0)
 	elif clipe == "run":
 		var chicote := float(mo.get("run_cauda_chicote_px", 2.0))
+		# A cauda sobe na base e a ponta chicoteia: no galope ela fica mais
+		# esticada (comprimento base→ponta) sem empurrar a ponta mais para trás,
+		# o que manteria o salto run→jump_start grande.
 		if j.has("cauda_base"):
-			j["cauda_base"] = (j["cauda_base"] as Vector3) + Vector3(0, 2.0, -2.0)
+			j["cauda_base"] = (j["cauda_base"] as Vector3) + Vector3(0, 4.0, -2.0)
 		if j.has("cauda_ponta"):
 			j["cauda_ponta"] = (j["cauda_ponta"] as Vector3) + Vector3(
 				chicote * sin(TAU * (f - atraso)), 5.5, -4.0)
 		for nome in ["orelha_e", "orelha_d"]:
 			if j.has(nome):
-				j[nome] = (j[nome] as Vector3) + Vector3(0, -0.5, -1.5)
+				# O tronco esticado leva a frente para +z; as orelhas varridas
+				# para trás recuperam a leitura de galope.
+				j[nome] = (j[nome] as Vector3) + Vector3(0, -0.5, -5.0)
 	elif clipe == "jump_start":
 		var arco := sin(PI * f)
 		for nome in ["cabeca", "focinho"]:

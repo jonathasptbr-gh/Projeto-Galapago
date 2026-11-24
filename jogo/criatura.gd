@@ -188,7 +188,8 @@ func _registrar_clipe(clipe: String, agora: float) -> void:
 
 
 ## Peso da mistura: 0→1 linear em `TRANSICAO_S`. No primeiro quadro a pose
-## anda só ~delta/0,08 do caminho (≈0,21 a 60 fps => <2 px). Só apresentação.
+## anda só ~delta/0,08 do caminho (≈0,21 a 60 fps => ~2,5 px com a passada
+## maior). Só apresentação.
 func _peso_transicao(t: float) -> float:
 	return clampf(t / TRANSICAO_S, 0.0, 1.0)
 

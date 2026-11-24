@@ -4,6 +4,10 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.31.3 | animação | primeiro quadro walk→run ~2,5 px a 60 fps (o teto do teste subiu de 2 para 3 na mesma edição) — acima do <2 px anterior | pequeno | aberto |
+| v0.31.3 | caminhada | patinação residual: 110 px/s é rápido para passo de 4 tempos com perna de 20 px | médio | aberto |
+| v0.31.3 | cadência | cadência subiu (~12,5 passos/s); julgar no aparelho | design | aberto |
+| v0.31.3 | aparelho | revisão no celular do operador pendente | operador | aberto |
 | v0.31.2 | IK 3D | alvo inalcançável extremo corrige o contato, mas a pata pode sair do alvo | médio | aberto |
 | v0.31.2 | animação | `death`/`get_up` e misturas de clipes continuam deformando ossos | médio | aberto |
 | v0.31.2 | aparelho | revisão das pernas traseiras no celular do operador pendente | operador | aberto |

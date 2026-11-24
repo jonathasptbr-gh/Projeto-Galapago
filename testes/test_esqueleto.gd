@@ -24,7 +24,7 @@ func test_rig_do_projeto_valida() -> void:
 	var m := _rig()
 	igual(E.validar(m), "", "canino sem erro")
 	igual(E.direcoes(m).size(), 8, "oito direções")
-	perto(E.duracao(m, "walk"), 0.4, 0.001, "duração ágil do passo")
+	perto(E.duracao(m, "walk"), 0.32, 0.001, "duração ágil do passo")
 	perto(E.duracao(m, "idle"), 1.0, 0.001, "duração do parado")
 
 
