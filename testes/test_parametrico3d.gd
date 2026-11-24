@@ -88,9 +88,12 @@ func test_bounds_globais_mantem_pivo_e_cobre_clipes() -> void:
 	for nome in ["canino3d", "equino3d"]:
 		var m := Rigs.carregar(nome)
 		var piv: Array = m["pivot_px"]
-		var canvas: Array = m["canvas_px"]
-		checar(int(canvas[0]) > 68 or int(canvas[1]) > 68,
-			"canvas %s não travado em 68: %s" % [nome, canvas])
+		var porte: Array = m["porte_px"]
+		var quadro: Array = m["quadro_px"]
+		checar(int(quadro[0]) >= int(porte[0]) and int(quadro[1]) >= int(porte[1]),
+			"quadro %s contém o porte: %s >= %s" % [nome, quadro, porte])
+		checar(int(quadro[0]) > 68 or int(quadro[1]) > 68,
+			"quadro %s não travado em 68: %s" % [nome, quadro])
 		igual(m["bounds_clipes"].size(), E3.CLIPES.size(), "bbox por clipe")
 		for clipe in E3.CLIPES:
 			var box: Rect2 = m["bounds_clipes"][clipe]
@@ -98,8 +101,8 @@ func test_bounds_globais_mantem_pivo_e_cobre_clipes() -> void:
 				for i in 17:
 					var pose := E3.pose(m, dir, float(i) / 16.0, clipe, true)
 					for q in pose["juntas"].values():
-						checar(box.has_point(q) and q.x >= 0 and q.x < canvas[0]
-							and q.y >= 0 and q.y < canvas[1], "bbox %s/%s" % [nome, clipe])
+						checar(box.has_point(q) and q.x >= 0 and q.x < quadro[0]
+							and q.y >= 0 and q.y < quadro[1], "bbox %s/%s" % [nome, clipe])
 		igual(m["pivot_px"], piv, "pivô global imutável entre clipes")
 
 
@@ -161,3 +164,39 @@ func test_apoios_reais_fase_por_distancia_e_idle() -> void:
 	estado = Loc.avancar(m, estado, anterior, "north", 270.0, "walk", Vector2.ZERO)
 	igual((estado["apoios"] as Dictionary).size(), 4, "giro reancora sem transportar patas anteriores")
 	print("métrica marcha: ", amostras, " apoios alcançáveis, erro máximo ", pior, " px")
+
+
+func test_porte_imutavel_em_todos_os_clipes_direcoes_e_fases() -> void:
+	for nome in ["canino3d", "equino3d"]:
+		var declarado: Array = _raw(nome)["porte_px"]
+		igual([float(declarado[0]), float(declarado[1])], [68.0, 68.0],
+			"porte %s declarado no JSON" % nome)
+		var m := Rigs.carregar(nome)
+		igual(m["porte_px"], declarado, "porte %s preparado = declarado" % nome)
+		for clipe in E3.CLIPES:
+			for dir in E3.DIRECOES:
+				for i in 9:
+					for sprint in [false, true]:
+						E3.pose(m, dir, float(i) / 8.0, clipe, sprint)
+		igual(m["porte_px"], declarado, "nenhuma pose reescreve o porte (%s)" % nome)
+		var pronto := E3.preparar(m)
+		igual(pronto["porte_px"], declarado, "preparar de novo preserva o porte")
+		checar(pronto.has("quadro_px") and not pronto.has("canvas_px"),
+			"quadro_px é o único campo derivado")
+
+
+func test_quadro_contem_o_porte_e_rig_antigo_reprova() -> void:
+	for nome in ["canino3d", "equino3d"]:
+		var m := Rigs.carregar(nome)
+		var porte: Array = m["porte_px"]
+		var quadro: Array = m["quadro_px"]
+		checar(int(quadro[0]) >= int(porte[0]) and int(quadro[1]) >= int(porte[1]),
+			"quadro %s contém o porte: %s >= %s" % [nome, quadro, porte])
+		checar(int(quadro[0]) > int(porte[0]) or int(quadro[1]) > int(porte[1]),
+			"quadro %s cresce além do porte: %s" % [nome, quadro])
+	var antigo := _raw("canino3d")
+	antigo["canvas_px"] = antigo["porte_px"]
+	antigo.erase("porte_px")
+	igual(E3.validar(antigo), "porte_px inválido", "campo antigo não passa calado")
+	checar(E3.de_json(JSON.stringify(antigo)).is_empty(), "de_json fecha a porta")
+	checar(E3.preparar(antigo).is_empty(), "preparar fecha a porta")

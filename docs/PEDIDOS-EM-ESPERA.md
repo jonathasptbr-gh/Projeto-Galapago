@@ -70,6 +70,8 @@
   (2) as chaves do voo no equino (hoje herdam default e o teste de voo só roda
   no cão); (3) as interfaces de bípede, ave e serpente. O método está escrito
   em [`RIG.md`](RIG.md); o motor ainda não o segue (ordem de trabalho, itens 1–2).
+- **Ordem de trabalho:** em [`RIG.md`](RIG.md) — item (1), porte × quadro,
+  feito na v0.33.2; o item (2), marcha por contato, é o próximo.
 - **Decisões do operador (2026-11-24):** 1C — teto de juntas por arquétipo
   (quadrúpede 24); 2A — quadro por animal, não por clipe; 3B — patinagem
   < 1 px também em curva e diagonal.

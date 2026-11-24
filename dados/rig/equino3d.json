@@ -1,11 +1,11 @@
 {
-  "_leia": "Equino de teste: topologia explícita schema 4, 20 juntas, 3 segmentos traseiros, sem sprite aprovado.",
+  "_leia": "Equino de teste: topologia explícita schema 4, 20 juntas, 3 segmentos traseiros, sem sprite aprovado. `porte_px` é o porte na grade (imutável); o quadro calculado sai em `quadro_px`.",
   "schema_version": 4,
   "id": "equino3d",
   "arquetipo": "quadrupede",
   "familia": "equino",
   "sample": "preset paramétrico de estudo; arte não aprovada",
-  "canvas_px": [
+  "porte_px": [
     68,
     68
   ],

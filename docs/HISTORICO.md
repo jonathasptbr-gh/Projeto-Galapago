@@ -3,6 +3,22 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.33.2 — porte e quadro separados no rig (2026-11-24)
+
+- **Duas grandezas:** o rig declara `porte_px` (o cão: 68×68), **imutável**, e
+  o quadro calculado sai em `quadro_px` — hoje **92×76** no cão e **122×102**
+  no equino, sempre ≥ o porte. `calcular_canvas` virou `calcular_quadro`;
+  `canvas_px` deixa de existir no rig 3D e rig antigo reprova (fail-closed).
+- **Nada se moveu:** dump de todas as poses (2 rigs × 15 clipes × 8 direções ×
+  41 fases × salto × yaw) com sha256 idêntico antes e depois; métricas do voo
+  e da marcha bit a bit iguais; 274 testes/0 — dois novos: porte imutável em
+  todos os clipes/direções/fases, e quadro contém o porte (rig antigo
+  reprovado).
+- **Documento:** `RIG.md` marca o item (1) da ordem como feito e o **inseto
+  passa a "conceito"** (decisão do operador: só o quadrúpede está em escopo).
+- **Verificação:** docs 34/0, parser 67/0.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.33.1 — método do rig documentado (2026-11-24)
 
 - **Novo [`RIG.md`](RIG.md):** densidade de arte × porte × quadro × pivô;

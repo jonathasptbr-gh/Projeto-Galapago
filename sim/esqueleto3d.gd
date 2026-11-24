@@ -52,7 +52,7 @@ static func validar(m: Dictionary) -> String:
 		return "id ausente"
 	if m.get("arquetipo") not in Topologia.ARQUETIPOS:
 		return "arquétipo desconhecido"
-	for chave in ["canvas_px", "pivot_px"]:
+	for chave in ["porte_px", "pivot_px"]:
 		if not _par(m.get(chave)):
 			return chave + " inválido"
 		var par: Array = m[chave]
@@ -242,10 +242,10 @@ static func envelope(m: Dictionary) -> Dictionary:
 
 
 ## Um único pivô para TODOS os clipes: bbox amostrada em 16 yaws e 32
-## fases por clipe, com margem de 6px para interpolação e traço. Para a
-## marcha em mundo, reserva ainda o alcance analítico completo das patas.
-## A imagem é procedural: canvas é metadado, nunca recorte físico nem escala.
-static func calcular_canvas(m: Dictionary) -> Dictionary:
+## fases por clipe, com margem de 6px, mais o alcance analítico das patas.
+## `porte_px` é o porte do animal, declarado e imutável; o quadro derivado é
+## metadado, nunca recorte físico nem escala.
+static func calcular_quadro(m: Dictionary) -> Dictionary:
 	var minimo := Vector2(INF, INF)
 	var maximo := Vector2(-INF, -INF)
 	var clipes: Dictionary = {}
@@ -282,12 +282,12 @@ static func calcular_canvas(m: Dictionary) -> Dictionary:
 			maximo = maximo.max(Vector2(centro.x, centro.y) + Vector2.ONE * raio)
 	var pivot := Vector2(ceilf(maxf(antigo.x, -minimo.x + margem)),
 		ceilf(maxf(antigo.y, -minimo.y + margem)))
-	var canvas := Vector2(ceilf(maxf(float(m["canvas_px"][0]), pivot.x + maximo.x + margem)),
-		ceilf(maxf(float(m["canvas_px"][1]), pivot.y + maximo.y + margem)))
+	var quadro := Vector2(ceilf(maxf(float(m["porte_px"][0]), pivot.x + maximo.x + margem)),
+		ceilf(maxf(float(m["porte_px"][1]), pivot.y + maximo.y + margem)))
 	for clipe in clipes:
 		var r: Rect2 = clipes[clipe]
 		clipes[clipe] = Rect2(r.position + pivot, r.size)
-	return {"canvas_px": [int(canvas.x), int(canvas.y)],
+	return {"quadro_px": [int(quadro.x), int(quadro.y)],
 		"pivot_px": [int(pivot.x), int(pivot.y)], "bounds_clipes": clipes}
 
 
@@ -297,7 +297,7 @@ static func preparar(m: Dictionary) -> Dictionary:
 	var out := m.duplicate(true)
 	out["topologia_compilada"] = Topologia.compilar(out)
 	if out["topologia_compilada"]["locomocao_suportada"]:
-		out.merge(calcular_canvas(out), true)
+		out.merge(calcular_quadro(out), true)
 	return out
 
 

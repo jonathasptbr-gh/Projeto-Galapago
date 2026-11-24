@@ -4,6 +4,8 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.33.2 | rig | o equino declara `porte_px` 68×68, o mesmo do cão — a régua de porte por arquétipo/família (decisão 1C) ainda não foi aplicada | médio | aberto |
+| v0.33.2 | rig | `_patas` continua decidindo a pata por clipe, com defasagens cravadas no código; o item (2) da ordem (marcha por contato) é o próximo | médio | aberto |
 | v0.33.1 | RIG | o método está escrito, mas o motor ainda decide a pata por clipe (`_patas`) e o inseto continua bloqueado pelo schema 2+2 — os lotes 1–5 da ordem de trabalho não foram feitos | médio | aberto |
 | v0.33.0 | P10 | bípede, ave e serpente compilam (schema 4) mas seguem sem marcha: `locomocao_suportada` é falso e não há teste de passada para eles | médio | aberto |
 | v0.33.0 | P10 | as cinco chaves do voo só existem no `canino3d.json`; o equino herda os defaults e o teste de voo só roda no cão | médio | aberto |

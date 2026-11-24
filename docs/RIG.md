@@ -23,18 +23,25 @@ das poses.
 - **Densidade:** nenhum animal muda de densidade. Aumentar o bicho em px de
   arte quebra a relação com o cenário; o porte é propriedade do arquétipo, não
   uma escala escolhida por cena.
-- **Quadro:** `calcular_canvas` ([`sim/esqueleto3d.gd`](../sim/esqueleto3d.gd))
+- **Quadro:** `calcular_quadro` ([`sim/esqueleto3d.gd`](../sim/esqueleto3d.gd))
   refaz a caixa a partir das poses — 16 yaws × 32 fases por clipe, mais o
-  alcance analítico das patas — e **cresce** além de `canvas_px` quando a pose
-  exige. O contrato está no comentário: *canvas é metadado, nunca recorte
-  físico nem escala*. `pivot_px` sai junto; o teste nomeia a regra
-  (`pivô global imutável entre clipes`,
-  [`testes/test_parametrico3d.gd`](../testes/test_parametrico3d.gd):103).
-- **Porte × quadro:** o JSON declara o porte em `canvas_px`; `calcular_canvas`
-  devolve o quadro no mesmo campo, maior. Quem desenha usa o pivô — a pele
-  geométrica posiciona por `pivot_px` e não recorta no canvas
-  ([`jogo/pele_geometrica3d.gd`](../jogo/pele_geometrica3d.gd):25). Separá-los
-  com teste é o item (1) da ordem de trabalho.
+  alcance analítico das patas — e **cresce** além de `porte_px` quando a pose
+  exige. O contrato está no comentário: o porte é declarado e imutável; o
+  quadro é metadado, nunca recorte físico nem escala. `pivot_px` sai junto; o
+  teste nomeia a regra (`pivô global imutável entre clipes`,
+  [`testes/test_parametrico3d.gd`](../testes/test_parametrico3d.gd):106).
+- **Porte × quadro:** são **campos separados**. O JSON declara `porte_px`
+  (o cão: 68×68) e `calcular_quadro`
+  ([`sim/esqueleto3d.gd`](../sim/esqueleto3d.gd):248) devolve `quadro_px` —
+  hoje **92×76** no cão e **122×102** no equino — sempre `≥` o porte. Nenhuma
+  pose reescreve o porte, e rig que ainda declare `canvas_px` é reprovado
+  (fail-closed): `test_porte_imutavel_em_todos_os_clipes_direcoes_e_fases` e
+  `test_quadro_contem_o_porte_e_rig_antigo_reprova`
+  ([`testes/test_parametrico3d.gd`](../testes/test_parametrico3d.gd):169). Quem
+  desenha usa o pivô — a pele geométrica posiciona por `pivot_px` e não
+  recorta no quadro
+  ([`jogo/pele_geometrica3d.gd`](../jogo/pele_geometrica3d.gd):25). Item (1)
+  da ordem de trabalho: **feito**.
 
 ## Método: contato primeiro, ângulo depois
 
@@ -46,11 +53,11 @@ das poses.
    a pose sai dele — nunca o contrário.
 4. **A âncora no mundo é verificação, não conserto.** O teste compara a pata
    com o apoio e mede o erro
-   ([`testes/test_parametrico3d.gd`](../testes/test_parametrico3d.gd):128).
+   ([`testes/test_parametrico3d.gd`](../testes/test_parametrico3d.gd):131).
 5. **A fase aérea não é caso especial.** No galope ela é só o trecho do ciclo
    sem contato: a mesma marcha, com a pata fora do chão. O teste do voo mede
    comprimento ÷ altura e a direção anatômica das patas
-   ([`testes/test_parametrico3d.gd`](../testes/test_parametrico3d.gd):106).
+   ([`testes/test_parametrico3d.gd`](../testes/test_parametrico3d.gd):109).
 
 O motor de hoje anda meio caminho: [`sim/locomocao3d.gd`](../sim/locomocao3d.gd)
 avança a fase por distância e ancora os apoios no mundo, mas o apoio nasce da
@@ -64,7 +71,7 @@ com defasagens cravadas no código (`te` 0, `fe` 0.25, `td` 0.5, `fd` 0.75,
 | primitiva | status | o que falta / por quê |
 |---|---|---|
 | **quadrúpede** | **implementada** | contato em plano, 4 patas. É a única em escopo hoje. |
-| **inseto** | **planejada** | a mesma matemática com 6 patas. Bloqueio concreto: o schema aceita no máximo 2 membros dianteiros + 2 traseiros e não existe arquétipo "inseto" ([`sim/topologia3d.gd`](../sim/topologia3d.gd):4,59). |
+| **inseto** | **conceito** | só o quadrúpede está em escopo. A mesma matemática com 6 patas continua bloqueada — o schema aceita no máximo 2 membros dianteiros + 2 traseiros e não existe arquétipo "inseto" ([`sim/topologia3d.gd`](../sim/topologia3d.gd):4,59). |
 | **bípede** | **conceito** | dois contatos + equilíbrio. Não é "quadrúpede com duas pernas". |
 | **ave** | **conceito** | as pernas são marcha; a asa é outro sistema (bater, decolar, pousar). |
 | **serpente** | **conceito** | não há pé: o contato é ao longo do corpo, com onda viajando pela coluna. |
@@ -97,14 +104,14 @@ primitiva resolvida: só a primeira anda.
   `bounds_clipes` existe para conferência, não para recortar.
 - **3B — patinagem < 1 px** por apoio, **também em curva e diagonal**, não só
   em reta. O teste atual mede reta
-  ([`testes/test_parametrico3d.gd`](../testes/test_parametrico3d.gd):128).
+  ([`testes/test_parametrico3d.gd`](../testes/test_parametrico3d.gd):131).
 
 ## Ordem de trabalho
 
 Sem promessa de prazo; cada item começa com o anterior provado.
 
 0. Este documento.
-1. Separar **porte** de **quadro**, com teste.
+1. Separar **porte** de **quadro**, com teste — **feito**.
 2. **Marcha por contato** no lugar do `if clipe`.
 3. **Proporções e passada do cão**.
 4. **Curva + despacho por arquétipo**.
@@ -114,7 +121,7 @@ Sem promessa de prazo; cada item começa com o anterior provado.
 
 - `tools/testes.sh` roda [`testes/test_parametrico3d.gd`](../testes/test_parametrico3d.gd):
   compilador legado e segunda espécie, interfaces sem marcha, IK com polo,
-  quadro/pivô, voo e apoios.
+  porte/quadro/pivô (imutabilidade e fail-closed), voo e apoios.
 - No lote v0.33.0: 176 apoios alcançáveis, erro máximo 0,002 px; voo 1,97:1;
   giro 4/4 (§P10).
 

@@ -1,11 +1,11 @@
 {
-  "_leia": "RIG 3D do canino (Fase A do plano 3D do cão) — CONTRATO de esqueleto, não arte. `juntas` são pontos de repouso no mundo em unidades do canvas: x lateral (direita positiva), y para cima, z para a frente; o chão é y=0. `ossos` liga duas juntas e `largura` é a espessura do traço (px na escala 1). `sockets` é NOME → junta + offset 3D + z (front/back) + `oculto_em`; o socket some na direção listada (não herda posição). `motion` são os parâmetros da marcha; `clips` declara duração/loop e espelha dados/rig/canino.json. `pecas` é a porta da Fase B: uma lista de peças 2D por osso (poly em (u,v), w, cores), validada mas NÃO desenhada nesta fase. Lido por sim/esqueleto3d.gd.",
+  "_leia": "RIG 3D do canino (Fase A do plano 3D do cão) — CONTRATO de esqueleto, não arte. `juntas` são pontos de repouso no mundo em unidades do canvas: x lateral (direita positiva), y para cima, z para a frente; o chão é y=0. `ossos` liga duas juntas e `largura` é a espessura do traço (px na escala 1). `sockets` é NOME → junta + offset 3D + z (front/back) + `oculto_em`; o socket some na direção listada (não herda posição). `porte_px` é o porte do animal na grade (imutável; o quadro calculado sai em `quadro_px`); `motion` são os parâmetros da marcha; `clips` declara duração/loop e espelha dados/rig/canino.json. `pecas` é a porta da Fase B: uma lista de peças 2D por osso (poly em (u,v), w, cores), validada mas NÃO desenhada nesta fase. Lido por sim/esqueleto3d.gd.",
   "schema_version": 3,
   "id": "canino3d",
   "arquetipo": "quadrupede",
   "familia": "canino",
   "sample": "esqueleto 3D de estudo; NÃO é arte aprovada",
-  "canvas_px": [
+  "porte_px": [
     68,
     68
   ],
