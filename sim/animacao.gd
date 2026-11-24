@@ -109,6 +109,9 @@ static func retrato(corpo: RefCounted, andando: bool, saltou := false, pousou :=
 		"saltou": saltou,
 		"pousou": pousou,
 		"correndo": corpo.correndo(),
+		# MODO DA CÂMERA (v0.34): de LONGE não existe caminhada — andando, ela
+		# já está em CORRIDA (o clipe base é o run). De PERTO o walk continua.
+		"caminhada": corpo.caminhada_existe(),
 		# Só para a pose de decolagem: cauda física acelera enquanto há rota.
 		"impulso_corrida": andando and corpo.em_rota() and corpo._fator_sprint() > 1.001,
 		"andando": andando,
@@ -142,7 +145,10 @@ static func desejado(entrada: Dictionary, m: Dictionary) -> String:
 	if bool(entrada.get("dormindo", false)):
 		return "sleep"
 	if bool(entrada.get("andando", false)):
-		return "run" if bool(entrada.get("correndo", false)) else "walk"
+		# De LONGE (sem caminhada) andar JÁ É correr; o sprint só acelera.
+		if bool(entrada.get("correndo", false)) or not bool(entrada.get("caminhada", true)):
+			return "run"
+		return "walk"
 	return "idle"
 
 

@@ -15,6 +15,7 @@ class Fake extends RefCounted:
 	var sprint := false
 	var cauda := false
 	var rota := true
+	var caminhada := true
 
 	func em_rota() -> bool:
 		return rota
@@ -33,6 +34,9 @@ class Fake extends RefCounted:
 
 	func correndo() -> bool:
 		return sprint
+
+	func caminhada_existe() -> bool:
+		return caminhada
 
 
 func _cat() -> Dictionary:
@@ -218,6 +222,25 @@ func test_duracoes_do_canino_sincronizadas_com_catalogo() -> void:
 				outro + " não acelera " + id)
 	perto(A.fase(_mem("run", 0.0), canino, 280.0), 0.0, 0.001, "galope fecha em 280ms")
 	perto(A.fase(_mem("walk", 0.0), canino, 320.0), 0.0, 0.001, "passo fecha em 320ms")
+
+
+## v0.34 — o MODO DA CÂMERA manda no clipe base: de LONGE não existe
+## caminhada (andando, ela já está em CORRIDA — nunca `walk`); de PERTO o
+## `walk` continua. O sprint, de longe, só acelera: o clipe segue `run`.
+func test_longe_anda_em_corrida_e_perto_mantem_a_caminhada() -> void:
+	var m := _cat()
+	var f := Fake.new()
+	f.caminhada = false
+	igual(A.desejado(A.retrato(f, true), m), "run", "de longe, andar pede corrida")
+	igual(String(A.resolver(A.retrato(f, true), m, {}, 0.0)["id"]), "run", "e o clipe resolvido é o run")
+	f.caminhada = true
+	igual(A.desejado(A.retrato(f, true), m), "walk", "de perto, andar pede caminhada")
+	f.sprint = true
+	igual(A.desejado(A.retrato(f, true), m), "run", "de perto, o sprint pede corrida")
+	f.sprint = false
+	igual(A.desejado({"andando": true, "caminhada": false}, m), "run", "longe sem sprint continua corrida")
+	igual(A.desejado({"andando": true, "caminhada": false, "correndo": true}, m), "run", "longe acelerada é corrida")
+	igual(A.desejado({"andando": true}, m), "walk", "sem o campo, o padrão é a caminhada")
 
 
 func test_corrida_e_transicoes_de_pulo() -> void:

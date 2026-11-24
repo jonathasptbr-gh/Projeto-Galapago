@@ -15,7 +15,7 @@
   ],
   "envelope_px": {
     "altura": 32,
-    "comprimento": 39,
+    "comprimento": 42.459146,
     "largura": 20
   },
   "directions": {
@@ -64,122 +64,122 @@
     "quadril": [
       0,
       20,
-      -11
+      -12.96875
     ],
     "lombo": [
       0,
       20.5,
-      -3
+      -2.78125
     ],
     "peito": [
       0,
-      19.5,
-      6
+      19.1,
+      8.40625
     ],
     "pescoco": [
       0,
       23,
-      10.5
+      12.90625
     ],
     "cabeca": [
       0,
       26.5,
-      14
+      16.40625
     ],
     "focinho": [
       0,
       25,
-      18.5
+      20.90625
     ],
     "orelha_e": [
       -3.2,
       32,
-      13
+      15.40625
     ],
     "orelha_d": [
       3.2,
       32,
-      13
+      15.40625
     ],
     "cauda_base": [
       0,
       21,
-      -13
+      -14.96875
     ],
     "cauda_ponta": [
       0,
-      17,
-      -18.5
+      18.064779,
+      -21.552896
     ],
     "ombro_e": [
       -8,
       18,
-      7
+      9.40625
     ],
     "ombro_d": [
       8,
       18,
-      7
+      9.40625
     ],
     "anca_e": [
       -6.5,
       19,
-      -10.5
+      -12.46875
     ],
     "anca_d": [
       6.5,
       19,
-      -10.5
+      -12.46875
     ],
     "joelho_fe": [
       -8,
       8.276218,
-      3.03797
+      5.44422
     ],
     "pata_fe": [
       -8,
       0,
-      9.5
+      11.90625
     ],
     "joelho_fd": [
       8,
       8.276218,
-      3.03797
+      5.44422
     ],
     "pata_fd": [
       8,
       0,
-      9.5
+      11.90625
     ],
     "joelho_te": [
       -6.5,
       10.332178,
-      -3.72687
+      -5.69562
     ],
     "jarrete_te": [
       -6.5,
       5,
-      -12
+      -13.96875
     ],
     "pata_te": [
       -6.5,
       0,
-      -7.5
+      -9.46875
     ],
     "joelho_td": [
       6.5,
       10.332178,
-      -3.72687
+      -5.69562
     ],
     "jarrete_td": [
       6.5,
       5,
-      -12
+      -13.96875
     ],
     "pata_td": [
       6.5,
       0,
-      -7.5
+      -9.46875
     ]
   },
   "ossos": [
@@ -367,15 +367,15 @@
     }
   },
   "motion": {
-    "passo_px": 12.0,
+    "passo_px": 13.8,
     "corpo_px": 1.1,
     "cauda_px": 1.8,
     "respira_px": 0.5,
-    "galope_passo_px": 15.0,
+    "galope_passo_px": 17.0,
     "galope_levanta_px": 5.5,
     "galope_suspensao_px": 4.2,
     "duty_walk": 0.55,
-    "duty_galope": 0.25,
+    "duty_galope": 0.2,
     "idle_peso_lateral_px": 0.8,
     "idle_cabeca_graus": 4.0,
     "idle_cabeca_bob_px": 0.6,
@@ -396,7 +396,7 @@
     "marchas": {
       "passo": {
         "duty": 0.55,
-        "passo_px": 12.0,
+        "passo_px": 13.8,
         "levanta_px": 3.0,
         "easing_levanta": 0.72,
         "avanco": {
@@ -417,8 +417,8 @@
         }
       },
       "galope": {
-        "duty": 0.25,
-        "passo_px": 15.0,
+        "duty": 0.2,
+        "passo_px": 17.0,
         "levanta_px": 5.5,
         "easing_levanta": 0.72,
         "avanco": {

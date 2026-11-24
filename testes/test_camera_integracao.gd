@@ -47,6 +47,27 @@ func test_pinca_segundo_dedo_sobre_hud_e_saida() -> void:
 	m.free()
 
 
+## v0.34 — a PINÇA leva o MODO ao corpo na hora (o gancho não pode ficar
+## velho): aproximar liga o teto de 88 e a caminhada; afastar devolve 110.
+func test_pinca_atualiza_o_modo_de_camera_do_corpo() -> void:
+	var m := _criar()
+	checar(not m.corpo.caminhada_existe(), "começa de longe")
+	perto(m.corpo.velocidade_efetiva(), 110.0, 0.001, "110 de longe")
+	m.dedo_desceu(0, Vector2(300, 500))
+	m.dedo_desceu(1, Vector2(400, 500))
+	m.dedo_moveu(1, Vector2(500, 500))
+	checar(m.camera_toque.intima(), "a pinça aproximou")
+	checar(m.corpo.caminhada_existe(), "o corpo recebeu o modo perto")
+	perto(m.corpo.velocidade_efetiva(), 88.0, 0.001, "teto de 88 de perto")
+	m.dedo_moveu(1, Vector2(200, 500))
+	checar(not m.camera_toque.intima(), "a pinça afastou")
+	checar(not m.corpo.caminhada_existe(), "o corpo voltou a longe")
+	perto(m.corpo.velocidade_efetiva(), 110.0, 0.001, "volta aos 110")
+	m.dedo_subiu(1, Vector2(200, 500))
+	m.dedo_subiu(0, Vector2(300, 500))
+	m.free()
+
+
 func test_controle_para_na_soltura_cancelamento_e_foco() -> void:
 	var m := _criar()
 	m.dedo_desceu(0, Vector2(300, 500))

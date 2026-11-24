@@ -4,6 +4,10 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.34.0 | fluidez | com a passada maior, os tetos do teste subiram (transição walk→run 15 px; pico do run 2,5 px/quadro a 60 fps) — vigiar "estalo" na troca no aparelho | pequeno | aberto |
+| v0.34.0 | sprint | a corrida acelerada usa a MESMA marcha do galope (muda só a velocidade); marcha própria de sprint (passada/voo maiores) exige perna mais longa | médio | aberto |
+| v0.34.0 | câmera | no modo perto o segurar, sem rota, ainda cai na habilidade (cavar): o modo não alimenta o reconhecedor, mas o comando existe | pequeno | aberto |
+| v0.34.0 | corpo | L2 aplicado só ao cão; o equino segue com as proporções antigas e a marcha dele (passada 17/21) | pequeno | aberto |
 | v0.33.4 | animação | cadência do walk subiu ~61% com a reconciliação (0,198 s por ciclo aos 110 px/s); julgar no aparelho — o candidato C existe se ficar miúdo demais | design | aberto |
 | v0.33.4 | rig | proporções do cão (item 3 da ordem) continuam pendentes: pernas, tronco e pescoço ainda são os do ajuste manual, não uma régua anatômica | médio | aberto |
 | v0.33.3 | rig | descompasso entre `passada` e `duty × ciclo` (walk do cão −7,36 px; galope +1,90 px): a âncora no mundo esconde a diferença; reconciliar é o item (3) | médio | aberto |

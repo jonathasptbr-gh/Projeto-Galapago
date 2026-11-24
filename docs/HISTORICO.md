@@ -3,6 +3,29 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.34.0 — locomoção por câmera e cão comprido (L2) (2026-11-24)
+
+- **O modo da câmera manda na locomoção** (decisão do operador): **perto**
+  (pinça) = caminhada **analógica** — 90 px de dedo = curso inteiro = **88 px/s**
+  (teto de 0,8 × 110) e **sem sprint**; **longe** (padrão) = **sem caminhada**:
+  andando ela já está em corrida, e o segurar acelera (1,7× = 187 px/s). O
+  modo é reavaliado a cada movimento da pinça, não só na entrada do toque.
+- **Corpo L2:** tronco 17,6 → **21,9 px** (+25%), altura mantida (cernelha 18,
+  orelha 32); comprimento total 37,0 → **42,5** (1,33× a altura). O cão deixa
+  de ser "mais alto do que comprido".
+- **Marcha:** walk com passada 12,0 → **13,8** (91% do alcance); galope com
+  `duty` 0,25 → **0,20** e passada 15,0 → **17,0** (98% do teto): **voo de 60%**
+  do ciclo e **25,5 px por salto** (era 15,0; +70%). A passada 20,0 foi
+  recusada **por medição** — razão do voo 2,40 e alcance 101,6%.
+- **Verificação:** 284 testes/0, parser 67/0, docs 34/0; razão do voo 2,2612
+  (banda 1,8–2,3); 178 apoios; derrapagem sem âncora 0,000015 px; descompasso
+  **0** em todas as marchas.
+- **Fluidez:** com a passada maior, a transição walk→run subiu de 12,19 para
+  13,89 px (teto 13→15) e o pico do run a 60 fps de 1,9 para 2,31 px/quadro
+  (teto 2,0→2,5) — limites ajustados com o motivo declarado.
+- **Baseline:** refeito pelo CI no branch do lote.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.33.4 — passada e ciclo reconciliados: apoio sem âncora (2026-11-24)
 
 - **Decisão do operador (2026-11-24), candidato B:** a passada fica e o ciclo

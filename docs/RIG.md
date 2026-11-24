@@ -121,9 +121,11 @@ Sem promessa de prazo; cada item começa com o anterior provado.
 1. Separar **porte** de **quadro**, com teste — **feito** (v0.33.2).
 2. **Marcha por contato** no lugar do `if clipe` — **feito** (v0.33.3): walk e
    galope em dados, e um trote declarado só em dados como prova.
-3. **Proporções e passada do cão** — **reconciliação feita**: `passada` e
-   `duty × ciclo` são a mesma conta (ciclo derivado, descompasso zero por
-   construção, provado sem âncora). **Pendente:** as **proporções do cão**.
+3. **Proporções e passada do cão** — **feito** (v0.34.0): `passada` e
+   `duty × ciclo` são a mesma conta (descompasso zero, provado sem âncora);
+   tronco 17,6 → **21,9 px** (+25%) com a altura mantida; passada do walk
+   **13,8**; galope com `duty` **0,20** e passada **17,0** — **voo de 60%** do
+   ciclo e 25,5 px por salto (era 15,0).
 4. **Curva + despacho por arquétipo**.
 5. **Inseto de 6 patas** como prova (opcional).
 

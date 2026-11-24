@@ -795,7 +795,7 @@ func test_idle_relaxado() -> void:
 
 func test_walk_dinamica() -> void:
 	var m := _rig()
-	perto(float(m["motion"]["passo_px"]), 12.0, 0.001, "passo 12 px")
+	perto(float(m["motion"]["passo_px"]), 13.8, 0.001, "passo 13,8 px")
 	perto(float(m["motion"]["duty_walk"]), 0.55, 0.001, "duty walk 0,55")
 	perto(float(m["motion"]["walk_balanco_lateral_px"]), 0.7, 0.001, "balanço lateral ±0,7")
 	perto(float(m["motion"]["walk_transversa_px"]), 1.5, 0.001, "transversa ±1,5")
@@ -828,9 +828,9 @@ func test_walk_dinamica() -> void:
 
 func test_run_dinamica() -> void:
 	var m := _rig()
-	perto(float(m["motion"]["duty_galope"]), 0.25, 0.001, "duty galope 0,25")
+	perto(float(m["motion"]["duty_galope"]), 0.20, 0.001, "duty galope 0,20")
 	perto(float(m["motion"]["galope_suspensao_px"]), 4.2, 0.001, "suspensão 4,2 px")
-	perto(float(m["motion"]["galope_passo_px"]), 15.0, 0.001, "passo 15 px")
+	perto(float(m["motion"]["galope_passo_px"]), 17.0, 0.001, "passo 17 px")
 	perto(float(m["motion"]["galope_levanta_px"]), 5.5, 0.001, "levanta 5,5 px")
 	perto(float(m["motion"]["run_baixa_px"]), 1.6, 0.001, "corpo desce 1,6 px")
 	perto(float(m["motion"]["run_estica_px"]), 2.5, 0.001, "tronco alonga 2,5 px")
@@ -860,11 +860,11 @@ func test_run_dinamica() -> void:
 
 
 ## Passada aparente: entre um apoio e o seguinte a pata varre o passo inteiro
-## em z. Medido no ciclo: 12,00 px no walk e 15,00 px no galope, em todas as
+## em z. Medido no ciclo: 13,80 px no walk e 17,00 px no galope, em todas as
 ## patas (os alvos de _patas usam exatamente passo_px/galope_passo_px).
 func test_passada_aparente_walk_e_run() -> void:
 	var m := _rig()
-	var minimos := {"walk": 10.0, "run": 12.0}
+	var minimos := {"walk": 12.0, "run": 15.0}
 	for clipe in ["walk", "run"]:
 		var chave := "passo_px" if clipe == "walk" else "galope_passo_px"
 		var passo := float(m["motion"][chave])
@@ -996,18 +996,21 @@ func test_fluidez_entre_clipes() -> void:
 	var jump_ini := E3.pose(m, "east", 0.0, "jump_start")
 	var d_wr := _max_dist(walk_fim, run_ini)
 	var d_rj := _max_dist(run_fim, jump_ini)
-	# A passada cresceu (12 px no walk, 15 px no galope): na fronteira CRUA a
-	# pata pode estar em pontos opostos do passo — medido 12,19 px. O salto
-	# visível não acontece porque a criatura mistura os clipes; esse contrato
-	# é testado em test_transicao_walk_run_primeiro_quadro (<3 px).
-	checar(d_wr < 13.0, "walk→run sem salto grande (%.2f px)" % d_wr)
+	# A passada cresceu (13,8 px no walk, 17 px no galope): na fronteira CRUA a
+	# pata pode estar em pontos opostos do passo — medido 13,89 px, perto do
+	# teto (passada_walk + passada_galope) / 2 = 15,4 px. O salto visível não
+	# acontece porque a criatura mistura os clipes; esse contrato é testado em
+	# test_transicao_walk_run_primeiro_quadro (<3 px).
+	checar(d_wr < 15.0, "walk→run sem salto grande (%.2f px)" % d_wr)
 	checar(d_rj < 9.0, "run→jump_start sem salto grande (%.2f px)" % d_rj)
 	var passo_i := _maior_passo(m, "idle")
 	var passo_w := _maior_passo(m, "walk")
 	var passo_r := _maior_passo(m, "run")
 	checar(passo_i < 1.0, "idle a 60 fps sem pico (%.2f px/quadro)" % passo_i)
 	checar(passo_w < 2.0, "walk a 60 fps sem pico (%.2f px/quadro)" % passo_w)
-	checar(passo_r < 2.0, "run a 60 fps sem pico (%.2f px/quadro)" % passo_r)
+	# O galope tem passada 17 px e só 20% de apoio: o balanço varre mais rápido
+	# e o pico do jarrete sobe de ~1,9 para 2,31 px/quadro.
+	checar(passo_r < 2.5, "run a 60 fps sem pico (%.2f px/quadro)" % passo_r)
 
 
 func _max_dist(a: Dictionary, b: Dictionary) -> float:

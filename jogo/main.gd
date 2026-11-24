@@ -52,6 +52,10 @@ const Hud := preload("res://jogo/hud.gd")
 const Demo := preload("res://jogo/demo.gd")
 
 const MAPA := "res://dados/mapas/fundacao.json"
+# JOYSTICK da vista íntima: o deslocamento do dedo até este RAIO vira magnitude
+# 1,0 do controle relativo (100% do curso). Com o teto de 88 px/s do modo
+# PERTO, metade do raio = 44 px/s; além do raio satura em 88.
+const RAIO_JOYSTICK_PX := 90.0
 
 var mundo: RefCounted
 var corpo: RefCounted
@@ -387,6 +391,7 @@ func _cancelar_contatos() -> void:
 		corpo.definir_controle_relativo(camera_toque.intima())
 	_traco_iniciado = false
 	_desenho_de_segurar = false
+	_levar_modo_camera()
 	corpo.mover_relativo(Vector2.ZERO)
 
 
@@ -416,6 +421,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 func dedo_desceu(dedo: int, p: Vector2) -> void:
 	var acao := camera_toque.descer(dedo, p)
 	_dedos[dedo] = true
+	# O zoom pode ter mudado desde o último toque: o modo é sincronizado AQUI
+	# também, senão o dedo entraria com o modo velho (joystick × caminho).
+	_levar_modo_camera()
 	if acao == "pinca":
 		# Cancela também toques pendentes; nenhum dedo remanescente reinicia gesto.
 		corpo.comandar({"acao": "soltar_segurar"}, mundo, alvos)
@@ -449,7 +457,7 @@ func dedo_moveu(dedo: int, p: Vector2) -> void:
 		_aplicar_camera()
 	elif acao == "principal":
 		if camera_toque.intima() and dedo == _joystick_dedo:
-			var deslocamento := (p - _joystick_origem) / 90.0
+			var deslocamento := (p - _joystick_origem) / RAIO_JOYSTICK_PX
 			corpo.mover_relativo(deslocamento.limit_length(1.0))
 		else:
 			# o dedo SEGURANDO que se move sem levantar começa um desenho
@@ -487,10 +495,20 @@ func dedo_subiu(dedo: int, p: Vector2) -> void:
 		_entregar(reconhecedor.soltar(dedo, p, tempo_ms))
 
 
-func _aplicar_camera() -> void:
+## Leva o MODO da câmera (PERTO/LONGE) para o corpo. É ele que decide o TETO
+## de velocidade e se existe CAMINHADA (de longe, andar já é correr). A pinça
+## pode mudar o zoom em QUALQUER movimento, então isto roda a cada movimento de
+## pinça e em cada toque que ENTRA — nunca só na descida do primeiro dedo.
+func _levar_modo_camera() -> void:
 	var intima: bool = camera_toque.intima()
+	corpo.definir_camera_perto(intima)
 	if corpo.controle_relativo != intima:
 		corpo.definir_controle_relativo(intima)
+
+
+func _aplicar_camera() -> void:
+	_levar_modo_camera()
+	var intima: bool = camera_toque.intima()
 	var inclinacao: float = camera_toque.inclinacao()
 	mundo_visual.scale = Vector2(1.0, inclinacao)
 	chao.inclinacao = inclinacao
