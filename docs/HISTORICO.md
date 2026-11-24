@@ -3,6 +3,28 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.34.3 — dobra sempre no polo e clamp de compressão (2026-11-24)
+
+- **Polo fixo:** a dobra obedece ao polo do rig — o cotovelo **sempre para
+  trás**. A troca de ramo por "menor violação" da v0.34.2 foi **removida**: era
+  ela que virava o cotovelo para a frente.
+- **Clamp de compressão:** antes da IK, se a pata chega mais perto do topo do
+  que a cadeia permite, o alvo é **afastado** até `√(l2²−l1²) + 0,05`
+  (9,76 px na dianteira; 12,44 na traseira). Só age no **balanço**: **0
+  quadros de apoio** afetados e o **sha256 das patas em contato é idêntico**
+  (1.280 amostras).
+- **Números (galope, por perna × 24 fases × 8 direções):** cotovelo acima do
+  ombro **10/24 → 6/24**; jarrete acima do joelho **13/24 → 2/24**; joelho
+  acima da anca 3/24 (sem mudança); dobra fora do polo **0**. Voo 2,179 (na
+  banda), 178 apoios, derrapagem 1,5e−5 px, descompasso 0, fluidez 2,61
+  px/quadro (teto 3,5).
+- **Custo assumido:** a pata do balanço desce até 5,0 px (média 2,57) e a
+  passada aparente do `fe` sobe de 17,0 para 17,46 — o dado não mudou, a pose
+  sim.
+- **Verificação:** 285 testes/0, parser 67/0, docs 34/0.
+- **Baseline:** refeito pelo CI no branch do lote.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.34.2 — dobra anatômica no IK das pernas (2026-11-24)
 
 - **A dobra passou a obedecer à anatomia** nos clipes de marcha: cotovelo

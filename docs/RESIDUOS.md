@@ -4,6 +4,9 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.34.3 | rig | cotovelo acima do ombro em 6/24 fases do galope: com o polo atrás, exigiria a pata 0,3–6,7 px mais longe que o arco do balanço — conserto de **trajetória** (dados), não de solver | médio | aberto |
+| v0.34.3 | rig | joelho acima da anca em 3/24 e jarrete acima do joelho em 2/24: só no recolhimento máximo; clampar até a distância de apoio ordenaria, mas mudaria o contato | pequeno | aberto |
+| v0.34.3 | marcha | o clamp do balanço aumenta a passada aparente do `fe` (17,0 → 17,46) sem mudar o dado | pequeno | aberto |
 | v0.34.2 | rig | cotovelo dianteiro acima do ombro em 10/24 fases do galope: as duas dobras violam **por geometria** (ombro→pata < 9,72 px, cadeia de 21 px) — o conserto é de alvo/pose | médio | aberto |
 | v0.34.2 | rig | joelho traseiro acima da anca em 3/24 e jarrete em 4/24: só no recolhimento máximo, onde a dobra válida pularia o joelho > 2,5 px (guarda anti-pisca) | pequeno | aberto |
 | v0.34.2 | rig | a regra da dobra vale só nos clipes de marcha; idle, jump_*, charge, shot, bite, slam, dig, hit, stunned, death e get_up ficam fora (postura autoral) | pequeno | aberto |

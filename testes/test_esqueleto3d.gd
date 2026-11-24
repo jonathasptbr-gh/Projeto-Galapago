@@ -26,6 +26,13 @@ func _rig() -> Dictionary:
 	return m
 
 
+## Alvo EFETIVO da pata: o da marcha passado pelo LIMITE DE COMPRESSÃO
+## (`E3._alvo_compressao`). Em APOIO devolve o próprio alvo — o clamp é regra
+## de BALANÇO —, então o contato continua exatamente onde o dado manda.
+func _alvo_efetivo(perna: Dictionary, P: Vector3, alvo: Vector3) -> Vector3:
+	return E3._alvo_compressao(P, alvo, alvo.y > 0.0, E3._dmin_perna(perna))
+
+
 func _espelho_nome(nome: String) -> String:
 	var n := nome
 	if n.ends_with("_e"):
@@ -257,7 +264,7 @@ func test_ik_preserva_ossos_e_alvos_alcancaveis_em_3d() -> void:
 				var P := _j3(p, String(perna["upper"]))
 				var K := _j3(p, "joelho_" + nome)
 				var F := _j3(p, "pata_" + nome)
-				var alvo: Vector3 = alvos[nome]
+				var alvo: Vector3 = _alvo_efetivo(perna, P, alvos[nome])
 				var l1 := float(perna["l1"])
 				var l2 := float(perna["l2"])
 				perto(P.distance_to(K), l1, 0.001, "osso superior %s/%s/%.3f" % [clipe, nome, fase])
@@ -274,7 +281,7 @@ func test_ik_preserva_ossos_e_alvos_alcancaveis_em_3d() -> void:
 						checar(F.distance_to(alvo) < 0.001,
 							"contato alcançável preservado %s/%s/%.3f (%.4f)" % [clipe, nome, fase, F.distance_to(alvo)])
 				else:
-					var antigo := E3._ik(P, alvo, l1, l2, -1.0)
+					var antigo := E3._ik(P, alvo, l1, l2, E3._sentido_polo(perna, false))
 					checar(K.distance_to(antigo["joelho"]) < 0.00001 and
 						F.distance_to(antigo["pata"]) < 0.00001,
 						"dianteira usa a mesma IK %s/%s/%.3f" % [clipe, nome, fase])
@@ -330,7 +337,7 @@ func test_jarrete_todos_os_yaws_clipes_e_saltos_sem_stretch() -> void:
 						perto(P.distance_to(K), float(perna["l1"]), 0.002, "fêmur " + tag)
 						perto(K.distance_to(H), float(perna["l2"]), 0.002, "tíbia " + tag)
 						perto(H.distance_to(F), float(perna["l3"]), 0.002, "metatarso " + tag)
-						var alvo: Vector3 = alvos[nome]
+						var alvo: Vector3 = _alvo_efetivo(perna, P, alvos[nome])
 						var H0 := E3._jarrete_alcancavel(P, alvo, float(perna["l1"]),
 							float(perna["l2"]), float(perna["l3"]), perna["offset_jarr"])
 						if P.distance_to(H0) <= float(perna["l1"]) + float(perna["l2"]) + 0.0001 and P.distance_to(H0) >= absf(float(perna["l1"]) - float(perna["l2"])) - 0.0001:
@@ -868,22 +875,47 @@ func test_run_dinamica() -> void:
 ## Passada aparente: entre um apoio e o seguinte a pata varre o passo inteiro
 ## em z. Medido no ciclo: 13,80 px no walk e 17,00 px no galope, em todas as
 ## patas (os alvos de _patas usam exatamente passo_px/galope_passo_px).
+## A passada APARENTE (extremo traseiro → dianteiro da pata) sai da marcha em
+## DADOS, e o LIMITE DE COMPRESSÃO é a única coisa que mexe nela: no balanço a
+## pata é afastada do topo da cadeia, e o extremo traseiro pode recuar até o
+## afastamento máximo daquele clipe. Medido no galope: fe 17,4643 (dados 17,0 +
+## clamp até 0,46 px), te 17,0. A marcha em dados continua exatamente a mesma —
+## é o que a primeira checagem prova, varrendo só `_patas`.
 func test_passada_aparente_walk_e_run() -> void:
 	var m := _rig()
+	var pernas := E3._pernas(m)
 	var minimos := {"walk": 12.0, "run": 15.0}
 	for clipe in ["walk", "run"]:
 		var chave := "passo_px" if clipe == "walk" else "galope_passo_px"
 		var passo := float(m["motion"][chave])
 		var menor := 1e9
 		for k in PATAS:
+			var sufixo := String(k).replace("pata_", "")
+			var perna: Dictionary = {}
+			for bruto in pernas:
+				if String(bruto["nome"]) == sufixo:
+					perna = bruto
+			var tmin := 1e9
+			var tmax := -1e9
+			for i in 400:
+				var tz := float(E3._patas(pernas, clipe, float(i) / 400.0, m["motion"])[sufixo].z)
+				tmin = minf(tmin, tz)
+				tmax = maxf(tmax, tz)
+			perto(tmax - tmin, passo, 0.01, "passada dos DADOS de %s em %s" % [k, clipe])
 			var zmin := 1e9
 			var zmax := -1e9
+			var desloc := 0.0
 			for i in 200:
-				var p := E3.pose(m, "east", float(i) / 200.0, clipe)
+				var fase := float(i) / 200.0
+				var p := E3.pose(m, "east", fase, clipe)
 				var z := _j3(p, k).z
 				zmin = minf(zmin, z)
 				zmax = maxf(zmax, z)
-			perto(zmax - zmin, passo, 0.01, "passada de %s em %s" % [k, clipe])
+				var az := float(E3._patas(pernas, clipe, fase, m["motion"])[sufixo].z)
+				desloc = maxf(desloc, absf(z - az))
+			checar(zmax - zmin >= passo - 0.01 and zmax - zmin <= passo + desloc + 0.01,
+				"passada de %s em %s = %.4f (dados %.4f, clamp até %.4f)"
+				% [k, clipe, zmax - zmin, passo, desloc])
 			menor = minf(menor, zmax - zmin)
 		checar(menor >= float(minimos[clipe]),
 			"passada aparente %s = %.2f px (mínimo %.0f)" % [clipe, menor, minimos[clipe]])
