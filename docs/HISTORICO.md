@@ -3,6 +3,33 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.32.0 — história: IA no robô solar, drone e chat dos cientistas (2026-11-24)
+
+- **Avatar:** o jogador deixa de ser a criatura; é uma **IA num corpo robótico
+  autossuficiente** que cuida de um **filhote** na ilha, **sem impacto
+  humano**. O filhote é quem evolui.
+- **Instrumento:** recarga **solar** sem base/tomada, **disfarce** sobretudo em
+  combate e **drone** de visão tática e comando — o "porquê" é não perturbar o
+  ecossistema. Dupla camada vínculo × instrumento virou princípio de design.
+- **Pesquisadores:** chat no formato de **comandos/prompts de IA**, tratamento
+  do jogador como **IA em treinamento** e inversão **"código × real"** — o
+  jogador e o "mundo real" ditos como criação do experimento, com teste do
+  jogador **fora da tela** (quarta parede).
+- **Arco em duas fases:** urgência/proteção/defesa com comandos protocolares →
+  aventura íntima, exploração e **segredos/vestígios da pesquisa**.
+- **Alinhado:** evolução ramificada por vivência (raposa alada de fogo),
+  realismo ecológico × frieza clínica, personalidade da criatura e reviravolta
+  continuam; a afinidade e os gestos de combate não mudaram.
+- **Sem mudança de código ou arte:** nada em `sim/`, `jogo/`, `dados/`,
+  `testes/` ou `arte/` foi tocado.
+- **Documentação:** novo [`docs/gdd/historia.md`](gdd/historia.md); premissa,
+  instrumento, narrativa, jornada e uma frase de drone no
+  [`CONCEITO`](CONCEITO.md); mapa do [`AGENTS.md`](../AGENTS.md); esta entrada
+  e a linha em [`RESIDUOS`](RESIDUOS.md).
+- **Verificação:** `tools/docs.sh` com **docs 33/0** e guardião **42/0**;
+  nenhum teste de jogo rodado (o lote é só de documentação).
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.31.5 — preview sem comentário (2026-11-24)
 
 - **Sem comentário automático:** o job `preview` deixa de comentar no

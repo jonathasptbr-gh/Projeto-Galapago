@@ -4,6 +4,7 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.32.0 | história | decisões pendentes do GDD (ver docs/gdd/historia.md §Decisões pendentes) | design | aberto |
 | v0.31.5 | notificações | o comentário automático saiu, mas e-mail de falha de workflow e de revisão ainda depende das configurações pessoais do GitHub | pequeno | aberto |
 | v0.31.4 | P10 | rig paramétrico em WIP no branch `wip/rig-parametrico-3d` (voo 0,93:1; reancoragem 3/4); não entregue | médio | aberto |
 | v0.31.3 | animação | primeiro quadro walk→run ~2,5 px a 60 fps (o teto do teste subiu de 2 para 3 na mesma edição) — acima do <2 px anterior | pequeno | aberto |
