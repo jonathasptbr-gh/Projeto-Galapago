@@ -14,7 +14,7 @@
 |---|---|---|
 | **densidade de arte** | quantos px de tela cada px de arte ocupa, **fixado pelo cenário** (escala inteira). A tela não é a grade — a grade é a arte. | zoom da câmera; resolução do aparelho |
 | **porte** | quantos px de arte o animal ocupa na grade. O cão é **68**. A régua é **por arquétipo**. | multiplicador aplicado na hora de desenhar |
-| **quadro** (*frame*) | caixa que contém **todas as poses** do rig. Pode ser **maior que o porte** — a medição atual do cão deu **92×76**. | recorte; escala; área de jogo |
+| **quadro** (*frame*) | caixa que contém **todas as poses** do rig. Pode ser **maior que o porte** — a medição atual do cão deu **96×78**. | recorte; escala; área de jogo |
 | **pivô** | um só por rig, no chão, igual em **todos** os clipes. | centro do quadro; origem da arte |
 
 Densidade e porte são as duas grandezas; quadro e pivô são geometria derivada
@@ -33,7 +33,7 @@ das poses.
 - **Porte × quadro:** são **campos separados**. O JSON declara `porte_px`
   (o cão: 68×68) e `calcular_quadro`
   ([`sim/esqueleto3d.gd`](../sim/esqueleto3d.gd):248) devolve `quadro_px` —
-  hoje **92×76** no cão e **122×102** no equino — sempre `≥` o porte. Nenhuma
+  hoje **96×78** no cão e **122×102** no equino — sempre `≥` o porte. Nenhuma
   pose reescreve o porte, e rig que ainda declare `canvas_px` é reprovado
   (fail-closed): `test_porte_imutavel_em_todos_os_clipes_direcoes_e_fases` e
   `test_quadro_contem_o_porte_e_rig_antigo_reprova`
@@ -54,7 +54,12 @@ das poses.
 4. **A âncora no mundo é verificação, não conserto.** O teste compara a pata
    com o apoio e mede o erro
    ([`testes/test_parametrico3d.gd`](../testes/test_parametrico3d.gd):131).
-5. **A fase aérea não é caso especial.** No galope ela é só o trecho do ciclo
+5. **A dobra obedece à anatomia.** Nos clipes de marcha o solver escolhe a
+   solução de IK que deixa o cotovelo abaixo e atrás do ombro, o joelho abaixo
+   da anca e à frente, e o jarrete abaixo do joelho e atrás — com teste que
+   reprova a inversão. Onde as duas soluções violam (recolhimento extremo), a
+   pata continua no alvo e o caso é contado.
+6. **A fase aérea não é caso especial.** No galope ela é só o trecho do ciclo
    sem contato: a mesma marcha, com a pata fora do chão. O teste do voo mede
    comprimento ÷ altura e a direção anatômica das patas
    ([`testes/test_parametrico3d.gd`](../testes/test_parametrico3d.gd):109).

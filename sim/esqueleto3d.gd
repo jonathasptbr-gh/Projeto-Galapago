@@ -24,6 +24,18 @@ const YAW_GRAUS := {
 const CLIPES := ["idle", "walk", "run", "jump_start", "jump_air", "jump_land", "charge", "shot",
 	"bite", "slam", "dig", "hit", "stunned", "death", "get_up"]
 const PITCH_GRAUS := 20.0
+## Tolerância (px de mundo) da ORDEM ANATÔMICA das pernas na marcha. É régua do
+## solver, não dado: a pata continua no alvo e os ossos não esticam.
+const TOL_ANATOMIA := 0.01
+## Folga do LADO (px): a regra de lado é de DIREÇÃO, não de distância — numa
+## perna dobrada o jarrete raspa a reta e exigir 0,01 px ali fazia a solução
+## pular de ramo (medido: 6,6 px de joelho num quadro a 60 fps).
+const TOL_LADO := 0.5
+## Salto máximo (px) do joelho para aceitar outra dobra. No recolhimento máximo
+## da traseira a cadeia chega perto de |l1−l2| e outra dobra exige um pulo de
+## 5–7 px num quadro (medido); aí fica a dobra autoral e o quadro é contado
+## como sem solução — o conserto é de alvo (pose), não do solver.
+const SALTO_DOBRA := 2.5
 const JUNTAS_ESPERADAS := 24
 const OSSOS_ESPERADOS := 23
 const SOCKETS_OBRIGATORIOS := ["boca", "coroa", "base_cauda", "dorso"]
@@ -385,29 +397,50 @@ static func pose(m: Dictionary, direcao: String, fase: float, clipe: String = "w
 			if patas.has(nome) and alvos[nome] is Vector3:
 				patas[nome] = alvos[nome]
 	_mover_corpo(m, j, clipe, f, mo, salto_correndo)
+	# A ordem anatômica só é imposta nos clipes de MARCHA (os que a tabela
+	# `marchas` do rig aponta). Pulo, morte e levantar têm outra postura e
+	# ficam de fora — lá a regra não vale.
+	var vale_ordem := not _marcha(mo, clipe).is_empty()
 	for perna in pernas:
 		var nome := String(perna["nome"])
 		var upper := String(perna["upper"])
 		var P: Vector3 = j[upper]
 		var F: Vector3 = patas[nome]
+		var l1 := float(perna["l1"])
+		var l2 := float(perna["l2"])
+		var pole: Vector3 = perna["pole"]
+		var moderno := alvos.has(nome) or int(m.get("schema_version", 3)) == 4
 		if perna.has("l3"):
 			var l3 := float(perna["l3"])
-			var H := _jarrete_alcancavel(P, F, float(perna["l1"]),
-				float(perna["l2"]), l3, perna["offset_jarr"])
-			var solucao := (ik_pole(P, H, float(perna["l1"]), float(perna["l2"]),
-				perna["pole"], 0.9999) if alvos.has(nome) or int(m.get("schema_version", 3)) == 4
-				else _ik(P, H, float(perna["l1"]), float(perna["l2"]), 1.0))
+			var H := _jarrete_alcancavel(P, F, l1, l2, l3, perna["offset_jarr"])
+			# Solução de repouso (a mesma de antes da regra): o jarrete de
+			# contato é o que fecha o metatarso no alvo, e é ele que escreve a
+			# pata — a dobra escolhida nunca move o alvo.
+			var solucao := _dobra(P, H, l1, l2, pole, moderno, 1.0)
 			var jarrete: Vector3 = solucao["pata"]
-			j[String(perna["joint1"])] = solucao["joelho"]
+			var joelho: Vector3 = solucao["joelho"]
+			if vale_ordem:
+				var escolha := _perna_traseira(P, F, l1, l2, l3, perna["offset_jarr"],
+					pole, moderno, {"joelho": joelho, "jarrete": jarrete})
+				joelho = escolha["joelho"]
+				jarrete = escolha["jarrete"]
+			j[String(perna["joint1"])] = joelho
 			j[String(perna["joint2"])] = jarrete
-			# Enquanto o círculo do jarrete toca o alcance do joelho, F é exato.
-			# Se nem o círculo toca, corrige só o contato, nunca estica os ossos.
-			j[String(perna["foot"])] = jarrete + (F - H).normalized() * l3
+			# A pata é o alvo: o círculo rígido do metatarso em torno dela
+			# garante F exato; alvo fora do alcance corrige só o contato. A
+			# expressão usa o jarrete de CONTATO (não o da dobra), então a
+			# posição da pata não muda com a regra anatômica.
+			j[String(perna["foot"])] = solucao["pata"] + (F - H).normalized() * l3
 		else:
-			var solucao := (ik_pole(P, F, float(perna["l1"]), float(perna["l2"]),
-				perna["pole"], 0.9999) if alvos.has(nome) or int(m.get("schema_version", 3)) == 4
-				else _ik(P, F, float(perna["l1"]), float(perna["l2"]), -1.0))
-			j[String(perna["joint1"])] = solucao["joelho"]
+			var solucao := _dobra(P, F, l1, l2, pole, moderno, -1.0)
+			var joelho: Vector3 = solucao["joelho"]
+			if vale_ordem:
+				# Dianteira tem UMA dobra por polo; a regra decide entre as
+				# duas soluções da IK (a do polo e a espelhada).
+				var outra := _dobra(P, F, l1, l2, pole, moderno, 1.0)
+				var joelho_outra: Vector3 = outra["joelho"]
+				joelho = _escolher_dianteira(P, F, joelho, joelho_outra)
+			j[String(perna["joint1"])] = joelho
 			j[String(perna["foot"])] = solucao["pata"]
 	_extras(j, clipe, f, mo, salto_correndo)
 	if clipe == "death":
@@ -1082,6 +1115,110 @@ static func _deitar(j: Dictionary, f: float) -> void:
 		var y := p.y * (1.0 - 0.82 * q)
 		var z := p.z + (p.y - y) * 0.35
 		j[nome] = Vector3(p.x, y, z)
+
+
+## --- ordem anatômica das pernas (regra do SOLVER; o dado não é tocado) ---
+## A pata fica exatamente no alvo e os comprimentos l1/l2/l3 são rígidos: o que
+## se escolhe é a DOBRA entre as soluções da IK. Régua em px de mundo:
+##   dianteira: y(cotovelo) ≤ y(ombro) + tol E cotovelo atrás da reta ombro→pata;
+##   traseira: y(joelho) ≤ y(anca) + tol, joelho à frente da reta anca→pata,
+##             y(jarrete) ≤ y(joelho) + tol E jarrete atrás da mesma reta.
+## "Atrás" é o lado em que o cotovelo/jarrete de REPOUSO fica — o mesmo sinal
+## do critério da auditoria ("z menor que o da reta ombro→pata naquele y"),
+## medido em perpendicular para não explodir com a perna deitada. Quando
+## nenhuma solução da cadeia fecha as quatro condições (alvo extremo), fica a
+## de MENOR violação — nunca se move a pata nem se alonga osso para
+## "consertar" a pose.
+
+## Distância com sinal de Q à reta P→F no plano (y,z); > 0 = atrás da reta,
+## < 0 = à frente. Perpendicular (e não a diferença de z em y fixo) para não
+## explodir quando a perna deita.
+static func _lado_da_reta(P: Vector3, F: Vector3, Q: Vector3) -> float:
+	var dy := F.y - P.y
+	var dz := F.z - P.z
+	var n := sqrt(dy * dy + dz * dz)
+	if n < 0.000001:
+		return 0.0
+	return (-dz * (Q.y - P.y) + dy * (Q.z - P.z)) / n
+
+
+## Violação (px) da ordem anatômica: 0 = configuração válida. Soma as folgas que
+## faltam, então também serve de desempate quando nada é válido.
+## `H` só é lido na traseira (jarrete); na dianteira passa-se o próprio joelho.
+static func violacao_perna(P: Vector3, F: Vector3, K: Vector3, H: Vector3,
+		tres_ossos: bool) -> float:
+	var v := maxf(0.0, K.y - P.y - TOL_ANATOMIA)
+	if tres_ossos:
+		v += maxf(0.0, _lado_da_reta(P, F, K) - TOL_LADO)
+		v += maxf(0.0, H.y - K.y - TOL_ANATOMIA)
+		v += maxf(0.0, -_lado_da_reta(P, F, H) - TOL_LADO)
+	else:
+		v += maxf(0.0, -_lado_da_reta(P, F, K) - TOL_LADO)
+	return v
+
+
+## As duas dobras possíveis da IK de dois ossos para o par (P, alvo), na
+## convenção da perna. `sentido` +1 = dobra do polo (a autoral: cotovelo atrás,
+## joelho à frente); -1 = a espelhada. `|P-K| = l1` e `|K-alvo| = l2` nas duas,
+## e a pata devolvida é a mesma.
+static func _dobra(P: Vector3, alvo: Vector3, l1: float, l2: float, pole: Vector3,
+		moderno: bool, sentido: float) -> Dictionary:
+	if moderno:
+		return ik_pole(P, alvo, l1, l2, pole if sentido > 0.0 else -pole, 0.9999)
+	return _ik(P, alvo, l1, l2, sentido)
+
+
+## Dianteira: a dobra do polo é a autoral (cotovelo atrás). Só se ela ficar do
+## lado ERRADO e a espelhada não, troca-se — o lado é a restrição de identidade.
+## Quando as duas violam (alvo extremo, cotovelo não desce em nenhuma), fica a
+## do polo: comparar as violações por 0,001 px fazia o cotovelo pular 15 px
+## entre dois quadros (medido em 0,883 e 0,917 do galope).
+static func _escolher_dianteira(P: Vector3, F: Vector3, dobra: Vector3,
+		espelho: Vector3) -> Vector3:
+	var dobra_ok := _lado_da_reta(P, F, dobra) >= -TOL_LADO
+	var espelho_ok := _lado_da_reta(P, F, espelho) >= -TOL_LADO
+	if dobra_ok != espelho_ok:
+		return dobra if dobra_ok else espelho
+	return dobra
+
+
+## Traseira: o jarrete anda no círculo rígido do metatarso em volta da pata.
+## Parte do offset de repouso (`base`, a solução de antes da regra) e, se a
+## ordem não vale, gira o metatarso para BAIXO/ATRÁS — o sentido em que o
+## jarrete desce — até a cadeia fechar; fica o MENOR giro válido. A faixa é a
+## anatômica: jarrete acima do chão e atrás da pata. Sem solução válida na
+## faixa, fica a de menor violação. Devolve joelho/jarrete; nada aqui move a
+## pata (o metatarso tem raio l3 em torno dela por construção).
+static func _perna_traseira(P: Vector3, F: Vector3, l1: float, l2: float, l3: float,
+		offset: Vector3, pole: Vector3, moderno: bool, base: Dictionary) -> Dictionary:
+	var k0: Vector3 = base["joelho"]
+	var h0: Vector3 = base["jarrete"]
+	var v0 := violacao_perna(P, F, k0, h0, true)
+	if v0 <= TOL_ANATOMIA:
+		return {"joelho": k0, "jarrete": h0, "violacao": v0, "giro": 0.0}
+	var ang0 := atan2(offset.z, offset.y)
+	var minimo := absf(l1 - l2)
+	var maximo := l1 + l2
+	var melhor := {"joelho": k0, "jarrete": h0, "violacao": v0, "giro": 0.0}
+	for passo in 300:
+		var giro := -deg_to_rad(float(passo + 1) * 0.5)
+		var ang := ang0 + giro
+		var H := F + Vector3(0.0, l3 * cos(ang), l3 * sin(ang))
+		if H.y <= 0.0 or H.z >= F.z:
+			continue
+		var d := P.distance_to(H)
+		if d < minimo + 0.0001 or d > maximo - 0.0001:
+			continue
+		for sentido: float in [1.0, -1.0]:
+			var K: Vector3 = _dobra(P, H, l1, l2, pole, moderno, sentido)["joelho"]
+			if K.distance_to(k0) > SALTO_DOBRA:
+				continue
+			var v := violacao_perna(P, F, K, H, true)
+			if v < float(melhor["violacao"]) - 0.000001:
+				melhor = {"joelho": K, "jarrete": H, "violacao": v, "giro": giro}
+			if v <= TOL_ANATOMIA:
+				return {"joelho": K, "jarrete": H, "violacao": v, "giro": giro}
+	return melhor
 
 
 ## Escolhe o jarrete no círculo rígido de raio l3 em torno do alvo da pata.

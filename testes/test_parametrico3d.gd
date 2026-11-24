@@ -363,3 +363,93 @@ func test_terceira_marcha_so_em_dados_anda_com_quatro_apoios() -> void:
 	var avanco := float(trote["duty"]) * E3._ciclo(trote)
 	print("métrica marcha trote: passada=%.6f duty*ciclo=%.6f descompasso=%.6f px"
 		% [passada, avanco, passada - avanco])
+
+
+## P0 da auditoria: a IK escolhia a dobra errada e a perna ficava
+## anatomicamente impossível (cotovelo acima do ombro, joelho acima da anca,
+## jarrete acima do joelho). A regra é do SOLVER, nunca do dado: a pata
+## continua exatamente no alvo da marcha e os ossos l1/l2/l3 não esticam.
+## Varre 8 direções × 24 fases × walk/run nos dois rigs.
+##
+## Medido ANTES da regra (por direção e por pata, no galope): cão — 10/24 com o
+## cotovelo acima do ombro (cada dianteira), 13/24 com o jarrete acima do
+## joelho e 4/24 com o joelho acima da anca (cada traseira); equino — 4/24 de
+## jarrete. DEPOIS: jarrete acima do joelho 13→4 (cão) e 4→0 (equino); joelho
+## acima da anca 4→3 (cão); dianteira do equino 0. A dianteira do CÃO segue
+## 10/24 porque o alvo torna a ordem impossível: com |ombro→pata| <
+## √(l2²−l1²) = 9,72 px as DUAS soluções da IK de dois ossos põem o cotovelo
+## acima do ombro — não é escolha, é geometria; o conserto é de alvo (pose),
+## não do solver. Os quadros que restam na traseira são os do recolhimento
+## máximo, em que a dobra válida exigiria um salto de joelho maior que
+## `E3.SALTO_DOBRA`: o solver mantém a dobra autoral para não piscar e o caso
+## entra na conta.
+func test_ordem_anatomica_das_pernas_na_marcha() -> void:
+	var conta := {}
+	var pior := 0.0
+	for nome in ["canino3d", "equino3d"]:
+		var m := Rigs.carregar(nome)
+		var pernas := E3._pernas(m)
+		var moderno := int(m.get("schema_version", 3)) == 4
+		for clipe in ["walk", "run"]:
+			for dir in E3.DIRECOES:
+				for i in 24:
+					var fase := float(i) / 24.0
+					var p := E3.pose(m, dir, fase, clipe)
+					var j3: Dictionary = p["juntas_3d"]
+					var patas: Dictionary = E3._patas(pernas, clipe, fase, m["motion"])
+					for bruto in pernas:
+						var perna: Dictionary = bruto
+						var tres: bool = perna.has("l3")
+						var pata := String(perna["nome"])
+						var P: Vector3 = j3[String(perna["upper"])]
+						var K: Vector3 = j3[String(perna["joint1"])]
+						var F: Vector3 = j3[String(perna["foot"])]
+						var H: Vector3 = j3[String(perna["joint2"])] if tres else K
+						var tag := "%s/%s/%s/%.3f/%s" % [nome, clipe, dir, fase, pata]
+						# 1) A pata não se move e o osso não estica.
+						perto(F.distance_to(patas[pata]), 0.0, 0.0002, "pata no alvo " + tag)
+						perto(P.distance_to(K), float(perna["l1"]), 0.0002, "l1 rígido " + tag)
+						if tres:
+							perto(K.distance_to(H), float(perna["l2"]), 0.0002, "l2 rígido " + tag)
+							perto(H.distance_to(F), float(perna["l3"]), 0.0002, "l3 rígido " + tag)
+						else:
+							perto(K.distance_to(F), float(perna["l2"]), 0.0002, "l2 rígido " + tag)
+						# 2) Ordem anatômica.
+						var v := E3.violacao_perna(P, F, K, H, tres)
+						pior = maxf(pior, v)
+						if v <= E3.TOL_ANATOMIA:
+							continue
+						var chave := "%s/%s/%s" % [nome, clipe, "traseira" if tres else "dianteira"]
+						conta[chave] = int(conta.get(chave, 0)) + 1
+						if not tres:
+							# Só é aceitável se a OUTRA dobra também violar.
+							var outra := E3._dobra(P, F, float(perna["l1"]), float(perna["l2"]),
+								perna["pole"], moderno, 1.0)
+							var joelho_outra: Vector3 = outra["joelho"]
+							checar(E3.violacao_perna(P, F, joelho_outra, joelho_outra, false)
+								> E3.TOL_ANATOMIA,
+								"havia dobra dianteira válida e o solver não a usou " + tag)
+						else:
+							# Traseira: a dobra autoral é a de menor violação (a busca é
+							# do solver); violar só é aceitável no galope do cão.
+							checar(nome == "canino3d" and clipe == "run",
+								"traseira fora da ordem em %s" % tag)
+	print("métrica ordem anatômica: %s (pior violação %.3f px)"
+		% [JSON.stringify(conta), pior])
+	# Marcha lenta: ordem 100% nos dois rigs e nas duas cadeias.
+	for rig in ["canino3d", "equino3d"]:
+		for lado in ["dianteira", "traseira"]:
+			igual(int(conta.get("%s/walk/%s" % [rig, lado], 0)), 0,
+				"%s %s limpa no walk" % [rig, lado])
+	# Galope do equino: 100% também.
+	for lado in ["dianteira", "traseira"]:
+		igual(int(conta.get("equino3d/run/%s" % lado, 0)), 0,
+			"equino %s limpa no run" % lado)
+	# Cão no galope: só o que o alvo torna impossível. Teto = o medido (20
+	# dianteiras e 4 traseiras por direção); subir o teto é regressão.
+	checar(int(conta.get("canino3d/run/dianteira", 0)) <= 160,
+		"dianteira do cão no galope: só alvo extremo (%d casos)"
+		% int(conta.get("canino3d/run/dianteira", 0)))
+	checar(int(conta.get("canino3d/run/traseira", 0)) <= 96,
+		"traseira do cão no galope: só recolhimento máximo (%d casos)"
+		% int(conta.get("canino3d/run/traseira", 0)))

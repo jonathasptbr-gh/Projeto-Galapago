@@ -4,6 +4,10 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.34.2 | rig | cotovelo dianteiro acima do ombro em 10/24 fases do galope: as duas dobras violam **por geometria** (ombro→pata < 9,72 px, cadeia de 21 px) — o conserto é de alvo/pose | médio | aberto |
+| v0.34.2 | rig | joelho traseiro acima da anca em 3/24 e jarrete em 4/24: só no recolhimento máximo, onde a dobra válida pularia o joelho > 2,5 px (guarda anti-pisca) | pequeno | aberto |
+| v0.34.2 | rig | a regra da dobra vale só nos clipes de marcha; idle, jump_*, charge, shot, bite, slam, dig, hit, stunned, death e get_up ficam fora (postura autoral) | pequeno | aberto |
+| v0.34.2 | nomes | `joelho_fe/fd` é o **cotovelo**: 39 referências em 6 arquivos, 3 deles do rig 2D — renomeação fica para um lote próprio | pequeno | aberto |
 | v0.34.1 | fluidez | pico do joelho traseiro em 3,48 px/quadro a 60 fps (teto do teste subiu 2,5→3,5); o pé não acelera — vigiar "piscada" no jarrete no aparelho | pequeno | aberto |
 | v0.34.1 | rig | punho não existe com 24 juntas: antebraço e metacarpo são UM osso (só a razão da referência foi aplicada); punho próprio = +2 juntas, teto 26 (decisão 1C) | médio | aberto |
 | v0.34.1 | rig | omoplata a 62° (prancha: 45°); 45° exigiria o ombro ~6 px à frente da cernelha e prende o fim do apoio do galope em z=12,4 | pequeno | aberto |

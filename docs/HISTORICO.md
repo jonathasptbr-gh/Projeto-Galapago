@@ -3,6 +3,28 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.34.2 — dobra anatômica no IK das pernas (2026-11-24)
+
+- **A dobra passou a obedecer à anatomia** nos clipes de marcha: cotovelo
+  abaixo e atrás do ombro, joelho abaixo da anca e à frente, jarrete abaixo do
+  joelho e atrás. **A pata não se move** — sha256 de 8 direções × 24 fases ×
+  walk/run × 4 patas idêntico antes/depois (cão e equino); osso não estica.
+- **Resultado medido (galope, por direção):** jarrete acima do joelho
+  **13/24 → 4/24** no cão e **4/24 → 0** no equino; joelho acima da anca
+  **4/24 → 3/24**; quadros com alguma violação **54 → 32**. Walk já era 0.
+- **Limite honesto:** o cotovelo dianteiro continua acima do ombro em
+  **10/24** — nessas fases as duas dobras violam **por geometria**
+  (ombro→pata < 9,72 px com cadeia de 21 px). O conserto é de **alvo/pose**,
+  não de solver.
+- **Fluidez melhorou:** pico de **3,482 → 3,104 px/quadro** (teto 3,5).
+- **Quadro** derivado do cão **92×76 → 96×78** (o jarrete gira mais para trás).
+- **Teste novo:** 8 direções × 24 fases × walk/run reprovam cotovelo acima do
+  ombro, joelho acima da anca e jarrete acima do joelho.
+- **Verificação:** 285 testes/0, parser 67/0, docs 34/0; voo 2,2103; 178
+  apoios; derrapagem sem âncora 0,000015 px; descompasso 0.
+- **Baseline:** refeito pelo CI no branch do lote.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.34.1 — ossos do cão pela anatomia de referência (2026-11-24)
 
 - **Omoplata de verdade:** a cernelha subiu 19,1 → **22,0** e a raiz do membro
