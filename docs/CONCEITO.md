@@ -8,18 +8,32 @@
 
 - Jogo indie comercial, **mobile primeiro** (tela tátil nativa; porte futuro
   não descartado).
-- O jogador é o próprio personagem num mundo de criaturas (gênero *creature
-  collector*), com **evolução ramificada por vivência**, não fixa por espécie.
+- O jogador é uma **IA num corpo robótico autossuficiente**, enviada a uma ilha
+  para **cuidar de um filhote** — a criatura que evolui — **sem impacto
+  humano** no ecossistema. O robô **recarrega no sol** (sem base nem tomada) e
+  se **disfarça**; em combate solta um **drone** de visão tática.
+- A criatura tem **evolução ramificada por vivência**, não fixa por espécie.
   Ex.: base canina + convívio com calor + muitos saltos em combate +
   desenvolvimento de inteligência → **raposa alada de fogo**.
-- **Convivência e envelhecimento:** jogador e criatura envelhecem juntos; a
-  criatura tem personalidade real e decide por si — inclusive de forma
-  impulsiva, teimosa ou infeliz.
+- **Convivência e envelhecimento:** o vínculo é vivido no tempo — o filhote
+  cresce, envelhece e ganha personalidade real; decide por si, inclusive de
+  forma impulsiva, teimosa ou infeliz.
 - **Escopo contido:** uma ilha / laboratório de testes com microambientes, não
   mundo aberto.
 
+## O instrumento no meio
+
+- **Duas camadas:** o **vínculo** com o filhote (vivência, cuidado, evolução) e
+  o **instrumento** que medeia o mundo — robô, drone e o chat dos
+  pesquisadores. O instrumento não substitui o vínculo: filtra.
+- Ele é o meio pelo qual o jogador age e pelo qual os pesquisadores o leem.
+  Detalhe em [`gdd/historia.md`](gdd/historia.md).
+
 ## Combate 2,5D e controle tátil
 
+- **O drone é o meio:** em combate, o drone dá **visão tática** e é por ele que
+  o jogador **comanda a criatura**; o toque desenhado continua a linguagem de
+  comando do build atual — gestos e câmera não mudam aqui.
 - **Sem joystick nem botão virtual.** Interface limpa, toque direto e gestos
   (referência: Kingdom Two Crowns; sem automação excessiva).
 - **Trajetória riscada** (referência: Inazuma Eleven DS): o jogador desenha o
@@ -67,11 +81,30 @@
 - **Realismo ecológico × frieza clínica:** o laboratório parece frio porque
   trata o mundo com realismo biológico (cadeia alimentar, carne, risco físico,
   consequência natural) — o contraste com a fantasia asséptica do gênero.
+- **Chat de comandos:** a comunicação com os pesquisadores é um **chat no
+  formato de comandos/prompts de IA**; eles tratam o jogador como uma
+  **inteligência artificial em treinamento**.
+- **Inversão "código × real":** os pesquisadores descrevem o jogador e até o
+  "mundo real" como **criação/parte do experimento deles**. O embate é **quem
+  age como código/protocolo e quem demonstra empatia ou reação real** —
+  inclusive testando o **próprio jogador do lado de fora da tela**.
 - **Quarta parede:** o jogador sabe e diz que está num jogo; a equipe finge
   tratar isso como delírio, mas sempre soube.
 - **Reviravolta:** o objeto do teste é o jogador — empatia, postura diante da
   dureza do mundo, capacidade de laço genuíno. O vínculo com a criatura decide
   se ele termina visto como ameaça ou como aliado daquele mundo.
+
+O detalhe narrativo fica em [`gdd/historia.md`](gdd/historia.md) — **se este
+resumo divergir do GDD, o GDD vence**.
+
+## A jornada
+
+- **Fase 1 — urgência:** manter o filhote vivo e ensiná-lo a se defender. Os
+  comandos dos pesquisadores soam **protocolares e exigentes**; o tom é tenso.
+- **Fase 2 — aventura íntima:** com o filhote firme e o vínculo crescido, a
+  ilha abre: **exploração**, **segredos, curiosidades e histórias do lugar** e
+  **vestígios da pesquisa**. O que o jogador faz muda de sobreviver para
+  conhecer.
 
 ## Arte
 
