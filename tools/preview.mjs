@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Preview do lote para o celular. Duas metades:
 //   --site       monta `_site/` (página + GIF + quadros-chave) para o Pages
-//   --comentar   comenta no commit/PR com o link e as imagens inline
+//   --comentar   comentário MANUAL no commit/PR (o CI não chama mais: o
+//                comentário automático gerava e-mail a cada push)
 //   --dry        ensaio: corpo do comentário + site em ~/tmp, sem API
 //
 // O Pages serve `https://<owner>.github.io/<repo>/`; os arquivos ficam em

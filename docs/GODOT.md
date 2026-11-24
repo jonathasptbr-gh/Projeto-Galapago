@@ -26,7 +26,7 @@ o binário local, `config/features` do `project.godot` e o nome
 | `tools/verificar.sh [--tudo] [arquivos]` | guardião + só os testes da área (mapa `res://`) + parser dos arquivos tocados; `--tudo` chama a suíte | durante a iteração |
 | `tools/quadros.sh [N] [saída]` | grava N quadros PNG da cena principal em modo `--demo` (Xvfb + Mesa) | mudança visível; depois **abrir** os PNG |
 | `node tools/quadros-baseline.mjs --run <id>` | baixa o artefato `baseline` do CI e aplica em `testes/baseline/` | lote visível, antes do commit |
-| `node tools/preview.mjs --site` / `--comentar` | monta `_site/` (GIF + quadros) para o Pages / comenta no commit ou PR | o CI chama; ensaio com `--dry` |
+| `node tools/preview.mjs --site` | monta `_site/` (GIF + quadros) para o Pages; o CI chama e publica o link no resumo do run | ensaio com `--dry` |
 | `tools/estado.sh [--ci] [--metricas]` | versão, HEAD, Godot, último CI / taxa de vermelho e mediana | abrir a sessão e fechar o lote |
 | `tools/godot-api.sh <Classe> [filtro]` | resume a API oficial 4.7.2 (estrutura do `--doctool` + textos da tag `4.7.2-stable`, em cache `~/.cache/galapago/`) | antes de usar classe/método que não está no projeto |
 | `tools/godot-api.sh --buscar <membro>` | quais classes têm aquele membro | "onde fica o normal map?" |

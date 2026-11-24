@@ -14,7 +14,7 @@
 
 ## Revisão no celular
 
-- [ ] Preview no comentário do CI (GIF + quadros-chave) abre no aparelho
+- [ ] Preview do CI (GIF + quadros-chave) abre no aparelho pelo link do resumo do run
 - [ ] APK da Release `dev` instala por cima do atual
 - [ ] Nada visível mudou **ou** o baseline entrou neste mesmo commit
 

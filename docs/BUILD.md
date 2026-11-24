@@ -29,15 +29,15 @@
 ## Preview do lote (celular)
 
 Todo push em `main` (e todo PR) ganha o job `preview`: pega o artefato
-`quadros`, monta um **GIF** e três quadros-chave, publica no GitHub Pages
-(`https://jonathasptbr-gh.github.io/Projeto-Galapago/`) e **comenta no
-commit/PR** com o link da página e as três imagens inline.
+`quadros`, monta um **GIF** e três quadros-chave e publica no GitHub Pages
+(`https://jonathasptbr-gh.github.io/Projeto-Galapago/`). O link fica no
+**resumo do run** e no artifact, **sem comentar no commit/PR**: o comentário
+automático gerava e-mail a cada push. A revisão continua sendo no chat do DSH.
 
 - `_site/index.html` é a página do lote atual; as imagens ficam em
   `_site/<run>/` (nome único por run) para o cache de imagem não servir lote
   velho. A página é substituída a cada push — link de imagem de lote antigo
-  morre; o comentário é atualizado no mesmo lugar (marcador
-  `<!-- galapago-preview -->`).
+  morre; o link do lote novo aparece no resumo do run.
 - Pages está como **GitHub Actions** (`build_type=workflow`). O branch
   `gh-pages` existe só porque o Pages exigiu uma origem para ser criado; não é
   fonte do site.
@@ -49,8 +49,11 @@ commit/PR** com o link da página e as três imagens inline.
   cota): o `continue-on-error` segura, e o APK não depende dele.
 - O `deploy-pages` precisa do artefato já indexado: o job dá uma pausa de 8 s
   e tenta de novo se a primeira falhar ("Fetching artifact metadata failed").
-  Falha dupla = site fica no lote anterior; o comentário aponta para a página
-  mesmo assim.
+  Falha dupla = site fica no lote anterior; o resumo do run diz que o preview
+  ficou indisponível.
+- **Notificações:** o CI não comenta em commit/PR. E-mail de falha de workflow
+  é configuração pessoal do GitHub (Settings → Notifications → Actions); o
+  canal de trabalho continua sendo o chat do DSH.
 
 ## Baseline de um lote (antes do commit)
 
@@ -89,7 +92,8 @@ dual-control** (decisão do operador, 2026-11-23):
   folha de contato) e o operador responde ali. Comentário de PR, issue e
   e-mail NÃO são lidos nem servem de aprovação.
 - O job `preview` (GIF + quadros no Pages) é conveniência para o commit em
-  `main`; falha de Pages não segura o lote nem pede aprovação.
+  `main`; falha de Pages não segura o lote nem pede aprovação. O CI **não
+  comenta** em commit/PR — notificação só no chat.
 - WIP: um lote por vez; nada de dois agentes no mesmo branch.
 
 ## Rollback
@@ -114,10 +118,10 @@ APK: `versionName` = `X.Y.Z-b<run>`, `versionCode` = número do run do CI
 ## O que o CI faz
 
 `.github/workflows/ci.yml` — job `testes` (segredos + testes + oráculo,
-artefato `quadros`) → job `preview` (GIF + quadros-chave comentados no
-commit/PR) → job `apk` (export Android + Release). O job `baseline` roda só
-por `workflow_dispatch` (aba Actions → Run workflow → `ref` do lote) e entrega
-o artefato `baseline`. Detalhes do export e das armadilhas:
+artefato `quadros`) → job `preview` (GIF + quadros-chave no Pages, link no
+resumo do run, sem comentário) → job `apk` (export Android + Release). O job
+`baseline` roda só por `workflow_dispatch` (aba Actions → Run workflow → `ref`
+do lote) e entrega o artefato `baseline`. Detalhes do export e das armadilhas:
 [`GODOT.md`](GODOT.md#8-exportar-para-android-p2--como-funciona-e-o-que-quebra).
 
 ## Atualização automática do app

@@ -1,7 +1,7 @@
 name: CI
 
 # testes  → testes headless + oráculo de quadros (artefato `quadros`)
-# preview → comentário no commit/PR com GIF e quadros-chave do lote (celular)
+# preview → página do lote no Pages (sem comentário no commit/PR: evita e-mail)
 # baseline→ sob demanda: quadros do llvmpipe para o lote entrar em UM commit
 # apk     → exporta o APK Android (P2) e publica:
 #           push em main  → Release `dev` (pré-release, refeita a cada push)
@@ -67,17 +67,17 @@ jobs:
           path: quadros/
           retention-days: 7
 
-  # Preview do lote no celular: `_site/` vai para o GitHub Pages e o comentário
-  # no commit/PR leva o link + três quadros inline. `continue-on-error`: um
-  # problema de Pages não pode segurar o APK.
+  # Preview do lote no celular: `_site/` vai para o GitHub Pages. NÃO comenta
+  # no commit/PR — o comentário automático gerava e-mail a cada push; a
+  # aprovação é no chat do DSH. `continue-on-error`: um problema de Pages não
+  # pode segurar o APK.
   preview:
     needs: testes
     if: always() && github.event_name != 'workflow_dispatch' && needs.testes.result != 'cancelled'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
       pages: write
       id-token: write
     environment:
@@ -128,14 +128,16 @@ jobs:
         continue-on-error: true
         uses: actions/deploy-pages@v4
 
-      - name: Comentar no commit/PR
-        continue-on-error: true
+      - name: Resumo do preview (sem comentário)
+        if: always()
         env:
-          GH_TOKEN: ${{ github.token }}
-          GITHUB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
           PREVIEW_URL: ${{ steps.deploy.outputs.page_url || steps.deploy2.outputs.page_url }}
-        run: node tools/preview.mjs --comentar
+        run: |
+          if [ -n "$PREVIEW_URL" ]; then
+            echo "Preview do lote: $PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Preview indisponível neste run (Pages falhou)." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
   # Baseline sob demanda (workflow_dispatch com `ref`): o llvmpipe do CI gera
   # os quadros do branch e `tools/quadros-baseline.mjs` aplica; assim o lote

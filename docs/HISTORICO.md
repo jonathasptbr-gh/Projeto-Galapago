@@ -3,6 +3,20 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.31.5 — preview sem comentário (2026-11-24)
+
+- **Sem comentário automático:** o job `preview` deixa de comentar no
+  commit/PR (o comentário gerava e-mail a cada push). O link do Pages passa a
+  ficar no **resumo do run**; a aprovação continua no chat do DSH.
+- **Permissões reduzidas:** `preview` fica com `contents: read`, `pages: write`
+  e `id-token: write`; não precisa mais escrever em PR/commit.
+- **Sem mudança de jogo:** nenhum código de `sim/`, `jogo/` ou dados mudou.
+- **Documentação:** `docs/BUILD.md`, `docs/GODOT.md` e o template de PR
+  descrevem o novo fluxo; `tools/preview.mjs --comentar` fica só manual.
+- **Verificação:** docs 32/0; testes 265/0 e parser 64/0; YAML do workflow
+  validado.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.31.4 — registro do P10 (2026-11-24)
 
 - **Só documentação:** nenhum código de jogo mudou; o comportamento da v0.31.3
