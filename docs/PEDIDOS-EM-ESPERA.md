@@ -4,13 +4,14 @@
 > pacote seguir.** Lê-se só o pacote escolhido. Um pacote cabe numa sessão; se
 > não couber, divide-se antes de começar.
 
-> **Manutenção registrada (2026-11-22):** a faxina documental A (v0.14.1) e o
+> **Manutenção registrada (2026-11-24):** a faxina documental A (v0.14.1) e o
 > guardião offline B (v0.14.2) já foram feitos; o protocolo de agentes e o
 > multi-sessão (P21) ficaram na v0.14.3; o P22 (fila enxuta) foi entregue na
 > v0.14.4 e o registro dele fechado na v0.15.0; o P23 (oráculo com baseline)
 > ficou na v0.16.0. Os pacotes feitos moram em
 > [`PEDIDOS-FEITOS.md`](PEDIDOS-FEITOS.md), não aqui. **Nada na fila está
-> autorizado** — restam só pacotes de conteúdo (P5–P9), à escolha do operador.
+> autorizado** — restam os pacotes de conteúdo (P5–P9) e o P10 em andamento,
+> à escolha do operador.
 
 | pacote | o quê | depende de | estado |
 |---|---|---|---|
@@ -19,6 +20,7 @@
 | P7 | Fatia vertical: arena + cão + gestos + 1 evolução | P2–P6 | na fila |
 | P8 | GDD do loop diário no laboratório/ilha | — | na fila (design, conversa) |
 | P9 | Camadas de pixel art sobre o esqueleto 3D (fase B) | A: v0.29.0 ✔ | alvo declarado (2026-11-23) |
+| P10 | Esqueleto 3D paramétrico por arquétipo e locomoção | — | **em andamento (WIP)** |
 
 ---
 
@@ -52,3 +54,25 @@
   com pivô e vistas por ângulo; medir o custo antes de gerar.
 - **Contrato:** o campo `pecas` do `dados/rig/canino3d.json` já valida; falta
   o desenho ordenado (pintor) e o pipeline de arte.
+
+## P10 — Esqueleto 3D paramétrico por arquétipo e locomoção
+
+- **Estado:** WIP no branch `wip/rig-parametrico-3d`, commit `3f7843c`, fora
+  da `main`. Medido: 272 testes, **2 falhas** — voo em 0,93:1 (meta 1,8–2,0)
+  e reancoragem no giro em 3 de 4 patas. Não entregar como está.
+- **O que já existe:** `sim/topologia3d.gd` (schema 3 adaptado e schema 4 com
+  papéis; quadrupede/bípede/ave/serpente; membros e pole), `sim/locomocao3d.gd`
+  (fase por distância e apoios ancorados no mundo), mudanças em
+  `sim/esqueleto3d.gd`, `jogo/criatura.gd` e `jogo/rigs3d.gd`, preset
+  `dados/rig/equino3d.json` e `testes/test_parametrico3d.gd`.
+- **Medido no WIP:** 176 apoios alcançáveis com erro máximo de 0,002 px; voo
+  0,93:1; reancoragem 3/4.
+- **Próximo:** (1) pose de voo com dianteiras à frente e traseiras atrás;
+  (2) corrigir a reancoragem no giro; (3) revisar o cão nas 8 direções e o
+  canvas 68×68; (4) gate, baseline e CI; (5) só depois as interfaces de
+  bípede, ave e serpente.
+- **Decisões pendentes do operador:** teto de 20 juntas (o cão tem 24), caixa
+  por clipe × por animal, qualidade da patinagem (âncora real).
+- **Aceite:** segundo quadrúpede sem editar o solver; menos de 1 px de
+  patinação por apoio em reta; voo entre 1,8 e 2,0; testes verdes; imagens
+  revisadas no chat.

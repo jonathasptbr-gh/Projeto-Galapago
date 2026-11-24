@@ -3,6 +3,18 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.31.4 — registro do P10 (2026-11-24)
+
+- **Só documentação:** nenhum código de jogo mudou; o comportamento da v0.31.3
+  continua.
+- **P10 registrado** em `docs/PEDIDOS-EM-ESPERA.md`: objetivo, o que já existe,
+  falhas medidas, próximos passos, decisões pendentes e critério de aceite.
+- **WIP preservado:** branch `wip/rig-parametrico-3d`, commit `3f7843c`, fora
+  da `main`. Estado medido: 272 testes, 2 falhas (voo 0,93:1 e reancoragem
+  3/4); não entregar.
+- **Verificação da main:** 265 testes/0 falhas e parser 64/0; docs 32/0.
+- **Resíduos:** ver `docs/RESIDUOS.md`.
+
 ## v0.31.3 — passada longa e corrida baixa (2026-11-23)
 
 - **Passada longa:** `passo_px` 5→12 px no walk e `galope_passo_px` 9,5→15 px
