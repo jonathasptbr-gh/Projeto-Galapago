@@ -5,6 +5,8 @@
 
 ## Não publicado
 
+## v0.35.0 — Fundação 3D: mundo 3D, Pixel Pass desligável, câmera 360° (2026-11-25)
+
 - **Fundação 3D no jogo** (P24.3–4): `jogo/mundo3d/` (ilha toon+casca, Pixel
   Pass desligável, atores provisórios) + `sim/camera3d.gd`; `jogo/main.gd`
   troca camadas 2D e `Camera2D` pelo mundo 3D; toque e sobreposições pela afim

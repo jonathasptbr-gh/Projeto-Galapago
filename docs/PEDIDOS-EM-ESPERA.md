@@ -31,7 +31,7 @@
 | P8 | GDD do loop diário no laboratório/ilha | — | na fila (design, conversa) |
 | P9 | Camadas de pixel art sobre o esqueleto 3D (fase B) | A: v0.29.0 ✔ | **congelado** (2026-11-25) |
 | P10 | Esqueleto 3D paramétrico por arquétipo e locomoção | — | **congelado** (2026-11-25) |
-| P24 | Fundação 3D: mundo 3D, Pixel Pass opcional, câmera orbital 360° | — | **autorizado, em andamento** (2026-11-25) |
+| P24 | Fundação 3D: mundo 3D, Pixel Pass opcional, câmera orbital 360° | — | **entregue na v0.35.0**, aguardando o operador no aparelho |
 
 ---
 

@@ -7,6 +7,12 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.35.0 | 3D | sobreposições (trilha, mira, perigos, efeitos) ficam por cima do 3D: uma copa não esconde a trilha | pequeno | aberto |
+| v0.35.0 | 3D | copas de árvore escondem a criatura que passa por baixo (no 2D a copa ficava translúcida) | pequeno | aberto |
+| v0.35.0 | 3D | subsolo e células escavadas não são desenhados no mundo 3D | médio | aberto |
+| v0.35.0 | visual | no Vulkan (CI #108) o contorno de algumas paredes sai tracejado, aparecem manchas escuras nas copas na vista íntima e o dither está forte | pequeno | aberto |
+| v0.35.0 | 3D | criatura e inimigo são atores provisórios (cápsula); a pele real depende do rig, congelado | grande | aberto |
+| v0.35.0 | desempenho | Mobile/Vulkan não medido em aparelho; o oráculo local é só prévia em Compatibility | médio | aberto |
 | v0.34.3 | rig | cotovelo acima do ombro em 6/24 fases do galope: com o polo atrás, exigiria a pata 0,3–6,7 px mais longe que o arco do balanço — conserto de **trajetória** (dados), não de solver | médio | congelado (rig) |
 | v0.34.3 | rig | joelho acima da anca em 3/24 e jarrete acima do joelho em 2/24: só no recolhimento máximo; clampar até a distância de apoio ordenaria, mas mudaria o contato | pequeno | congelado (rig) |
 | v0.34.3 | marcha | o clamp do balanço aumenta a passada aparente do `fe` (17,0 → 17,46) sem mudar o dado | pequeno | congelado (rig) |
