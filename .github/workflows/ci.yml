@@ -99,6 +99,24 @@ jobs:
           path: quadros/
           retention-days: ${{ steps.decidir.outputs.publicar == 'true' && 90 || 7 }}
 
+      # P24: a vitrine 3D (jogo/mundo3d/) em Vulkan, com e sem Pixel Pass —
+      # prova dos shaders no renderizador do APK enquanto a cena principal é 2D.
+      - name: Quadros da vitrine 3D
+        run: |
+          export QUADROS_RENDER=vulkan GALLIUM_DRIVER=llvmpipe QUADROS_FPS=10
+          export QUADROS_CENA=res://jogo/mundo3d/vitrine.tscn
+          tools/quadros.sh 30 vitrine3d/pixel
+          DEMO_ARGS="--liso" tools/quadros.sh 30 vitrine3d/liso
+          DEMO_ARGS="--vista-intima" tools/quadros.sh 30 vitrine3d/intima
+
+      - name: Publicar vitrine 3D
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: vitrine3d
+          path: vitrine3d/
+          retention-days: 7
+
   # Preview da publicação: `_site/` vai para o GitHub Pages. NÃO comenta
   # no commit/PR — o comentário automático gerava e-mail a cada push; a
   # aprovação é no chat do DSH. `continue-on-error`: um problema de Pages não

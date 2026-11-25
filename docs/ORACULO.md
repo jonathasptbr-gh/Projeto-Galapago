@@ -43,6 +43,11 @@ começa com a criatura perto do bicho, liga o botão, mostra os ataques e um
 golpe roteirizado no fim (o estado ESCONDIDO precisa aparecer; um caminho
 desenhado erraria o alvo móvel). O demo normal continua igual.
 
+`QUADROS_CENA` filma outra cena (`--scene`; padrão: a principal), com os mesmos
+argumentos. A vitrine do mundo 3D: `QUADROS_FPS=10
+QUADROS_CENA=res://jogo/mundo3d/vitrine.tscn tools/quadros.sh 30 ~/tmp/s3`
+(`DEMO_ARGS="--liso"` sem Pixel Pass; `--vista-intima` na vista íntima).
+
 ## Fatos medidos (2026-11-20, Godot 4.7.2)
 
 - **Neste celular (proot, aarch64):** o driver `llvmpipe` inicializa o OpenGL

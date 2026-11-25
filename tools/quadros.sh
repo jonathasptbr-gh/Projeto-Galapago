@@ -3,6 +3,8 @@
 # sem GPU (Xvfb + Mesa por software). Ver docs/ORACULO.md.
 #   tools/quadros.sh [N=60] [saída=~/tmp/galapago-quadros]   (QUADROS_FPS=30 por padrão)
 #   DEMO_ARGS="--hostil" tools/quadros.sh 180 ...  → cena de inimigo hostil
+#   QUADROS_CENA=res://jogo/mundo3d/vitrine.tscn tools/quadros.sh 30 ...  → filma
+#     outra cena (padrão: a principal); os argumentos (--demo $DEMO_ARGS) vão iguais
 #   QUADROS_RENDER=previa|vulkan (padrão previa):
 #     previa → Compatibility/OpenGL 3 por software (GALLIUM_DRIVER, softpipe
 #              por padrão: neste celular o llvmpipe morre com SIGILL no JIT);
@@ -16,6 +18,9 @@ N="${1:-60}"
 SAIDA="${2:-$HOME/tmp/galapago-quadros}"
 # argumentos extras da demo (ex.: --hostil); a expansão SEM quotes é intencional
 DEMO_ARGS="${DEMO_ARGS:-}"
+# cena a filmar (res://…); vazio = a cena principal do project.godot
+CENA=()
+if [ -n "${QUADROS_CENA:-}" ]; then CENA=(--scene "$QUADROS_CENA"); fi
 case "$SAIDA" in ""|/|"$HOME"|.) echo "saída perigosa: '$SAIDA'" >&2; exit 2;; esac
 
 MODO="${QUADROS_RENDER:-previa}"
@@ -32,8 +37,8 @@ rm -rf "${SAIDA:?}"; mkdir -p "$SAIDA"
 export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER="${GALLIUM_DRIVER:-softpipe}" GODOT_SILENCE_ROOT_WARNING=1
 "$G" --headless --path . --import >/dev/null 2>&1 || true
 {
-  echo "quadros.sh: modo=$MODO render=${RENDER[*]} GALLIUM_DRIVER=$GALLIUM_DRIVER VK_ICD_FILENAMES=${VK_ICD_FILENAMES:-}"
-  xvfb-run -a -s "-screen 0 720x1280x24" "$G" --path . "${RENDER[@]}" \
+  echo "quadros.sh: modo=$MODO render=${RENDER[*]} GALLIUM_DRIVER=$GALLIUM_DRIVER VK_ICD_FILENAMES=${VK_ICD_FILENAMES:-} cena=${QUADROS_CENA:-principal}"
+  xvfb-run -a -s "-screen 0 720x1280x24" "$G" --path . "${RENDER[@]}" ${CENA[@]+"${CENA[@]}"} \
     --audio-driver Dummy --resolution 720x1280 --write-movie "$SAIDA/q.png" \
     --fixed-fps "${QUADROS_FPS:-30}" --quit-after "$N" -- --demo $DEMO_ARGS 2>&1 || true
 } >"$SAIDA/log.txt"
