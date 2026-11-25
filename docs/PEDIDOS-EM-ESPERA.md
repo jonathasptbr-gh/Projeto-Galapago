@@ -19,6 +19,9 @@
 >   [`RESIDUOS.md`](RESIDUOS.md)).
 > - **Controles e gestos maduros e estáveis:** não mexer sem pedido do
 >   operador.
+> - **P24 — Fundação 3D autorizado** (mesma data): o mundo vira 3D, com
+>   Pixel Pass opcional; a câmera gira 360°. Ele autoriza mexer na conversão
+>   tela→chão e na câmera; o vocabulário de gestos continua o mesmo.
 
 | pacote | o quê | depende de | estado |
 |---|---|---|---|
@@ -28,6 +31,7 @@
 | P8 | GDD do loop diário no laboratório/ilha | — | na fila (design, conversa) |
 | P9 | Camadas de pixel art sobre o esqueleto 3D (fase B) | A: v0.29.0 ✔ | **congelado** (2026-11-25) |
 | P10 | Esqueleto 3D paramétrico por arquétipo e locomoção | — | **congelado** (2026-11-25) |
+| P24 | Fundação 3D: mundo 3D, Pixel Pass opcional, câmera orbital 360° | — | **autorizado, em andamento** (2026-11-25) |
 
 ---
 
@@ -93,3 +97,40 @@
 - **Aceite:** segundo quadrúpede sem editar o solver; menos de 1 px de
   patinação por apoio em reta; voo entre 1,8 e 2,0; testes verdes; imagens
   revisadas no chat.
+
+## P24 — Fundação 3D
+
+- **Decisões do operador (2026-11-25):** o cenário passa a ser **3D real**,
+  com materiais estilizados (luz em faixas + contorno) e o **Pixel Pass como
+  camada final desligável** (baixa resolução interna, quantização, dither
+  Bayer ancorado no mundo, ampliação *nearest*). Personagens em **3D** (não
+  sprite 2D), para não travar a escolha estética. **Câmera ortográfica
+  orbital, giro livre 360°** em volta do foco, pela **barra tátil no topo da
+  tela** (retrato): deslizar de um lado ao outro gira. **Vista alta é a
+  padrão**; a vista íntima (baixa/perto) é extra bem-vindo, não requisito.
+  Compatibilidade com o build 2D atual **não** é requisito; alvo = celular
+  médio (otimização fica para depois). Arquitetura definitiva, não protótipo.
+- **Medido antes (2026-11-25, cena de teste fora do repo):** 3D + SubViewport
+  362×642 + pós + toon + casca + sombra roda no oráculo local (Compatibility,
+  softpipe): 120 quadros em 309 s. Vulkan (Mobile e Forward+) com lavapipe
+  **cai com sinal 4** neste celular (o mesmo JIT do llvmpipe).
+- **Renderizador (decisão do gerente, delegada pelo operador):** **Mobile**
+  (Vulkan) como alvo, com *fallback* para OpenGL; shaders escritos para rodar
+  também no Compatibility, que vira a **prévia local** do oráculo
+  (`--rendering-method gl_compatibility`); a verdade visual é o CI com
+  lavapipe. Se o CI não renderizar Vulkan, fica o Compatibility.
+- **Fatias (um escritor por vez):**
+  1. Renderizador + oráculo + CI (prova: quadros Vulkan no CI verde).
+  2. `sim/camera3d.gd` puro: foco, yaw, vistas, snap de texel + resto,
+     chão⇄tela como `Transform2D` (ortográfica ⇒ afim). Testes.
+  3. `jogo/mundo3d/`: SubViewport, Pixel Pass liga/desliga, shaders toon e
+     casca, ilha e objetos a partir de `sim/mundo.gd`, criatura e adversário
+     provisórios em 3D.
+  4. Integração no `jogo/main.gd`: mundo 3D no lugar das camadas 2D, overlays
+     (trilha, mira, perigos, efeitos) na tela pela transformação afim, toque
+     pela câmera nova, barra de giro, chave do Pixel Pass, demo girando.
+  5. Docs + publicação + APK.
+- **Aceite:** no APK, a ilha aparece em 3D, gira 360° pela barra do topo sem
+  atrapalhar o desenho do caminho, o caminho cai no chão certo em qualquer
+  ângulo e a chave troca pixel art ⇄ 3D liso; testes e CI verdes; quadros
+  revisados no chat.
