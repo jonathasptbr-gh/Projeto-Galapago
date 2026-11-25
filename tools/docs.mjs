@@ -91,7 +91,13 @@ export function verificar(arquivos, caminhos) {
     erro('HISTORICO', h, 1, 'deve começar com um único título # Histórico');
   }
   const versoes = [];
-  for (const m of historico.matchAll(/^##[ \t]+.*$/gm)) {
+  // `## Não publicado` (opcional) junta as notas dos commits comuns até a
+  // próxima publicação; só vale como a PRIMEIRA seção, antes das versões.
+  for (const [i, m] of [...historico.matchAll(/^##[ \t]+.*$/gm)].entries()) {
+    if (m[0] === '## Não publicado') {
+      if (i !== 0) erro('VERSAO', h, linhaDe(historico, m[0]), '## Não publicado só pode ser a primeira seção, antes das versões');
+      continue;
+    }
     const titulo = m[0].match(/^## v(\d+\.\d+\.\d+) — .+ \(\d{4}-\d{2}-\d{2}\)$/);
     if (!titulo) erro('VERSAO', h, linhaDe(historico, m[0]), 'cabeçalho inválido; use ## vX.Y.Z — título (AAAA-MM-DD)');
     else versoes.push(titulo[1]);
@@ -102,7 +108,8 @@ export function verificar(arquivos, caminhos) {
   }
   const residuos = semBlocos(ler('docs/RESIDUOS.md'));
   const registradas = [...residuos.matchAll(/^\| v(\d+\.\d+\.\d+) \|/gm)].map(m => m[1]);
-  if (versoes.length && !registradas.includes(versoes[0])) erro('RESIDUOS', 'docs/RESIDUOS.md', 1, `falta registro da versão atual v${versoes[0]}`);
+  // Uma linha por PUBLICAÇÃO: a versão publicada atual é a primeira `## vX.Y.Z`.
+  if (versoes.length && !registradas.includes(versoes[0])) erro('RESIDUOS', 'docs/RESIDUOS.md', 1, `falta registro da versão publicada atual v${versoes[0]}`);
 
   const fila = 'docs/PEDIDOS-EM-ESPERA.md', pedidos = semBlocos(ler(fila));
   const indice = [...pedidos.matchAll(/^\| (P\d+) \|/gm)].map(m => m[1]);

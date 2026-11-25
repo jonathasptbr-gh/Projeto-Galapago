@@ -6,7 +6,8 @@ cd "$(dirname "$0")/.."
 G="${GODOT:-$(command -v godot || echo "$HOME/.local/bin/godot")}"
 
 echo "== Projeto Galápago"
-echo "versão (HISTORICO): $(grep -m1 -oE '^## v[0-9]+\.[0-9]+\.[0-9]+' docs/HISTORICO.md | cut -c4-)"
+echo "versão publicada (HISTORICO): $(grep -m1 -oE '^## v[0-9]+\.[0-9]+\.[0-9]+' docs/HISTORICO.md | cut -c4-)"
+grep -q '^## Não publicado$' docs/HISTORICO.md && echo "HISTORICO: há notas em '## Não publicado' (entram na próxima publicação)"
 echo "HEAD: $(git -c safe.directory='*' log -1 --format='%h %s' 2>/dev/null || echo '(sem commit)')"
 sujos=$(git -c safe.directory='*' status --porcelain 2>/dev/null | wc -l)
 echo "árvore: $sujos arquivo(s) alterado(s)"
@@ -37,12 +38,17 @@ const r = await fetch('https://api.github.com/repos/jonathasptbr-gh/Projeto-Gala
   { headers: { Authorization: 'Bearer ' + T, 'User-Agent': 'estado', Accept: 'application/vnd.github+json' } });
 const j = await r.json();
 const runs = j.workflow_runs || [];
-// o run de `baseline` (workflow_dispatch) não é o CI do main: mostre o push.
-const run = runs.find((x) => x.event !== 'workflow_dispatch');
-const disp = runs.find((x) => x.event === 'workflow_dispatch' && (!run || x.created_at > run.created_at));
-console.log(run ? `CI: ${run.name} #${run.run_number} ${run.status}/${run.conclusion ?? '-'} em ${run.head_sha.slice(0, 7)} — ${run.html_url}`
+const run = runs[0];
+console.log(run ? `CI: ${run.name} #${run.run_number} ${run.status}/${run.conclusion ?? '-'} em ${run.head_sha.slice(0, 7)} (${run.event}) — ${run.html_url}`
                 : `CI: nenhum run (${r.status} ${j.message ?? ''})`);
-if (disp) console.log(`baseline: #${disp.run_number} ${disp.status}/${disp.conclusion ?? '-'} — ${disp.html_url}`);
+if (run) {
+  // Jobs: num commit comum `preview` e `apk` saem `skipped`; numa publicação, rodam.
+  const jj = await (await fetch(run.jobs_url, { headers: { Authorization: 'Bearer ' + T, 'User-Agent': 'estado', Accept: 'application/vnd.github+json' } })).json();
+  console.log('jobs: ' + (jj.jobs || []).map((x) => `${x.name}=${x.conclusion ?? x.status}`).join(' · '));
+}
+// A última publicação (commit `vX.Y.Z:` em main) é a que o app do operador conhece.
+const pub = runs.find((x) => x.event === 'push' && /^v\d+\.\d+\.\d+:/.test(x.head_commit?.message || ''));
+if (pub && pub !== run) console.log(`última publicação nos 10 runs: #${pub.run_number} ${pub.status}/${pub.conclusion ?? '-'} em ${pub.head_sha.slice(0, 7)}`);
 EOF
 fi
 

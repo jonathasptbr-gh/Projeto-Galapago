@@ -1,12 +1,15 @@
 #!/usr/bin/env node
-// Diff dos quadros do oráculo (tools/quadros.sh) contra o baseline versionado
-// em testes/baseline. Sem dependência: o PNG é decodificado aqui mesmo
-// (zlib.inflateSync + desfiltro 0–4), só 8 bits, RGB ou RGBA, sem
-// entrelaçamento. Ver docs/ORACULO.md ("Diff automático contra o baseline").
+// Diff dos quadros do oráculo (tools/quadros.sh) contra uma referência
+// (pasta fora do git; o CI usa os quadros da última publicação, baixados por
+// tools/quadros-referencia.mjs). Sem dependência: o PNG é decodificado aqui
+// mesmo (zlib.inflateSync + desfiltro 0–4), só 8 bits, RGB ou RGBA, sem
+// entrelaçamento. Ver docs/ORACULO.md.
 //
 // Uso: node tools/quadros-diff.mjs [pasta=quadros] [--baseline=testes/baseline]
-//        [--canal=6] [--px=0.001] [--atualizar]
+//        [--canal=6] [--px=0.001] [--aviso] [--atualizar]
 // Saída: 0 ok · 1 divergência/quadro faltando · 2 uso ou erro de leitura.
+// --aviso: diferença de pixel, dimensão ou quadro sobrando vira AVISO (saída
+// 0); só quadro FALTANDO reprova.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -18,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const USO =
   'uso: node tools/quadros-diff.mjs [pasta=quadros] [--baseline=testes/baseline] ' +
-  '[--canal=6] [--px=0.001] [--atualizar]';
+  '[--canal=6] [--px=0.001] [--aviso] [--atualizar]';
 
 class ErroUso extends Error {}
 class ErroLeitura extends Error {}
@@ -32,11 +35,12 @@ function numero(nome, texto, minimo) {
 }
 
 function opcoes(argv) {
-  const o = { pasta: 'quadros', baseline: 'testes/baseline', canal: 6, px: 0.001, atualizar: false };
+  const o = { pasta: 'quadros', baseline: 'testes/baseline', canal: 6, px: 0.001, atualizar: false, aviso: false };
   const posicionais = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--atualizar') { o.atualizar = true; continue; }
+    if (a === '--aviso') { o.aviso = true; continue; }
     if (a === '-h' || a === '--ajuda' || a === '--help') { console.log(USO); process.exit(0); }
     if (a === '--baseline' || a === '--canal' || a === '--px') {
       const valor = argv[++i];
@@ -283,18 +287,18 @@ function atualizar(pasta, baseline) {
   );
 }
 
-function compararPastas(pasta, baseline, canal, px) {
+function compararPastas(pasta, baseline, canal, px, aviso) {
   if (!fs.existsSync(baseline)) {
     throw new ErroLeitura(
       `baseline ausente em ${baseline}; ` +
-        'rode com --atualizar para gravar o baseline (caminho explícito de um lote que muda o visível)',
+        'baixe a referência com node tools/quadros-referencia.mjs --baixar (ver docs/ORACULO.md)',
     );
   }
   const doBaseline = quadros(baseline);
   if (!doBaseline.length) {
     throw new ErroLeitura(
       `baseline vazio em ${baseline}; ` +
-        'rode com --atualizar para gravar o baseline (caminho explícito de um lote que muda o visível)',
+        'baixe a referência com node tools/quadros-referencia.mjs --baixar (ver docs/ORACULO.md)',
     );
   }
   const daPasta = quadros(pasta);
@@ -337,6 +341,13 @@ function compararPastas(pasta, baseline, canal, px) {
   for (const f of falhas) console.log(f);
   if (faltando.length) console.log(`faltando na pasta (o baseline tem): ${faltando.join(', ')}`);
   if (sobrando.length) console.log(`sobrando na pasta (o baseline não tem): ${sobrando.join(', ')}`);
+  if (aviso && !faltando.length) {
+    console.log(
+      `AVISO: ${falhas.length + sobrando.length} diferença(s) visual(is) em ${doBaseline.length} quadros ` +
+        `(${ok} dentro da tolerância) — diferença visual não reprova; confira os quadros`,
+    );
+    return true;
+  }
   console.log(
     `REPROVADO: ${falhas.length + faltando.length + sobrando.length} problema(s) ` +
       `em ${doBaseline.length} quadros do baseline`,
@@ -363,7 +374,7 @@ function principal() {
       atualizar(pasta, baseline);
       return 0;
     }
-    return compararPastas(pasta, baseline, o.canal, o.px) ? 0 : 1;
+    return compararPastas(pasta, baseline, o.canal, o.px, o.aviso) ? 0 : 1;
   } catch (e) {
     if (e instanceof ErroLeitura) {
       console.error(`erro: ${e.message}`);

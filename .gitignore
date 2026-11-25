@@ -8,3 +8,5 @@
 *.tmp
 export_presets.cfg.orig
 project.godot.orig
+# Referência do oráculo: baixada do CI (tools/quadros-referencia.mjs), fora do git.
+/testes/baseline/

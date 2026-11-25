@@ -58,6 +58,20 @@ rejeita('cabeçalho de versão duplicado na mesma linha reprova', 'VERSAO', a =>
 rejeita('versão mais nova enterrada reprova', 'VERSAO', a => a.set('docs/HISTORICO.md', a.get('docs/HISTORICO.md') + '\n## v0.3.0 — Nova (2026-11-22)\n'));
 rejeita('versão repetida reprova', 'VERSAO', a => a.set('docs/HISTORICO.md', a.get('docs/HISTORICO.md') + '\n## v0.1.0 — Outra (2026-11-20)\n'));
 rejeita('versão sem resíduos reprova', 'RESIDUOS', a => a.set('docs/RESIDUOS.md', '# Resíduos\n'));
+const naoPublicado = '# Histórico\n\n## Não publicado\n\n- docs: nota de commit comum\n';
+aceita('seção Não publicado antes das versões passa', a => trocar(a, 'docs/HISTORICO.md', '# Histórico\n', naoPublicado));
+aceita('Não publicado não exige linha de resíduos própria', a => {
+  trocar(a, 'docs/HISTORICO.md', '# Histórico\n', naoPublicado);
+  assert.ok(!a.get('docs/RESIDUOS.md').includes('Não publicado'));
+});
+rejeita('Não publicado depois de uma versão reprova', 'VERSAO', a => trocar(a, 'docs/HISTORICO.md', '## v0.1.0', '## Não publicado\n\n## v0.1.0'));
+rejeita('Não publicado duplicado reprova', 'VERSAO', a => trocar(a, 'docs/HISTORICO.md', '# Histórico\n', naoPublicado + '\n## Não publicado\n'));
+rejeita('Não publicado não substitui o registro da versão publicada', 'RESIDUOS', a => {
+  trocar(a, 'docs/HISTORICO.md', '# Histórico\n', naoPublicado);
+  a.set('docs/RESIDUOS.md', '# Resíduos\n');
+});
+rejeita('histórico só com Não publicado não tem versão', 'VERSAO', a => a.set('docs/HISTORICO.md', naoPublicado));
+rejeita('variação do título Não publicado reprova', 'VERSAO', a => trocar(a, 'docs/HISTORICO.md', '# Histórico\n', '# Histórico\n\n## Nao publicado\n'));
 rejeita('pacote do índice sem seção reprova', 'PACOTES', a => trocar(a, 'docs/PEDIDOS-EM-ESPERA.md', '## P1 — Primeiro', '## P2 — Outro'));
 rejeita('pacote com seção duplicada reprova', 'PACOTES', a => a.set('docs/PEDIDOS-EM-ESPERA.md', a.get('docs/PEDIDOS-EM-ESPERA.md') + '\n## P1 — Duplicado\n'));
 rejeita('pacote com índice duplicado reprova', 'PACOTES', a => trocar(a, 'docs/PEDIDOS-EM-ESPERA.md', '| P1 | feito |', '| P1 | feito |\n| P1 | repetido |'));

@@ -1,12 +1,12 @@
 name: CI
 
-# testes  → testes headless + oráculo de quadros (artefato `quadros`)
-# preview → página do lote no Pages (sem comentário no commit/PR: evita e-mail)
-# baseline→ sob demanda: quadros do llvmpipe para o lote entrar em UM commit
-# apk     → exporta o APK Android (P2) e publica:
-#           push em main  → Release `dev` (pré-release, refeita a cada push)
-#           tag v*        → Release da tag
-# Ver docs/GODOT.md ("Exportar para Android") e docs/BUILD.md.
+# Dois tipos de entrega (docs/BUILD.md):
+#   commit comum  → só `testes` (testes + quadros + comparação com a última
+#                   publicação, como AVISO no resumo do run)
+#   publicação    → push em main de commit `vX.Y.Z: …` (ou dispatch com
+#                   publicar=true, ou tag v*) → também `preview` (Pages) e
+#                   `apk` (Release `dev` + versao.json; tag → Release da tag)
+# PR: só `testes`. Ver docs/GODOT.md ("Exportar para Android").
 on:
   push:
     branches: [main]
@@ -15,20 +15,45 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
-      ref:
-        description: 'Branch/commit para gerar o baseline dos quadros (llvmpipe)'
-        required: true
-        type: string
+      publicar:
+        description: 'Publicar (APK + Release dev + preview)'
+        required: false
+        default: false
+        type: boolean
 
 env:
   GODOT_VERSION: "4.7.2"
 
 jobs:
   testes:
-    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read   # baixar o artefato `quadros` da última publicação
+    outputs:
+      publicar: ${{ steps.decidir.outputs.publicar }}
     steps:
+      # Publica só: push em main com commit `vX.Y.Z: …`, tag v*, ou dispatch
+      # com publicar=true. A mensagem vai por env (nunca interpolada no shell).
+      - name: Decidir publicação
+        id: decidir
+        env:
+          EVENTO: ${{ github.event_name }}
+          MSG: ${{ github.event.head_commit.message }}
+          PEDIDO: ${{ inputs.publicar }}
+        run: |
+          publicar=false
+          primeira="${MSG%%$'\n'*}"
+          versao='^v[0-9]+\.[0-9]+\.[0-9]+:'
+          if [ "$EVENTO" = push ] && [[ "$GITHUB_REF" == refs/tags/v* ]]; then publicar=true
+          elif [ "$EVENTO" = push ] && [ "$GITHUB_REF" = refs/heads/main ] && [[ "$primeira" =~ $versao ]]; then publicar=true
+          elif [ "$EVENTO" = workflow_dispatch ] && [ "$PEDIDO" = true ]; then publicar=true
+          fi
+          echo "publicar=$publicar" >> "$GITHUB_OUTPUT"
+          echo "Publicação: **$publicar** ($EVENTO, $GITHUB_REF)" >> "$GITHUB_STEP_SUMMARY"
+          echo "publicar=$publicar"
+
       - uses: actions/checkout@v7
 
       - name: Segredos (o repositório é público)
@@ -56,8 +81,12 @@ jobs:
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri
           GALLIUM_DRIVER=llvmpipe tools/quadros.sh 60 quadros
 
-      - name: Diff dos quadros (baseline)
-        run: node tools/quadros-diff.mjs quadros
+      # Referência = artefato `quadros` da última publicação verde em main.
+      # Diferença visual é AVISO no resumo; reprova só quadro faltando.
+      - name: Quadros × última publicação
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node tools/quadros-referencia.mjs quadros --dest "$RUNNER_TEMP/referencia"
 
       - name: Publicar quadros
         if: always()
@@ -65,15 +94,15 @@ jobs:
         with:
           name: quadros
           path: quadros/
-          retention-days: 7
+          retention-days: ${{ steps.decidir.outputs.publicar == 'true' && 90 || 7 }}
 
-  # Preview do lote no celular: `_site/` vai para o GitHub Pages. NÃO comenta
+  # Preview da publicação: `_site/` vai para o GitHub Pages. NÃO comenta
   # no commit/PR — o comentário automático gerava e-mail a cada push; a
   # aprovação é no chat do DSH. `continue-on-error`: um problema de Pages não
   # pode segurar o APK.
   preview:
     needs: testes
-    if: always() && github.event_name != 'workflow_dispatch' && needs.testes.result != 'cancelled'
+    if: always() && needs.testes.result != 'cancelled' && needs.testes.outputs.publicar == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -139,40 +168,9 @@ jobs:
             echo "Preview indisponível neste run (Pages falhou)." >> "$GITHUB_STEP_SUMMARY"
           fi
 
-  # Baseline sob demanda (workflow_dispatch com `ref`): o llvmpipe do CI gera
-  # os quadros do branch e `tools/quadros-baseline.mjs` aplica; assim o lote
-  # visível entra em UM commit com quadros verdes. Ver docs/ORACULO.md.
-  baseline:
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.ref }}
-
-      - name: Godot ${{ env.GODOT_VERSION }}
-        run: |
-          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
-          curl -fsSL -o g.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
-          unzip -q g.zip -d "$HOME/godot" && rm g.zip
-          echo "GODOT=$HOME/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" >> "$GITHUB_ENV"
-
-      - name: Quadros (llvmpipe)
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq xvfb libgl1-mesa-dri
-          GALLIUM_DRIVER=llvmpipe tools/quadros.sh 60 quadros
-
-      - name: Baseline como artefato
-        uses: actions/upload-artifact@v7
-        with:
-          name: baseline
-          path: quadros/
-          retention-days: 7
-
   apk:
     needs: testes
+    if: needs.testes.outputs.publicar == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -240,7 +238,7 @@ jobs:
       # Visual IASD): o app lê releases/download/dev/versao.json — sem API, sem
       # limite, sem login —, baixa o APK que ele aponta e abre o instalador.
       - name: Publicar Release (APK + versao.json)
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
           VERSAO: ${{ steps.exp.outputs.versao }}
