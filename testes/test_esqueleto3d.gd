@@ -9,7 +9,6 @@ const Esq := preload("res://sim/esqueleto.gd")
 const Dir := preload("res://sim/direcao.gd")
 const Rigs3D := preload("res://jogo/rigs3d.gd")
 const Mods := preload("res://sim/modulos.gd")
-const Criatura := preload("res://jogo/criatura.gd")
 const Corpo := preload("res://sim/corpo.gd")
 const CAMINHO := "res://dados/rig/canino3d.json"
 
@@ -571,22 +570,14 @@ func test_adaptador_resolve_modulos() -> void:
 	checar(not tufo_n.is_empty(), "coroa resolve no norte")
 
 
-func test_canino_usa_o_skin_3d() -> void:
+func test_canino_carrega_o_rig_3d() -> void:
 	checar(not Rigs3D.carregar("canino3d").is_empty(), "loader 3D carrega o canino3d")
 	igual(Rigs3D.carregar("inexistente").size(), 0, "rig 3D ausente devolve vazio")
 	igual(Rigs3D.carregar("../canino3d").size(), 0, "traversal não carrega no 3D")
-	var c := Criatura.new()
-	c._ready()
-	checar(c.esqueleto3d_ativo(), "canino nasce no esqueleto 3D")
-	checar(c.pele_geometrica_ativa(), "pele ativa com o rig 3D")
-	var p := E3.pose(c._rig3d, "south", 0.0, "idle")
-	checar(not p.is_empty(), "criatura entrega pose 3D")
-	# Troca explícita para o 2D (debug/fallback) e volta.
-	checar(c.ativar_pele_geometrica("canino"), "rig 2D ainda carrega")
-	checar(not c.esqueleto3d_ativo(), "2D desliga o esqueleto 3D")
-	checar(c.ativar_esqueleto3d("canino3d"), "volta ao esqueleto 3D")
-	checar(c.esqueleto3d_ativo(), "3D religado")
-	c.free()
+	# P24: a criatura 2D (`jogo/criatura.gd`) saiu do jogo; o rig 3D carregado
+	# ainda entrega pose (o rig fica, congelado).
+	var p := E3.pose(Rigs3D.carregar("canino3d"), "south", 0.0, "idle")
+	checar(not p.is_empty(), "rig 3D entrega pose")
 
 
 func test_pose_aceita_yaw_continuo() -> void:
@@ -702,73 +693,8 @@ func test_sockets_seguem_o_setor_com_yaw_continuo() -> void:
 	checar(d > 1.0, "socket se move com o yaw contínuo (%.2f px)" % d)
 
 
-func test_integracao_criatura_olhar_diagonal() -> void:
-	var c := Criatura.new()
-	c._ready()
-	var corpo := Corpo.new()
-	corpo.olhar = Vector2(1, 1).normalized()
-	c.corpo = corpo
-	perto(c.yaw_apresentacao(), 45.0, 0.001, "olhar (1,1) → yaw 45")
-	corpo.olhar = Vector2(-1, -1).normalized()
-	perto(c.yaw_apresentacao(), 225.0, 0.001, "olhar (-1,-1) → yaw 225")
-	corpo.olhar = Vector2(1, 0)
-	perto(c.yaw_apresentacao(), 0.0, 0.001, "olhar (1,0) → yaw 0")
-	corpo.olhar = Vector2.ZERO
-	perto(c.yaw_apresentacao(), 90.0, 0.001, "olhar zero cai no setor south")
-	corpo.olhar = Vector2(1, 1).normalized()
-	var p := E3.pose(c._rig3d, Dir.setor(corpo.olhar), 0.0, "idle", false, c.yaw_apresentacao())
-	checar(not p.is_empty(), "pose da Criatura com olhar diagonal")
-	perto(rad_to_deg(float(p["yaw"])), 45.0, 0.001, "pose 3D usa o yaw contínuo do olhar")
-	c.free()
-
-
 func _dif_ang(a: float, b: float) -> float:
 	return absf(wrapf(a - b, -180.0, 180.0))
-
-
-func test_salto_de_olhar_e_passo_do_amortecimento() -> void:
-	var c := Criatura.new()
-	c._ready()
-	var corpo := Corpo.new()
-	c.corpo = corpo
-	# 1) ATAQUE ATIVO: yaw de apresentação e yaw do desenho coincidem no
-	# PRIMEIRO quadro, mesmo partindo de um yaw bem diferente.
-	corpo.olhar = Vector2.from_angle(deg_to_rad(80.0))
-	corpo.ataque = "ataque"
-	c._yaw_vis = 0.0
-	c._atualizar_yaw_apresentacao(1.0 / 60.0)
-	checar(_dif_ang(c.yaw_desenho(), c.yaw_apresentacao()) < 0.01,
-		"ataque ativo não atrasa o yaw (dif=%.4f°)" % _dif_ang(c.yaw_desenho(), c.yaw_apresentacao()))
-	# 2) SALTO BRUTO > 90°: sem ataque, também vai direto.
-	corpo.ataque = ""
-	corpo.olhar = Vector2.from_angle(deg_to_rad(120.0))
-	c._yaw_vis = 0.0
-	c._atualizar_yaw_apresentacao(1.0 / 60.0)
-	checar(_dif_ang(c.yaw_desenho(), c.yaw_apresentacao()) < 0.01,
-		"salto >90° não atrasa o yaw (dif=%.4f°)" % _dif_ang(c.yaw_desenho(), c.yaw_apresentacao()))
-	# 3) CURVA SUAVE: usa delta × 18 rad/s, não um passo fixo. Em 1/60 s o
-	# passo é ~17,19°; em 1/30 s é o dobro (~34,38°).
-	corpo.olhar = Vector2.from_angle(deg_to_rad(80.0))
-	c._yaw_vis = 0.0
-	c._atualizar_yaw_apresentacao(1.0 / 60.0)
-	perto(c.yaw_desenho(), rad_to_deg(18.0) / 60.0, 0.001, "passo de 1/60 s usa delta")
-	c._yaw_vis = 0.0
-	c._atualizar_yaw_apresentacao(1.0 / 30.0)
-	perto(c.yaw_desenho(), rad_to_deg(18.0) / 30.0, 0.001, "passo de 1/30 s é o dobro")
-	# 4) O teto de 180°: 0,1745 s contínuo; 11 quadros a 60 fps = 0,1833 s
-	# (≈0,18 s), nunca um valor fixo por quadro.
-	checar(180.0 / rad_to_deg(18.0) <= 0.18, "180° contínuo em 18 rad/s ≤ 0,18 s")
-	var y := 0.0
-	var frames := 0
-	var passo := rad_to_deg(18.0) / 60.0
-	while frames < 100:
-		var d := absf(wrapf(180.0 - y, -180.0, 180.0))
-		if d <= 0.0001:
-			break
-		y = c._suavizar_yaw(y, 180.0, passo)
-		frames += 1
-	checar(frames <= 11, "180° em no máximo 11 quadros de 60 fps (veio %d = %.4f s)" % [frames, float(frames) / 60.0])
-	c.free()
 
 
 func test_idle_relaxado() -> void:
@@ -1108,44 +1034,6 @@ func test_misturar_poses() -> void:
 		"misturar não muta a")
 	perto_v(b["juntas"]["peito"], (E3.pose(m, "east", 0.0, "run")["juntas"]["peito"] as Vector2), 0.000001,
 		"misturar não muta b")
-
-
-func test_transicao_walk_run_primeiro_quadro() -> void:
-	var c := Criatura.new()
-	c._ready()
-	var m := c._rig3d
-	var walk := E3.pose(m, "east", 0.99, "walk")
-	var run := E3.pose(m, "east", 0.0, "run")
-	var sem := _max_dist(walk, run)
-	checar(sem > 5.0, "sem mistura o salto walk→run é >5 px (%.2f)" % sem)
-	c._clipe_pose = "walk"
-	c._pose_ultima = walk
-	c._inicio_transicao = -1.0
-	c._pose_de = {}
-	c._registrar_clipe("run", 1.0)
-	var com := c._pose_com_transicao(run, 1.0 + 1.0 / 60.0)
-	var d_com := _max_dist(walk, com)
-	# A passada maior fez a distância crua walk→run chegar a 12,19 px; com o
-	# peso de 1/60 s em TRANSICAO_S=0,08 (≈0,21) o primeiro quadro anda 2,54 px.
-	# O teto acompanha esse passo (antes eram ~2 px com a passada de 5 px).
-	checar(d_com < 3.0, "com mistura o primeiro quadro fica <3 px (%.2f)" % d_com)
-	# Clipe repetido não reinicia a transição.
-	var origem_antes: Vector2 = c._pose_de["juntas"]["lombo"]
-	var inicio_antes := c._inicio_transicao
-	c._registrar_clipe("run", 1.0 + 2.0 / 60.0)
-	perto_v(c._pose_de["juntas"]["lombo"], origem_antes, 0.000001, "clipe repetido não troca a origem")
-	perto(c._inicio_transicao, inicio_antes, 0.000001, "clipe repetido não reinicia o tempo")
-	# run→jump_start também entra abaixo de 2 px.
-	var r := E3.pose(m, "east", 0.99, "run")
-	var j := E3.pose(m, "east", 0.0, "jump_start")
-	c._clipe_pose = "run"
-	c._pose_ultima = r
-	c._inicio_transicao = -1.0
-	c._pose_de = {}
-	c._registrar_clipe("jump_start", 2.0)
-	var com_j := c._pose_com_transicao(j, 2.0 + 1.0 / 60.0)
-	checar(_max_dist(r, com_j) < 2.0, "run→jump_start com mistura <2 px")
-	c.free()
 
 
 func test_silhueta_cabe_no_canvas_68() -> void:

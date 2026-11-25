@@ -2,10 +2,17 @@ extends Node2D
 ## Cena principal (v0.9): a FUNDAÇÃO em RETRATO, com caminho desenhado AO VIVO
 ## e o ataque nascendo da FORMA do desenho.
 ##
-## Camadas de desenho (z_index), de trás para frente:
-##   −20 parallax fundo · 0 chão · 1 trilha/rota · 2 objetos (y-sort: troncos,
-##   baú, adversário, criatura) · 15 subsolo · 24 efeitos (onda/tiro) ·
-##   25 marca de mira/alvo final · 30 copas · 40 parallax frente · HUD.
+## P24 — MUNDO 3D. De trás para frente:
+##   vista (CanvasLayer −1, `jogo/mundo3d/vista.gd`: SubViewport com a ilha 3D,
+##   os atores 3D e o Pixel Pass) · `sobre` (Node2D, canvas 0: trilha z1,
+##   perigos z1, efeitos z24, mira z25 — desenham em px de mundo da sim e o
+##   `transform` do nó é, a cada quadro, `cam3d.chao_para_tela(tela, H_REF)`;
+##   ortográfica ⇒ afim exata) · barra de giro (CanvasLayer 1) · HUD.
+## Câmera: `sim/camera3d.gd` (`dados/camera3d.json`) segue a criatura; a BARRA
+## DE GIRO no topo (`ALTURA_BARRA` px) gira 360° — dedo que DESCE nela é da
+## barra (`_toque_barra`, no `_input`) e nunca vira gesto, pinça nem caminho.
+## Toque → chão: `mundo_de`/`tela_de` e o desenho usam a mesma afim (a câmera
+## SUAVE, a que o jogador vê); o caminho cai no chão certo em qualquer yaw.
 ##
 ## Fluxo: dedo → sim/gestos (um dedo: caminho ao vivo; toque = TIRO CARREGADO,
 ## toque duplo = pulo, segurar = CORRER com caminho / habilidade sem ele) →
@@ -33,17 +40,14 @@ const Mundo := preload("res://sim/mundo.gd")
 const Corpo := preload("res://sim/corpo.gd")
 const Gestos := preload("res://sim/gestos.gd")
 const CameraToque := preload("res://sim/camera_toque.gd")
+const Cam3D := preload("res://sim/camera3d.gd")
 const Comandos := preload("res://sim/comandos.gd")
 const Alvos := preload("res://sim/alvos.gd")
 const Adversario := preload("res://sim/adversario.gd")
-const Mock := preload("res://jogo/mock.gd")
-const Chao := preload("res://jogo/camadas/chao.gd")
-const Subsolo := preload("res://jogo/camadas/subsolo.gd")
-const ObjetoMock := preload("res://jogo/camadas/objeto_mock.gd")
-const Copa := preload("res://jogo/camadas/copa.gd")
-const Parallax := preload("res://jogo/camadas/parallax.gd")
-const Criatura := preload("res://jogo/criatura.gd")
-const AdversarioMock := preload("res://jogo/adversario_mock.gd")
+const Vista := preload("res://jogo/mundo3d/vista.gd")
+const Ilha := preload("res://jogo/mundo3d/ilha.gd")
+const Ator := preload("res://jogo/mundo3d/ator.gd")
+const BarraGiro := preload("res://jogo/barra_giro.gd")
 const Perigos := preload("res://jogo/perigos.gd")
 const Mira := preload("res://jogo/mira.gd")
 const Trilha := preload("res://jogo/trilha.gd")
@@ -54,8 +58,30 @@ const Demo := preload("res://jogo/demo.gd")
 const MAPA := "res://dados/mapas/fundacao.json"
 # JOYSTICK da vista íntima: o deslocamento do dedo até este RAIO vira magnitude
 # 1,0 do controle relativo (100% do curso). Com o teto de 88 px/s do modo
-# PERTO, metade do raio = 44 px/s; além do raio satura em 88.
+# PERTO, metade do raio = 44 px/s; além do raio satura em 88. A DIREÇÃO é a do
+# dedo projetada no chão (gira com a câmera).
 const RAIO_JOYSTICK_PX := 90.0
+## BARRA DE GIRO: faixa tátil de largura total do alto da tela (px de canvas).
+## A HUD começa abaixo dela (`Hud.TOPO`).
+const ALTURA_BARRA := Hud.TOPO
+## plano de referência das sobreposições: o chão comum (nível 1)
+const NIVEL_REF := 1.0
+## altura (unidades 3D) acima dos pés que a câmera olha e que o gesto usa como
+## "ponto da criatura" na tela
+const ALTURA_FOCO := 0.0
+const ALTURA_CORPO_TELA := 0.6
+# atores provisórios (P24): cores por estado
+const COR_CRIATURA := Color("#e07a3a")
+const COR_CRIATURA_SUBSOLO := Color("#4f5b6b")
+const COR_CRIATURA_ATORDOADA := Color("#d8403a")
+const COR_ADV := Color("#8b5cf6")
+const COR_ADV_HOSTIL := Color("#c2345e")
+const COR_ADV_PREPARO := Color("#f2c23a")
+const COR_ADV_PISCA := Color("#ff9a7a")
+## no subsolo a criatura afunda no bloco (o subsolo não é desenhado em 3D)
+const AFUNDA_SUBSOLO := 0.6
+## o adversário escondido afunda no chão
+const AFUNDA_OCULTO := 0.95
 
 var mundo: RefCounted
 var corpo: RefCounted
@@ -66,27 +92,46 @@ var alvos: Array = []
 var adversarios: Array = []
 var cfg_adversario: Dictionary = {}
 var hostilidade := false
-var chao: Node2D
-var subsolo: Node2D
-var criatura: Node2D
 var mira: Node2D
 var trilha: Node2D
 var perigos: Node2D
 var efeitos: Node2D
-var camera: Camera2D
 var hud: CanvasLayer
-var copas: Array = []
 var veu: ColorRect
 var _dedos := {}  # índice do dedo -> pressionado (multitouch)
 var camera_toque := CameraToque.new()
-var mundo_visual: Node2D
-var objetos_visuais: Node2D
+# --- P24: o mundo 3D ---
+var cam3d: RefCounted
+var vista: CanvasLayer
+var ilha: Node3D
+var ator_criatura: Node3D
+var atores_adv: Array = []
+## Node2D pai das sobreposições (trilha, perigos, efeitos, mira)
+var sobre: Node2D
+var barra: Control
+## dedos que DESCERAM na barra de giro: índice -> último x de tela
+var _dedos_barra := {}
+## tamanho da tela em unidades de canvas (retrato, `aspect=expand`)
+var _tela := Vector2(720, 1280)
+## px de mundo da sim que um ponto anda, NO PLANO DE REFERÊNCIA, para
+## aparecer onde estaria 1 unidade 3D mais alto (ver `relevo`)
+var _subir := Vector2.ZERO
+## altura dos pés da criatura (níveis), suavizada: degrau vira rampa
+var _h_cria := 1.0
+var _adv_h: Array = []
+var _adv_oculto: Array = []
+## alturas de terreno existentes (níveis), da maior para a menor (`mundo_de`)
+var _niveis: Array = []
 var _joystick_origem := Vector2.ZERO
 var _joystick_dedo := -1
 # a ORIGEM do gesto (congelada na descida do dedo): a linha não anda com ela
 var _gesto_tela := Vector2.ZERO
 var _gesto_origem := Vector2.ZERO
-var _gesto_inv := Transform2D.IDENTITY
+# o desenho já convertido (tela → mundo), ponto a ponto: cada trecho novo usa a
+# câmera do instante em que o dedo passou (girar no meio do desenho não
+# entorta o que já foi riscado)
+var _gesto_q := PackedVector2Array()
+var _gesto_m := PackedVector2Array()
 var _traco_iniciado := false
 # o traço nasceu de um SEGURAR que virou desenho (dedo não levantou)?
 # Só esse caso recomeça a origem e encerra o sprint ao soltar.
@@ -96,9 +141,11 @@ var _desenho_de_segurar := false
 var _escala := 1.0
 var _retomada := 0.0
 var _veu_alfa := 0.0
+var _tempo_vis := 0.0
 
 
 func _ready() -> void:
+	var args := OS.get_cmdline_user_args()
 	var mapa := _json(MAPA)
 	cfg_gestos = _json("res://dados/gestos.json")
 	cfg_adversario = _json("res://dados/adversario.json")
@@ -109,96 +156,81 @@ func _ready() -> void:
 	corpo.rng.seed = 20261120
 	corpo.pos = mundo.centro(Vector2i(mapa["inicio"][0], mapa["inicio"][1]))
 	reconhecedor = Gestos.new(cfg_gestos.get("limiares", {}))
-	RenderingServer.set_default_clear_color(Color("#0b2438"))
+	_niveis = _alturas_do_mapa()
+	_tela = get_viewport_rect().size
 
-	add_child(Parallax.new())
-	var no := Node2D.new()
-	mundo_visual = no
-	add_child(no)
-	chao = Chao.new()
-	chao.mundo = mundo
-	no.add_child(chao)
-	trilha = Trilha.new()
-	trilha.z_index = 1
-	no.add_child(trilha)
-
-	var objetos := Node2D.new()
-	objetos_visuais = objetos
-	objetos.y_sort_enabled = true
-	objetos.z_index = 2
-	no.add_child(objetos)
-	for o in mapa.get("objetos", []):
-		var c := Vector2i(o["celula"][0], o["celula"][1])
-		var ob := ObjetoMock.new()
-		ob.tipo = o["tipo"]
-		ob.id_objeto = "%s:%d,%d" % [o["tipo"], c.x, c.y]
-		ob.position = mundo.centro(c) + Vector2(0, 8)
-		ob.set_meta("altura_terreno", mundo.altura(c))
-		ob.desnivel = Mock.desnivel(mundo.altura(c))
-		objetos.add_child(ob)
-		if o.has("copa"):
-			var cp := Copa.new()
-			cp.raio = float(o["copa"])
-			cp.base = ob.position + Vector2(0, ob.desnivel)
-			cp.set_meta("tronco", ob)
-			cp.z_index = 30
-			no.add_child(cp)
-			copas.append(cp)
+	# o PALCO 3D: ilha + atores, câmera ortográfica orbital
+	cam3d = Cam3D.new(_json("res://dados/camera3d.json"))
+	vista = Vista.new()
+	vista.altura_interna = int(cam3d.cfg["pixel_pass"]["altura_interna"])
+	vista.pixel_pass = not ("--liso" in args)
+	add_child(vista)
+	ilha = Ilha.new()
+	ilha.name = "Ilha"
+	vista.mundo_3d.add_child(ilha)
+	ilha.construir(mundo)
+	ator_criatura = Ator.new()
+	ator_criatura.name = "Criatura"
+	ator_criatura.cor = COR_CRIATURA
+	vista.mundo_3d.add_child(ator_criatura)
 
 	for a in mapa.get("adversarios", []):
 		var adv := Adversario.new(int(a.get("semente", 1)), Rect2(), cfg_adversario)
 		adv.pos = mundo.centro(Vector2i(a["celula"][0], a["celula"][1]))
 		adversarios.append(adv)
-		var no_adv := AdversarioMock.new()
-		no_adv.adv = adv
-		no_adv.mundo = mundo
-		objetos.add_child(no_adv)
+		var at := Ator.new()
+		at.name = "Adversario%d" % atores_adv.size()
+		at.cor = COR_ADV
+		at.escala = 0.9
+		vista.mundo_3d.add_child(at)
+		atores_adv.append(at)
+		_adv_h.append(mundo.altura(mundo.celula_de(adv.pos)))
+		_adv_oculto.append(0.0)
 	alvos = Alvos.montar(mapa.get("objetos", []), adversarios, mundo)
+
+	# SOBREPOSIÇÕES: px de mundo da sim, por cima do 3D, afim da câmera
+	sobre = Node2D.new()
+	sobre.name = "Sobreposicoes"
+	add_child(sobre)
+	var relevo := Callable(self, "relevo")
+	trilha = Trilha.new()
+	trilha.z_index = 1
+	trilha.relevo = relevo
+	sobre.add_child(trilha)
 	perigos = Perigos.new()
 	perigos.adversarios = adversarios
 	perigos.mundo = mundo
+	perigos.relevo = relevo
 	perigos.z_index = 1
-	no.add_child(perigos)
-
-	criatura = Criatura.new()
-	criatura.corpo = corpo
-	criatura.mundo = mundo
-	objetos.add_child(criatura)
-
-	subsolo = Subsolo.new()
-	subsolo.mundo = mundo
-	subsolo.z_index = 15
-	subsolo.visible = false
-	no.add_child(subsolo)
-
+	sobre.add_child(perigos)
 	efeitos = Efeitos.new()
 	efeitos.corpo = corpo
 	efeitos.mundo = mundo
+	efeitos.relevo = relevo
 	efeitos.z_index = 24
-	no.add_child(efeitos)
-
+	sobre.add_child(efeitos)
 	mira = Mira.new()
 	mira.corpo = corpo
 	mira.mundo = mundo
 	mira.alvos = alvos
+	mira.relevo = relevo
 	mira.z_index = 25
-	no.add_child(mira)
+	sobre.add_child(mira)
 
-	camera = Camera2D.new()
-	camera.zoom = Vector2(Mock.ZOOM, Mock.ZOOM)
-	camera.limit_left = -Mock.CELULA
-	camera.limit_top = -Mock.CELULA
-	camera.limit_right = (mundo.largura + 1) * Mock.CELULA
-	camera.limit_bottom = (mundo.altura_grade + 1) * Mock.CELULA
-	camera.position_smoothing_enabled = true
-	camera.position_smoothing_speed = 6.0
-	camera.position = corpo.pos
-	add_child(camera)
-	camera.make_current()
+	# BARRA DE GIRO (sempre visível, também na vista íntima e com CONFIG)
+	var camada_barra := CanvasLayer.new()
+	camada_barra.name = "BarraGiro"
+	camada_barra.layer = 1
+	add_child(camada_barra)
+	barra = BarraGiro.new()
+	barra.graus_por_px = float(cam3d.cfg["giro"]["graus_por_px"])
+	camada_barra.add_child(barra)
 
 	hud = Hud.new()
 	hud.hostilidade_alternada.connect(definir_hostilidade)
+	hud.pixel_pass_alternado.connect(definir_pixel_pass)
 	add_child(hud)
+	hud.definir_pixel_pass(vista.pixel_pass)
 	# VÉU do desenho: escurece a tela para ilustrar a desaceleração (fica
 	# ATRÁS dos rótulos da HUD, que são filhos da mesma CanvasLayer).
 	veu = ColorRect.new()
@@ -207,12 +239,29 @@ func _ready() -> void:
 	veu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	hud.add_child(veu)
 	hud.move_child(veu, 0)
-	if "--demo" in OS.get_cmdline_user_args():
+
+	_h_cria = mundo.altura(mundo.celula_de(corpo.pos))
+	_atualizar_atores(0.0)
+	posicionar_camera()
+	if "--demo" in args:
 		add_child(Demo.new(self))
+
+
+## Põe a câmera em cima da criatura sem suavizar (início, teleporte da demo).
+func posicionar_camera() -> void:
+	_h_cria = mundo.altura(mundo.celula_de(corpo.pos))
+	_atualizar_atores(0.0)
+	cam3d.posicionar(_foco_criatura())
+	_atualizar_camera(0.0)
+
+
+func _foco_criatura() -> Vector3:
+	return Ilha.ponto(corpo.pos, _h_cria) + Vector3(0.0, ALTURA_FOCO, 0.0)
 
 
 func _process(delta: float) -> void:
 	tempo_ms += delta * 1000.0
+	_tempo_vis += delta
 	# O relógio do gesto é REAL: o `tick` solta o TOQUE pendente quando a janela
 	# do duplo fecha e ativa o segurar no limiar (a regra é de sim/gestos.gd).
 	_entregar(reconhecedor.tick(tempo_ms))
@@ -254,21 +303,77 @@ func _process(delta: float) -> void:
 	corpo.passo(dt, mundo, alvos)
 	for e in corpo.drenar_eventos():
 		_evento(e)
-	for cp in copas:
-		cp.atualizar(corpo.pos, delta, corpo.camada == Mundo.SUBSOLO)
+	_atualizar_atores(delta)
+	_atualizar_camera(delta)
 	# A LINHA mostra o TRAÇO CRU (os pontos densos do desenho): contínua e fiel
 	# ao movimento do dedo, não a rota simplificada (v0.9.2).
 	if corpo.em_rota() or reconhecedor.desenhando():
 		trilha.mostrar(corpo.traco, corpo.traco_t)
 	else:
 		trilha.mostrar(PackedVector2Array())
-	var visual: Vector2 = criatura.ponto_visual()
-	if camera_toque.inclinacao() == 1.0:
-		camera.position = visual  # preserva exatamente a aritmética do baseline
-	else:
-		camera.position = Vector2(visual.x, corpo.pos.y * camera_toque.inclinacao() + visual.y - corpo.pos.y)
 	hud.estado(corpo, alvos, planejando, _escala, adversarios, hostilidade)
 	_escurecer(planejando, plano, retomada_s, delta)
+
+
+## Atores 3D provisórios: só LEEM a sim (posição, olhar, salto, camada,
+## hostilidade, preparo, esconderijo) e trocam de cor por estado.
+func _atualizar_atores(delta: float) -> void:
+	var subsolo: bool = corpo.camada == Mundo.SUBSOLO
+	var alvo_h: float = mundo.altura(mundo.celula_de(corpo.pos))
+	_h_cria = alvo_h + (_h_cria - alvo_h) * exp(-14.0 * delta)
+	var salto: float = float(corpo.z) / Cam3D.PX_POR_UNIDADE - (AFUNDA_SUBSOLO if subsolo else 0.0)
+	ator_criatura.atualizar(corpo.pos, _h_cria, corpo.olhar, salto)
+	var cor := COR_CRIATURA
+	if subsolo:
+		cor = COR_CRIATURA_SUBSOLO
+	elif corpo.atordoado():
+		cor = COR_CRIATURA_ATORDOADA if fmod(_tempo_vis, 0.2) < 0.1 else COR_CRIATURA
+	_pintar(ator_criatura, cor)
+	for i in adversarios.size():
+		var adv: RefCounted = adversarios[i]
+		var at: Node3D = atores_adv[i]
+		var ah: float = mundo.altura(mundo.celula_de(adv.pos))
+		_adv_h[i] = ah + (float(_adv_h[i]) - ah) * exp(-14.0 * delta)
+		var oc := 1.0 if adv.oculto() else 0.0
+		_adv_oculto[i] = lerpf(float(_adv_oculto[i]), oc, clampf(delta * 9.0, 0.0, 1.0)) if delta > 0.0 else oc
+		var pulo := absf(sin(_tempo_vis * 4.0)) * 0.06 * (1.0 - float(_adv_oculto[i]))
+		at.atualizar(adv.pos, float(_adv_h[i]), adv.olhar, pulo - AFUNDA_OCULTO * float(_adv_oculto[i]))
+		var c := COR_ADV_HOSTIL if adv.hostil else COR_ADV
+		if adv.piscando():
+			c = COR_ADV_PISCA
+		elif adv.preparando() and fmod(_tempo_vis, 0.25) < 0.125:
+			c = COR_ADV_PREPARO
+		_pintar(at, c)
+
+
+## Repinta só quando a cor muda (os materiais vêm do cache por cor).
+func _pintar(at: Node3D, cor: Color) -> void:
+	if not Color(at.cor).is_equal_approx(cor):
+		at.pintar(cor)
+
+
+## Câmera 3D: segue a criatura (relógio REAL: a câmera não desacelera com o
+## desenho), avança a troca de vista, posiciona a vista e as sobreposições.
+func _atualizar_camera(delta: float) -> void:
+	_tela = get_viewport_rect().size
+	cam3d.seguir(_foco_criatura(), delta)
+	cam3d.avancar(delta)
+	vista.aplicar_camera(cam3d)
+	var ref := Ilha.altura_3d(NIVEL_REF)
+	var m: Transform2D = cam3d.chao_para_tela(_tela, ref)
+	sobre.transform = m
+	var m1: Transform2D = cam3d.chao_para_tela(_tela, ref + 1.0)
+	_subir = m.affine_inverse().basis_xform(m1.origin - m.origin)
+	barra.size = Vector2(_tela.x, ALTURA_BARRA)
+	barra.definir(rad_to_deg(cam3d.yaw), not _dedos_barra.is_empty())
+
+
+## Um ponto do chão (px de mundo da sim) levado ao TOPO do terreno da sua
+## célula, expresso no plano de referência das sobreposições: o pai (`sobre`)
+## o põe na tela exatamente onde fica o chão 3D daquela célula.
+func relevo(p: Vector2) -> Vector2:
+	var h := Ilha.altura_3d(mundo.altura(mundo.celula_de(p)))
+	return p + _subir * (h - Ilha.altura_3d(NIVEL_REF))
 
 
 ## VÉU: escurece enquanto desenha e clareia junto com a rampa de aceleração.
@@ -283,14 +388,13 @@ func _escurecer(planejando: bool, plano: Dictionary, retomada_s: float, delta: f
 
 func _evento(e: String) -> void:
 	if e.begins_with("camada:"):
-		subsolo.visible = corpo.camada == Mundo.SUBSOLO
-		chao.queue_redraw()
-		subsolo.queue_redraw()
+		# P24: o subsolo não é desenhado em 3D; o ator afunda e escurece
+		print("evento: ", e)
+		hud.nota("SUBSOLO" if corpo.camada == Mundo.SUBSOLO else "SUPERFÍCIE")
 	elif e.begins_with("interagir:"):
-		var id := e.substr(10)
-		for n in get_node(".").find_children("*", "", true, false):
-			if n is ObjetoMock and n.id_objeto == id:
-				n.aberto = true
+		# P24: o baú 3D ainda não abre (é estático na ilha)
+		print("evento: ", e)
+		hud.nota("ABRIU %s" % e.substr(10))
 	elif e == "rota:fim":
 		trilha.mostrar(PackedVector2Array())
 	elif e == "carga:on":
@@ -371,6 +475,16 @@ func definir_hostilidade(v: bool) -> void:
 		hud.nota("HOSTILIDADE %s" % ("LIGADA — ele vai caçar" if v else "desligada"))
 
 
+## Pixel Pass ligado (pixel art) ou desligado (3D liso). O botão da HUD chama;
+## `--liso` começa desligado.
+func definir_pixel_pass(v: bool) -> void:
+	vista.pixel_pass = v
+	vista.aplicar_camera(cam3d)
+	if hud:
+		hud.definir_pixel_pass(v)
+		hud.nota("PIXEL ART %s" % ("ligado" if v else "desligado — 3D liso"))
+
+
 # ---------- o dedo (toque real e demo passam por aqui) ----------
 
 func _notification(what: int) -> void:
@@ -380,6 +494,7 @@ func _notification(what: int) -> void:
 
 func _cancelar_contatos() -> void:
 	_dedos.clear()
+	_dedos_barra.clear()
 	camera_toque.dedos.clear()
 	camera_toque.par.clear()
 	camera_toque.bloqueado = false
@@ -396,7 +511,11 @@ func _cancelar_contatos() -> void:
 
 
 # Solturas de contatos iniciados no mundo devem chegar mesmo sobre um botão.
+# A BARRA DE GIRO decide primeiro (antes da GUI e do `_unhandled_input`).
 func _input(ev: InputEvent) -> void:
+	if _toque_barra(ev):
+		get_viewport().set_input_as_handled()
+		return
 	if ev is InputEventScreenTouch:
 		if _dedos.has(ev.index):
 			if ev.canceled:
@@ -416,6 +535,37 @@ func _unhandled_input(ev: InputEvent) -> void:
 			dedo_subiu(ev.index, ev.position)
 	elif ev is InputEventScreenDrag and _dedos.has(ev.index):
 		dedo_moveu(ev.index, ev.position)
+
+
+## BARRA DE GIRO: o dedo que DESCE dentro da faixa do topo (`ALTURA_BARRA`)
+## pertence à barra até subir — o deslocamento horizontal gira a câmera
+## (`cam3d.girar_px`) e nada dele chega a `dedo_*`, a `sim/camera_toque.gd`
+## (pinça) ou a `sim/gestos.gd` (caminho). Dedo que desce fora da faixa segue
+## o fluxo de sempre, mesmo se depois passar por ela. Um dedo na barra e outro
+## desenhando não se veem: cada um tem seu índice. Devolve true se o evento era
+## da barra (o `_input` o consome).
+func _toque_barra(ev: InputEvent) -> bool:
+	if ev is InputEventScreenTouch:
+		var t := ev as InputEventScreenTouch
+		if _dedos_barra.has(t.index):
+			if not t.pressed or t.canceled:
+				_dedos_barra.erase(t.index)
+			return true
+		if t.pressed and not _dedos.has(t.index) and na_barra(t.position):
+			_dedos_barra[t.index] = t.position.x
+			return true
+	elif ev is InputEventScreenDrag:
+		var d := ev as InputEventScreenDrag
+		if _dedos_barra.has(d.index):
+			var x0: float = _dedos_barra[d.index]
+			cam3d.girar_px(d.position.x - x0)
+			_dedos_barra[d.index] = d.position.x
+			return true
+	return false
+
+
+func na_barra(p: Vector2) -> bool:
+	return p.y >= 0.0 and p.y < ALTURA_BARRA
 
 
 func dedo_desceu(dedo: int, p: Vector2) -> void:
@@ -445,10 +595,12 @@ func dedo_desceu(dedo: int, p: Vector2) -> void:
 		return
 	_gesto_tela = p
 	_gesto_origem = corpo.pos
-	_gesto_inv = get_viewport().get_canvas_transform().affine_inverse()
+	_gesto_q.clear()
+	_gesto_m.clear()
 	_traco_iniciado = false
 	_desenho_de_segurar = false
-	_entregar(reconhecedor.iniciar(dedo, p, tempo_ms, tela_de(criatura.ponto_visual() + Vector2(0, -20))))
+	var cria_tela: Vector2 = cam3d.ponto_para_tela(ator_criatura.position + Vector3(0.0, ALTURA_CORPO_TELA, 0.0), _tela)
+	_entregar(reconhecedor.iniciar(dedo, p, tempo_ms, cria_tela))
 
 
 func dedo_moveu(dedo: int, p: Vector2) -> void:
@@ -457,8 +609,7 @@ func dedo_moveu(dedo: int, p: Vector2) -> void:
 		_aplicar_camera()
 	elif acao == "principal":
 		if camera_toque.intima() and dedo == _joystick_dedo:
-			var deslocamento := (p - _joystick_origem) / RAIO_JOYSTICK_PX
-			corpo.mover_relativo(deslocamento.limit_length(1.0))
+			corpo.mover_relativo(_joystick_no_chao(p - _joystick_origem))
 		else:
 			# o dedo SEGURANDO que se move sem levantar começa um desenho
 			# NOVO na posição ATUAL (a origem congelada na descida já não vale
@@ -471,14 +622,25 @@ func dedo_moveu(dedo: int, p: Vector2) -> void:
 			_entregar(reconhecedor.mover(dedo, p, tempo_ms))
 
 
+## JOYSTICK (vista íntima): o deslocamento do dedo na TELA vira a direção no
+## CHÃO (inversa da afim da câmera, então gira com o yaw); a magnitude é a do
+## dedo na tela (0..1 até `RAIO_JOYSTICK_PX`).
+func _joystick_no_chao(deslocamento_tela: Vector2) -> Vector2:
+	var mag := minf(deslocamento_tela.length() / RAIO_JOYSTICK_PX, 1.0)
+	var no_chao: Vector2 = cam3d.tela_para_chao(_tela).basis_xform(deslocamento_tela)
+	if mag <= 0.0 or no_chao.length() < 0.000001:
+		return Vector2.ZERO
+	return no_chao.normalized() * mag
+
+
 ## Recomeça o traço do SEGURAR no ponto atual. A criatura é a ORIGEM
-## (em mundo) e o mapa tela→mundo também é congelado aqui; o primeiro ponto
-## nasce exatamente sobre ela.
+## (em mundo); o primeiro ponto nasce exatamente sobre ela.
 func _recomecar_segurar(p: Vector2) -> void:
 	reconhecedor.recomecar(p, tempo_ms)
 	_gesto_origem = corpo.pos
 	_gesto_tela = p
-	_gesto_inv = get_viewport().get_canvas_transform().affine_inverse()
+	_gesto_q.clear()
+	_gesto_m.clear()
 	_traco_iniciado = false
 	_desenho_de_segurar = true
 
@@ -506,32 +668,12 @@ func _levar_modo_camera() -> void:
 		corpo.definir_controle_relativo(intima)
 
 
+## A pinça mexeu no zoom: leva o MODO ao corpo e troca a VISTA da câmera 3D
+## (íntima = baixa/perto; alta = a padrão). A transição é da câmera.
 func _aplicar_camera() -> void:
 	_levar_modo_camera()
 	var intima: bool = camera_toque.intima()
-	var inclinacao: float = camera_toque.inclinacao()
-	mundo_visual.scale = Vector2(1.0, inclinacao)
-	chao.inclinacao = inclinacao
-	chao.queue_redraw()
-	criatura.inclinacao = inclinacao
-	efeitos.inclinacao = inclinacao
-	mira.inclinacao = inclinacao
-	perigos.inclinacao = inclinacao
-	# Os pés seguem o chão projetado; os desenhos dos objetos não são achatados.
-	for objeto in objetos_visuais.get_children():
-		objeto.scale = Vector2(1.0, 1.0 / inclinacao)
-		if objeto is AdversarioMock:
-			objeto.inclinacao = inclinacao
-		if objeto.has_meta("altura_terreno"):
-			objeto.desnivel = Mock.desnivel(float(objeto.get_meta("altura_terreno")), inclinacao) * inclinacao
-			objeto.queue_redraw()
-	for cp in copas:
-		var tronco: Node2D = cp.get_meta("tronco")
-		cp.base = tronco.position + Vector2(0, tronco.desnivel / inclinacao)
-		cp.queue_redraw()
-	camera.zoom = Vector2.ONE * camera_toque.zoom
-	camera.limit_top = roundi(-Mock.CELULA * inclinacao)
-	camera.limit_bottom = roundi((mundo.altura_grade + 1) * Mock.CELULA * inclinacao)
+	cam3d.definir_vista("intima" if intima else "alta")
 	hud.definir_vista_intima(intima)
 
 
@@ -565,21 +707,64 @@ func _entregar(evs: Array) -> void:
 
 ## O desenho do dedo em MUNDO, a partir da origem congelada e com o GANHO de
 ## sensibilidade: um dedo menor cobre mais tela (o mesmo traço em px de tela é
-## multiplicado por `desenho.ganho`).
+## multiplicado por `desenho.ganho`). P24: cada trecho NOVO do dedo é levado ao
+## chão pela câmera do instante em que foi riscado (inversa da afim da câmera
+## 3D, só a base: translação não importa num deslocamento) e somado ao ponto
+## anterior; com a câmera parada é exatamente `origem + inv·(q − q0)·ganho`.
 func _pontos_gesto() -> PackedVector2Array:
 	var ganho := float(cfg_gestos.get("desenho", {}).get("ganho", 1.0))
-	var pts := PackedVector2Array()
-	for q in reconhecedor.pontos():
-		pts.append(_gesto_origem + _gesto_inv.basis_xform((q - _gesto_tela) * ganho))
-	return pts
+	var qs: PackedVector2Array = reconhecedor.pontos()
+	var n := _gesto_q.size()
+	if n > qs.size() or (n > 0 and (qs[0] != _gesto_q[0] or qs[n - 1] != _gesto_q[n - 1])):
+		_gesto_q.clear()
+		_gesto_m.clear()
+		n = 0
+	if n < qs.size():
+		var inv: Transform2D = cam3d.tela_para_chao(_tela)
+		for i in range(n, qs.size()):
+			var q0 := _gesto_tela if i == 0 else qs[i - 1]
+			var m0 := _gesto_origem if i == 0 else _gesto_m[i - 1]
+			_gesto_m.append(m0 + inv.basis_xform((qs[i] - q0) * ganho))
+			_gesto_q.append(qs[i])
+	return _gesto_m.duplicate()
 
 
+## Tela → CHÃO 3D sob o dedo (px de mundo da sim). Ortográfica: o raio do dedo
+## cruza os planos de altura em pontos conhecidos; vale o MAIS ALTO cujo
+## terreno tem exatamente aquela altura (o topo que o jogador vê). Fora de
+## todos, o plano mais baixo.
 func mundo_de(tela: Vector2) -> Vector2:
-	return get_viewport().get_canvas_transform().affine_inverse() * tela
+	var p := Vector2.ZERO
+	for nivel in _niveis:
+		p = cam3d.tela_para_chao(_tela, Ilha.altura_3d(float(nivel))) * tela
+		if is_equal_approx(mundo.altura(mundo.celula_de(p)), float(nivel)):
+			return p
+	return p
 
 
+## Chão (px de mundo da sim, no topo do terreno da célula) → tela.
 func tela_de(mundo_pos: Vector2) -> Vector2:
-	return get_viewport().get_canvas_transform() * mundo_pos
+	var h := Ilha.altura_3d(mundo.altura(mundo.celula_de(mundo_pos)))
+	return cam3d.chao_para_tela(_tela, h) * mundo_pos
+
+
+## A afim chão→tela no plano de referência (a das sobreposições). A demo usa
+## a base dela para converter deslocamentos de mundo em px de tela.
+func chao_tela() -> Transform2D:
+	return cam3d.chao_para_tela(_tela, Ilha.altura_3d(NIVEL_REF))
+
+
+## As alturas (níveis) que existem no mapa, da maior para a menor.
+func _alturas_do_mapa() -> Array:
+	var vistos := {}
+	for y in mundo.altura_grade:
+		for x in mundo.largura:
+			vistos[float(mundo.altura(Vector2i(x, y)))] = true
+	vistos[0.0] = true
+	var lista: Array = vistos.keys()
+	lista.sort()
+	lista.reverse()
+	return lista
 
 
 func _json(caminho: String) -> Dictionary:

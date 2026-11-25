@@ -117,11 +117,10 @@ entra pela borda leste dela, em `y = 11..12`.
 
 ## Mockup → arte
 
-Tudo desenha com `jogo/mock.gd` (xadrez gerado em código, cores de
-`terrenos.json`). Trocar pela arte é trocar as texturas/mock por sprites —
-a estrutura de camadas e as regras não mudam. O desenho Wang do v0.3
-(`jogo/mapa.gd` + `sim/mapa.gd` + `ilha_teste.json`) fica PARADO, para quando a
-arte de verdade voltar; a fundação não depende dele.
+Desde o P24 a ilha é **3D** (`jogo/mundo3d/ilha.gd`: um bloco por célula,
+altura pelo nível, xadrez nas cores de `terrenos.json`). Trocar pela arte é
+trocar materiais/malhas — as regras não mudam. O Wang do v0.3 (`sim/mapa.gd`
++ `ilha_teste.json`) fica PARADO; o `jogo/mapa.gd` 2D saiu no P24.
 
 ## Ainda não existe
 

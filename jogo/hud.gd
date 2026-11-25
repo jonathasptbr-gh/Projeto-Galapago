@@ -2,6 +2,8 @@ extends CanvasLayer
 ## A HUD avisa o main quando o botão de HOSTILIDADE muda de estado; quem manda
 ## nos inimigos é o main (a regra é da `sim/adversario.gd`).
 signal hostilidade_alternada(ligado: bool)
+## P24: o botão PIXEL ART liga/desliga o Pixel Pass da vista 3D (quem manda é o main)
+signal pixel_pass_alternado(ligado: bool)
 
 ## HUD de desenvolvimento: título (versão/build), legenda dos gestos (a tabela
 ## v0.18 em linhas curtas + a linha do CONFIG), estado do corpo (rota/waypoints,
@@ -12,7 +14,13 @@ signal hostilidade_alternada(ligado: bool)
 ## `corpo.carga_tiro_s`; o TAMANHO do tiro é da `sim/`, a HUD só escolhe o tempo)
 ## e o botão CONFIG, que esconde/mostra esta HUD de teste — o próprio botão, o
 ## `veu` (escurecimento do desenho) e o `atualizador` ficam sempre.
-## Layout pensado para a tela em RETRATO (720×1280).
+## Layout pensado para a tela em RETRATO (720×1280). P24: o bloco do alto
+## começa em `TOPO` — os primeiros `TOPO` px são da BARRA DE GIRO
+## (`jogo/barra_giro.gd`, o dedo lá gira a câmera 3D). Botão PIXEL ART
+## (Pixel Pass ligado/desligado) logo abaixo do slider da carga.
+
+## px do topo reservados à barra de giro (o mesmo `ALTURA_BARRA` do main)
+const TOPO := 100.0
 
 const Atualizador := preload("res://jogo/atualizador.gd")
 const Alvos := preload("res://sim/alvos.gd")
@@ -47,6 +55,9 @@ var _slider_sincronizado := false
 var _config_btn: Button
 var _mostrar_info := true
 var _intima := false
+# PIXEL ART (P24): estado vem do main (`definir_pixel_pass`)
+var _pixel_btn: Button
+var _pixel := true
 
 
 func definir_vista_intima(ativa: bool) -> void:
@@ -63,20 +74,20 @@ func definir_vista_intima(ativa: bool) -> void:
 func _ready() -> void:
 	var versao: String = ProjectSettings.get_setting("application/config/version", "local")
 	var build := int(ProjectSettings.get_setting("galapago/build", 0))
-	_rotulo("Projeto Galápago  ·  %s  ·  retrato (mockup)" % ("build local" if versao == "local" else "v" + versao), Vector2(20, 14), 22)
+	_rotulo("Projeto Galápago  ·  %s  ·  retrato (3D)" % ("build local" if versao == "local" else "v" + versao), Vector2(20, TOPO + 8), 22)
 	var leg := _rotulo(_legenda(), Vector2.ZERO, 16)
 	leg.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
 	leg.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	leg.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	leg.position.y += 34
-	_status = _rotulo("", Vector2(20, 46), 16)
-	_nota = _rotulo("", Vector2(20, 72), 18)
+	leg.position.y += TOPO + 34
+	_status = _rotulo("", Vector2(20, TOPO + 40), 16)
+	_nota = _rotulo("", Vector2(20, TOPO + 64), 18)
 	# PULO AUTOMÁTICO (v0.13): botão de ligar/desligar (padrão em `pular.auto_padrao`).
 	# É um Control de verdade — o toque nele é consumido pela HUD e não vira caminho.
 	_pulo_auto = Button.new()
 	_pulo_auto.text = "PULO AUTO: DESLIGADO"
 	_pulo_auto.add_theme_font_size_override("font_size", 16)
-	_pulo_auto.position = Vector2(20, 104)
+	_pulo_auto.position = Vector2(20, TOPO + 96)
 	_pulo_auto.custom_minimum_size = Vector2(240, 34)
 	_pulo_auto.pressed.connect(_alternar_pulo_auto)
 	add_child(_pulo_auto)
@@ -84,35 +95,45 @@ func _ready() -> void:
 	_hostil_btn = Button.new()
 	_hostil_btn.text = "HOSTILIDADE: DESLIGADA"
 	_hostil_btn.add_theme_font_size_override("font_size", 16)
-	_hostil_btn.position = Vector2(20, 146)
+	_hostil_btn.position = Vector2(20, TOPO + 138)
 	_hostil_btn.custom_minimum_size = Vector2(240, 34)
 	_hostil_btn.pressed.connect(_alternar_hostilidade)
 	add_child(_hostil_btn)
-	_inimigo = _rotulo("", Vector2(20, 188), 16)
+	_inimigo = _rotulo("", Vector2(20, TOPO + 180), 16)
 	# CONFIG (v0.19): sempre visível, na coluna da ESQUERDA abaixo do `inimigo`
 	# (a legenda fica à direita e o estado, embaixo). Ele esconde/mostra o resto.
 	_config_btn = Button.new()
 	_config_btn.text = "CONFIG"
 	_config_btn.add_theme_font_size_override("font_size", 16)
-	_config_btn.position = Vector2(20, 230)
+	_config_btn.position = Vector2(20, TOPO + 222)
 	_config_btn.custom_minimum_size = Vector2(240, 34)
 	_config_btn.pressed.connect(_alternar_info)
 	add_child(_config_btn)
 	# CARGA DO TIRO (v0.19): rótulo + slider (0 a 1,5 s, passo 0,05). O teto
 	# real vem de `corpo.tiro_carga_max_s()` na primeira `estado()`.
-	_carga_rotulo = _rotulo(_texto_carga(0.5), Vector2(20, 272), 16)
+	_carga_rotulo = _rotulo(_texto_carga(0.5), Vector2(20, TOPO + 264), 16)
 	_carga_slider = HSlider.new()
 	_carga_slider.min_value = 0.0
 	_carga_slider.max_value = 1.5
 	_carga_slider.step = 0.05
 	_carga_slider.value = 0.5
-	_carga_slider.position = Vector2(20, 296)
+	_carga_slider.position = Vector2(20, TOPO + 288)
 	_carga_slider.size = Vector2(240, 34)
 	_carga_slider.custom_minimum_size = Vector2(240, 34)
 	# o slider é um Control: o toque nele é CONSUMIDO (não vira caminho)
 	_carga_slider.focus_mode = Control.FOCUS_NONE
 	_carga_slider.value_changed.connect(_mudar_carga)
 	add_child(_carga_slider)
+	# PIXEL ART (P24): Pixel Pass ligado (imagem interna baixa + dither) ou
+	# desligado (3D liso, MSAA). O main troca a vista e devolve o estado.
+	_pixel_btn = Button.new()
+	_pixel_btn.text = "PIXEL ART: LIGADO"
+	_pixel_btn.add_theme_font_size_override("font_size", 16)
+	_pixel_btn.position = Vector2(20, TOPO + 334)
+	_pixel_btn.custom_minimum_size = Vector2(240, 34)
+	_pixel_btn.focus_mode = Control.FOCUS_NONE
+	_pixel_btn.pressed.connect(func(): pixel_pass_alternado.emit(not _pixel))
+	add_child(_pixel_btn)
 	_gesto = _rotulo("gesto: —", Vector2.ZERO, 20)
 	_gesto.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 18)
 	_gesto.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -158,7 +179,7 @@ func _ready() -> void:
 		b.add_theme_font_size_override("font_size", 16)
 		b.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
 		b.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-		b.position.y += 330
+		b.position.y += TOPO + 350
 		b.pressed.connect(func(): atualizador.verificar())
 		add_child(b)
 
@@ -175,6 +196,9 @@ func _process(delta: float) -> void:
 	if _hostil_btn:
 		_hostil_btn.text = "HOSTILIDADE: %s" % ("LIGADA" if _hostil else "DESLIGADA")
 		_hostil_btn.modulate = Color(1.0, 0.62, 0.5) if _hostil else Color.WHITE
+	if _pixel_btn:
+		_pixel_btn.text = "PIXEL ART: %s" % ("LIGADO" if _pixel else "DESLIGADO")
+		_pixel_btn.modulate = Color(0.7, 0.9, 1.0) if _pixel else Color.WHITE
 	if _nota_t > 0.0:
 		_nota_t = maxf(0.0, _nota_t - delta)
 		if _nota_t <= 0.0 and _nota:
@@ -192,8 +216,15 @@ func _legenda() -> String:
 	linhas.append("passar por cima → batida")
 	linhas.append("botão PULO AUTO → sobe degrau de 1 nível")
 	linhas.append("botão HOSTILIDADE → o bicho caça e ataca")
+	linhas.append("barra do topo → gira a câmera")
+	linhas.append("PIXEL ART → pixel art × 3D liso")
 	linhas.append("CONFIG → esconde esta HUD")
 	return "\n".join(linhas)
+
+
+## Estado do Pixel Pass (o main chama na partida e a cada troca).
+func definir_pixel_pass(ligado: bool) -> void:
+	_pixel = ligado
 
 
 func gesto(ev: Dictionary, cmd: Dictionary, resultado: String) -> void:

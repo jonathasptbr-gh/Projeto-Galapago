@@ -90,19 +90,27 @@ comando sobrepõe: `--rendering-method gl_compatibility|mobile|forward_plus` e
 
 ## 6. Pixel art no Godot
 
-- **Arte pixelada, tela não** (decisão do operador, v0.3.0; **retrato desde a
-  v0.6.0**): a tela é 720×1280 (`canvas_items`, `expand`, orientação 1 =
-  retrato); a arte usa filtro *nearest*. A câmera nasceu com **zoom inteiro**
-  (2 → cada pixel de arte vira 2×2) e desde a **v0.11.4** está em **1,6**
-  (`jogo/mock.gd`, pedido do operador para ver mais do mapa): o pixel de arte
-  passa a ocupar 1–2 px de tela — no xadrez do mock não se nota, e com a arte
-  real (P6) é decisão a tomar (arte em 2× ou zoom inteiro).
-  Linhas, sombras, efeitos e texto são desenhados na resolução da tela, lisos:
-  `draw_polyline(..., antialiased=true)`, `draw_circle(..., antialiased=true)`,
-  `draw_arc(..., antialiased=true)`. Snap 2D desligado: movimento em subpixel.
-- **Zoom não inteiro** (pinça, efeito) borra/deforma pixels de arte: o 1,6 da
-  v0.11.4 é o caso vivo disso. Alternativas quando a arte real chegar: desenhar
-  a arte em 2× (32→64) e voltar a um zoom inteiro, ou aceitar o 1,6.
+- **Mundo 3D + Pixel Pass** (P24, decisão do operador, 2026-11-25): o mundo é
+  3D (`jogo/mundo3d/`), com câmera ortográfica orbital (`sim/camera3d.gd`) e o
+  pixel art como **pós desligável** (`vista.pixel_pass`, botão PIXEL ART da
+  HUD, `--liso` começa desligado). **Ligado:** SubViewport com altura
+  `pixel_pass.altura_interna` (640) + 2 px de margem, sem MSAA, ampliado
+  *nearest*; `pixel_pass.gdshader` quantiza (níveis por canal; LUT de paleta
+  opcional para o P6) e aplica Bayer 4×4 ancorado no mundo por
+  `celula_trama`. **Snap:** a Camera3D vai para o foco arredondado no grid de
+  texel (eixos direita/cima da câmera) e a imagem ampliada é deslocada de
+  −`resto_px` × fator — cenário estável no deslocamento, movimento liso. No
+  **giro** o tremor de pixel é inevitável (some ao parar). **Desligado:**
+  SubViewport do tamanho da tela, MSAA 4×, sem pós, câmera suave.
+- **Materiais:** `toon.gdshader` (luz em faixas no `light()`; o nível passa
+  por `OUTPUT_IS_SRGB` porque o Compatibility soma luz em sRGB e o Mobile em
+  linear) e `casca.gdshader` (contorno por casca invertida, `cull_front`).
+  Ambiente/reflexo do `WorldEnvironment` desligados; a faixa baixa faz o papel
+  de ambiente. Os três compilam no Mobile e no Compatibility (conferido no CI
+  #108 em Vulkan).
+- **Tela lisa:** HUD, barra de giro, trilha, mira, perigos e efeitos são 2D
+  na resolução da tela (`antialiased=true`); as sobreposições do chão usam a
+  afim `cam3d.chao_para_tela` como `transform` do nó pai.
 - **Import de PNG:** padrão do Godot 4 para texturas 2D é sem perda; manter
   mipmaps desligados para sprites. Conferir no `.import` gerado.
 - **Animação de sprite:** `AnimatedSprite2D` + `SpriteFrames` (um `SpriteFrames`
@@ -123,19 +131,27 @@ comando sobrepõe: `--rendering-method gl_compatibility|mobile|forward_plus` e
 ## 7. Toque (o jogo não tem botão virtual)
 
 - Ler em `_unhandled_input`: `InputEventScreenTouch` (`pressed`, `index` = dedo)
-  e `InputEventScreenDrag` (`position`, `relative`, `velocity`). Com
-  câmera, converter para o mundo com `mundo.make_input_local(ev).position`
-  (`mundo` = o Node2D raiz do mundo) — é o que `jogo/main.gd` faz.
+  e `InputEventScreenDrag` (`position`, `relative`, `velocity`).
+  **Tela → chão (P24):** `main.mundo_de(tela)` / `tela_de(mundo)` usam
+  `sim/camera3d.gd` (`tela_para_chao`/`chao_para_tela`, câmera SUAVE — é o que
+  o jogador vê); ortográfica ⇒ afim exata, em qualquer yaw.
+- **Barra de giro (P24):** faixa no topo da tela (`jogo/barra_giro.gd`,
+  `CanvasLayer` 1, altura `main.ALTURA_BARRA`, bússola que anda com o yaw).
+  Dedo que **desce** nela é da barra até subir (`main._toque_barra`, no
+  `_input`, que consome o evento): o deslocamento horizontal vira
+  `cam3d.girar_px` e nada chega a `dedo_*`, à pinça nem ao caminho. Dedo que
+  desce fora segue o fluxo normal, mesmo se depois passar por ela; os dois
+  convivem (multitoque). A demo gira ~120° por esse mesmo caminho.
 - `emulate_touch_from_mouse=true`: no PC/oráculo o mouse vira toque.
 - Toque roteirizado (oráculo/testes de cena): `Input.parse_input_event(ev)`.
 - A classificação de gestos é da `sim/` (P3), testada com traços gravados.
 - **v0.8 (multitouch):** `_unhandled_input` guarda os dedos por `ev.index` e
   chama `main.dedo_*`; o PRIMEIRO dedo é o caminho (origem congelada na
-  descida: `_gesto_origem` + `canvas_transform` inverso; cada ponto convertido
-  com `desenho.ganho` e alimentando `corpo.tracar` a cada quadro) e os dedos
-  EXTRAS fazem a ação (cima = ataque, baixo = defesa, abrindo = especial).
-  Enquanto desenha, o **mundo** roda em tempo lento (`planejamento`) e um véu
-  escurece a tela. A rota é desenhada em `jogo/trilha.gd`.
+  descida: `_gesto_origem` + a afim inversa da câmera; cada ponto convertido
+  com `desenho.ganho` e alimentando `corpo.tracar` a cada quadro). Enquanto
+  desenha, o **mundo** roda em tempo lento (`planejamento`) e um véu escurece a
+  tela. A rota é desenhada em `jogo/trilha.gd`. A **pinça** alterna as vistas
+  `alta`/`intima` da câmera 3D.
 
 ## 8. Exportar para Android (P2) — como funciona e o que quebra
 

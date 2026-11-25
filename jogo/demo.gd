@@ -19,9 +19,15 @@ extends Node
 ## 5. PERSEGUIÇÃO/GOLPE FINAL: caminho terminando no inimigo e SEM toque — a
 ##    criatura anda, persegue e bate;
 ## 6. SEGURAR SEM CAMINHO = HABILIDADE (cavar), numa célula escavável.
+## P24 — GIRO DA CÂMERA (entre a cena 0 e a 1, em 2,0–2,5 s, para caber nos 90
+## quadros do oráculo): um dedo DESCE na BARRA DE GIRO do topo e arrasta
+## ~343 px para a direita (~120° de yaw), entregue como InputEventScreenTouch/
+## Drag ao `main._input` — o MESMO caminho de um dedo de verdade. O caminho da
+## cena 1 já é desenhado com a câmera girada.
 ##
 ## O tempo é o `main.tempo_ms` (real); o tempo lento muda o MUNDO, não o roteiro.
-## Os caminhos são em px de MUNDO, relativos à criatura no instante da descida.
+## Os caminhos são em px de MUNDO, relativos à criatura no instante da descida
+## (convertidos para a tela pela base da afim da câmera 3D: giram com ela).
 ## Entre soltar um dedo e descer o próximo há sempre ≥ 0,1 s (dois dedos não
 ## são um toque).
 
@@ -35,29 +41,17 @@ var _curso: Array = []
 # a caminhada até a célula acabar.
 var _cavar := ""
 var _cavar_limite := 0.0
+# GIRO (P24): o dedo da barra em curso ({} = nenhum). Índice próprio, longe
+# dos dedos do roteiro (0, 1).
+const DEDO_BARRA := 7
+var _giro: Dictionary = {}
 
 
 func _init(m: Node) -> void:
 	main = m
-	# PELE GEOMÉTRICA (F2): só sob flag explicitamente pedida; o padrão é o mock.
-	var debug_geo := "--geo-debug" in OS.get_cmdline_user_args()
-	if "--geo-canino" in OS.get_cmdline_user_args():
-		main.criatura.ativar_pele_geometrica("canino", debug_geo)
-	elif "--geo-serpente" in OS.get_cmdline_user_args():
-		main.criatura.ativar_pele_geometrica("serpente", debug_geo)
-	elif "--geo-ave" in OS.get_cmdline_user_args():
-		main.criatura.ativar_pele_geometrica("ave", debug_geo)
-	# Inspeção de um clipe do catálogo (só demo): --geo-estado=bite
-	for a in OS.get_cmdline_user_args():
-		if a.begins_with("--geo-estado="):
-			main.criatura.forcar_clipe(a.split("=")[1], 0.5)
-		if a.begins_with("--geo-modulos="):
-			main.criatura.ativar_modulos(PackedStringArray(a.split("=")[1].split(",")))
 	if "--camera-planalto" in OS.get_cmdline_user_args():
 		main.corpo.pos = main.mundo.centro(Vector2i(8, 8))
-		main.criatura._process(1.0)
-		main.camera.position = main.criatura.ponto_visual()
-		main.camera.reset_smoothing()
+		main.posicionar_camera()
 	if "--camera-intermediaria" in OS.get_cmdline_user_args() or "--camera-intima" in OS.get_cmdline_user_args():
 		main.dedo_desceu(0, Vector2(200, 500))
 		main.dedo_desceu(1, Vector2(300, 500))
@@ -70,6 +64,8 @@ func _init(m: Node) -> void:
 		# 0. baseline do CI: o caminho de sempre nos 2 primeiros segundos, com a
 		#    RAMPA de aceleração do começo da caminhada à vista
 		{"t": 0.5, "tipo": "caminho", "rel": [[0, 0], [70, 0], [70, -50], [20, -50], [20, 15]], "dur": 1.4},
+		# P24: GIRO pela barra do topo (~120°), com o mesmo toque de um dedo
+		{"t": 2.0, "tipo": "girar", "dx": 120.0, "dur": 0.5},
 		# 1. caminho curto e, 0,1 s depois de soltar, um TOQUE: começa a CARGA
 		{"t": 2.6, "tipo": "caminho", "rel": [[0, 0], [90, 0], [90, -40]], "dur": 0.5},
 		{"t": 3.2, "tipo": "toque"},
@@ -99,14 +95,14 @@ func _init(m: Node) -> void:
 		]
 		if not main.adversarios.is_empty():
 			main.corpo.pos = main.adversarios[0].pos + Vector2(-96, 0)
-			main.camera.position = main.corpo.pos
-			main.camera.reset_smoothing()
+			main.posicionar_camera()
 
 
 func _process(_delta: float) -> void:
 	var agora: float = main.tempo_ms / 1000.0
 	while not _passos.is_empty() and agora >= float(_passos[0]["t"]):
 		_disparar(_passos.pop_front(), agora)
+	_girar(agora)
 	for d in _curso.duplicate():
 		if agora < float(d["t0"]):
 			continue
@@ -158,6 +154,15 @@ func _disparar(p: Dictionary, agora: float) -> void:
 			var p1 := Vector2(tela.x * 0.5, tela.y * 0.86)
 			_curso.append({"t0": agora, "t1": agora + 0.08, "hold": 0.0, "desceu": {},
 				"trilhas": [{"dedo": 0, "pts": PackedVector2Array([p1, p1])}]})
+		"girar":
+			# dedo na BARRA: desce no terço esquerdo e arrasta o equivalente a
+			# `dx` graus de yaw (graus_por_px da câmera) em `dur` s
+			var gpp: float = float(main.cam3d.cfg["giro"]["graus_por_px"])
+			var y: float = main.ALTURA_BARRA * 0.5
+			var x0: float = tela.x * 0.5 - float(p["dx"]) / gpp * 0.5
+			_giro = {"t0": agora, "t1": agora + float(p.get("dur", 0.5)), "x0": x0,
+				"x1": x0 + float(p["dx"]) / gpp, "y": y, "x": x0}
+			main._input(_toque_barra(true, Vector2(x0, y)))
 		"hostil_on":
 			main.definir_hostilidade(true)
 		"esconder_demo":
@@ -195,6 +200,35 @@ func _disparar(p: Dictionary, agora: float) -> void:
 			# perseguição/golpe anterior tiver acabado.
 			_cavar = "livre"
 			_cavar_limite = agora + 8.0
+
+
+## GIRO em curso: arrasta o dedo da barra e o solta no fim (eventos de toque,
+## não chamada direta à câmera).
+func _girar(agora: float) -> void:
+	if _giro.is_empty():
+		return
+	var u := clampf((agora - float(_giro["t0"])) / maxf(float(_giro["t1"]) - float(_giro["t0"]), 0.001), 0.0, 1.0)
+	var x := lerpf(float(_giro["x0"]), float(_giro["x1"]), u)
+	var y := float(_giro["y"])
+	if not is_equal_approx(x, float(_giro["x"])):
+		var arrasto := InputEventScreenDrag.new()
+		arrasto.index = DEDO_BARRA
+		arrasto.position = Vector2(x, y)
+		arrasto.relative = Vector2(x - float(_giro["x"]), 0.0)
+		main._input(arrasto)
+		_giro["x"] = x
+	if u >= 1.0:
+		main._input(_toque_barra(false, Vector2(x, y)))
+		print("demo: %.1f s · giro solto (yaw %.0f°)" % [agora, rad_to_deg(main.cam3d.yaw)])
+		_giro = {}
+
+
+func _toque_barra(pressionado: bool, pos: Vector2) -> InputEventScreenTouch:
+	var ev := InputEventScreenTouch.new()
+	ev.index = DEDO_BARRA
+	ev.position = pos
+	ev.pressed = pressionado
+	return ev
 
 
 ## O corpo terminou o caminho E a perseguição/golpe (a marca saiu e não há
@@ -235,7 +269,8 @@ func _celula_escavavel() -> Vector2i:
 func _pontos(p: Dictionary) -> PackedVector2Array:
 	var cria_w: Vector2 = main.corpo.pos
 	var cria_t: Vector2 = main.tela_de(cria_w)
-	var zoom: float = main.camera.zoom.x
+	# a BASE da afim chão→tela (escala + giro + encurtamento do pitch)
+	var base: Transform2D = main.chao_tela()
 	var ganho := maxf(float(main.cfg_gestos.get("desenho", {}).get("ganho", 1.0)), 0.01)
 	var rel: Array = []
 	if p.has("cel"):
@@ -247,7 +282,7 @@ func _pontos(p: Dictionary) -> PackedVector2Array:
 		rel = p.get("rel", [])
 	var pts := PackedVector2Array()
 	for r in rel:
-		pts.append(cria_t + Vector2(r[0], r[1]) * zoom / ganho)
+		pts.append(cria_t + base.basis_xform(Vector2(r[0], r[1])) / ganho)
 	return pts
 
 

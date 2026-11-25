@@ -1,7 +1,10 @@
 extends "res://testes/caso.gd"
+## Integração dedo × câmera no `jogo/main.gd` (P24: mundo 3D, `sim/camera3d.gd`).
+## A pinça mexe em `camera_toque.zoom` e troca a VISTA da câmera 3D; a barra de
+## giro do topo gira o yaw sem virar gesto; o toque cai no chão sob o dedo.
 
 const Main := preload("res://jogo/main.gd")
-const AdversarioMock := preload("res://jogo/adversario_mock.gd")
+const Ilha := preload("res://jogo/mundo3d/ilha.gd")
 
 
 func _criar() -> Node:
@@ -19,30 +22,45 @@ func _toque(id: int, pos: Vector2, pressionado: bool, cancelado := false) -> Inp
 	return ev
 
 
+func _arrasto(id: int, pos: Vector2) -> InputEventScreenDrag:
+	var ev := InputEventScreenDrag.new()
+	ev.index = id
+	ev.position = pos
+	return ev
+
+
+## O caminho REAL do evento: `_input` → GUI → `_unhandled_input`.
+func _enviar(m: Node, ev: InputEvent) -> void:
+	m.get_viewport().push_input(ev, true)
+
+
 func test_pinca_segundo_dedo_sobre_hud_e_saida() -> void:
 	var m := _criar()
-	var zoom: float = m.camera.zoom.x
+	var zoom: float = m.camera_toque.zoom
 	m._unhandled_input(_toque(0, Vector2(400, 500), true))
-	m._input(_toque(1, Vector2(100, 245), true)) # sobre CONFIG
+	m._input(_toque(1, Vector2(100, 330), true)) # sobre CONFIG (TOPO + 222)
 	checar(m.camera_toque.bloqueado, "segundo dedo inicia pinça antes da GUI")
-	m.dedo_moveu(1, Vector2(-100, 245))
-	checar(m.camera.zoom.x > zoom, "pinça amplia")
+	m.dedo_moveu(1, Vector2(-100, 330))
+	checar(m.camera_toque.zoom > zoom, "pinça amplia")
+	igual(m.cam3d.vista, "intima", "pinça leva a câmera 3D à vista íntima")
 	checar(m.hud.visible and not m.hud._config_btn.visible, "controles ocultos na vista íntima")
 	checar(m.hud.atualizador.is_visible_in_tree() and not m.hud._status.visible, "avisos disponíveis sem status comum")
+	checar(m.barra.is_visible_in_tree(), "barra de giro segue visível na vista íntima")
 	m.hud.atualizador.estado = "erro"
 	m.hud._process(0.0)
 	checar(m.hud._status.is_visible_in_tree(), "erro de atualização não fica invisível")
 	m.hud.atualizador.estado = "dev"
 	m.hud._process(0.0)
 	checar(not m.hud._status.visible, "estado comum volta a desaparecer")
-	m._input(_toque(1, Vector2(-100, 245), false))
+	m._input(_toque(1, Vector2(-100, 330), false))
 	m._input(_toque(0, Vector2(400, 500), false))
 	m.dedo_desceu(2, Vector2(400, 500))
 	m.dedo_desceu(3, Vector2(600, 500))
 	m.dedo_moveu(3, Vector2(450, 500))
 	m.dedo_subiu(2, Vector2(400, 500))
 	m.dedo_subiu(3, Vector2(450, 500))
-	perto(m.camera.zoom.x, zoom, 0.001, "pinça retorna ao zoom original")
+	perto(m.camera_toque.zoom, zoom, 0.001, "pinça retorna ao zoom original")
+	igual(m.cam3d.vista, "alta", "câmera 3D volta à vista alta")
 	checar(m.hud.visible and m.hud._config_btn.visible, "HUD restaurada")
 	m.free()
 
@@ -75,7 +93,8 @@ func test_controle_para_na_soltura_cancelamento_e_foco() -> void:
 	m.dedo_moveu(1, Vector2(500, 500))
 	m.dedo_subiu(0, Vector2(300, 500))
 	m.dedo_subiu(1, Vector2(500, 500))
-	var zoom: float = m.camera.zoom.x
+	var zoom: float = m.camera_toque.zoom
+	var yaw: float = m.cam3d.yaw
 	m.dedo_desceu(2, Vector2(400, 500))
 	m.dedo_moveu(2, Vector2(490, 500))
 	checar(m.corpo.direcao_relativa.length() > 0.9, "controle move")
@@ -84,7 +103,8 @@ func test_controle_para_na_soltura_cancelamento_e_foco() -> void:
 	var pos: Vector2 = m.corpo.pos
 	m.corpo.passo(0.5, m.mundo, m.alvos)
 	perto_v(m.corpo.pos, pos, 0.001, "não retoma movimento")
-	perto(m.camera.zoom.x, zoom, 0.001, "controle não altera câmera")
+	perto(m.camera_toque.zoom, zoom, 0.001, "controle não altera zoom")
+	perto(m.cam3d.yaw, yaw, 0.000001, "controle não gira a câmera")
 	m.dedo_desceu(3, Vector2(400, 500))
 	m.dedo_moveu(3, Vector2(490, 500))
 	m._input(_toque(3, Vector2(490, 500), false, true))
@@ -97,50 +117,104 @@ func test_controle_para_na_soltura_cancelamento_e_foco() -> void:
 	m.free()
 
 
+## P24 — o ponto de tela tocado cai no chão 3D SOB o dedo (ida e volta
+## `mundo_de` → `tela_de`) em qualquer yaw, e as sobreposições (trilha,
+## perigos, efeitos, mira) usam a MESMA afim: uma marca em `relevo(p)` aparece
+## na tela exatamente onde fica o topo do terreno de `p`.
 func test_projecao_comum_para_efeitos_e_chao() -> void:
 	var m := _criar()
-	m.dedo_desceu(0, Vector2(300, 500))
-	m.dedo_desceu(1, Vector2(400, 500))
-	m.dedo_moveu(1, Vector2(500, 500))
-	var p := Vector2(180, 220)
-	var chao: Vector2 = m.chao.get_global_transform() * p
-	var efeito: Vector2 = m.efeitos.get_global_transform() * p
-	var mira: Vector2 = m.mira.get_global_transform() * p
-	perto_v(efeito, chao, 0.001, "efeito acompanha projeção do chão")
-	perto_v(mira, chao, 0.001, "mira acompanha projeção do chão")
-	checar(m.mundo_visual.scale.y < 1.0, "plano inclinado")
-	var inclinacao: float = m.camera_toque.inclinacao()
-	var Mock := preload("res://jogo/mock.gd")
-	perto(Mock.desnivel(2.0), -12.0, 0.001, "altura original preservada")
-	checar(absf(Mock.desnivel(2.0, inclinacao) * inclinacao) > 12.0, "face projetada cresce")
-	m.corpo.pos = m.mundo.centro(Vector2i(8, 8))
-	m.criatura._process(1.0)
-	var altura: float = m.mundo.altura(Vector2i(8, 8))
-	perto(m.efeitos.inclinacao, inclinacao, 0.001, "efeitos recebem inclinação")
-	perto(m.mira.inclinacao, inclinacao, 0.001, "mira recebe inclinação")
-	perto(m.perigos.inclinacao, inclinacao, 0.001, "perigos recebem inclinação")
-	var pos: Vector2 = m.corpo.pos
-	perto_v(Mock.ponto_relevo(pos, m.mundo, 1.0), pos, 0.001, "marcas originais preservadas")
-	perto(Mock.ponto_relevo(pos, m.mundo, inclinacao).y, pos.y + Mock.desnivel(altura, inclinacao), 0.001, "marcas sobre o planalto")
-	var piso_tela: float = (m.corpo.pos.y + Mock.desnivel(altura, inclinacao)) * inclinacao
-	var pe_tela: float = m.corpo.pos.y * inclinacao + m.criatura._desnivel
-	perto(pe_tela, piso_tela, 0.001, "pé acompanha topo do planalto")
-	# No zoom intermediário, a mesma coordenada local deve chegar ao topo real.
-	m.camera_toque.zoom = 2.4
-	m._aplicar_camera()
-	inclinacao = m.camera_toque.inclinacao()
-	var marca: Vector2 = Mock.ponto_relevo(pos, m.mundo, inclinacao)
-	perto_v(m.mira.get_global_transform() * marca, m.efeitos.get_global_transform() * marca, 0.001, "mira e efeito compartilham transição")
-	perto_v(m.perigos.get_global_transform() * marca, m.efeitos.get_global_transform() * marca, 0.001, "perigo compartilha transição")
-	var quase_superior: Vector2 = Mock.ponto_relevo(pos, m.mundo, 0.99999)
-	checar(quase_superior.distance_to(pos) < 0.01, "sem salto ao sair da vista superior")
-	checar(marca.y < pos.y and marca.y > pos.y + Mock.desnivel(altura, inclinacao), "marca interpola entre posição histórica e topo")
-	m.adversarios[0].pos = pos
-	var no_adv: Node2D = null
-	for no in m.objetos_visuais.get_children():
-		if no is AdversarioMock:
-			no_adv = no
-			break
-	no_adv._process(0.0)
-	perto_v(no_adv.get_global_transform().origin, m.mira.get_global_transform() * marca, 0.001, "adversário acompanha transição das marcas")
+	var tela: Vector2 = m.get_viewport_rect().size
+	var centro := tela * 0.5
+	var toques := [centro, centro + Vector2(-140, -90), centro + Vector2(120, 160),
+		centro + Vector2(60, -220), centro + Vector2(-200, 240)]
+	var alturas_vistas := {}
+	for graus in [0.0, 90.0, 180.0]:
+		m.cam3d.yaw = 0.0
+		m.cam3d.girar(deg_to_rad(graus))
+		m._atualizar_camera(0.0)
+		var rot := " (yaw %d°)" % int(graus)
+		perto(absf(angle_difference(m.cam3d.yaw, deg_to_rad(graus))), 0.0, 0.0001, "yaw aplicado" + rot)
+		var ref: Transform2D = m.cam3d.chao_para_tela(tela, Ilha.altura_3d(Main.NIVEL_REF))
+		checar(m.sobre.transform.is_equal_approx(ref), "sobreposições na afim da câmera" + rot)
+		checar(m.chao_tela().is_equal_approx(ref), "chao_tela é a mesma afim" + rot)
+		for no in [m.trilha, m.perigos, m.efeitos, m.mira]:
+			checar(no.get_parent() == m.sobre and no.transform == Transform2D.IDENTITY,
+				"%s herda a afim sem transformação própria%s" % [no.get_class(), rot])
+			checar(no.get_global_transform().is_equal_approx(m.sobre.get_global_transform()),
+				"mesma transformação global" + rot)
+		for t in toques:
+			var p: Vector2 = m.mundo_de(t)
+			var c: Vector2i = m.mundo.celula_de(p)
+			checar(m.mundo.dentro(c), "toque %s cai dentro do mapa%s" % [t, rot])
+			alturas_vistas[m.mundo.altura(c)] = true
+			perto_v(m.tela_de(p), t, 0.01, "toque %s cai sob o dedo%s" % [t, rot])
+			# a marca desenhada na sobreposição (relevo) cai no mesmo ponto
+			perto_v(m.sobre.get_global_transform() * m.relevo(p), t, 0.01, "marca da sobreposição sob o dedo%s" % rot)
+			perto_v(m.mira.get_global_transform() * m.relevo(p), m.efeitos.get_global_transform() * m.relevo(p), 0.001, "mira e efeito compartilham projeção" + rot)
+		# a criatura: o pé dela (ator 3D) projeta onde a trilha marca o corpo
+		var pe: Vector2 = m.cam3d.ponto_para_tela(m.ator_criatura.position, tela)
+		perto_v(m.tela_de(m.corpo.pos), pe, 0.5, "trilha no pé da criatura" + rot)
+	checar(alturas_vistas.size() >= 2, "a amostra cobre mais de uma altura de terreno (%s)" % [alturas_vistas.keys()])
+	# girar muda a afim: o mesmo ponto de mundo sai em outro lugar da tela
+	m.cam3d.yaw = 0.0
+	m._atualizar_camera(0.0)
+	var q: Vector2 = m.mundo_de(centro + Vector2(0, -200))
+	var a0: Vector2 = m.tela_de(q)
+	m.cam3d.girar(PI)
+	m._atualizar_camera(0.0)
+	checar(m.tela_de(q).distance_to(a0) > 100.0, "giro de 180° move o ponto na tela")
+	m.free()
+
+
+## P24 — BARRA DE GIRO: o dedo que DESCE na faixa do topo gira a câmera e NÃO
+## vira gesto, pinça nem caminho (nem se depois sair da faixa); o dedo que
+## desce fora dela desenha como sempre, mesmo passando pela faixa.
+func test_barra_gira_sem_gesto_e_dedo_fora_desenha() -> void:
+	var m := _criar()
+	checar(m.barra.is_visible_in_tree(), "barra visível")
+	perto(m.barra.size.y, Main.ALTURA_BARRA, 0.001, "barra com a altura da faixa")
+	var yaw0: float = m.cam3d.yaw
+	var y_barra := Main.ALTURA_BARRA * 0.5
+	checar(m.na_barra(Vector2(300, y_barra)) and not m.na_barra(Vector2(300, Main.ALTURA_BARRA + 1.0)), "faixa da barra")
+	_enviar(m, _toque(0, Vector2(300, y_barra), true))
+	m.tempo_ms = 300.0
+	_enviar(m, _arrasto(0, Vector2(400, y_barra)))
+	var esperado := deg_to_rad(100.0 * float(m.cam3d.cfg["giro"]["graus_por_px"]))
+	perto(angle_difference(yaw0, m.cam3d.yaw), esperado, 0.0001, "arrastar 100 px gira o yaw")
+	# o mesmo dedo descendo para o mundo continua sendo da barra
+	_enviar(m, _arrasto(0, Vector2(400, 700)))
+	checar(m._dedos.is_empty() and m.camera_toque.dedos.is_empty(), "dedo da barra não entra no gesto nem na pinça")
+	checar(not m.reconhecedor.ativo(), "dedo da barra não inicia gesto")
+	m._process(0.016)
+	checar(m.barra.ativa, "barra realça com o dedo nela")
+	checar(not m.corpo.em_rota() and m.corpo.traco.is_empty(), "dedo da barra não gera caminho")
+	_enviar(m, _toque(0, Vector2(400, 700), false))
+	checar(m._dedos_barra.is_empty(), "soltar libera a barra")
+	m._process(0.016)
+	checar(not m.barra.ativa, "barra apaga ao soltar")
+	var yaw1: float = m.cam3d.yaw
+	# dedo FORA da barra: desenha (e não gira), mesmo passando pela faixa
+	m.tempo_ms = 1000.0
+	_enviar(m, _toque(1, Vector2(360, 700), true))
+	checar(m._dedos.has(1) and m.reconhecedor.ativo(), "dedo fora da barra inicia gesto")
+	m.tempo_ms = 1200.0
+	_enviar(m, _arrasto(1, Vector2(360, 560)))
+	m.tempo_ms = 1300.0
+	_enviar(m, _arrasto(1, Vector2(460, 420)))
+	checar(m.reconhecedor.desenhando(), "dedo fora da barra desenha")
+	m._process(0.016)
+	checar(m.corpo.em_rota() and m.corpo.traco.size() >= 2, "o desenho vira caminho")
+	m.tempo_ms = 1350.0
+	_enviar(m, _arrasto(1, Vector2(500, y_barra)))
+	perto(m.cam3d.yaw, yaw1, 0.000001, "dedo do desenho que passa pela faixa não gira")
+	checar(m.reconhecedor.desenhando(), "o desenho segue dentro da faixa")
+	# um segundo dedo na barra enquanto o primeiro desenha: gira, sem pinça
+	_enviar(m, _toque(2, Vector2(200, y_barra), true))
+	_enviar(m, _arrasto(2, Vector2(150, y_barra)))
+	checar(not m.camera_toque.bloqueado, "dedo na barra não vira pinça")
+	checar(absf(angle_difference(yaw1, m.cam3d.yaw)) > 0.1, "segundo dedo na barra gira durante o desenho")
+	checar(m.reconhecedor.desenhando(), "o desenho não é interrompido pelo giro")
+	_enviar(m, _toque(2, Vector2(150, y_barra), false))
+	_enviar(m, _toque(1, Vector2(500, y_barra), false))
+	checar(m._dedos.is_empty() and m._dedos_barra.is_empty(), "contatos liberados")
 	m.free()

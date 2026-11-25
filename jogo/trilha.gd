@@ -3,9 +3,10 @@ extends Node2D
 ## densos do desenho, não a rota simplificada (que traçava retas entre os
 ## pontos de referência e ficava quebrada).
 ##
-## Estilo: **PONTILHADA**, **escura e transparente**, no chão (z_index 1, embaixo
-## dos objetos e da criatura). Os pontinhos são espaçados por ARCO, então
-## acompanham a curva de verdade, sem emendar retas.
+## Estilo: **PONTILHADA**, **escura e transparente**, no chão (P24: desenhada
+## POR CIMA da imagem 3D — a criatura não a cobre). Os pontinhos são espaçados
+## por ARCO, então acompanham a curva de verdade, sem emendar retas; cada um
+## sobe ao topo do terreno da sua célula (`relevo`).
 ##
 ## O que ela mostra é `corpo.traco` (o desenho cru, em pontos de MUNDO) — quem
 ## chama decide quando há linha (desenhando ou em rota).
@@ -16,6 +17,11 @@ extends Node2D
 
 var pontos := PackedVector2Array()
 var corte := 0.0            # arco JÁ ANDADO: a linha some atrás (v0.11.3)
+## P24: desenha em px de MUNDO da sim; o pai aplica a afim chão→tela da câmera
+## 3D (`sim/camera3d.gd chao_para_tela`, no plano de referência). `relevo`
+## (do main) leva um ponto do chão para o TOPO do terreno daquela célula no
+## mesmo plano de referência; sem ele, o ponto fica no plano.
+var relevo := Callable()
 
 const PASSO_PX := 7.0       # distância entre os pontinhos, no arco
 const RAIO := 2.1           # raio do pontinho
@@ -27,6 +33,10 @@ func mostrar(p: PackedVector2Array, ja_andado := 0.0) -> void:
 	pontos = p
 	corte = maxf(ja_andado, 0.0)
 	queue_redraw()
+
+
+func _relevo(p: Vector2) -> Vector2:
+	return relevo.call(p) if relevo.is_valid() else p
 
 
 func _draw() -> void:
@@ -45,10 +55,10 @@ func _draw() -> void:
 			var s := arco + t
 			var a_alfa := clampf((s - (corte - APAGAR_PX)) / APAGAR_PX, 0.0, 1.0)
 			if a_alfa > 0.0:
-				draw_circle(a.lerp(b, t / seg), RAIO, Color(COR, COR.a * a_alfa), true, -1.0, true)
+				draw_circle(_relevo(a.lerp(b, t / seg)), RAIO, Color(COR, COR.a * a_alfa), true, -1.0, true)
 			t += PASSO_PX
 		sobra = t - seg
 		arco += seg
 	# a ponta do caminho: um pontinho um pouco maior (o destino), se ainda falta
 	if arco >= corte:
-		draw_circle(pontos[pontos.size() - 1], RAIO + 1.0, Color(COR, 0.85), true, -1.0, true)
+		draw_circle(_relevo(pontos[pontos.size() - 1]), RAIO + 1.0, Color(COR, 0.85), true, -1.0, true)

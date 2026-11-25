@@ -189,7 +189,7 @@ func _mostrar_aviso() -> void:
 	_botao_aviso.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 12)
 	_botao_aviso.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	# abaixo da legenda/verificar, mas dentro da tela nos dois formatos
-	_botao_aviso.position.y += 420
+	_botao_aviso.position.y += 500  # abaixo do "Verificar" da HUD (P24: a barra de giro empurrou a HUD)
 	_botao_aviso.pressed.connect(_abrir_painel)
 	add_child(_botao_aviso)
 	# a PRIMEIRA detecção abre o painel sozinha: o aviso não pode depender de o

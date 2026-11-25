@@ -5,6 +5,12 @@
 
 ## Não publicado
 
+- **Fundação 3D no jogo** (P24.3–4): `jogo/mundo3d/` (ilha toon+casca, Pixel
+  Pass desligável, atores provisórios) + `sim/camera3d.gd`; `jogo/main.gd`
+  troca camadas 2D e `Camera2D` pelo mundo 3D; toque e sobreposições pela afim
+  chão⇄tela; **barra de giro** no topo (`jogo/barra_giro.gd`); botão PIXEL ART
+  na HUD; a demo gira ~120° pela barra. Saíram `jogo/camadas/`, `criatura`,
+  `mock`, `mapa`, `objeto`, `adversario_mock`, `animacoes`.
 - **Renderizador Mobile/Vulkan** (P24, decisão do operador, 2026-11-25):
   `rendering_method="mobile"` + `fallback_to_opengl3`; o oráculo ganha
   `QUADROS_RENDER=previa|vulkan` — prévia local em Compatibility/softpipe,

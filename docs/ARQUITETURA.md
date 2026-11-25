@@ -52,12 +52,26 @@ que renderiza neste celular sem GPU; a verdade visual é o oráculo em Vulkan
 (lavapipe) no CI — ver [`ORACULO`](ORACULO.md). Consequência: shader, material
 e efeito do projeto têm de compilar e funcionar **nos dois** renderizadores
 (nada exclusivo do RenderingDevice, como compute shader; nada que só fique
-certo em cor linear ou só em sRGB) — o projeto não tem `.gdshader` no P24. **Tela em alta resolução e
-RETRATO** (720×1280, `canvas_items`, `expand`) com **arte pixelada** (filtro
-*nearest*, câmera com **zoom 1,6** desde a v0.11.4 — era inteiro 2, ver
-`jogo/mock.gd`): linhas, sombras, efeitos e texto são lisos. Detalhes em [`GODOT.md`](GODOT.md#6-pixel-art-no-godot).
+certo em cor linear ou só em sRGB; o toon converte o nível com
+`OUTPUT_IS_SRGB`). **Tela em alta resolução e RETRATO** (720×1280,
+`canvas_items`, `expand`).
+
+**Mundo 3D (P24):** a ilha, os objetos e os atores são 3D
+(`jogo/mundo3d/`), vistos por uma câmera **ortográfica orbital** pura
+(`sim/camera3d.gd`: foco, yaw livre 360°, vistas `alta` — padrão — e
+`intima`, snap de texel, chão⇄tela como `Transform2D` afim). O **Pixel Pass**
+é a última camada e desliga: SubViewport em baixa resolução + quantização +
+Bayer ancorado no mundo + ampliação *nearest* + compensação de subpixel.
+Trilha, mira, perigos, efeitos e HUD continuam 2D, lisos, em px de mundo da
+sim, sob um `Node2D` cuja transformação é a afim da câmera (ficam por cima
+do 3D). Detalhes em [`GODOT.md`](GODOT.md#6-pixel-art-no-godot).
 
 ## Pele e esqueleto (v0.22.0)
+
+> **P24 (2026-11-25):** no jogo a criatura e o inimigo são **atores 3D
+> provisórios** (`jogo/mundo3d/ator.gd`) que só leem a sim. A pele
+> esquelética 2D abaixo saiu do jogo; o rig da sim fica **congelado** (P9/P10)
+> e só `tools/folha_*` e os testes ainda o desenham.
 
 O desenho da criatura pode vir de dois lados, com o MESMO contrato: o mock de
 xadrez ou a **pele esquelética** (`jogo/pele_geometrica.gd`), que desenha o rig
@@ -84,7 +98,7 @@ resolve posição/z no rig e recusa qualquer item que declare
 
 O mapa vem de **dados**: `dados/mapas/<nome>.json` (cantos de terreno + objetos)
 → `sim/mapa.gd` (pura: valida o desenho e escolhe a peça Wang de cada célula)
-→ `jogo/mapa.gd` (monta o `TileMapLayer` com os tilesets do PixelLab).
+→ hoje `jogo/mundo3d/ilha.gd` monta a ilha 3D a partir de `sim/mundo.gd` (o `TileMapLayer` Wang do v0.3 saiu no P24).
 Objetos e criatura ficam num `Node2D` com `y_sort_enabled`, origem nos pés.
 Design: [`gdd/mapa.md`](gdd/mapa.md).
 

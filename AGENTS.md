@@ -106,13 +106,15 @@ sim/                  lógica pura: gestos (1 dedo: caminho, toque=tiro carregad
                        (passeio, hostilidade, preparo+área, esconder) · mundo ·
                        trajetoria (desconto+RDP) ·
                        esqueleto (pose e âncoras) · esqueleto3d (juntas 3D
-                       projetadas, câmera 20°) · direcao (8 setores) · animacao (estados e prioridades) · modulos (socket por nome) · visibilidade · atualizacao · mapa (Wang, parado)
-jogo/                 main · criatura · rigs3d · pele_geometrica3d ·
-                       adversario_mock · perigos (área no chão) ·
-                       mira (mira+alvo final) · trilha · efeitos (onda/tiro) ·
-                       hud (legenda, carga, CONFIG) · demo · mock ·
-                       atualizador · camadas/ (chao, subsolo, copa, parallax,
-                       objeto_mock)
+                       projetadas, congelado) · camera3d (câmera orbital 3D) · direcao (8 setores) · animacao (estados e prioridades) · modulos (socket por nome) · visibilidade · atualizacao · mapa (Wang, parado)
+jogo/                 main · mundo3d/ (vista = SubViewport + Pixel Pass
+                       liga/desliga, ilha, ator provisório, shaders toon/
+                       casca/pixel_pass, vitrine) · barra_giro (topo, gira a
+                       câmera) · perigos (área no chão) · mira (mira+alvo
+                       final) · trilha · efeitos (onda/tiro) · hud (legenda,
+                       carga, CONFIG, PIXEL ART) · demo · atualizador ·
+                       modulos · rigs/rigs3d/pele_geometrica* (rig congelado:
+                       só tools/folha_* e testes)
 dados/                gestos.json · acoes.json · adversario.json · terrenos.json · mapas/ · rig/ · animacoes.json · modulos.json
 testes/               run.gd (executor), caso.gd (base), test_*.gd
 tools/                estado.sh · testes.sh · verificar.sh (seletivo) ·

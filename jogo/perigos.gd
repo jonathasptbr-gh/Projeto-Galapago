@@ -12,10 +12,13 @@ extends Node2D
 ## O miolo acende devagar e PISCA perto do fim: dá tempo de reagir sem precisar
 ## contar segundos. O projétil do cuspe é desenhado aqui também.
 
-const Mock := preload("res://jogo/mock.gd")
 
 var mundo: RefCounted
-var inclinacao := 1.0
+## P24: desenha em px de MUNDO da sim; o pai aplica a afim chão→tela da câmera
+## 3D (`sim/camera3d.gd chao_para_tela`, no plano de referência). `relevo`
+## (do main) leva um ponto do chão para o TOPO do terreno daquela célula no
+## mesmo plano de referência; sem ele, o ponto fica no plano.
+var relevo := Callable()
 var adversarios: Array = []
 
 
@@ -29,13 +32,17 @@ func _draw() -> void:
 			continue
 		for p in adv.perigos:
 			var origem := Vector2(p.get("pos", Vector2.ZERO))
-			draw_set_transform(Mock.ponto_relevo(origem, mundo, inclinacao) - origem)
+			draw_set_transform(_relevo(origem) - origem)
 			_area(p)
 		for e in adv.efeitos:
 			var origem := Vector2(e.get("pos", Vector2.ZERO))
-			draw_set_transform(Mock.ponto_relevo(origem, mundo, inclinacao) - origem)
+			draw_set_transform(_relevo(origem) - origem)
 			_projetil(e)
 		draw_set_transform(Vector2.ZERO)
+
+
+func _relevo(p: Vector2) -> Vector2:
+	return relevo.call(p) if relevo.is_valid() else p
 
 
 func _cor(tipo: String) -> Color:
