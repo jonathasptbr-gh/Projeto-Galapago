@@ -44,8 +44,15 @@ separados.
 
 ## Renderização
 
-`gl_compatibility` (OpenGL 3.3 / GLES 3): roda em celular modesto e é o único
-que o oráculo de quadros renderiza sem GPU. **Tela em alta resolução e
+**Mobile (Vulkan)** é o alvo: o celular médio, e o renderizador do APK
+(decisão do operador, 2026-11-25, P24; era `gl_compatibility`). **Compatibility**
+(OpenGL 3.3 / GLES 3) fica em dois papéis: **fallback** do aparelho sem Vulkan
+(`rendering_device/fallback_to_opengl3`) e **prévia local** do oráculo, o único
+que renderiza neste celular sem GPU; a verdade visual é o oráculo em Vulkan
+(lavapipe) no CI — ver [`ORACULO`](ORACULO.md). Consequência: shader, material
+e efeito do projeto têm de compilar e funcionar **nos dois** renderizadores
+(nada exclusivo do RenderingDevice, como compute shader; nada que só fique
+certo em cor linear ou só em sRGB) — o projeto não tem `.gdshader` no P24. **Tela em alta resolução e
 RETRATO** (720×1280, `canvas_items`, `expand`) com **arte pixelada** (filtro
 *nearest*, câmera com **zoom 1,6** desde a v0.11.4 — era inteiro 2, ver
 `jogo/mock.gd`): linhas, sombras, efeitos e texto são lisos. Detalhes em [`GODOT.md`](GODOT.md#6-pixel-art-no-godot).

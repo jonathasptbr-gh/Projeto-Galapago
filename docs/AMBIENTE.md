@@ -8,7 +8,7 @@ Medido em 2026-11-20. O `tools/estado.sh` confere o que importa.
 | clone | `~/workspaces/Projeto-Galapago` |
 | Godot | 4.7.2 arm64 em `~/.local/share/godot/`, link `~/.local/bin/godot` — **`~/.local/bin` não está no PATH** dos shells do agente; os scripts caem para ele, e `$GODOT` sobrepõe |
 | API do Godot | cache `~/.cache/galapago/godot-api-4.7.2/` (gerado por `tools/godot-api.sh`) |
-| oráculo | `xvfb`, `libgl1-mesa-dri` (apt); driver **softpipe** |
+| oráculo | `xvfb`, `libgl1-mesa-dri` (apt); modo `previa` (Compatibility) com driver **softpipe**. `mesa-vulkan-drivers` instalado (lavapipe), mas o Vulkan **cai com sinal 4** aqui: modo `vulkan` só no CI ([`ORACULO`](ORACULO.md)) |
 | JDK | OpenJDK 17 (apt; `keytool`). O `dpkg` só configura o Java com `/usr/share/man/man1` existente — imagem enxuta: `mkdir -p /usr/share/man/man1` antes |
 | Android SDK | **não há** — APK só no CI (job `apk`); baixar com `node tools/baixar-apk.mjs` |
 | git | auth por `http.https://github.com/.extraHeader` global (ver o `AGENTS.md` da máquina); `core.trustctime false` no clone |

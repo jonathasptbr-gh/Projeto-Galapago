@@ -10,6 +10,33 @@ roda a cena principal com o argumento de usuário `--demo` sob Xvfb + Mesa
 por software, grava N quadros PNG (Movie Maker do Godot, `--write-movie`,
 30 fps fixos) e depois o agente abre os PNG (ferramenta de leitura de imagem).
 
+## Dois modos: prévia local × verdade no CI (P24, 2026-11-25)
+
+O jogo roda em **Mobile (Vulkan)**, com fallback para Compatibility (OpenGL 3)
+— ver [`GODOT`](GODOT.md#1-onde-o-godot-roda). O oráculo escolhe o renderizador
+pela linha de comando, com `QUADROS_RENDER`:
+
+| modo | flags | driver | onde |
+|---|---|---|---|
+| `previa` (padrão) | `--rendering-method gl_compatibility --rendering-driver opengl3` | Mesa por software, `GALLIUM_DRIVER` (`softpipe` por padrão) | celular do agente: olhar rápido de layout e movimento |
+| `vulkan` | `--rendering-method mobile --rendering-driver vulkan` | lavapipe (`mesa-vulkan-drivers`); `VK_ICD_FILENAMES` = `/usr/share/vulkan/icd.d/lvp_icd.json` se existir e não vier definido | o CI (x86_64): a **verdade**, o renderizador do APK |
+
+```
+tools/quadros.sh 60 ~/tmp/q                               # prévia
+QUADROS_RENDER=vulkan GALLIUM_DRIVER=llvmpipe tools/quadros.sh 60 quadros   # CI
+```
+
+A 1ª linha do `log.txt` diz o modo, as flags e os drivers; a linha do Godot
+confirma o que subiu (`OpenGL API 3.3 … - Compatibility - … softpipe` ou
+`Vulkan 1.x - Forward Mobile - … llvmpipe`). Reprova: sem quadros, com
+`handle_crash` ou `SCRIPT ERROR` no log e, **no modo `vulkan`, se o log tiver
+`OpenGL API`** (o fallback teria trocado o renderizador calado). Modo
+desconhecido sai com código 2 antes de apagar a saída.
+
+Prévia e verdade são renderizadores diferentes: diferença de borda, de
+antialiasing e de mistura de cor entre os dois é esperada. Juízo final de cor e
+efeito é sobre os quadros do CI (artefato `quadros`).
+
 `DEMO_ARGS` passa argumentos extras para a demo. A cena do **inimigo hostil**
 (v0.14) é `DEMO_ARGS="--hostil" tools/quadros.sh 240 ~/tmp/galapago-hostil`:
 começa com a criatura perto do bicho, liga o botão, mostra os ataques e um
@@ -26,8 +53,14 @@ desenhado erraria o alvo móvel). O demo normal continua igual.
   demo com âncora e tempo lento); **v0.7: 96 quadros em ~2,5 s/quadro** (traço
   ao vivo, véu e rampa).
 - **`opengl3_es` não carrega aqui** (sem EGL).
-- **No CI (x86_64)** o workflow usa `llvmpipe` e publica os quadros como
-  artefato `quadros` (7 dias; 90 nas publicações, que servem de referência).
+- **Vulkan neste celular (2026-11-25):** com `mesa-vulkan-drivers` instalado,
+  o lavapipe sobe (`Vulkan 1.4.318 - Forward Mobile - Using Device #0: … llvmpipe
+  (LLVM 20.1.2)`) e o processo **cai com sinal 4** antes do 1º quadro (mesmo
+  JIT do LLVM). Modo `vulkan` só no CI.
+- **No CI (x86_64)** o workflow roda `QUADROS_RENDER=vulkan` (lavapipe; até o
+  P24 era OpenGL com `llvmpipe`) e publica os quadros como artefato `quadros`
+  (7 dias; 90 nas publicações, que servem de referência). O resumo do run
+  traz a linha do Godot que diz o renderizador.
 
 ## Comparação com a última publicação (CI)
 
@@ -55,11 +88,13 @@ node tools/quadros-referencia.mjs [pasta=quadros] [--dest <dir>] [--min 50]
   o maior delta e a caixa `x0,y0,x1,y1`. `--atualizar` do `quadros-diff.mjs`
   copia uma pasta para outra (uso local).
 
-**Localmente** o renderizador é `softpipe` (≠ `llvmpipe` do CI): o agente usa
-`tools/quadros.sh` e **abre** os PNG. Para olhar a referência,
+**Localmente** o modo é `previa` (Compatibility/softpipe ≠ Mobile/lavapipe
+do CI): o agente usa `tools/quadros.sh` e **abre** os PNG. Para olhar a referência,
 `node tools/quadros-referencia.mjs --baixar` a põe em `testes/baseline/`
-(ignorado pelo git, com `.gdignore`); comparar softpipe com ela acusa
-diferença legítima de renderizador.
+(ignorado pelo git, com `.gdignore`); comparar a prévia com ela acusa
+diferença legítima de renderizador. **A 1ª publicação depois do P24** compara
+Vulkan com uma referência ainda OpenGL: o aviso de diferença nesse run é
+esperado e some na publicação seguinte.
 
 ## Limites
 

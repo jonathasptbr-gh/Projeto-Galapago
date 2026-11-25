@@ -1,6 +1,7 @@
 # Godot — como usar (guia do projeto)
 
-> Godot **4.7.2**, renderizador de compatibilidade. Tudo aqui foi **medido
+> Godot **4.7.2**, renderizador **Mobile (Vulkan)** com fallback para
+> Compatibility (OpenGL 3) desde o P24. Tudo aqui foi **medido
 > neste projeto** em 2026-11-20 (o que não foi está marcado "não testado").
 > Dúvida de API: `tools/godot-api.sh <Classe> [filtro]` — a referência oficial
 > desta versão exata, sem depender de memória. Não "lembre" API do Godot 3:
@@ -10,13 +11,23 @@
 
 | onde | o quê | limite |
 |---|---|---|
-| celular (proot aarch64) | `~/.local/share/godot/Godot_v4.7.2-stable_linux.arm64`, link `~/.local/bin/godot` — **fora do PATH dos shells do agente**: os scripts caem para `$HOME/.local/bin/godot`; use `$GODOT` para sobrepor | sem GPU: imagem só pelo oráculo (softpipe); sem SDK Android |
-| CI (ubuntu-24.04 x86_64) | mesmo 4.7.2 (`GODOT_VERSION` no `ci.yml`) | testes, quadros (llvmpipe) e APK |
+| celular (proot aarch64) | `~/.local/share/godot/Godot_v4.7.2-stable_linux.arm64`, link `~/.local/bin/godot` — **fora do PATH dos shells do agente**: os scripts caem para `$HOME/.local/bin/godot`; use `$GODOT` para sobrepor | sem GPU: imagem só pelo oráculo em **prévia** (Compatibility/softpipe); Vulkan (lavapipe) **cai com sinal 4** aqui; sem SDK Android |
+| CI (ubuntu-24.04 x86_64) | mesmo 4.7.2 (`GODOT_VERSION` no `ci.yml`) | testes, quadros em **Mobile/Vulkan** (lavapipe, `QUADROS_RENDER=vulkan`) e APK |
 | operador | o APK no celular; opcionalmente o app oficial "Godot Editor" para Android | editor no Android: não testado neste projeto |
 
 **Versão local e do CI andam juntas.** Subir o Godot = mudar `GODOT_VERSION`,
 o binário local, `config/features` do `project.godot` e o nome
 `editor_settings-4.7.tres` (em `tools/android/exportar.sh`) no mesmo lote.
+
+**Renderizador** (decisão do operador, 2026-11-25, P24): `mobile` (Vulkan) é o
+alvo do celular médio — o APK roda nele. Aparelho sem Vulkan cai para OpenGL 3
+(Compatibility) por `rendering/rendering_device/fallback_to_opengl3=true`
+(padrão `true` no 4.7.2, explícito no `project.godot`; o texto oficial cita só o
+Forward+, mas a chave é do RenderingDevice). O renderizador real em execução é
+`RenderingServer.get_current_rendering_method()`, não a configuração. A linha de
+comando sobrepõe: `--rendering-method gl_compatibility|mobile|forward_plus` e
+`--rendering-driver opengl3|vulkan` — é assim que o oráculo escolhe o modo
+([`ORACULO`](ORACULO.md)).
 
 ## 2. As ferramentas do projeto (use estas, não o binário cru)
 
@@ -44,7 +55,8 @@ o binário local, `config/features` do `project.godot` e o nome
 | `-s res://x.gd` | roda um script que `extends SceneTree` (ou `MainLoop`) — é como `testes/run.gd` funciona |
 | `--check-only -s res://x.gd` | só analisa o script; **sai com código 1 em erro de parse** (testado) |
 | `--write-movie q.png --fixed-fps 30 --quit-after N` | Movie Maker: grava quadros PNG numerados (precisa de render — ver ORACULO) |
-| `--rendering-driver opengl3 --audio-driver Dummy --resolution WxH` | o que o oráculo usa |
+| `--rendering-method gl_compatibility --rendering-driver opengl3` | o oráculo em prévia (local); em `vulkan`: `--rendering-method mobile --rendering-driver vulkan` |
+| `--audio-driver Dummy --resolution WxH` | o que o oráculo usa |
 | `--export-release "Android" caminho.apk` | export pelo preset de `export_presets.cfg` (`--export-debug` idem, template debug) |
 | `--export-pack` / `--export-patch` | só o `.pck` / só o que mudou — não usamos ainda |
 | `--doctool <dir>` | despeja a API (1076 classes) — **sem os textos** no binário de distribuição |
@@ -54,13 +66,13 @@ o binário local, `config/features` do `project.godot` e o nome
 
 | arquivo | regra |
 |---|---|
-| `project.godot` | texto INI; editar à mão é normal. Chaves que **decidimos** (v0.6.0): **720×1280 em retrato** (`window/handheld/orientation=1`), `stretch/mode="canvas_items"`, `aspect="expand"`, filtro `0` (nearest), snap 2D **desligado**, `config/version` + `galapago/build` (o export grava os reais), `gl_compatibility` (também no mobile), `emulate_touch_from_mouse`, `import_etc2_astc=true` (**o export Android recusa sem ele**) |
+| `project.godot` | texto INI; editar à mão é normal. Chaves que **decidimos** (v0.6.0): **720×1280 em retrato** (`window/handheld/orientation=1`), `stretch/mode="canvas_items"`, `aspect="expand"`, filtro `0` (nearest), snap 2D **desligado**, `config/version` + `galapago/build` (o export grava os reais), `rendering_method="mobile"` (também `.mobile`) + `rendering_device/fallback_to_opengl3=true` e `config/features` com `"Mobile"` (P24; era `gl_compatibility`), `emulate_touch_from_mouse`, `import_etc2_astc=true` (**o export Android recusa sem ele**) |
 | `*.tscn` / `*.tres` | cena/recurso em texto (`format=3`). Editar à mão: cada `[ext_resource]` com `id` único referenciado por `ExtResource("id")`; nós com `parent="."`/caminho. Cenas grandes: preferir montar em código (`_ready`) a escrever `.tscn` gigantes à mão |
 | `*.gd.uid` | id estável do script (Godot ≥ 4.4) — **versionar** |
 | `*.import` | configuração de import de cada asset — **versionar** |
 | `.godot/` | cache — **nunca** versionar (`.gitignore`) |
 | `.gdignore` | pasta que o Godot ignora (usamos em `arte/fonte/`, o bruto da IA) |
-| `export_presets.cfg` | presets de export; o `version/code`/`version/name` versionados são de mentira — o `exportar.sh` troca num preset temporário |
+| `export_presets.cfg` | presets de export; o `version/code`/`version/name` versionados são de mentira — o `exportar.sh` troca num preset temporário. Vulkan não pede opção no preset Android: a API 4.7.2 do `EditorExportPlatformAndroid` só tem `graphics/opengl_debug` nesse grupo (conferido no P24; o APK em aparelho real **não testado**) |
 
 ## 5. GDScript — convenções do projeto
 
@@ -103,8 +115,8 @@ o binário local, `config/features` do `project.godot` e o nome
 - **Paleta por shader** (envelhecimento, elemento): `ShaderMaterial` com
   `canvas_item` lendo uma textura-LUT de paleta (cor original → cor nova).
   A desenhar no P6; validar no oráculo.
-- **Partículas** (fogo, estática, gelo): `CPUParticles2D` é a aposta segura no
-  renderizador de compatibilidade e no oráculo; `GPUParticles2D` não testado.
+- **Partículas** (fogo, estática, gelo): `CPUParticles2D` é a aposta segura nos
+  dois renderizadores (Mobile e o fallback Compatibility) e no oráculo; `GPUParticles2D` não testado.
 - **Luz 2D:** `PointLight2D` + `CanvasTexture` (`diffuse_texture` +
   `normal_texture` do `create_normal_map` do PixelLab, convenção OpenGL).
 

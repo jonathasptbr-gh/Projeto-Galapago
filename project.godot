@@ -4,7 +4,11 @@
 ; nearest, câmera com zoom inteiro), mas linhas, sombras e efeitos são lisos
 ; (desenho antialiasing na resolução da tela). Decisão do operador, 2026-11-20
 ; (v0.6.0; era paisagem 1280x720 até a v0.5).
-; Renderizador de compatibilidade: roda em celular modesto e no oráculo.
+; Renderizador MOBILE (Vulkan), alvo do celular médio; aparelho sem Vulkan cai
+; para OpenGL 3 (Compatibility) por `rendering_device/fallback_to_opengl3`.
+; O oráculo sobrepõe pela linha de comando: prévia local em Compatibility
+; (softpipe), verdade no CI em Vulkan (lavapipe). Decisão do operador,
+; 2026-11-25 (P24; era gl_compatibility até então). Ver docs/ORACULO.md.
 
 config_version=5
 
@@ -13,7 +17,7 @@ config_version=5
 config/name="Projeto Galápago"
 config/version="local"
 run/main_scene="res://jogo/main.tscn"
-config/features=PackedStringArray("4.7", "GL Compatibility")
+config/features=PackedStringArray("4.7", "Mobile")
 
 [display]
 
@@ -35,7 +39,9 @@ pointing/emulate_touch_from_mouse=true
 
 [rendering]
 
-renderer/rendering_method="gl_compatibility"
-renderer/rendering_method.mobile="gl_compatibility"
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+; true é o padrão do 4.7.2; explícito porque é decisão (Vulkan ausente → OpenGL 3)
+rendering_device/fallback_to_opengl3=true
 textures/canvas_textures/default_texture_filter=0
 textures/vram_compression/import_etc2_astc=true

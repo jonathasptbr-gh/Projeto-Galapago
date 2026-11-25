@@ -75,11 +75,14 @@ jobs:
       - name: Testes (headless)
         run: tools/testes.sh
 
+      # Verdade do oráculo: Mobile/Vulkan por software (lavapipe), o renderizador
+      # do APK. A prévia local é Compatibility/OpenGL (docs/ORACULO.md).
       - name: Quadros (oráculo visual)
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq xvfb libgl1-mesa-dri
-          GALLIUM_DRIVER=llvmpipe tools/quadros.sh 60 quadros
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri mesa-vulkan-drivers
+          QUADROS_RENDER=vulkan GALLIUM_DRIVER=llvmpipe tools/quadros.sh 60 quadros
+          grep -m1 -E '^(Vulkan|OpenGL) ' quadros/log.txt >> "$GITHUB_STEP_SUMMARY" || true
 
       # Referência = artefato `quadros` da última publicação verde em main.
       # Diferença visual é AVISO no resumo; reprova só quadro faltando.

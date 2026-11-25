@@ -5,6 +5,10 @@
 
 ## Não publicado
 
+- **Renderizador Mobile/Vulkan** (P24, decisão do operador, 2026-11-25):
+  `rendering_method="mobile"` + `fallback_to_opengl3`; o oráculo ganha
+  `QUADROS_RENDER=previa|vulkan` — prévia local em Compatibility/softpipe,
+  verdade no CI em Vulkan/lavapipe (`mesa-vulkan-drivers`). Ver `docs/ORACULO.md`.
 - **Processo enxuto** (decisão do operador, 2026-11-25): commit comum
   (`<área>: …`, sem versão, só testes no CI) × publicação (`vX.Y.Z: …` →
   APK + Release `dev` + preview). A versão passa a contar publicações; esta
