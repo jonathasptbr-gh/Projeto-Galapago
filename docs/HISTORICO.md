@@ -3,6 +3,21 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## Não publicado
+
+- **Processo enxuto** (decisão do operador, 2026-11-25): commit comum
+  (`<área>: …`, sem versão, só testes no CI) × publicação (`vX.Y.Z: …` →
+  APK + Release `dev` + preview). A versão passa a contar publicações; esta
+  seção junta as notas até a próxima. Rito em `docs/BUILD.md`.
+- **Baseline fora do git:** `testes/baseline/` e `tools/quadros-baseline.mjs`
+  removidos, job `baseline` extinto; a referência do oráculo é o artefato
+  `quadros` da última publicação (`tools/quadros-referencia.mjs`), e diferença
+  visual vira aviso no resumo do run.
+- Ramos `lote/*` apagados (fica `lote/v0.31.1` no remoto, preservado).
+- Trabalho de exportação do rig descartado (P9/P10 congelados até a
+  reestruturação da fundação do rig).
+- `git gc` local: `.git` de 188 MB para 68 MB.
+
 ## v0.34.3 — dobra sempre no polo e clamp de compressão (2026-11-24)
 
 - **Polo fixo:** a dobra obedece ao polo do rig — o cotovelo **sempre para

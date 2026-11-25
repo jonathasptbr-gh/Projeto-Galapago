@@ -10,8 +10,15 @@
 > v0.14.4 e o registro dele fechado na v0.15.0; o P23 (oráculo com baseline)
 > ficou na v0.16.0. Os pacotes feitos moram em
 > [`PEDIDOS-FEITOS.md`](PEDIDOS-FEITOS.md), não aqui. **Nada na fila está
-> autorizado** — restam os pacotes de conteúdo (P5–P9) e o P10 em andamento,
-> à escolha do operador.
+> autorizado** — restam os pacotes de conteúdo (P5–P8), à escolha do operador;
+> P9 e P10 estão congelados.
+
+> **Decisões do operador (2026-11-25):**
+> - **P9 e P10 congelados:** a fundação do rig será reestruturada; nada novo
+>   nem retoque até lá (os resíduos de rig estão como `congelado (rig)` em
+>   [`RESIDUOS.md`](RESIDUOS.md)).
+> - **Controles e gestos maduros e estáveis:** não mexer sem pedido do
+>   operador.
 
 | pacote | o quê | depende de | estado |
 |---|---|---|---|
@@ -19,8 +26,8 @@
 | P6 | Âncora de arte: paleta-mestra, câmera, base canina | P1 | na fila |
 | P7 | Fatia vertical: arena + cão + gestos + 1 evolução | P2–P6 | na fila |
 | P8 | GDD do loop diário no laboratório/ilha | — | na fila (design, conversa) |
-| P9 | Camadas de pixel art sobre o esqueleto 3D (fase B) | A: v0.29.0 ✔ | alvo declarado (2026-11-23) |
-| P10 | Esqueleto 3D paramétrico por arquétipo e locomoção | — | **núcleo entregue (v0.33.0)**; resta interface e decisões |
+| P9 | Camadas de pixel art sobre o esqueleto 3D (fase B) | A: v0.29.0 ✔ | **congelado** (2026-11-25) |
+| P10 | Esqueleto 3D paramétrico por arquétipo e locomoção | — | **congelado** (2026-11-25) |
 
 ---
 
@@ -47,6 +54,9 @@
 
 ## P9 — Camadas de pixel art sobre o esqueleto 3D (fase B)
 
+- **Estado: congelado (2026-11-25):** a fundação do rig será reestruturada;
+  nada novo nem retoque até lá.
+
 - **Decisão do operador (2026-11-23):** o alvo final é a fase B — o esqueleto
   3D da v0.29.0 recebe as camadas de pixel art por osso, com vistas
   lateral/frontal/costas trocadas por ângulo; câmera **low top-down (20°)**.
@@ -57,8 +67,9 @@
 
 ## P10 — Esqueleto 3D paramétrico por arquétipo e locomoção
 
-- **Estado:** núcleo ENTREGUE na `main` na v0.33.0 — voo 1,97:1, giro 4/4,
-  272 testes/0. O que resta é interface e decisão, não conserto.
+- **Estado: congelado (2026-11-25):** a fundação do rig será reestruturada;
+  nada novo nem retoque até lá. Antes disso: núcleo entregue na v0.33.0 (voo
+  1,97:1, giro 4/4, 272 testes/0).
 - **O que já existe:** `sim/topologia3d.gd` (schema 3 adaptado e schema 4 com
   papéis; quadrupede/bípede/ave/serpente; membros e pole), `sim/locomocao3d.gd`
   (fase por distância e apoios ancorados no mundo), mudanças em

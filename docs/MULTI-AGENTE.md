@@ -26,8 +26,8 @@ dono. Arquivo sujo que não é seu: você não é o dono do commit dele.
   se commita arquivo de outra sessão nem se aproveita a carona.
 - **Antes do `push`:** `git status` conferido; se há arquivo alheio, avisar o
   operador em uma linha — e nunca empacotar o alheio no mesmo commit.
-- **O rito é de UM lote por vez** ([`BUILD`](BUILD.md)): um `vX.Y.Z`, um
-  commit, um `push`, um CI. Duas sessões não publicam o mesmo número.
+- **O rito é de UM lote por vez** ([`BUILD`](BUILD.md)): um commit, um
+  `push`, um CI de cada vez. Duas sessões não publicam o mesmo `vX.Y.Z`.
 - **Conflito de `pull`/`merge`/`push`:** parar, dizer arquivo e trecho, deixar
   o operador decidir — não resolver escolhendo um lado.
 

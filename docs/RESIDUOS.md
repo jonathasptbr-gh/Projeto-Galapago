@@ -1,40 +1,43 @@
 # Resíduos — o que o lote viu e não consertou
 
-> Toda versão deixa uma linha aqui antes do push, mesmo que seja "nenhum".
+> Toda **publicação** (`vX.Y.Z`) deixa ao menos uma linha aqui antes do push,
+> mesmo que seja "nenhum"; commit comum não registra (nota, se houver, vai em
+> `## Não publicado` do histórico). Linha não se apaga: muda o estado.
+> `congelado (rig)`: parado até a reestruturação da fundação do rig (2026-11-25).
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
-| v0.34.3 | rig | cotovelo acima do ombro em 6/24 fases do galope: com o polo atrás, exigiria a pata 0,3–6,7 px mais longe que o arco do balanço — conserto de **trajetória** (dados), não de solver | médio | aberto |
-| v0.34.3 | rig | joelho acima da anca em 3/24 e jarrete acima do joelho em 2/24: só no recolhimento máximo; clampar até a distância de apoio ordenaria, mas mudaria o contato | pequeno | aberto |
-| v0.34.3 | marcha | o clamp do balanço aumenta a passada aparente do `fe` (17,0 → 17,46) sem mudar o dado | pequeno | aberto |
-| v0.34.2 | rig | cotovelo dianteiro acima do ombro em 10/24 fases do galope: as duas dobras violam **por geometria** (ombro→pata < 9,72 px, cadeia de 21 px) — o conserto é de alvo/pose | médio | aberto |
-| v0.34.2 | rig | joelho traseiro acima da anca em 3/24 e jarrete em 4/24: só no recolhimento máximo, onde a dobra válida pularia o joelho > 2,5 px (guarda anti-pisca) | pequeno | aberto |
-| v0.34.2 | rig | a regra da dobra vale só nos clipes de marcha; idle, jump_*, charge, shot, bite, slam, dig, hit, stunned, death e get_up ficam fora (postura autoral) | pequeno | aberto |
+| v0.34.3 | rig | cotovelo acima do ombro em 6/24 fases do galope: com o polo atrás, exigiria a pata 0,3–6,7 px mais longe que o arco do balanço — conserto de **trajetória** (dados), não de solver | médio | congelado (rig) |
+| v0.34.3 | rig | joelho acima da anca em 3/24 e jarrete acima do joelho em 2/24: só no recolhimento máximo; clampar até a distância de apoio ordenaria, mas mudaria o contato | pequeno | congelado (rig) |
+| v0.34.3 | marcha | o clamp do balanço aumenta a passada aparente do `fe` (17,0 → 17,46) sem mudar o dado | pequeno | congelado (rig) |
+| v0.34.2 | rig | cotovelo dianteiro acima do ombro em 10/24 fases do galope: as duas dobras violam **por geometria** (ombro→pata < 9,72 px, cadeia de 21 px) — o conserto é de alvo/pose | médio | congelado (rig) |
+| v0.34.2 | rig | joelho traseiro acima da anca em 3/24 e jarrete em 4/24: só no recolhimento máximo, onde a dobra válida pularia o joelho > 2,5 px (guarda anti-pisca) | pequeno | congelado (rig) |
+| v0.34.2 | rig | a regra da dobra vale só nos clipes de marcha; idle, jump_*, charge, shot, bite, slam, dig, hit, stunned, death e get_up ficam fora (postura autoral) | pequeno | congelado (rig) |
 | v0.34.2 | nomes | `joelho_fe/fd` é o **cotovelo**: 39 referências em 6 arquivos, 3 deles do rig 2D — renomeação fica para um lote próprio | pequeno | aberto |
-| v0.34.1 | fluidez | pico do joelho traseiro em 3,48 px/quadro a 60 fps (teto do teste subiu 2,5→3,5); o pé não acelera — vigiar "piscada" no jarrete no aparelho | pequeno | aberto |
-| v0.34.1 | rig | punho não existe com 24 juntas: antebraço e metacarpo são UM osso (só a razão da referência foi aplicada); punho próprio = +2 juntas, teto 26 (decisão 1C) | médio | aberto |
-| v0.34.1 | rig | omoplata a 62° (prancha: 45°); 45° exigiria o ombro ~6 px à frente da cernelha e prende o fim do apoio do galope em z=12,4 | pequeno | aberto |
-| v0.34.1 | pose | a fase reunida da prancha não é reproduzida: extensão 1,69 cernelhas (prancha 1,89) e compressão 0,67 (prancha 0,23) — tronco inclina ao contrário | médio | aberto |
-| v0.34.0 | fluidez | com a passada maior, os tetos do teste subiram (transição walk→run 15 px; pico do run 2,5 px/quadro a 60 fps) — vigiar "estalo" na troca no aparelho | pequeno | aberto |
-| v0.34.0 | sprint | a corrida acelerada usa a MESMA marcha do galope (muda só a velocidade); marcha própria de sprint (passada/voo maiores) exige perna mais longa | médio | aberto |
+| v0.34.1 | fluidez | pico do joelho traseiro em 3,48 px/quadro a 60 fps (teto do teste subiu 2,5→3,5); o pé não acelera — vigiar "piscada" no jarrete no aparelho | pequeno | congelado (rig) |
+| v0.34.1 | rig | punho não existe com 24 juntas: antebraço e metacarpo são UM osso (só a razão da referência foi aplicada); punho próprio = +2 juntas, teto 26 (decisão 1C) | médio | congelado (rig) |
+| v0.34.1 | rig | omoplata a 62° (prancha: 45°); 45° exigiria o ombro ~6 px à frente da cernelha e prende o fim do apoio do galope em z=12,4 | pequeno | congelado (rig) |
+| v0.34.1 | pose | a fase reunida da prancha não é reproduzida: extensão 1,69 cernelhas (prancha 1,89) e compressão 0,67 (prancha 0,23) — tronco inclina ao contrário | médio | congelado (rig) |
+| v0.34.0 | fluidez | com a passada maior, os tetos do teste subiram (transição walk→run 15 px; pico do run 2,5 px/quadro a 60 fps) — vigiar "estalo" na troca no aparelho | pequeno | congelado (rig) |
+| v0.34.0 | sprint | a corrida acelerada usa a MESMA marcha do galope (muda só a velocidade); marcha própria de sprint (passada/voo maiores) exige perna mais longa | médio | congelado (rig) |
 | v0.34.0 | câmera | no modo perto o segurar, sem rota, ainda cai na habilidade (cavar): o modo não alimenta o reconhecedor, mas o comando existe | pequeno | aberto |
-| v0.34.0 | corpo | L2 aplicado só ao cão; o equino segue com as proporções antigas e a marcha dele (passada 17/21) | pequeno | aberto |
+| v0.34.0 | corpo | L2 aplicado só ao cão; o equino segue com as proporções antigas e a marcha dele (passada 17/21) | pequeno | congelado (rig) |
 | v0.33.4 | animação | cadência do walk subiu ~61% com a reconciliação (0,198 s por ciclo aos 110 px/s); julgar no aparelho — o candidato C existe se ficar miúdo demais | design | aberto |
-| v0.33.4 | rig | proporções do cão (item 3 da ordem) continuam pendentes: pernas, tronco e pescoço ainda são os do ajuste manual, não uma régua anatômica | médio | aberto |
-| v0.33.3 | rig | descompasso entre `passada` e `duty × ciclo` (walk do cão −7,36 px; galope +1,90 px): a âncora no mundo esconde a diferença; reconciliar é o item (3) | médio | aberto |
-| v0.33.3 | rig | `motion` ainda guarda chaves legadas (`duty_walk`, `galope_passo_px`, `run_baixa_px`, …) só porque `testes/test_esqueleto3d.gd` as lê; o motor não as usa | pequeno | aberto |
-| v0.33.3 | rig | `_validar_marchas` assume exatamente 4 patas (`MARCHA_PATAS`); N pernas exige mexer em `_pernas`/topologia — bloqueio do inseto | pequeno | aberto |
-| v0.33.2 | rig | o equino declara `porte_px` 68×68, o mesmo do cão — a régua de porte por arquétipo/família (decisão 1C) ainda não foi aplicada | médio | aberto |
-| v0.33.2 | rig | `_patas` continua decidindo a pata por clipe, com defasagens cravadas no código; o item (2) da ordem (marcha por contato) é o próximo | médio | aberto |
-| v0.33.1 | RIG | o método está escrito, mas o motor ainda decide a pata por clipe (`_patas`) e o inseto continua bloqueado pelo schema 2+2 — os lotes 1–5 da ordem de trabalho não foram feitos | médio | aberto |
-| v0.33.0 | P10 | bípede, ave e serpente compilam (schema 4) mas seguem sem marcha: `locomocao_suportada` é falso e não há teste de passada para eles | médio | aberto |
-| v0.33.0 | P10 | as cinco chaves do voo só existem no `canino3d.json`; o equino herda os defaults e o teste de voo só roda no cão | médio | aberto |
-| v0.33.0 | P10 | decisões de raiz abertas: teto de 20 juntas (o cão tem 24), caixa por clipe × por animal e régua de porte entre arquétipos (canino 68×68, serpente 96×64, ave 64×64) | decisão | aberto |
-| v0.33.0 | P10 | revisão do cão nas 8 direções e do canvas no aparelho do operador pendente | operador | aberto |
+| v0.33.4 | rig | proporções do cão (item 3 da ordem) continuam pendentes: pernas, tronco e pescoço ainda são os do ajuste manual, não uma régua anatômica | médio | congelado (rig) |
+| v0.33.3 | rig | descompasso entre `passada` e `duty × ciclo` (walk do cão −7,36 px; galope +1,90 px): a âncora no mundo esconde a diferença; reconciliar é o item (3) | médio | congelado (rig) |
+| v0.33.3 | rig | `motion` ainda guarda chaves legadas (`duty_walk`, `galope_passo_px`, `run_baixa_px`, …) só porque `testes/test_esqueleto3d.gd` as lê; o motor não as usa | pequeno | congelado (rig) |
+| v0.33.3 | rig | `_validar_marchas` assume exatamente 4 patas (`MARCHA_PATAS`); N pernas exige mexer em `_pernas`/topologia — bloqueio do inseto | pequeno | congelado (rig) |
+| v0.33.2 | rig | o equino declara `porte_px` 68×68, o mesmo do cão — a régua de porte por arquétipo/família (decisão 1C) ainda não foi aplicada | médio | congelado (rig) |
+| v0.33.2 | rig | `_patas` continua decidindo a pata por clipe, com defasagens cravadas no código; o item (2) da ordem (marcha por contato) é o próximo | médio | congelado (rig) |
+| v0.33.1 | RIG | o método está escrito, mas o motor ainda decide a pata por clipe (`_patas`) e o inseto continua bloqueado pelo schema 2+2 — os lotes 1–5 da ordem de trabalho não foram feitos | médio | congelado (rig) |
+| v0.33.0 | P10 | bípede, ave e serpente compilam (schema 4) mas seguem sem marcha: `locomocao_suportada` é falso e não há teste de passada para eles | médio | congelado (rig) |
+| v0.33.0 | P10 | as cinco chaves do voo só existem no `canino3d.json`; o equino herda os defaults e o teste de voo só roda no cão | médio | congelado (rig) |
+| v0.33.0 | P10 | decisões de raiz abertas: teto de 20 juntas (o cão tem 24), caixa por clipe × por animal e régua de porte entre arquétipos (canino 68×68, serpente 96×64, ave 64×64) | decisão | congelado (rig) |
+| v0.33.0 | P10 | revisão do cão nas 8 direções e do canvas no aparelho do operador pendente | operador | congelado (rig) |
 | v0.33.0 | clone | outra sessão commitou a `v0.32.0` (história) dentro do branch do lote às 12:01; o lote foi reconstruído sobre `origin/main` sem perda e o branch antigo `lote/v0.31.6` fica como evidência | pequeno | resolvido |
 | v0.32.0 | história | decisões pendentes do GDD (ver docs/gdd/historia.md §Decisões pendentes) | design | aberto |
 | v0.31.5 | notificações | o comentário automático saiu, mas e-mail de falha de workflow e de revisão ainda depende das configurações pessoais do GitHub | pequeno | aberto |
-| v0.31.4 | P10 | rig paramétrico em WIP no branch `wip/rig-parametrico-3d` (voo 0,93:1; reancoragem 3/4); não entregue | médio | aberto |
+| v0.31.4 | P10 | rig paramétrico em WIP no branch `wip/rig-parametrico-3d` (voo 0,93:1; reancoragem 3/4); não entregue | médio | congelado (rig) |
 | v0.31.3 | animação | primeiro quadro walk→run ~2,5 px a 60 fps (o teto do teste subiu de 2 para 3 na mesma edição) — acima do <2 px anterior | pequeno | aberto |
 | v0.31.3 | caminhada | patinação residual: 110 px/s é rápido para passo de 4 tempos com perna de 20 px | médio | aberto |
 | v0.31.3 | cadência | cadência subiu (~12,5 passos/s); julgar no aparelho | design | aberto |
@@ -56,7 +59,7 @@
 | v0.29.0 | câmera | com 20°, as patas caem em alturas diferentes na tela (spread 5,5–7,6 px); não existe mais a base única do 2D — é a câmera escolhida | design | aberto |
 | v0.29.0 | leitura | em 68 px o esqueleto 3D é mais "arame" e cruzado que o 2D, sobretudo nas diagonais; a leitura de cão é menos imediata | design | aberto |
 | v0.29.0 | fase B | camadas de pixel art por osso ainda não desenhadas (só o campo `pecas` e a validação) | médio | aberto |
-| v0.29.0 | rig | validação estrita de 22 juntas/21 ossos: mudar juntas exige migrar schema e testes | pequeno | aberto |
+| v0.29.0 | rig | validação estrita de 22 juntas/21 ossos: mudar juntas exige migrar schema e testes | pequeno | congelado (rig) |
 | v0.29.0 | aparelho | sem teste no celular (só headless/Xvfb softpipe) | operador | aberto |
 | v0.28.0 | frontal | a anca frontal fica recuada (±4,5 px) para não colidir com a perna dianteira; o quarto largo aparece mais na vista dorsal | design | aberto |
 | v0.28.0 | diagonais | o ombro/anca "longe" fica a ~0,5 px da linha do dorso; no zoom de 5× parece encostado, não articulado | pequeno | aberto |
@@ -65,7 +68,7 @@
 | v0.27.0 | CI | o `preview` num PR falha ao criar o deployment do Pages: o ambiente `github-pages` só aceita `main` (`custom_branch_policies`); liberar `lote/*` em Settings → Environments → github-pages, ou revisar pelo artefato `quadros` do run | médio | aberto |
 | v0.27.0 | animação | `Anim.retrato` lê `corpo._fator_sprint()` (método privado) só para a pose de decolagem; se o corpo trocar de API, o retrato quebra no parser | pequeno | aberto |
 | v0.27.0 | pele | a mordida não tem faísca nas vistas de costas (`north`, `north-east`, `north-west`): a boca é oculta nesses setores, então o VFX falha fechado | pequeno | aberto |
-| v0.27.0 | rig | `west`, `north-west` e `south-west` continuam espelhos dos perfis leste/nordeste; são oito setores, mas quatro desenhos base | pequeno | aberto |
+| v0.27.0 | rig | `west`, `north-west` e `south-west` continuam espelhos dos perfis leste/nordeste; são oito setores, mas quatro desenhos base | pequeno | congelado (rig) |
 | v0.27.0 | arte | a pele esquelética segue como prova de juntas: nada aqui é arte aprovada | decisão | aberto |
 | v0.27.0 | cadência | 400/300/350/340 ms são ponto de partida; afinar no aparelho com o operador | design | aberto |
 | v0.27.0 | ferramenta | `tools/folha_canino.gd` não tem teste automatizado próprio (o desenho tem) | pequeno | aberto |
@@ -153,7 +156,7 @@
 | v0.17.0 | oráculo | os 60 quadros do CI cobrem só os 2 primeiros segundos; as cenas novas (pausa/segurar/toque/carga) pedem a demo inteira (~480 quadros) para o olho | operador | aberto |
 | v0.17.0 | `testes/baseline/` | baseline atualizado com os 60 quadros do **CI #41** (`llvmpipe`, commit `3b01634`); o CI #41 reprovou só no diff (3,28% na legenda, 6,14% no último quadro pela pausa) — prova de que a mudança era visível | pequeno | resolvido em v0.17.0 |
 | v0.16.1 | — | nenhum | — | — |
-| v0.16.0 | `testes/baseline/` | baseline versionado (~9,6 MB) cresce a cada lote que muda o visível: cada atualização guarda 60 PNGs novos no histórico; avaliar poda/compressão se o repositório pesar | pequeno | aberto |
+| v0.16.0 | `testes/baseline/` | baseline versionado (~9,6 MB) cresce a cada lote que muda o visível: cada atualização guarda 60 PNGs novos no histórico; avaliar poda/compressão se o repositório pesar | pequeno | resolvido (2026-11-25: baseline fora do git, referência = artefato da última publicação) |
 | v0.16.0 | `testes/baseline/` | o baseline é do `llvmpipe` do runner; troca de runner, driver ou versão do Godot pode exigir atualizar o baseline no lote que a fizer | pequeno | aberto |
 | v0.16.0 | `tools/quadros-diff.mjs` | o diff pega mudança objetiva de pixels, não juízo fino de arte: o olho do operador continua sendo o aceite visual | limite | aberto |
 | v0.15.0 | `sim/afinidade.gd` | a afinidade **não está ligada ao `jogo/`**: no aparelho a criatura continua obedecendo; ligar é P7 | decisão | aberto |

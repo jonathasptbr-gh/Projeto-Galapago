@@ -23,9 +23,10 @@
    ```
    Conflito no revert: pare e leve ao operador com o arquivo e o trecho; não
    escolha um lado sozinho.
-2. **Lote de rollback em `main`**: revert aplicado, `docs/HISTORICO.md` ganha a
-   seção `## vX.Y.(Z+1) — rollback de <versão> (data)` explicando o porquê, e o
-   rito normal segue (resíduos, `git add <caminhos>`, commit, push).
+2. **Publicação de rollback em `main`**: revert aplicado, `docs/HISTORICO.md`
+   ganha a seção `## vX.Y.(Z+1) — rollback de <versão> (data)` explicando o
+   porquê, e o rito de publicação segue (resíduos, `git add <caminhos>`, commit
+   `vX.Y.(Z+1): …`, push).
 3. **CI verde** (`tools/estado.sh --ci`): a Release `dev` é refeita com
    `versionCode` maior; o app do operador oferece a atualização e volta ao
    código anterior.
@@ -39,11 +40,11 @@
 - Assinatura diferente = o aparelho recusa. A chave é a do cofre
   (`GALAPAGO_KEYSTORE_B64`); restaurá-la é decisão do operador — sem ela, a
   saída é desinstalar e reinstalar (perde os dados locais).
-- Release `dev` apagada/errada: o job `apk` a recria no próximo push em `main`;
-  não apague a Release à mão.
+- Release `dev` apagada/errada: o job `apk` a recria na próxima publicação (ou
+  num dispatch com `publicar`); não apague a Release à mão.
 
 ## Marco público
 
 `git tag vX.Y.Z && git push origin vX.Y.Z` guarda o APK de um marco. É a única
-cópia de uma versão antiga: a `dev` é sobrescrita a cada push. Por isso, antes
+cópia de uma versão antiga: a `dev` é sobrescrita a cada publicação. Por isso, antes
 de um lote grande, um marco vale mais que um plano de rollback.

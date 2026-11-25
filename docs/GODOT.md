@@ -25,7 +25,7 @@ o binário local, `config/features` do `project.godot` e o nome
 | `tools/testes.sh` | `--import`, roda `testes/run.gd`, reprova `SCRIPT ERROR`, e passa **todo `.gd`** pelo parser (`--check-only`) | antes de todo commit |
 | `tools/verificar.sh [--tudo] [arquivos]` | guardião + só os testes da área (mapa `res://`) + parser dos arquivos tocados; `--tudo` chama a suíte | durante a iteração |
 | `tools/quadros.sh [N] [saída]` | grava N quadros PNG da cena principal em modo `--demo` (Xvfb + Mesa) | mudança visível; depois **abrir** os PNG |
-| `node tools/quadros-baseline.mjs --run <id>` | baixa o artefato `baseline` do CI e aplica em `testes/baseline/` | lote visível, antes do commit |
+| `node tools/quadros-referencia.mjs [--baixar]` | compara os quadros com os da última publicação (o CI chama); `--baixar` só traz a referência para `testes/baseline/` (fora do git) | o CI, sempre; local para olhar a referência |
 | `node tools/preview.mjs --site` | monta `_site/` (GIF + quadros) para o Pages; o CI chama e publica o link no resumo do run | ensaio com `--dry` |
 | `tools/estado.sh [--ci] [--metricas]` | versão, HEAD, Godot, último CI / taxa de vermelho e mediana | abrir a sessão e fechar o lote |
 | `tools/godot-api.sh <Classe> [filtro]` | resume a API oficial 4.7.2 (estrutura do `--doctool` + textos da tag `4.7.2-stable`, em cache `~/.cache/galapago/`) | antes de usar classe/método que não está no projeto |
@@ -149,8 +149,10 @@ O job `apk` do `ci.yml`, via `tools/android/exportar.sh`:
    O preset tem `permissions/internet=true` (o atualizador usa a rede) e
    `include_filter="*.json"` (mapas e metadados de tileset são lidos com
    `FileAccess`, não como recurso importado).
-7. Push em main → Release **`dev`** (pré-release, refeita a cada push) com o
-   APK e o `versao.json` (o manifesto do atualizador); tag `v*` → Release da tag.
+7. Publicação (commit `vX.Y.Z:` em main, ou dispatch com `publicar`) →
+   Release **`dev`** (pré-release, refeita a cada publicação) com o APK e o
+   `versao.json` (o manifesto do atualizador); tag `v*` → Release da tag.
+   Commit comum não gera APK ([`BUILD.md`](BUILD.md)).
 
 Fatos do 1º APK (CI #6): `com.projetogalapago.jogo`, `0.2.0-b6`, minSdk 24
 (Android 7), targetSdk 36, 26 MB, assinatura conferida localmente

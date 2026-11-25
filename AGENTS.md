@@ -53,7 +53,9 @@ a arte fica) é do operador: o agente propõe com opções, não decide calado.
   começa pelo guardião documental (`tools/docs.sh`, offline); guia e limites
   no mapa documental abaixo.
 - **Mudança visível passa pelo oráculo** ([`ORACULO`](docs/ORACULO.md)):
-  `tools/quadros.sh` e **abrir** os PNG antes de dizer que ficou certo.
+  `tools/quadros.sh` e **abrir** os PNG antes de dizer que ficou certo. O CI
+  compara com a última publicação e avisa no resumo do run; não há PNG de
+  referência no git.
 - **Arte** segue [`ARTE`](docs/ARTE.md): paleta-mestra, âncora de estilo,
   validação por script. Chamada ao PixelLab custa dinheiro do operador: cotar
   antes (`search_help`, `get_pro_flash_capabilities`), gerar o mínimo, nunca em
@@ -63,24 +65,26 @@ a arte fica) é do operador: o agente propõe com opções, não decide calado.
 - **Godot:** [`GODOT`](docs/GODOT.md) (comandos, arquivos, convenções, pixel
   art, toque, export Android). API desta versão: `tools/godot-api.sh <Classe>`
   — não escreva API do Godot de memória.
-- **Entrega direto em `main`**, pelo rito de [`BUILD`](docs/BUILD.md):
-  `git add <caminhos>` (nunca `-A`), commit `vX.Y.Z: <resumo>`,
-  `git push origin main`, CI verde (`tools/estado.sh --ci`; vermelho →
-  `node tools/ci-log.mjs`), APK em `node tools/baixar-apk.mjs`. Iteração:
-  `tools/verificar.sh` (seletivo); o gate do commit é `tools/testes.sh`
-  inteiro. Cada push deixa o **preview do lote** comentado no commit (GIF +
-  quadros-chave, job `preview`) — conveniência técnica; a revisão do operador
-  é no chat do DSH, com a imagem enviada aqui.
+- **Entrega direto em `main`**, em dois tipos ([`BUILD`](docs/BUILD.md)):
+  **commit comum** `<área>: <resumo>` (sem versão; CI só testa) ou
+  **publicação** `vX.Y.Z: <resumo>` (CI gera APK, Release `dev` e preview).
+  Publica-se só quando o operador precisa experimentar algo no aparelho que
+  não dê para avaliar mais barato, ou para fechar um pacote acumulado.
+  `git add <caminhos>` (nunca `-A`); gate `tools/testes.sh`; CI verde
+  (`tools/estado.sh --ci`; vermelho → `node tools/ci-log.mjs`). A revisão do
+  operador é no chat do DSH, com a imagem enviada aqui.
 - **Trabalho por agentes:** toda sessão é **GERENTE** que fatia o trabalho em
   briefings de contexto fresco e confere evidência — protocolo em
   [`PROTOCOLO-AGENTES`](docs/PROTOCOLO-AGENTES.md); dois agentes no MESMO clone
   seguem [`MULTI-AGENTE`](docs/MULTI-AGENTE.md) (um escritor por repositório,
   `git add <caminho>`, nunca `-A`).
-- **Versão** em três casas: a 3ª conserta, a 2ª entrega sistema/pacote, a 1ª é
-  marco público (demo). A nota do lote mora em
-  [`docs/HISTORICO.md`](docs/HISTORICO.md) (seção `## vX.Y.Z` no topo).
-- **O lote declara o que deixou para trás** em
-  [`docs/RESIDUOS.md`](docs/RESIDUOS.md), mesmo que seja "nenhum".
+- **Versão** conta publicações, em três casas: a 3ª conserta, a 2ª entrega
+  sistema/pacote, a 1ª é marco público (demo). Notas de commit comum vão em
+  `## Não publicado` de [`docs/HISTORICO.md`](docs/HISTORICO.md), que vira
+  `## vX.Y.Z` na publicação.
+- **A publicação declara o que deixou para trás** em
+  [`docs/RESIDUOS.md`](docs/RESIDUOS.md) (uma linha por publicação, mesmo que
+  seja "nenhum").
 - Versões do Godot local e do CI andam juntas ([`AMBIENTE`](docs/AMBIENTE.md)).
 - **Segredos** (token GitHub, chave PixelLab, keystore): só no cofre do harness
   ou em *secret* do GitHub — nunca em chat, commit ou documento.
@@ -113,14 +117,15 @@ dados/                gestos.json · acoes.json · adversario.json · terrenos.j
 testes/               run.gd (executor), caso.gd (base), test_*.gd
 tools/                estado.sh · testes.sh · verificar.sh (seletivo) ·
                       docs.sh (docs.mjs + docs.test.mjs) · quadros.sh ·
-                      quadros-baseline.mjs · preview.mjs · godot-api.sh ·
+                      quadros-diff.mjs · quadros-referencia.mjs ·
+                      preview.mjs · godot-api.sh ·
                       ci-log.mjs · baixar-apk.mjs ·
                       pixellab-catalogo.mjs · pixellab-tileset.mjs ·
                       pixellab-imagem.mjs · android/ (exportar.sh)
 arte/                 README.md · fonte/ (bruto da IA, .gdignore) ·
                       criaturas/ · cenarios/ (tilesets/ PNG+JSON, objetos/)
 docs/                 guias e design — inventário validado abaixo
-.github/workflows/    ci.yml (testes + preview + APK/versao.json; quadros sob demanda)
+.github/workflows/    ci.yml (testes sempre; preview + APK/versao.json só na publicação)
 ```
 
 ### Mapa documental

@@ -1,105 +1,75 @@
 # Build e entrega — o rito
 
-## O rito de entrega (direto em `main`)
+Processo enxuto (decisão do operador, 2026-11-25): o operador só tem o
+celular, então **build só quando há algo que ele precise experimentar** e que
+não dê para avaliar por meio mais barato (teste, quadro, imagem no chat).
+Muitas mudanças acumuladas → junta-se num pacote e publica.
 
-1. **Iteração:** `tools/verificar.sh` (seletivo: guardião + testes da área +
-   parser dos arquivos tocados; ver `--tudo`). **Gate do commit:**
-   `tools/testes.sh` inteiro — guardião + suíte + parser de todos os `.gd`.
-   Só documentação: `tools/docs.sh`. Escopo e limites:
-   [`DOCUMENTACAO.md`](DOCUMENTACAO.md).
-2. Mudou algo visível? `tools/quadros.sh`, **abrir** os PNG e depois
-   `node tools/quadros-diff.mjs quadros` contra `testes/baseline/`. O baseline
-   deste celular é `softpipe` e o do CI é `llvmpipe`: o lote visível **gera o
-   baseline pelo CI antes do commit** (ver "Baseline de um lote") e entra em
-   UM commit com quadros verdes; o CI reprova o que sair da tolerância
-   (canal 6, 0,1% dos pixels).
-3. `docs/HISTORICO.md`: seção `## vX.Y.Z — título (data)` no TOPO — o
-   `exportar.sh` tira a versão do APK dela.
-4. `docs/RESIDUOS.md`: uma linha por coisa vista e não consertada (ou "nenhum").
-5. Segredo nenhum no diff: `rg -n "pixl_[0-9a-f]{8}|ghp_[A-Za-z0-9]{8}|github_pat_[A-Za-z0-9]{8}" .`
+## Os dois tipos de entrega (direto em `main`)
+
+| | commit comum | publicação |
+|---|---|---|
+| quando | código, doc, ferramenta, ajuste que o operador não precisa testar | algo para o operador testar no aparelho, ou pacote acumulado |
+| mensagem | `<área>: <resumo>` (`docs: …`, `sim: …`, `ci: …`) — **sem versão** | `vX.Y.Z: <resumo>` |
+| `docs/HISTORICO.md` | nota opcional em bullets na seção `## Não publicado` (logo abaixo de `# Histórico`) | `## Não publicado` vira `## vX.Y.Z — título (AAAA-MM-DD)` no topo; o `exportar.sh` tira a versão da primeira `## vX.Y.Z` |
+| `docs/RESIDUOS.md` | nada | ao menos uma linha da versão (ou "nenhum") |
+| CI | `testes` (testes + quadros + comparação com a última publicação) | `testes` + `preview` (Pages) + `apk` (Release `dev` + `versao.json`) |
+
+O rito, nos dois casos:
+
+1. **Iteração:** `tools/verificar.sh` (seletivo; `--tudo` = suíte). **Gate do
+   commit:** `tools/testes.sh` inteiro (guardião + suíte + parser de todo
+   `.gd`). Só documentação: `tools/docs.sh` ([`DOCUMENTACAO.md`](DOCUMENTACAO.md)).
+2. Mudou algo visível? `tools/quadros.sh` e **abrir** os PNG
+   ([`ORACULO.md`](ORACULO.md)). A comparação com a última publicação é do CI.
+3. Segredo nenhum no diff: `rg -n "pixl_[0-9a-f]{8}|ghp_[A-Za-z0-9]{8}|github_pat_[A-Za-z0-9]{8}" .`
    vazio (o padrão exige caracteres de chave, então esta linha não casa consigo).
-6. `git add <caminhos>` (nunca `-A`) → `git commit -m "vX.Y.Z: …"` →
-   `git push origin main`.
-7. CI: `tools/estado.sh --ci` até `completed`; vermelho → `node tools/ci-log.mjs`.
-8. Verde → o APK novo e o `versao.json` estão na Release `dev`: o app do
+4. `git add <caminhos>` (nunca `-A`) → `git commit -m "…"` → `git push origin main`.
+5. CI: `tools/estado.sh --ci` até `completed` (mostra os jobs; num commit comum
+   `preview` e `apk` saem `skipped`); vermelho → `node tools/ci-log.mjs`.
+6. **Só na publicação:** verde → APK e `versao.json` na Release `dev`; o app do
    operador oferece a atualização ao abrir. Primeira instalação (ou chave
    trocada): `node tools/baixar-apk.mjs` põe o APK em `/sdcard/Download/DSH-Go/`
    (avisando o operador).
 
-## Preview do lote (celular)
+Publicar sem commit novo (refazer o APK do `main` atual): Actions → CI → Run
+workflow com `publicar` marcado (`workflow_dispatch`). Sem `publicar`, o
+dispatch só roda os testes.
 
-Todo push em `main` (e todo PR) ganha o job `preview`: pega o artefato
-`quadros`, monta um **GIF** e três quadros-chave e publica no GitHub Pages
-(`https://jonathasptbr-gh.github.io/Projeto-Galapago/`). O link fica no
-**resumo do run** e no artifact, **sem comentar no commit/PR**: o comentário
-automático gerava e-mail a cada push. A revisão continua sendo no chat do DSH.
+## Versão
 
-- `_site/index.html` é a página do lote atual; as imagens ficam em
-  `_site/<run>/` (nome único por run) para o cache de imagem não servir lote
-  velho. A página é substituída a cada push — link de imagem de lote antigo
-  morre; o link do lote novo aparece no resumo do run.
-- Pages está como **GitHub Actions** (`build_type=workflow`). O branch
-  `gh-pages` existe só porque o Pages exigiu uma origem para ser criado; não é
-  fonte do site.
-- **Por que Pages e não asset de Release:** asset de Release sai como
-  `application/octet-stream` e o proxy de imagem do GitHub não renderiza;
-  o Pages serve `image/png` e `image/gif` de verdade.
-- GIF depende de `python3-pil` no runner; se faltar, a página sai só com os
-  quadros e o job **não** fica vermelho. O Pages pode falhar (ambiente,
-  cota): o `continue-on-error` segura, e o APK não depende dele.
-- O `deploy-pages` precisa do artefato já indexado: o job dá uma pausa de 8 s
-  e tenta de novo se a primeira falhar ("Fetching artifact metadata failed").
-  Falha dupla = site fica no lote anterior; o resumo do run diz que o preview
-  ficou indisponível.
-- **Notificações:** o CI não comenta em commit/PR. E-mail de falha de workflow
-  é configuração pessoal do GitHub (Settings → Notifications → Actions); o
-  canal de trabalho continua sendo o chat do DSH.
+`vX.Y.Z` conta **publicações**: Z conserta, Y entrega pacote/sistema, X é
+marco público (demo). APK: `versionName` = `X.Y.Z-b<run>`, `versionCode` =
+número do run do CI (sempre cresce). Marco para guardar:
+`git tag vX.Y.Z && git push origin vX.Y.Z` → Release própria com o APK (a
+`dev` é sobrescrita a cada publicação).
 
-## Baseline de um lote (antes do commit)
+## O que o CI faz
 
-O baseline é do `llvmpipe` (x86_64) e este celular renderiza em `softpipe`:
-**não** se gera baseline confiável aqui. O caminho é o CI gerar e o script
-aplicar.
+`.github/workflows/ci.yml`:
 
-```bash
-# 1. no branch do lote (ou no commit visível), dispare o job `baseline`
-gh workflow run ci.yml -f ref=lote/vX.Y.Z
-#    (ou Actions → CI → Run workflow → ref)
-
-# 2. quando o run terminar, aplique o artefato `baseline`
-node tools/quadros-baseline.mjs --run <numero-do-run>
-
-# 3. o MESMO commit leva a mudança visível + testes/baseline
-git add testes/baseline
-```
-
-O script também aceita `--url <link do run>`, `--zip <arquivo>` e
-`--pasta <quadros já extraídos>`. Ele valida a contagem (mínimo 50 quadros) e
-remove do baseline o que não existe mais. `--atualizar` do
-`quadros-diff.mjs` continua valendo para quem estiver num driver igual ao do
-CI — não é o caso deste aparelho.
-
-## Lote visível: branch para o baseline, merge direto
-
-Lote que muda o que o operador vê (arte, câmera, movimento, UI) continua
-precisando do baseline do llvmpipe no MESMO commit. O branch `lote/vX.Y.Z`
-existe só para o CI gerar o baseline; **não há PR obrigatório nem
-dual-control** (decisão do operador, 2026-11-23):
-
-- O agente faz o **merge direto em `main`** (autorização permanente) e dá
-  `git push origin main`.
-- A **aprovação visual é no chat do DSH**: o agente envia a imagem (quadro ou
-  folha de contato) e o operador responde ali. Comentário de PR, issue e
-  e-mail NÃO são lidos nem servem de aprovação.
-- O job `preview` (GIF + quadros no Pages) é conveniência para o commit em
-  `main`; falha de Pages não segura o lote nem pede aprovação. O CI **não
-  comenta** em commit/PR — notificação só no chat.
-- WIP: um lote por vez; nada de dois agentes no mesmo branch.
+- **`testes`** (sempre: push, PR, dispatch): decide `publicar` (push em `main`
+  cujo commit casa `^vX.Y.Z:`, tag `v*`, ou dispatch com `publicar=true`),
+  procura segredos, roda `tools/testes.sh`, grava 60 quadros (`llvmpipe`),
+  compara com a última publicação (`tools/quadros-referencia.mjs`, resultado
+  no resumo do run) e sobe o artefato `quadros` (7 dias; 90 nas publicações).
+- **`preview`** (só publicação): GIF + quadros-chave no GitHub Pages
+  (`https://jonathasptbr-gh.github.io/Projeto-Galapago/`), link no resumo do
+  run, **sem comentar** no commit/PR (o comentário gerava e-mail). Falha de
+  Pages não segura o APK (`continue-on-error`; pausa de 8 s e 2ª tentativa
+  porque o `deploy-pages` precisa do artefato indexado). Sem `python3-pil` a
+  página sai só com os quadros. Pages está como **GitHub Actions**; o branch
+  `gh-pages` só existe porque o Pages exigiu uma origem. Pages e não asset de
+  Release porque o asset sai `application/octet-stream` e não renderiza.
+- **`apk`** (só publicação): export Android + Release. Detalhes e armadilhas:
+  [`GODOT.md`](GODOT.md#8-exportar-para-android-p2--como-funciona-e-o-que-quebra).
+- PR: só `testes`. E-mail de falha de workflow é configuração pessoal do
+  GitHub; o canal de trabalho e de aprovação visual é o chat do DSH.
 
 ## Rollback
 
-Revert + versão nova; o aparelho não desce de versão. Procedimento e ensaio em
-[`ROLLBACK.md`](ROLLBACK.md).
+Revert + publicação nova; o aparelho não desce de versão. Procedimento e
+ensaio em [`ROLLBACK.md`](ROLLBACK.md).
 
 ## Métricas
 
@@ -108,29 +78,13 @@ histórico, taxa de CI vermelho e mediana de duração dos últimos 20 runs. É 
 que entra no digest de 5 linhas ao operador: feito · em andamento · bloqueado ·
 custo · decisão pendente.
 
-## Versão
-
-`vX.Y.Z`: Z conserta, Y entrega pacote/sistema, X é marco público (demo).
-APK: `versionName` = `X.Y.Z-b<run>`, `versionCode` = número do run do CI
-(sempre cresce). Marco para guardar: `git tag vX.Y.Z && git push origin vX.Y.Z`
-→ Release própria com o APK (a `dev` é sobrescrita a cada push).
-
-## O que o CI faz
-
-`.github/workflows/ci.yml` — job `testes` (segredos + testes + oráculo,
-artefato `quadros`) → job `preview` (GIF + quadros-chave no Pages, link no
-resumo do run, sem comentário) → job `apk` (export Android + Release). O job
-`baseline` roda só por `workflow_dispatch` (aba Actions → Run workflow → `ref`
-do lote) e entrega o artefato `baseline`. Detalhes do export e das armadilhas:
-[`GODOT.md`](GODOT.md#8-exportar-para-android-p2--como-funciona-e-o-que-quebra).
-
 ## Atualização automática do app
 
 **O método do Áudio Visual IASD** (decisão do operador, 2026-11-20, v0.3.1 —
 substituiu o canal separado da v0.3.0). O repositório é PÚBLICO.
 
 ```
-push em main → CI: APK assinado (keystore dos secrets)
+publicação  → CI: APK assinado (keystore dos secrets)
              → Release `dev` com DOIS assets: projeto-galapago-dev.apk + versao.json
 app abre → jogo/atualizador.gd lê
            github.com/jonathasptbr-gh/Projeto-Galapago/releases/download/dev/versao.json

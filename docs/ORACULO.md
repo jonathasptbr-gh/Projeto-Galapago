@@ -27,51 +27,39 @@ desenhado erraria o alvo móvel). O demo normal continua igual.
   ao vivo, véu e rampa).
 - **`opengl3_es` não carrega aqui** (sem EGL).
 - **No CI (x86_64)** o workflow usa `llvmpipe` e publica os quadros como
-  artefato `quadros` (7 dias).
+  artefato `quadros` (7 dias; 90 nas publicações, que servem de referência).
 
-## Diff automático contra o baseline
+## Comparação com a última publicação (CI)
 
-`testes/baseline/` guarda os 60 quadros do CI #38 (commit `5846789`, mesmo
-ambiente `llvmpipe` do workflow). O CI compara cada rodada com eles **depois**
-de gerar os quadros e **antes** do artefato; o upload é `if: always()`, então
-os quadros de uma rodada reprovada continuam disponíveis para diagnóstico.
+Nenhum PNG de referência mora no git. A **referência** é o artefato `quadros`
+da última execução bem-sucedida do `ci.yml` em `main` disparada por um commit
+de publicação (`vX.Y.Z: …`); a primeira foi a do CI #104 (v0.34.3). Em todo
+run, depois de gravar os quadros, o job `testes` roda:
 
 ```
-node tools/quadros-diff.mjs [pasta=quadros] [--baseline=testes/baseline] [--canal=6] [--px=0.001] [--atualizar]
+node tools/quadros-referencia.mjs [pasta=quadros] [--dest <dir>] [--min 50]
 ```
 
-- Compara os `q*.png` dos dois lados em ordem numérica. **Quadro faltando ou
-  sobrando reprova** e lista os nomes.
-- Por quadro, conta os pixels em que **qualquer canal** difere por mais de
-  `--canal`; reprova se essa fração passar de `--px` (0,001 = 0,1% da
-  imagem). A falha diz o quadro, quantos pixels (e %), o maior delta e a caixa
-  `x0,y0,x1,y1` (inclusive).
-- Defaults: **canal 6** (ruído de rasterização do mesmo driver) e **0,1% de
-  pixels** (921 pixels em 720×1280 — um pixel isolado não reprova, um bloco
-  sim). Não afrouxe a tolerância para fazer um lote passar.
-- Código de saída: `0` ok · `1` divergência/quadro faltando · `2` uso ou erro
-  de leitura (baseline ausente/vazio também é `2`, com a instrução abaixo).
-- `--atualizar` copia a pasta inteira para o baseline (cria o diretório e
-  remove do baseline os `q*.png` que não existem mais) e **não compara**. É o
-  caminho explícito de quem muda o visível de propósito.
-- O baseline é do `llvmpipe` do CI; neste celular o driver é `softpipe`, então
-  o diff local pode acusar diferença legítima de renderizador — e **não** se
-  gera baseline confiável aqui. A prova é o CI.
+- Acha a referência pela API do GitHub (`GITHUB_TOKEN`, permissão
+  `actions: read`), baixa, compara com `tools/quadros-diff.mjs --aviso` e
+  escreve o resultado no **resumo do run** (referência, resultado e a saída do
+  diff).
+- **Diferença visual é AVISO, não reprova**: mudar o visível é o normal de um
+  lote; quem julga é o agente abrindo os quadros e o operador no chat.
+  **Reprova só** crash (o `tools/quadros.sh` já falha) e **quadros faltando**
+  (menos que `--min`, ou menos que a referência).
+- Sem referência (nenhuma publicação com artefato válido, API fora do ar) →
+  aviso no resumo e segue.
+- Tolerância do diff: **canal 6** (ruído do mesmo driver) e **0,1% dos
+  pixels** por quadro (921 em 720×1280); a saída diz o quadro, quantos pixels,
+  o maior delta e a caixa `x0,y0,x1,y1`. `--atualizar` do `quadros-diff.mjs`
+  copia uma pasta para outra (uso local).
 
-**Regra:** o baseline do lote visível é **gerado pelo CI antes do commit** e
-entra no MESMO commit, com a linha "baseline dos quadros atualizado: …" no
-`docs/HISTORICO.md`. O branch precisa estar no remoto antes de disparar:
-
-```bash
-git push -u origin lote/vX.Y.Z
-gh workflow run ci.yml -f ref=lote/vX.Y.Z     # job `baseline` (llvmpipe)
-node tools/quadros-baseline.mjs --run <run>   # aplica o artefato em testes/baseline
-git add testes/baseline                       # junto com a mudança visível
-```
-
-Sem esse caminho o lote visível gasta dois pushes e deixa `main` vermelha entre
-eles — era o que acontecia até a v0.26.0. Procedimento completo em
-[`BUILD.md`](BUILD.md).
+**Localmente** o renderizador é `softpipe` (≠ `llvmpipe` do CI): o agente usa
+`tools/quadros.sh` e **abre** os PNG. Para olhar a referência,
+`node tools/quadros-referencia.mjs --baixar` a põe em `testes/baseline/`
+(ignorado pelo git, com `.gdignore`); comparar softpipe com ela acusa
+diferença legítima de renderizador.
 
 ## Limites
 

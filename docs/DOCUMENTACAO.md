@@ -24,11 +24,13 @@
    consultados.
 2. **Histórico:** um único `# Histórico` na primeira linha; títulos no formato
    `## vX.Y.Z — título (AAAA-MM-DD)`, versões únicas em ordem decrescente.
-   A primeira é a fonte da versão para estado/export, não há outra versão
-   fixa para manter em sincronia. O guardião não consulta o CI nem exige que
-   o título do commit já exista durante a edição.
-3. **Resíduos:** existe registro da versão atual, inclusive quando é
-   "nenhum". Não decide se o resíduo está resolvido (pacote D).
+   Exceção: `## Não publicado` (notas dos commits comuns), só como a PRIMEIRA
+   seção e uma vez. A primeira `## vX.Y.Z` é a versão publicada, fonte para
+   estado/export/preview; não há outra versão fixa para manter em sincronia.
+   O guardião não consulta o CI nem exige que o título do commit já exista.
+3. **Resíduos:** existe registro da versão publicada atual (a primeira
+   `## vX.Y.Z`), inclusive quando é "nenhum". Não decide se o resíduo está
+   resolvido.
 4. **Fila:** correspondência um a um entre `| Pn |` no índice e
    `## Pn — título` no corpo; sem IDs repetidos. Não escolhe o próximo pacote
    nem converte a fila em autorização.
