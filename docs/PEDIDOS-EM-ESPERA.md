@@ -134,3 +134,12 @@
   atrapalhar o desenho do caminho, o caminho cai no chão certo em qualquer
   ângulo e a chave troca pixel art ⇄ 3D liso; testes e CI verdes; quadros
   revisados no chat.
+- **Retorno do operador (2026-11-26, no aparelho):** o contorno do animal
+  está **bem ruim** no pescoço, no bico/focinho e nos detalhes — mais
+  precário que o do cenário. Código conferido: o contorno de tela vale para
+  os atores (mesmo passe), mas a linha é por profundidade (afina perto do
+  chão) e o vinco (>75°) ignora as formas redondas do ator provisório
+  (`jogo/mundo3d/ator.gd`), então quase não há linha interna. Ver os
+  resíduos do contorno da v0.35.2/v0.35.4 em [`RESIDUOS.md`](RESIDUOS.md).
+  Não consertado; decidir com o operador (ajustar o passe ou esperar a pele
+  3D).
