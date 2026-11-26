@@ -112,6 +112,7 @@ jobs:
           tools/quadros.sh 30 vitrine3d/liso
           DEMO_ARGS="--vista-intima" tools/quadros.sh 30 vitrine3d/intima
           DEMO_ARGS="--sob-arvore" tools/quadros.sh 20 vitrine3d/sob-arvore
+          DEMO_ARGS="--quinas" tools/quadros.sh 10 vitrine3d/quinas
 
       - name: Publicar vitrine 3D
         if: always()

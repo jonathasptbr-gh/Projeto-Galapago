@@ -130,7 +130,15 @@ comando sobrepõe: `--rendering-method gl_compatibility|mobile|forward_plus` e
   lado); 16 amostras, cobertura = soma/3 (Pixel Pass: raio 1, soma/1). Raio
   liso = `vista.espessura_contorno` (4 px de canvas) × físico/canvas. A linha
   cai fora do objeto da frente e some no contato (base de tronco, ator,
-  quina). Lê a profundidade no Mobile (resolve de MSAA no
+  quina). **Vinco** (S7), no mesmo shader: linha onde a normal muda mais de
+  `vista.limiar_vinco_graus` (75°; copa ≈ 51–58°, tronco 60°, borda do topo
+  da pedra 68° ficam de fora), centrada no vinco, no anel de 0,55·raio: normal
+  pela profundidade (centro pelo quadrante de 1 px mais plano; amostra por 2
+  vizinhos de 1 px para fora, descartada se um deles salta), só se o ponto do
+  meio cai num dos dois planos e não é oclusão com folga — a quina desce até
+  o chão e encontra o pé da parede, a rampa encosta na parede com linha.
+  Pixel Pass: 1 px, só o lado mais rasante (anel dos 8 vizinhos). 49
+  leituras de profundidade por pixel no liso, 41 no Pixel Pass (eram 21). Lê a profundidade no Mobile (resolve de MSAA no
   `render_forward_mobile.cpp`) e no Compatibility (medido na prévia). A
   `casca.gdshader` (casca invertida, `cull_front`, forma 3 = aba do terreno)
   fica de reserva: só com `Mat.modo_contorno = MODO_CASCA`.

@@ -55,3 +55,20 @@ func test_vista_tem_o_quad_de_tela() -> void:
 	igual(mat.shader.resource_path, "res://jogo/mundo3d/contorno_tela.gdshader", "shader do contorno")
 	checar(q.visible, "visível no modo tela")
 	v.free()
+
+
+func test_vinco_no_shader_e_na_vista() -> void:
+	# S7: o mesmo shader soma a linha de VINCO (orientação que muda bruscamente)
+	var v: CanvasLayer = Vista.new()
+	var mat: ShaderMaterial = v.contorno.material_override
+	var nomes := []
+	for u in mat.shader.get_shader_uniform_list():
+		nomes.append(String(u["name"]))
+	for n in ["limiar_vinco_graus", "banda_vinco_graus", "saturacao_vinco", "vinco_um_lado"]:
+		checar(n in nomes, "uniform do vinco: %s" % n)
+	igual(mat.get_shader_parameter("limiar_vinco_graus"), v.limiar_vinco_graus, "limiar do vinco ligado à vista")
+	checar(v.limiar_vinco_graus > 60.0 and v.limiar_vinco_graus < 90.0,
+		"limiar entre as facetas (copa ~51°, tronco 60°) e a quina de caixa (90°)")
+	v.limiar_vinco_graus = 80.0
+	igual(mat.get_shader_parameter("limiar_vinco_graus"), 80.0, "setter repassa ao shader")
+	v.free()

@@ -10,6 +10,10 @@ extends Node2D
 ## quina do planalto (14,9) em silhueta ao fundo: filma o contorno na base do
 ## tronco, na base do ator, na quina e a copa por cima do ator (S6). 20
 ## quadros a 10 fps = uma travessia.
+## `--quinas`: vista íntima, câmera PARADA (yaw `YAW_QUINAS`, foco fixo) e o
+## ator parado: a quina vertical sudeste do planalto (14,9) descendo até o
+## chão, a rampa (9–10,9) encostada na parede sul do planalto, a pedra (15,6)
+## e o tronco da árvore (12,13) — o contorno de VINCO (S7). 10 quadros.
 ## Filmar: `QUADROS_CENA=res://jogo/mundo3d/vitrine.tscn tools/quadros.sh N dir`
 ## (com `QUADROS_FPS=10`, 30 quadros = os 3 s do giro).
 
@@ -33,6 +37,11 @@ const QUINA_SOB := Vector2(14.0, 9.0)
 const YAW_SOB := -0.35
 const MEIA_TRAVESSIA := 1.8
 const TRAVESSIA_S := 2.0
+## --quinas: yaw (rad; positivo põe a câmera a leste: paredes sul e leste do
+## planalto à vista), foco (células, nível 1) e onde o ator fica parado
+const YAW_QUINAS := 0.45
+const FOCO_QUINAS := Vector2(12.15, 9.6)
+const ATOR_QUINAS := Vector2(13.4, 11.2)
 
 var mundo: RefCounted
 var cam: RefCounted
@@ -42,20 +51,24 @@ var ator: Node3D
 var _t := 0.0
 var _h := 1.0  # altura do ator em níveis, suavizada (degraus viram rampa)
 var _sob := false
+var _quinas := false
 
 
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	_sob = "--sob-arvore" in args
+	_quinas = "--quinas" in args
 	mundo = Mundo.criar(_json(MAPA), _json("res://dados/terrenos.json"))
 	for e in mundo.validar():
 		push_error("mapa: " + e)
 	var cfg := _json("res://dados/camera3d.json")
-	if "--vista-intima" in args or _sob:
+	if "--vista-intima" in args or _sob or _quinas:
 		cfg["vista_inicial"] = "intima"
 	cam = Cam.new(cfg)
 	if _sob:
 		cam.girar(YAW_SOB)
+	elif _quinas:
+		cam.girar(YAW_QUINAS)
 
 	vista = Vista.new()
 	vista.altura_interna = int(cam.cfg["pixel_pass"]["altura_interna"])
@@ -77,12 +90,16 @@ func _ready() -> void:
 	if _sob:
 		# foco fixo entre a árvore e a quina (no nível do chão, 1)
 		cam.posicionar(Ilha.ponto((ARVORE_SOB * 0.6 + QUINA_SOB * 0.4) * Cam.PX_POR_UNIDADE, 1.0))
+	elif _quinas:
+		cam.posicionar(Ilha.ponto(FOCO_QUINAS * Cam.PX_POR_UNIDADE, 1.0))
 	else:
 		cam.posicionar(Ilha.ponto(p, _h))
 	vista.aplicar_camera(cam)
 
 
 func _posicao(t: float) -> Vector2:
+	if _quinas:
+		return ATOR_QUINAS * Cam.PX_POR_UNIDADE
 	if _sob:
 		# rente ao tronco, do lado da câmera (a copa esconde a cabeça do ator),
 		# na perpendicular ao olhar
@@ -99,13 +116,15 @@ func _mover(dt: float) -> void:
 	var alvo: float = mundo.altura(mundo.celula_de(p))
 	_h = alvo + (_h - alvo) * exp(-12.0 * dt)
 	var dir := _posicao(_t + 0.05) - p
+	if _quinas:
+		dir = Vector2(-1.0, 0.6)
 	ator.atualizar(p, _h, dir, absf(sin(_t * 9.0)) * 0.06)
 
 
 func _process(dt: float) -> void:
 	_t += dt
 	_mover(dt)
-	if _sob:
+	if _sob or _quinas:
 		cam.avancar(dt)
 		vista.aplicar_camera(cam)
 		return

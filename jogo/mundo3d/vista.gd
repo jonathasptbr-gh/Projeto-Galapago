@@ -27,7 +27,10 @@ extends CanvasLayer
 ##   renderizados: liso = `espessura_contorno` (px de canvas) × físico/canvas
 ##   — a mesma espessura na tela em qualquer aparelho; Pixel Pass = 1 px
 ##   interno, nítido (saturação 1). `limiar_contorno`: diferença de
-##   profundidade (unidades de mundo) que dá linha cheia.
+##   profundidade (unidades de mundo) que dá linha cheia. O mesmo shader
+##   soma a linha de VINCO (S7: mudança brusca de orientação, parede×chão,
+##   quina até o chão): `limiar_vinco_graus`; saturação 2 no liso, 1 e um
+##   lado só (`vinco_um_lado`) no Pixel Pass.
 ## - `aplicar_camera(cam3d)`: chamar TODO quadro, depois de `cam3d.seguir` /
 ##   `avancar`; `cam3d` = sim/camera3d.gd. Posiciona a Camera3D, o tamanho
 ##   ortográfico, near/far justos ao que a vista mostra (a sombra direcional
@@ -87,6 +90,12 @@ const FOLGA_LONGE := 4.0
 		limiar_contorno = v
 		_mat_contorno.set_shader_parameter("limiar", v)
 		_mat_contorno.set_shader_parameter("limiar_inicio", v * 0.32)
+## ângulo (graus) entre as normais que dá a linha de VINCO (S7): acima das
+## facetas da copa (~51°) e do tronco (60°)
+@export var limiar_vinco_graus := 75.0:
+	set(v):
+		limiar_vinco_graus = v
+		_mat_contorno.set_shader_parameter("limiar_vinco_graus", v)
 
 var sv: SubViewport
 var mundo_3d: Node3D
@@ -162,6 +171,7 @@ func _init() -> void:
 	_mat_contorno.shader = CONTORNO
 	_mat_contorno.set_shader_parameter("limiar", limiar_contorno)
 	_mat_contorno.set_shader_parameter("limiar_inicio", limiar_contorno * 0.32)
+	_mat_contorno.set_shader_parameter("limiar_vinco_graus", limiar_vinco_graus)
 	var quad := QuadMesh.new()
 	quad.size = Vector2(2.0, 2.0)
 	contorno = MeshInstance3D.new()
@@ -226,10 +236,14 @@ func _reconfigurar() -> void:
 	if pixel_pass:
 		_mat_contorno.set_shader_parameter("raio", 1.0)
 		_mat_contorno.set_shader_parameter("saturacao", 1.0)
+		_mat_contorno.set_shader_parameter("saturacao_vinco", 1.0)
+		_mat_contorno.set_shader_parameter("vinco_um_lado", true)
 	else:
 		var kf := float(sv.size.y) / maxf(_tela.y, 1.0)
 		_mat_contorno.set_shader_parameter("raio", maxf(espessura_contorno * kf, 1.0))
 		_mat_contorno.set_shader_parameter("saturacao", 3.0)
+		_mat_contorno.set_shader_parameter("saturacao_vinco", 2.0)
+		_mat_contorno.set_shader_parameter("vinco_um_lado", false)
 	sv.screen_space_aa = (Viewport.SCREEN_SPACE_AA_FXAA if fxaa_liso and not pixel_pass
 		else Viewport.SCREEN_SPACE_AA_DISABLED)
 	# nearest no Pixel Pass (ampliação inteira do pixel art); linear no liso

@@ -5,6 +5,13 @@
 
 ## Não publicado
 
+- **Contorno de vinco** (S7): o contorno de tela soma uma linha onde a
+  orientação da superfície muda bruscamente (parede×chão, topo×lateral,
+  rampa×parede): a quina do planalto desce até o chão e encontra a linha do pé
+  da parede, a rampa ganha linha onde encosta na parede; copa, tronco, ator,
+  chão e sombra seguem sem linha interna. Vitrine `--quinas` (CI:
+  `vitrine3d/quinas`).
+
 ## v0.35.2 — contorno pela profundidade (2026-11-26)
 
 - **Contorno de tela** (S6): a linha escura vira pós 3D pela profundidade
