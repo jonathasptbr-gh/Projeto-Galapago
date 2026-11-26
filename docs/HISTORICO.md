@@ -5,6 +5,8 @@
 
 ## Não publicado
 
+## v0.35.3 — contorno de vinco: linhas até o contato (2026-11-26)
+
 - **Contorno de vinco** (S7): o contorno de tela soma uma linha onde a
   orientação da superfície muda bruscamente (parede×chão, topo×lateral,
   rampa×parede): a quina do planalto desce até o chão e encontra a linha do pé

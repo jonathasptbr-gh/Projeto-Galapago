@@ -7,6 +7,9 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.35.3 | contorno | na vista alta, paredes baixas (planalto, costa, rampa) ganham duas linhas próximas (topo e pé) | pequeno | aberto (design) |
+| v0.35.3 | contorno | pontinhos quase invisíveis em vértices de 4 facetas da copa e em 1 ponto da pedra | pequeno | aberto |
+| v0.35.3 | desempenho | contorno sobe para 49 leituras de profundidade/pixel no liso (41 no Pixel Pass); custo no aparelho não medido | médio | aberto |
 | v0.35.2 | contorno | o ator provisório é cápsula de fundo redondo: a linha abraça a base em vez de sumir (some com pés de verdade) | pequeno | aberto |
 | v0.35.2 | contorno | linha um pouco mais fina que a casca antiga (~3 px de canvas); espessura em `vista.espessura_contorno` | pequeno | aberto |
 | v0.35.2 | desempenho | contorno de tela lê 21 amostras de profundidade por pixel na resolução física (+ resolve do MSAA no Mobile); custo no aparelho não medido | médio | aberto |
