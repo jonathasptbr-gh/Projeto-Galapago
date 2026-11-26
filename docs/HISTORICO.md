@@ -5,6 +5,13 @@
 
 ## Não publicado
 
+## v0.35.1 — 3D liso por padrão, nítido, e caminho no chão (2026-11-25)
+
+- **Caminho no chão** (S5b): trilha, mira, perigos e a onda são desenhados
+  num SubViewport 2D do mapa inteiro (`jogo/mundo3d/chao.gd`, 2046×806,
+  31 texels/célula) que o toon do terreno amostra por XZ antes da luz (só em
+  faces de cima). Árvores, paredes e a criatura passam por cima; a sombra cai
+  sobre o caminho. Projéteis (tiro, cuspe) seguem no ar, na camada de tela.
 - **3D liso por padrão e nítido** (S5a): o jogo e a vitrine abrem com o Pixel
   Pass DESLIGADO (`--pixel` liga; `--liso` aceito sem efeito; botão PIXEL ART
   segue ligando). Liso em **resolução física** (SubViewport = `Window.size`,

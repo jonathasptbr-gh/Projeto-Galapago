@@ -7,10 +7,13 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
-| v0.35.0 | 3D | sobreposições (trilha, mira, perigos, efeitos) ficam por cima do 3D: uma copa não esconde a trilha | pequeno | aberto |
+| v0.35.1 | chão | a textura do chão tem ~1 texel por px da sim: ampliada 3× (vista alta) a 6× (íntima) no aparelho, pontos e anéis ficam um pouco macios | pequeno | aberto |
+| v0.35.1 | desempenho | a textura do chão (2046×806) é redesenhada todo quadro, e o liso roda MSAA 4× na resolução física com atlas de sombra 4096 — custo no aparelho não medido | médio | aberto |
+| v0.35.1 | chão | não há quadro do caminho passando sob uma copa (a demo não passa por lá); garantido pela profundidade, não filmado | pequeno | aberto |
+| v0.35.0 | 3D | sobreposições (trilha, mira, perigos, efeitos) ficam por cima do 3D: uma copa não esconde a trilha | pequeno | resolvido v0.35.1 (projéteis seguem no ar) |
 | v0.35.0 | 3D | copas de árvore escondem a criatura que passa por baixo (no 2D a copa ficava translúcida) | pequeno | aberto |
 | v0.35.0 | 3D | subsolo e células escavadas não são desenhados no mundo 3D | médio | aberto |
-| v0.35.0 | visual | no Vulkan (CI #108) o contorno de algumas paredes sai tracejado, aparecem manchas escuras nas copas na vista íntima e o dither está forte | pequeno | aberto |
+| v0.35.0 | visual | no Vulkan (CI #108) o contorno de algumas paredes sai tracejado, aparecem manchas escuras nas copas na vista íntima e o dither está forte | pequeno | resolvido v0.35.1 (dither: Pixel Pass fora do padrão) |
 | v0.35.0 | 3D | criatura e inimigo são atores provisórios (cápsula); a pele real depende do rig, congelado | grande | aberto |
 | v0.35.0 | desempenho | Mobile/Vulkan não medido em aparelho; o oráculo local é só prévia em Compatibility | médio | aberto |
 | v0.34.3 | rig | cotovelo acima do ombro em 6/24 fases do galope: com o polo atrás, exigiria a pata 0,3–6,7 px mais longe que o arco do balanço — conserto de **trajetória** (dados), não de solver | médio | congelado (rig) |
