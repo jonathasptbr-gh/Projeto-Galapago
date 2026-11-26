@@ -5,6 +5,8 @@
 
 ## Não publicado
 
+## v0.35.2 — contorno pela profundidade (2026-11-26)
+
 - **Contorno de tela** (S6): a linha escura vira pós 3D pela profundidade
   (`jogo/mundo3d/contorno_tela.gdshader`, quad de tela cheia da vista) no
   lugar da casca invertida e da aba: some no contato (pé do tronco, base do

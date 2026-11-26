@@ -7,6 +7,9 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.35.2 | contorno | o ator provisório é cápsula de fundo redondo: a linha abraça a base em vez de sumir (some com pés de verdade) | pequeno | aberto |
+| v0.35.2 | contorno | linha um pouco mais fina que a casca antiga (~3 px de canvas); espessura em `vista.espessura_contorno` | pequeno | aberto |
+| v0.35.2 | desempenho | contorno de tela lê 21 amostras de profundidade por pixel na resolução física (+ resolve do MSAA no Mobile); custo no aparelho não medido | médio | aberto |
 | v0.35.1 | chão | a textura do chão tem ~1 texel por px da sim: ampliada 3× (vista alta) a 6× (íntima) no aparelho, pontos e anéis ficam um pouco macios | pequeno | aberto |
 | v0.35.1 | desempenho | a textura do chão (2046×806) é redesenhada todo quadro, e o liso roda MSAA 4× na resolução física com atlas de sombra 4096 — custo no aparelho não medido | médio | aberto |
 | v0.35.1 | chão | não há quadro do caminho passando sob uma copa (a demo não passa por lá); garantido pela profundidade, não filmado | pequeno | aberto |
