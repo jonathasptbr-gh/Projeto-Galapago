@@ -85,42 +85,46 @@ encadear novos terrenos sem emenda).
 
 A direção pedida pelo operador é **low-poly moderadamente detalhado, com
 proporções naturais**: nem o extremo econômico de poucos polígonos, nem
-cartoon/caricatura, nem fotorrealismo. O ensaio busca mata úmida densa, árvores
-esguias irregulares com galhos afilados e folhas recortadas, samambaias,
-sub-bosque, raízes, troncos caídos, rochas e riacho sinuoso; uma trilha/clareira
-preserva a leitura do chão. É uma **proposta visual**, não uma âncora já aprovada
-pelo operador, e não muda o jogo padrão nem o rig congelado.
+cartoon/caricatura, nem fotorrealismo. Depois do primeiro piloto ele pediu
+**cores mais vivas** (verde saturado, água turquesa, terra quente) e que a mata
+virasse **mapa de testes jogável** — feito na v0.36.0 (o botão MAPA da HUD
+troca Fundação ⇄ Natureza; ver [arquitetura](ARQUITETURA.md#mundo-e-mapa)).
+Continua uma **proposta visual**, não uma âncora aprovada; o rig segue congelado.
 
-- Cena separada: [piloto](../jogo/mundo3d/natureza/piloto.tscn), montada por
-  [piloto.gd](../jogo/mundo3d/natureza/piloto.gd). Retrato 720×1280, 3D liso
-  por padrão, câmera fixa inclusive em `--demo`. A perspectiva próxima examina
-  detalhes; `--vista-geral` é ortográfica alta/3-4, para julgar leitura de mapa.
+- **Uma fonte para regra e desenho:** [sim/natureza.gd](../sim/natureza.gd)
+  (pura) dá riacho, trilha, três vaus de cascalho, clareira de terra fofa,
+  árvores e troncos caídos, e monta a grade da sim (46×62 células, 1 célula =
+  1 unidade); o [mapa](../jogo/mundo3d/natureza/mapa.gd) desenha as MESMAS
+  posições e só enfeita (samambaias, sub-bosque, capim, pedras pequenas, folhas
+  no chão). Chão andável **plano** (o desenho não diverge dos pés nem do toque);
+  só o leito desce. Moldura de mata distante em volta do mapa.
 - [Biblioteca autoral](../jogo/mundo3d/natureza/malhas.gd): quatro variantes de
-  árvores, ramos curvos de três segmentos, ramúsculos com folhas geométricas
-  menores, ponteiro vivo; três variantes de samambaias, plantas largas,
-  gramíneas e rochas, além de tronco caído com cerne e musgo geométrico. Não há
-  esferas de copa, cards transparentes ou downloads. Geração procedural local,
-  **sem custo de PixelLab**; licença do próprio projeto, sem atribuir CC0.
-- [Mapa](../jogo/mundo3d/natureza/mapa.gd): seed fixa **20261126**, relevo e
-  cores contínuos por vértice (terra/folhas/musgo, sem xadrez), leito rebaixado,
-  margens e trilha seca. Materiais StandardMaterial3D baratos com luz/sombra
-  contínuas; nenhum toon ou contorno grosso. Reutiliza apenas a instância local
-  de Vista como compositor; o contorno dela fica sem camada de render.
-- **Medido na seed padrão:** 82 árvores; 1.393 instâncias de malha (madeira e
-  folhas de uma árvore são duas instâncias); 21 MultiMeshes e 25 nós no mapa;
-  600.503 triângulos instanciados e 126.633 vértices armazenados nas malhas
-  compartilhadas. Não são contagens de triângulos visíveis nem de draw calls.
-- [Testes headless](../testes/test_natureza.gd): seed/replay de distribuição e
-  cores em todos os lotes, reconstrução sem acumular, orçamento, cena/câmeras,
-  normais/vértices finitos, winding horário coerente, ausência de triângulos
-  degenerados e validação do leito/margens/trilha. Nenhum teste exige render.
+  árvores, ramos curvos de três segmentos, ramúsculos com folhas geométricas,
+  ponteiro vivo; três variantes de samambaias, plantas largas, gramíneas e
+  rochas, tronco caído com cerne e musgo. Sem esferas de copa, cards
+  transparentes ou downloads; **sem custo de PixelLab**; licença do projeto.
+- **Materiais próprios** (não toon): [natural](../jogo/mundo3d/natureza/natural.gdshader)
+  (sólidos e solo; o solo lê o **mapa do chão** — trilha, mira e perigos ficam
+  pintados na terra, como na ilha) e [folha](../jogo/mundo3d/natureza/folha.gdshader)
+  (duas faces, luz atravessando). Os dois têm a **copa vazada**: folhas e
+  madeira entre a câmera e a criatura somem por dither 4×4, então a criatura
+  nunca some sob a mata. Ambientação em `Mapa.ambientar` (tonemap linear,
+  saturação +12%, céu azul-claro, sem névoa na vista alta).
+- Cena separada do piloto: [piloto](../jogo/mundo3d/natureza/piloto.tscn)
+  ([piloto.gd](../jogo/mundo3d/natureza/piloto.gd)), com `--vista-geral`,
+  `--detalhe`, `--verso` e `--pixel`.
+- **Medido (seed 500, teste):** 82 árvores, 1.399 instâncias, 21 MultiMeshes,
+  615.443 triângulos instanciados, 159.669 vértices armazenados (o solo, em
+  passo 0,5, é ~68 mil). Não são triângulos visíveis nem draw calls.
+- Testes: [mata](../testes/test_natureza.gd), [regra](../testes/test_natureza_sim.gd)
+  (água/troncos bloqueiam, as duas margens alcançáveis a pé pelos vaus) e
+  [jogo](../testes/test_mapa_natureza_jogo.gd) (troca de mapa, toque ⇄ chão,
+  copa vazada, caminho desenhado andando sem entrar na água).
 
-**Limites deliberados:** standalone visual, **sem navegação, colisões ou
-integração com gameplay**. Água opaca estática com filetes geométricos, sem
-reflexo de tela/refração, vento ou animação. Não há FPS mobile comprovado: os
-MultiMeshes ainda cobrem o mapa inteiro, sem divisão por setores; render por
-software não mede desempenho de aparelho. Comandos e ressalvas de render no
-[oráculo](ORACULO.md#piloto-de-natureza-3d-standalone).
+**Limites deliberados:** água opaca estática (sem reflexo, refração ou
+animação); sem vento; o subsolo da mata não existe (só a clareira escava);
+FPS no aparelho **não medido** — MultiMeshes cobrem o mapa inteiro, sem setores.
+Comandos de render no [oráculo](ORACULO.md#piloto-de-natureza-3d-standalone).
 
 ## Pastas
 

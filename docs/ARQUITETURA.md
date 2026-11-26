@@ -105,6 +105,15 @@ O mapa vem de **dados**: `dados/mapas/<nome>.json` (cantos de terreno + objetos)
 Objetos e criatura ficam num `Node2D` com `y_sort_enabled`, origem nos pés.
 Design: [`gdd/mapa.md`](gdd/mapa.md).
 
+**Mapas de testes (v0.36.0):** a Fundação (o JSON acima, padrão) e a
+**Natureza**, gerada por `sim/natureza.gd` (pura, semente fixa): o mesmo layout
+vira a grade da sim (`mundo_dict`, formato do JSON) e o desenho
+(`jogo/mundo3d/natureza/mapa.gd`, deslocado por `origem_3d()` para a célula
+da sim cair na unidade 3D e o chão andável em y = 0,4). O botão MAPA da HUD
+guarda a escolha em `Engine` (`main.META_MAPA`) e **recarrega a cena**: dedos,
+traço, câmera, adversários e marcas renascem no mapa novo; o Pixel Pass
+atravessa o recarregamento. `--natureza` começa nela (oráculo).
+
 ## Atualização do app
 
 `sim/atualizacao.gd` (pura: manifesto, host travado, decisão, tamanho) +

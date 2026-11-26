@@ -60,8 +60,19 @@ const Trilha := preload("res://jogo/trilha.gd")
 const Efeitos := preload("res://jogo/efeitos.gd")
 const Hud := preload("res://jogo/hud.gd")
 const Demo := preload("res://jogo/demo.gd")
+const Natureza := preload("res://sim/natureza.gd")
+const Mata := preload("res://jogo/mundo3d/natureza/mapa.gd")
 
 const MAPA := "res://dados/mapas/fundacao.json"
+## MAPA DE TESTES escolhido: "fundacao" (padrão) ou "natureza" (a mata de
+## sim/natureza.gd + jogo/mundo3d/natureza/). O botão MAPA da HUD guarda a
+## escolha em `Engine` (META_MAPA) e recarrega a cena; `--natureza` começa nela.
+const META_MAPA := &"galapago_mapa"
+const META_PIXEL := &"galapago_pixel"
+## a mata tem árvores de até ~14 unidades: a fatia near..far da vista cresce
+const RELEVO_MATA := 15.0
+## altura (unidades) acima dos pés onde fica o centro da COPA VAZADA
+const FOCO_COPA := 0.45
 # JOYSTICK da vista íntima: o deslocamento do dedo até este RAIO vira magnitude
 # 1,0 do controle relativo (100% do curso). Com o teto de 88 px/s do modo
 # PERTO, metade do raio = 44 px/s; além do raio satura em 88. A DIREÇÃO é a do
@@ -112,7 +123,11 @@ var camera_toque := CameraToque.new()
 # --- P24: o mundo 3D ---
 var cam3d: RefCounted
 var vista: CanvasLayer
+## "fundacao" | "natureza"; vazio = decide no `_ready` (argumento, Engine)
+var mapa_nome := ""
+## Fundação: a ilha; Natureza: a mata (só um dos dois existe)
 var ilha: Node3D
+var mata: Node3D
 var ator_criatura: Node3D
 var atores_adv: Array = []
 ## o MAPA DO CHÃO (SubViewport): trilha, perigos, efeitos (onda) e mira
@@ -157,7 +172,9 @@ var _tempo_vis := 0.0
 
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
-	var mapa := _json(MAPA)
+	if mapa_nome == "":
+		mapa_nome = "natureza" if "--natureza" in args else String(Engine.get_meta(META_MAPA, "fundacao"))
+	var mapa := Natureza.mundo_dict() if mapa_nome == "natureza" else _json(MAPA)
 	cfg_gestos = _json("res://dados/gestos.json")
 	cfg_adversario = _json("res://dados/adversario.json")
 	mundo = Mundo.criar(mapa, _json("res://dados/terrenos.json"))
@@ -183,12 +200,31 @@ func _ready() -> void:
 	# padrão: 3D liso; `--pixel` liga o Pixel Pass (`--liso`, antigo, é aceito e
 	# não muda nada)
 	vista.pixel_pass = "--pixel" in args
+	# a troca de mapa recarrega a cena: o Pixel Pass atravessa o recarregamento
+	# uma vez (META_PIXEL), sem virar padrão
+	if Engine.has_meta(META_PIXEL):
+		vista.pixel_pass = bool(Engine.get_meta(META_PIXEL))
+		Engine.remove_meta(META_PIXEL)
+	if mapa_nome == "natureza":
+		vista.altura_relevo = RELEVO_MATA
 	add_child(vista)
-	ilha = Ilha.new()
-	ilha.name = "Ilha"
-	vista.mundo_3d.add_child(ilha)
-	ilha.construir(mundo)
-	ilha.ligar_chao(chao.get_texture(), chao.ret_shader())
+	if mapa_nome == "natureza":
+		# a mata: luz contínua e cores vivas; sem o contorno de tela (linha preta
+		# em cada folha viraria desenho animado e custaria caro)
+		mata = Mata.new()
+		mata.name = "Mata"
+		mata.position = Natureza.origem_3d()
+		vista.mundo_3d.add_child(mata)
+		mata.construir()
+		mata.ligar_chao(chao.get_texture(), chao.ret_shader())
+		Mata.ambientar(vista.ambiente.environment, vista.sol, false)
+		vista.contorno.layers = 0
+	else:
+		ilha = Ilha.new()
+		ilha.name = "Ilha"
+		vista.mundo_3d.add_child(ilha)
+		ilha.construir(mundo)
+		ilha.ligar_chao(chao.get_texture(), chao.ret_shader())
 	ator_criatura = Ator.new()
 	ator_criatura.name = "Criatura"
 	ator_criatura.cor = COR_CRIATURA
@@ -261,8 +297,10 @@ func _ready() -> void:
 	hud = Hud.new()
 	hud.hostilidade_alternada.connect(definir_hostilidade)
 	hud.pixel_pass_alternado.connect(definir_pixel_pass)
+	hud.mapa_escolhido.connect(trocar_mapa)
 	add_child(hud)
 	hud.definir_pixel_pass(vista.pixel_pass)
+	hud.definir_mapa(mapa_nome)
 	# VÉU do desenho: escurece a tela para ilustrar a desaceleração (fica
 	# ATRÁS dos rótulos da HUD, que são filhos da mesma CanvasLayer).
 	veu = ColorRect.new()
@@ -391,6 +429,8 @@ func _atualizar_camera(delta: float) -> void:
 	cam3d.seguir(_foco_criatura(), delta)
 	cam3d.avancar(delta)
 	vista.aplicar_camera(cam3d)
+	if mata:
+		mata.definir_foco(ator_criatura.position + Vector3(0.0, FOCO_COPA, 0.0))
 	var ref := Ilha.altura_3d(NIVEL_REF)
 	var m: Transform2D = cam3d.chao_para_tela(_tela, ref)
 	sobre.transform = m
@@ -516,6 +556,22 @@ func definir_pixel_pass(v: bool) -> void:
 	if hud:
 		hud.definir_pixel_pass(v)
 		hud.nota("PIXEL ART %s" % ("ligado" if v else "desligado — 3D liso"))
+
+
+## Troca o MAPA DE TESTES (o botão MAPA da HUD chama). Guarda a escolha em
+## `Engine` e RECARREGA a cena: dedos, traço, câmera, adversários e marcas
+## nascem do zero no mapa novo — nada do mapa velho sobra. O Pixel Pass
+## atravessa o recarregamento. Devolve se recarregou (só quando esta é a cena
+## atual; nos testes a escolha fica guardada e nada recarrega).
+func trocar_mapa(nome: String) -> bool:
+	if nome == mapa_nome or not nome in ["fundacao", "natureza"]:
+		return false
+	Engine.set_meta(META_MAPA, nome)
+	if get_tree().current_scene != self:
+		return false
+	Engine.set_meta(META_PIXEL, vista.pixel_pass)
+	get_tree().call_deferred("reload_current_scene")
+	return true
 
 
 # ---------- o dedo (toque real e demo passam por aqui) ----------

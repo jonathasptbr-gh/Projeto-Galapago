@@ -3,8 +3,25 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
-## Não publicado
+## v0.36.0 — mapa de testes NATUREZA jogável, cores vivas (2026-11-26)
 
+- **Mapa de testes NATUREZA no jogo:** botão **MAPA** da HUD troca Fundação ⇄
+  Natureza (recarrega a cena; Pixel Pass atravessa); `--natureza` começa nela.
+  `sim/natureza.gd` (pura) é a fonte única: riacho, trilha, três vaus de
+  cascalho, clareira de terra fofa, árvores e troncos caídos viram a grade da
+  sim (46×62) e o desenho da mata nas MESMAS posições; água, troncos e árvores
+  bloqueiam; as duas margens são alcançáveis a pé (teste por busca em largura).
+  Chão andável plano (pés e toque alinhados); mapa do chão (trilha, mira,
+  perigos) pintado na terra por um shader próprio (`natural.gdshader`).
+- **Copa vazada:** folhas e madeira entre a câmera e a criatura somem por
+  dither — a criatura não some sob a mata. Sem contorno de tela na mata.
+- **Cores mais vivas** (pedido do operador): verdes saturados, água turquesa,
+  terra quente, céu claro, tonemap linear e +12% de saturação; vale para o
+  piloto e para o mapa. Fundação intacta.
+- **Custo:** MultiMesh por família e setor 12×12 (descarte por câmera);
+  moldura de mata distante com árvores simplificadas. Mapa inteiro ~691 mil
+  triângulos instanciados; FPS no aparelho não medido.
+- `vista.altura_relevo` (padrão 4, mata 15): a fatia near..far cabe árvores altas.
 - **Piloto separado de natureza 3D:** [mata úmida procedural](../jogo/mundo3d/natureza/piloto.tscn)
   com biblioteca autoral de árvores ramificadas, folhas recortadas, samambaias,
   sub-bosque, raízes, troncos, rochas e riacho sinuoso; seed fixa e MultiMesh.

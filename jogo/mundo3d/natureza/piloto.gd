@@ -36,20 +36,9 @@ func _ready() -> void:
 	# layers=0 persiste inclusive quando Vista._reconfigurar() religa visible.
 	# Não altera o modo global Mat, que pertence à cena principal.
 	vista.contorno.layers = 0
-	var env: Environment = vista.ambiente.environment
-	env.background_color = Color("#859487")
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color("#a5b6a2")
-	env.ambient_light_energy = 0.72
-	env.ambient_light_sky_contribution = 0.0
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.fog_enabled = true
-	env.fog_light_color = Color("#849588")
-	env.fog_light_energy = 0.72
-	env.fog_density = 0.0048
-	vista.sol.rotation_degrees = Vector3(-48.0, -32.0, 0.0)
-	vista.sol.light_color = Color("#fff1cd")
-	vista.sol.light_energy = 1.45
+	# a mesma luz/céu do mapa de testes NATUREZA no jogo; névoa só aqui
+	# (perspectiva com profundidade)
+	Mapa.ambientar(vista.ambiente.environment, vista.sol, true)
 	vista.sol.shadow_bias = 0.025
 	vista.sol.shadow_normal_bias = 1.4
 	vista.sol.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS

@@ -58,6 +58,10 @@ const FOLGA_PERTO := 3.0
 const FOLGA_LONGE := 4.0
 
 @export var altura_interna := 640
+## quanto (unidades) o relevo/objetos sobem acima do chão: entra na fatia
+## near..far (ver `aplicar_camera`). A ilha cabe no padrão; a mata do mapa
+## NATUREZA (árvores de até ~14) pede mais.
+@export var altura_relevo := ALTURA_RELEVO
 @export var pixel_pass := false:
 	set(v):
 		pixel_pass = v
@@ -268,7 +272,7 @@ func aplicar_camera(cam3d: RefCounted) -> void:
 	# (h = altura_mundo, p = inclinação); +folgas.
 	var sp := maxf(absf(sin(cam3d.pitch)), 0.2)
 	var meia: float = cam3d.altura_mundo * 0.5 * absf(cos(cam3d.pitch))
-	var perto := (meia + ALTURA_RELEVO) / sp + FOLGA_PERTO
+	var perto := (meia + altura_relevo) / sp + FOLGA_PERTO
 	var longe := (meia + 0.5) / sp
 	camera.near = maxf(0.05, dist - perto)
 	camera.far = dist + longe + FOLGA_LONGE

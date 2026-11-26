@@ -7,6 +7,12 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.36.0 | desempenho | mapa NATUREZA: ~691 mil triângulos instanciados no mapa inteiro, 341 MultiMeshes em setores; FPS e aquecimento no aparelho não medidos | médio | aberto |
+| v0.36.0 | natureza | água opaca e parada (sem reflexo, refração ou correnteza animada); sem vento nas folhas | pequeno | aberto |
+| v0.36.0 | natureza | sem subsolo desenhado: cavar só na clareira de terra fofa, e o túnel não aparece (como na Fundação) | pequeno | aberto |
+| v0.36.0 | natureza | sem contorno de tela na mata: o ator provisório fica sem linha ali; árvores e pedras não são alvo de colisão física do tiro além do tronco da célula | pequeno | aberto |
+| v0.36.0 | natureza | a linha do caminho (pontos escuros e translúcidos de `jogo/trilha.gd`) fica discreta na terra escura da mata; a cor é compartilhada com a Fundação e não foi mexida | pequeno | aberto (design) |
+| v0.36.0 | oráculo | o CI filma só a Fundação; a Natureza é filmada à mão (`DEMO_ARGS="--natureza"`) | pequeno | aberto |
 | v0.35.4 | contorno | o "pescoço" do ator provisório (esfera × cápsula) mudou levemente no contorno e já era ruidoso; conferir no aparelho | pequeno | aberto |
 | v0.35.4 | oráculo | a prova local em Vulkan/lavapipe depende de um shim fora do repositório (`~/tmp/lvpshim/shim.so`, `LD_PRELOAD` que força `LLVMGetHostCPUName` = `cortex-a76`, porque o llvmpipe emitia SVE que o kernel não expõe); não está em `docs/AMBIENTE.md` nem `docs/ORACULO.md` | pequeno | aberto |
 | v0.35.3 | contorno | na vista alta, paredes baixas (planalto, costa, rampa) ganham duas linhas próximas (topo e pé) | pequeno | aberto (design) |

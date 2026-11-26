@@ -120,6 +120,12 @@ esperado e some na publicação seguinte.
 
 ## Piloto de natureza 3D (standalone)
 
+> **v0.36.0:** a mata também é o **mapa de testes NATUREZA do jogo**. A cena
+> principal com `DEMO_ARGS="--natureza"` roda a demo de sempre nela (caminho,
+> giro pela barra, tiro, pulo, perseguição, cavar na clareira):
+> `DEMO_ARGS="--natureza" tools/quadros.sh 40 ~/tmp/natureza-jogo` (some
+> `--pixel` para o Pixel Pass). O CI segue filmando a Fundação.
+
 A [cena piloto](../jogo/mundo3d/natureza/piloto.tscn) é separada do jogo: mata
 úmida autoral procedural, seed **20261126**, sem atores/rig, colisões, navegação
 ou gameplay. A [direção e orçamento](ARTE.md#piloto-de-natureza-3d--direção-em-avaliação-2026-11-26)
