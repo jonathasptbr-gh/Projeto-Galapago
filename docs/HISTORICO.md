@@ -3,7 +3,7 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
-## Não publicado
+## v0.35.4 — contorno sem faixa clara no meio das quinas (2026-11-26)
 
 - **Contorno: quina sem faixa clara no meio** (liso, MSAA 4×): conforme o
   ângulo, a linha de vinco de uma quina convexa clareava NO MEIO (a quina

@@ -7,6 +7,8 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.35.4 | contorno | o "pescoço" do ator provisório (esfera × cápsula) mudou levemente no contorno e já era ruidoso; conferir no aparelho | pequeno | aberto |
+| v0.35.4 | oráculo | a prova local em Vulkan/lavapipe depende de um shim fora do repositório (`~/tmp/lvpshim/shim.so`, `LD_PRELOAD` que força `LLVMGetHostCPUName` = `cortex-a76`, porque o llvmpipe emitia SVE que o kernel não expõe); não está em `docs/AMBIENTE.md` nem `docs/ORACULO.md` | pequeno | aberto |
 | v0.35.3 | contorno | na vista alta, paredes baixas (planalto, costa, rampa) ganham duas linhas próximas (topo e pé) | pequeno | aberto (design) |
 | v0.35.3 | contorno | pontinhos quase invisíveis em vértices de 4 facetas da copa e em 1 ponto da pedra | pequeno | aberto |
 | v0.35.3 | desempenho | contorno sobe para 49 leituras de profundidade/pixel no liso (41 no Pixel Pass); custo no aparelho não medido | médio | aberto |
