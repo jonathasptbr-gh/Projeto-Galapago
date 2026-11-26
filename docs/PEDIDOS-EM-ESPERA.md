@@ -4,14 +4,16 @@
 > pacote seguir.** Lê-se só o pacote escolhido. Um pacote cabe numa sessão; se
 > não couber, divide-se antes de começar.
 
+> **Esta é a LISTA ÚNICA de próximos planos** (reorganizada em 2026-11-26).
+> Todo plano novo entra aqui como pacote `Pn`; o que mora em outro lugar está
+> apontado em "Onde mais há pendência", no fim do índice.
+
 > **Manutenção registrada (2026-11-24):** a faxina documental A (v0.14.1) e o
 > guardião offline B (v0.14.2) já foram feitos; o protocolo de agentes e o
 > multi-sessão (P21) ficaram na v0.14.3; o P22 (fila enxuta) foi entregue na
 > v0.14.4 e o registro dele fechado na v0.15.0; o P23 (oráculo com baseline)
 > ficou na v0.16.0. Os pacotes feitos moram em
-> [`PEDIDOS-FEITOS.md`](PEDIDOS-FEITOS.md), não aqui. **Nada na fila está
-> autorizado** — restam os pacotes de conteúdo (P5–P8), à escolha do operador;
-> P9 e P10 estão congelados.
+> [`PEDIDOS-FEITOS.md`](PEDIDOS-FEITOS.md), não aqui.
 
 > **Decisões do operador (2026-11-25):**
 > - **P9 e P10 congelados:** a fundação do rig será reestruturada; nada novo
@@ -23,6 +25,23 @@
 >   Pixel Pass opcional; a câmera gira 360°. Ele autoriza mexer na conversão
 >   tela→chão e na câmera; o vocabulário de gestos continua o mesmo.
 
+> **Pedidos diretos do operador (2026-11-26), fora de pacote:** piloto de
+> natureza 3D (commit 1842ba3) e o mapa de testes NATUREZA jogável com cores
+> vivas (v0.36.0). Os desdobramentos que ele pediu — otimizar o cenário,
+> cenário destrutível e os quatro elementos no cenário — viraram P25–P27.
+
+### Frentes (os temas, na ordem em que dependem um do outro)
+
+| frente | pacotes | situação |
+|---|---|---|
+| Núcleo de jogo | P5 → P8 | P5 é o próximo do núcleo; P8 é conversa de design |
+| Cenário 3D e arena | P24 ✔ → P25 → P26 → P27 | P24 entregue; P25 mede antes de P26/P27 crescerem o custo |
+| Personagem e arte | P6 · P9 ❄ · P10 ❄ | rig congelado; contorno do ator pendente (retorno de 2026-11-26, em P24) |
+| Fatia vertical | P7 | junta núcleo + cenário + personagem |
+| Manutenção | P28 | triagem dos resíduos |
+
+### Índice
+
 | pacote | o quê | depende de | estado |
 |---|---|---|---|
 | P5 | Vivência → evolução (sim) + simulação em massa | P4 ✔ | **próximo do núcleo** |
@@ -31,7 +50,23 @@
 | P8 | GDD do loop diário no laboratório/ilha | — | na fila (design, conversa) |
 | P9 | Camadas de pixel art sobre o esqueleto 3D (fase B) | A: v0.29.0 ✔ | **congelado** (2026-11-25) |
 | P10 | Esqueleto 3D paramétrico por arquétipo e locomoção | — | **congelado** (2026-11-25) |
-| P24 | Fundação 3D: mundo 3D, Pixel Pass opcional, câmera orbital 360° | — | **entregue na v0.35.0**, aguardando o operador no aparelho |
+| P24 | Fundação 3D: mundo 3D, Pixel Pass opcional, câmera orbital 360° | — | **entregue na v0.35.0**; mapa NATUREZA na v0.36.0; contorno do ator pendente |
+| P25 | Cenário 3D: medir e otimizar o custo gráfico | v0.36.0 ✔ | na fila (pedido 2026-11-26) |
+| P26 | Cenário destrutível: vegetação, árvores que caem, arena que se abre | P25 | na fila (pedido 2026-11-26) |
+| P27 | Os quatro elementos no cenário (fogo, terra, ar, água) | P26 · P5 (porte) | na fila (design + sim; pedido 2026-11-26) |
+| P28 | Triagem dos resíduos (fechar o que o 3D tornou obsoleto) | — | na fila (manutenção) |
+
+### Onde mais há pendência (apontada daqui, não copiada)
+
+- [`RESIDUOS.md`](RESIDUOS.md): o que cada publicação deixou para trás (~250
+  linhas "aberto", muitas do 2D já superado — é o P28).
+- [`gdd/historia.md`](gdd/historia.md#decisões-pendentes): decisões de
+  história à espera do operador.
+- [`RIG.md`](RIG.md): a ordem de trabalho do rig (parada com P9/P10).
+- Laboratório do galope, **fora do repositório**
+  (`~/workspace/laboratorio-galope`): estudo de galope com dados de
+  referência; só entra no jogo por decisão do operador, quando o rig
+  descongelar.
 
 ---
 
@@ -143,3 +178,84 @@
   resíduos do contorno da v0.35.2/v0.35.4 em [`RESIDUOS.md`](RESIDUOS.md).
   Não consertado; decidir com o operador (ajustar o passe ou esperar a pele
   3D).
+
+## P25 — Cenário 3D: medir e otimizar o custo gráfico
+
+- **Pedido do operador (2026-11-26):** mapas detalhados mais baratos de
+  processar, para sobrar folga para destruição e elementos (P26/P27).
+- **Antes de otimizar, medir:** contador de quadros por segundo na HUD e
+  chaves de teste (sombra, detalhe, resolução do 3D) no APK; o operador anota
+  o que muda no aparelho. Hoje: mapa NATUREZA ~691 mil triângulos
+  instanciados, 341 MultiMeshes em setores 12×12, FPS não medido (resíduo da
+  v0.36.0).
+- **Candidatos, em ordem de ganho provável (a confirmar pela medição):**
+  1. sombra por **sombra simples**: copas de poucos polígonos só para a
+     sombra (`SHADOW_CASTING_SETTING_SHADOWS_ONLY`), as folhas reais sem
+     sombra — hoje a mata é desenhada duas vezes;
+  2. **árvore leve na vista alta** (a variante `simples` de
+     `jogo/mundo3d/natureza/malhas.gd`, ~1/4 das folhas), a completa só na
+     vista íntima;
+  3. **escala de resolução** do 3D no liso (HUD continua nítida); o Pixel
+     Pass já é o modo barato;
+  4. densidade de capim/samambaia menor longe do centro da ação;
+  5. a textura do mapa do chão redesenhada só quando muda (resíduo v0.35.1).
+- **Aceite:** FPS medido no aparelho antes e depois; nenhuma perda visível na
+  vista alta aprovada pelo operador; testes e CI verdes.
+
+## P26 — Cenário destrutível
+
+- **Pedido do operador (2026-11-26):** o mapa detalhado deve ser o mais
+  destrutível possível no hardware atual — árvores caem quando uma criatura
+  maior esbarra nelas durante um ataque, o tiro destrói vegetação e árvores,
+  o fogo queima (fogo é P27). Objetivo: imersão e a **arena de combate**, uma
+  área que se abre ao longo da batalha e favorece estratégia.
+- **Princípio:** destruição **encenada, não física** — a regra é da `sim/`
+  (grade de células, semente, testável); o `jogo/` só anima. Sem motor de
+  física para lascas.
+- **Fatias:**
+  1. vegetação baixa (capim, samambaia, arbusto): o tiro a remove; partículas
+     curtas e marca no mapa do chão;
+  2. árvores com resistência: caem quando o golpe vence a resistência (porte
+     da criatura × força do golpe; tiro forte também), tombando na direção do
+     golpe numa animação de ~1 s; o tronco caído vira obstáculo nas células
+     que ocupa e pode ser destruído depois;
+  3. estado persistente durante a batalha (a arena "abre"); regenerar ou não
+     entre batalhas é decisão de design.
+- **Dependência:** "criatura maior" pede um **porte** por criatura (não existe
+  ainda; rig congelado, evolução é P5) — começar com um porte provisório em
+  dados.
+- **Custo:** baixo a médio — trocar uma instância de MultiMesh por um nó
+  animado e voltar a ela é barato; a destruição **reduz** o que se desenha.
+
+## P27 — Os quatro elementos no cenário
+
+- **Pedido do operador (2026-11-26):** fogo, terra, ar e água são os elementos
+  do combate das criaturas e afetam o cenário. Análise registrada para a
+  conversa de design:
+  - **fogo:** empurra, destrói, derruba (um "objeto invisível" com área) e
+    **espalha** por uma grade de combustível/umidade (perto do rio queima
+    menos); árvore queimada vira tronco carbonizado; limite fixo de chamas
+    visíveis (10–15), o resto é cor/cinza no chão;
+  - **terra:** como o fogo no impacto, mas **permanente** — muda a grade
+    (barreira, rampa, buraco), o que a sim já sabe representar por célula;
+  - **ar:** empurra e derruba sem destruir; sacode copas e vegetação (vento
+    visual barato), espalha ou apaga fogo e água;
+  - **água:** **sem simulação de fluido** (cara demais para o celular e
+    imprevisível). Proposta: água como **campo na grade** — cada célula guarda
+    um nível de água que se espalha para as vizinhas mais baixas e evapora com
+    o tempo (temporária), desenhada como superfície rasa e poças; efeitos de
+    regra: apaga fogo, deixa o chão encharcado (mais lento, escorregadio),
+    empurra no jato, enche buracos da terra. É "física mínima" barata:
+    alguns milhares de células atualizadas poucas vezes por segundo.
+- **Combinações** dão a profundidade tática: água apaga fogo, terra represa
+  água, ar espalha fogo, fogo seca lama.
+- **Depende de:** P26 (estado destrutível na grade) e P5 (elemento/porte da
+  criatura). Decisões do operador pendentes: duração dos efeitos, se a água
+  sobe de nível em buracos, se o fogo pode sair do controle.
+
+## P28 — Triagem dos resíduos
+
+- [`RESIDUOS.md`](RESIDUOS.md) tem ~250 linhas "aberto", muitas do mockup 2D
+  e do rig 2D já superados pelo 3D (P24). Revisar linha a linha: marcar
+  `obsoleto (3D)`, `resolvido vX` ou promover a pacote; nada se apaga (regra
+  do arquivo). Só documentação; sem versão.
