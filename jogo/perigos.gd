@@ -11,13 +11,17 @@ extends Node2D
 ##
 ## O miolo acende devagar e PISCA perto do fim: dá tempo de reagir sem precisar
 ## contar segundos. O projétil do cuspe é desenhado aqui também.
+## S5b — duas instâncias: `no_ar = false` desenha as ÁREAS no mapa do chão
+## (`jogo/mundo3d/chao.gd`: o inimigo, as copas e as paredes ficam por cima);
+## `no_ar = true` desenha só o PROJÉTIL do cuspe, no ar, na camada de tela
+## (afim da câmera + `relevo`).
 
 
 var mundo: RefCounted
-## P24: desenha em px de MUNDO da sim; o pai aplica a afim chão→tela da câmera
-## 3D (`sim/camera3d.gd chao_para_tela`, no plano de referência). `relevo`
-## (do main) leva um ponto do chão para o TOPO do terreno daquela célula no
-## mesmo plano de referência; sem ele, o ponto fica no plano.
+## false: as áreas (no mapa do chão); true: o projétil (na tela)
+var no_ar := false
+## só no ar: o pai aplica a afim chão→tela da câmera 3D (plano de referência)
+## e `relevo` (do main) leva o ponto ao TOPO do terreno da sua célula.
 var relevo := Callable()
 var adversarios: Array = []
 
@@ -30,10 +34,10 @@ func _draw() -> void:
 	for adv in adversarios:
 		if adv == null:
 			continue
-		for p in adv.perigos:
-			var origem := Vector2(p.get("pos", Vector2.ZERO))
-			draw_set_transform(_relevo(origem) - origem)
-			_area(p)
+		if not no_ar:
+			for p in adv.perigos:
+				_area(p)
+			continue
 		for e in adv.efeitos:
 			var origem := Vector2(e.get("pos", Vector2.ZERO))
 			draw_set_transform(_relevo(origem) - origem)

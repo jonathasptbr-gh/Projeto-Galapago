@@ -3,15 +3,13 @@ extends Node2D
 ## FINAL do caminho (marca amarela no INIMIGO, não no lugar final). A posição
 ## vem da lista de alvos (sim/alvos.gd), então as duas acompanham um adversário
 ## que anda; se ele andar demais, o corpo perde a marca (v0.9).
+## S5b: as duas são marcas NO CHÃO, no mapa do chão (`jogo/mundo3d/chao.gd`):
+## o corpo do inimigo cobre o anel em volta dos pés.
 
 const Alvos := preload("res://sim/alvos.gd")
 
 var mundo: RefCounted
-## P24: desenha em px de MUNDO da sim; o pai aplica a afim chão→tela da câmera
-## 3D (`sim/camera3d.gd chao_para_tela`, no plano de referência). `relevo`
-## (do main) leva um ponto do chão para o TOPO do terreno daquela célula no
-## mesmo plano de referência; sem ele, o ponto fica no plano.
-var relevo := Callable()
+## Desenha em px de MUNDO da sim; o pai (`chao.raiz`) leva ao mapa do chão.
 var corpo: RefCounted
 var alvos: Array = []
 var _tempo := 0.0
@@ -29,17 +27,12 @@ func _draw() -> void:
 	_desenhar_alvo_final()
 
 
-func _relevo(p: Vector2) -> Vector2:
-	return relevo.call(p) if relevo.is_valid() else p
-
-
 func _desenhar_mira() -> void:
 	if corpo.alvo_id == "":
 		return
 	var p := Alvos.pos_de(alvos, corpo.alvo_id)
 	if p == Vector2.ZERO:
 		return
-	p = _relevo(p)
 	var pulso := 1.0 + 0.12 * sin(_tempo * 6.0)
 	var r := 20.0 * pulso
 	draw_arc(p, r, 0.0, TAU, 32, Color(1.0, 0.35, 0.35, 0.95), 2.0, true)
@@ -55,7 +48,6 @@ func _desenhar_alvo_final() -> void:
 	var p := Alvos.pos_de(alvos, corpo.mira_final_id)
 	if p == Vector2.ZERO:
 		return
-	p = _relevo(p)
 	var pulso := 2.0 + 2.0 * sin(_tempo * 8.0)
 	var cor := Color(1.0, 0.84, 0.2, 0.95)
 	draw_arc(p, 24.0 + pulso, 0.0, TAU, 40, cor, 2.5, true)

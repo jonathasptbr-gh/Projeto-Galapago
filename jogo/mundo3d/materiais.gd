@@ -7,6 +7,9 @@ extends RefCounted
 ## - `casca(espessura, forma) -> ShaderMaterial`: só o contorno (a casca do
 ##   terreno usa `FORMA_TERRENO`: paredes já infladas na malha, `espessura` =
 ##   largura da aba do topo).
+## - `terreno(cor) -> ShaderMaterial`: toon do TERRENO, instância NOVA (fora
+##   do cache) para receber o mapa do chão (`usar_chao`, `chao`, `chao_ret`;
+##   ver `jogo/mundo3d/chao.gd`); quem liga é `ilha.ligar_chao`.
 ## Materiais iguais saem do cache (mesma instância): NÃO altere parâmetros de
 ## um material devolvido — peça outro com os valores que quer.
 
@@ -34,6 +37,13 @@ static func toon(cor: Color, contorno := 0.0, forma := FORMA_NORMAL) -> ShaderMa
 	if contorno > 0.0:
 		m.next_pass = casca(contorno, forma)
 	_cache[chave] = m
+	return m
+
+
+static func terreno(cor: Color) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = TOON
+	m.set_shader_parameter("cor", cor)
 	return m
 
 

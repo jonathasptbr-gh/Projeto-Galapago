@@ -62,9 +62,12 @@ certo em cor linear ou só em sRGB; o toon converte o nível com
 `intima`, snap de texel, chão⇄tela como `Transform2D` afim). O **Pixel Pass**
 é a última camada e desliga: SubViewport em baixa resolução + quantização +
 Bayer ancorado no mundo + ampliação *nearest* + compensação de subpixel.
-Trilha, mira, perigos, efeitos e HUD continuam 2D, lisos, em px de mundo da
-sim, sob um `Node2D` cuja transformação é a afim da câmera (ficam por cima
-do 3D). Detalhes em [`GODOT.md`](GODOT.md#6-pixel-art-no-godot).
+Trilha, mira, áreas de perigo e a onda desenham em px de mundo da sim num
+**mapa do chão** (SubViewport 2D, `jogo/mundo3d/chao.gd`) que o material do
+terreno pinta no topo das células, antes da luz: ficam NO chão, sob copas,
+paredes e atores. Projéteis no ar e HUD continuam 2D, lisos, por cima do 3D
+(os projéteis sob um `Node2D` cuja transformação é a afim da câmera).
+Detalhes em [`GODOT.md`](GODOT.md#6-pixel-art-no-godot).
 
 ## Pele e esqueleto (v0.22.0)
 

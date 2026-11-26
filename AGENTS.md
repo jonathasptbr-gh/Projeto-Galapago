@@ -108,10 +108,12 @@ sim/                  lógica pura: gestos (1 dedo: caminho, toque=tiro carregad
                        esqueleto (pose e âncoras) · esqueleto3d (juntas 3D
                        projetadas, congelado) · camera3d (câmera orbital 3D) · direcao (8 setores) · animacao (estados e prioridades) · modulos (socket por nome) · visibilidade · atualizacao · mapa (Wang, parado)
 jogo/                 main · mundo3d/ (vista = SubViewport + Pixel Pass
-                       liga/desliga, ilha, ator provisório, shaders toon/
+                       liga/desliga, chao = mapa do chão que o terreno
+                       pinta, ilha, ator provisório, shaders toon/
                        casca/pixel_pass, vitrine) · barra_giro (topo, gira a
-                       câmera) · perigos (área no chão) · mira (mira+alvo
-                       final) · trilha · efeitos (onda/tiro) · hud (legenda,
+                       câmera) · perigos (área no chão; cuspe no ar) · mira
+                       (mira+alvo final) · trilha · efeitos (onda no chão;
+                       tiro no ar) · hud (legenda,
                        carga, CONFIG, PIXEL ART) · demo · atualizador ·
                        modulos · rigs/rigs3d/pele_geometrica* (rig congelado:
                        só tools/folha_* e testes)

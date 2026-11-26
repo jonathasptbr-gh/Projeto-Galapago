@@ -4,10 +4,15 @@ extends Node2D
 ##
 ## P24 — MUNDO 3D. De trás para frente:
 ##   vista (CanvasLayer −1, `jogo/mundo3d/vista.gd`: SubViewport com a ilha 3D,
-##   os atores 3D e o Pixel Pass) · `sobre` (Node2D, canvas 0: trilha z1,
-##   perigos z1, efeitos z24, mira z25 — desenham em px de mundo da sim e o
-##   `transform` do nó é, a cada quadro, `cam3d.chao_para_tela(tela, H_REF)`;
-##   ortográfica ⇒ afim exata) · barra de giro (CanvasLayer 1) · HUD.
+##   os atores 3D e o Pixel Pass; o TERRENO pinta no topo das células o MAPA
+##   DO CHÃO, `chao` — S5b) · `sobre` (Node2D, canvas 0: só o que está NO AR,
+##   os projéteis — `efeitos_ar` z24 e `perigos_ar` z1; o `transform` do nó é,
+##   a cada quadro, `cam3d.chao_para_tela(tela, NIVEL_REF)`; ortográfica ⇒ afim
+##   exata) · barra de giro (CanvasLayer 1) · HUD.
+## MAPA DO CHÃO (`jogo/mundo3d/chao.gd`, SubViewport 2D fora da tela): trilha
+##   z1, perigos z1, efeitos (onda) z24 e mira z25, filhos de `chao.raiz`, em px
+##   de mundo da sim → texels por uma afim FIXA; não dependem da câmera nem da
+##   altura — árvores, paredes e atores passam por cima deles.
 ## Câmera: `sim/camera3d.gd` (`dados/camera3d.json`) segue a criatura; a BARRA
 ## DE GIRO no topo (`ALTURA_BARRA` px) gira 360° — dedo que DESCE nela é da
 ## barra (`_toque_barra`, no `_input`) e nunca vira gesto, pinça nem caminho.
@@ -45,6 +50,7 @@ const Comandos := preload("res://sim/comandos.gd")
 const Alvos := preload("res://sim/alvos.gd")
 const Adversario := preload("res://sim/adversario.gd")
 const Vista := preload("res://jogo/mundo3d/vista.gd")
+const Chao := preload("res://jogo/mundo3d/chao.gd")
 const Ilha := preload("res://jogo/mundo3d/ilha.gd")
 const Ator := preload("res://jogo/mundo3d/ator.gd")
 const BarraGiro := preload("res://jogo/barra_giro.gd")
@@ -64,7 +70,7 @@ const RAIO_JOYSTICK_PX := 90.0
 ## BARRA DE GIRO: faixa tátil de largura total do alto da tela (px de canvas).
 ## A HUD começa abaixo dela (`Hud.TOPO`).
 const ALTURA_BARRA := Hud.TOPO
-## plano de referência das sobreposições: o chão comum (nível 1)
+## plano de referência das sobreposições NO AR (`sobre`): o chão comum (nível 1)
 const NIVEL_REF := 1.0
 ## altura (unidades 3D) acima dos pés que a câmera olha e que o gesto usa como
 ## "ponto da criatura" na tela
@@ -96,6 +102,9 @@ var mira: Node2D
 var trilha: Node2D
 var perigos: Node2D
 var efeitos: Node2D
+## os projéteis (no ar): na tela, por cima do 3D
+var efeitos_ar: Node2D
+var perigos_ar: Node2D
 var hud: CanvasLayer
 var veu: ColorRect
 var _dedos := {}  # índice do dedo -> pressionado (multitouch)
@@ -106,7 +115,9 @@ var vista: CanvasLayer
 var ilha: Node3D
 var ator_criatura: Node3D
 var atores_adv: Array = []
-## Node2D pai das sobreposições (trilha, perigos, efeitos, mira)
+## o MAPA DO CHÃO (SubViewport): trilha, perigos, efeitos (onda) e mira
+var chao: SubViewport
+## Node2D pai das sobreposições NO AR (projéteis: efeitos_ar, perigos_ar)
 var sobre: Node2D
 var barra: Control
 ## dedos que DESCERAM na barra de giro: índice -> último x de tela
@@ -159,6 +170,12 @@ func _ready() -> void:
 	_niveis = _alturas_do_mapa()
 	_tela = get_viewport_rect().size
 
+	# o MAPA DO CHÃO entra na árvore ANTES da vista: é desenhado antes do 3D
+	# que o lê, no mesmo quadro
+	chao = Chao.new()
+	chao.configurar(mundo.largura, mundo.altura_grade)
+	add_child(chao)
+
 	# o PALCO 3D: ilha + atores, câmera ortográfica orbital
 	cam3d = Cam3D.new(_json("res://dados/camera3d.json"))
 	vista = Vista.new()
@@ -171,6 +188,7 @@ func _ready() -> void:
 	ilha.name = "Ilha"
 	vista.mundo_3d.add_child(ilha)
 	ilha.construir(mundo)
+	ilha.ligar_chao(chao.get_texture(), chao.ret_shader())
 	ator_criatura = Ator.new()
 	ator_criatura.name = "Criatura"
 	ator_criatura.cor = COR_CRIATURA
@@ -190,34 +208,46 @@ func _ready() -> void:
 		_adv_oculto.append(0.0)
 	alvos = Alvos.montar(mapa.get("objetos", []), adversarios, mundo)
 
-	# SOBREPOSIÇÕES: px de mundo da sim, por cima do 3D, afim da câmera
-	sobre = Node2D.new()
-	sobre.name = "Sobreposicoes"
-	add_child(sobre)
-	var relevo := Callable(self, "relevo")
+	# MARCAS NO CHÃO: px de mundo da sim, no mapa do chão (o terreno as pinta)
 	trilha = Trilha.new()
 	trilha.z_index = 1
-	trilha.relevo = relevo
-	sobre.add_child(trilha)
+	chao.raiz.add_child(trilha)
 	perigos = Perigos.new()
 	perigos.adversarios = adversarios
 	perigos.mundo = mundo
-	perigos.relevo = relevo
 	perigos.z_index = 1
-	sobre.add_child(perigos)
+	chao.raiz.add_child(perigos)
 	efeitos = Efeitos.new()
 	efeitos.corpo = corpo
 	efeitos.mundo = mundo
-	efeitos.relevo = relevo
 	efeitos.z_index = 24
-	sobre.add_child(efeitos)
+	chao.raiz.add_child(efeitos)
 	mira = Mira.new()
 	mira.corpo = corpo
 	mira.mundo = mundo
 	mira.alvos = alvos
-	mira.relevo = relevo
 	mira.z_index = 25
-	sobre.add_child(mira)
+	chao.raiz.add_child(mira)
+
+	# NO AR (projéteis): px de mundo da sim, por cima do 3D, afim da câmera
+	sobre = Node2D.new()
+	sobre.name = "Sobreposicoes"
+	add_child(sobre)
+	var relevo := Callable(self, "relevo")
+	perigos_ar = Perigos.new()
+	perigos_ar.no_ar = true
+	perigos_ar.adversarios = adversarios
+	perigos_ar.mundo = mundo
+	perigos_ar.relevo = relevo
+	perigos_ar.z_index = 1
+	sobre.add_child(perigos_ar)
+	efeitos_ar = Efeitos.new()
+	efeitos_ar.no_ar = true
+	efeitos_ar.corpo = corpo
+	efeitos_ar.mundo = mundo
+	efeitos_ar.relevo = relevo
+	efeitos_ar.z_index = 24
+	sobre.add_child(efeitos_ar)
 
 	# BARRA DE GIRO (sempre visível, também na vista íntima e com CONFIG)
 	var camada_barra := CanvasLayer.new()
@@ -371,8 +401,9 @@ func _atualizar_camera(delta: float) -> void:
 
 
 ## Um ponto do chão (px de mundo da sim) levado ao TOPO do terreno da sua
-## célula, expresso no plano de referência das sobreposições: o pai (`sobre`)
-## o põe na tela exatamente onde fica o chão 3D daquela célula.
+## célula, expresso no plano de referência das sobreposições no ar: o pai
+## (`sobre`) o põe na tela exatamente onde fica o chão 3D daquela célula. Só os
+## projéteis usam; as marcas de chão estão no mapa do chão.
 func relevo(p: Vector2) -> Vector2:
 	var h := Ilha.altura_3d(mundo.altura(mundo.celula_de(p)))
 	return p + _subir * (h - Ilha.altura_3d(NIVEL_REF))

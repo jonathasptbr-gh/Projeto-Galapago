@@ -127,9 +127,23 @@ comando sobrepõe: `--rendering-method gl_compatibility|mobile|forward_plus` e
   Ambiente/reflexo do `WorldEnvironment` desligados; a faixa baixa faz o papel
   de ambiente. Os três compilam no Mobile e no Compatibility (conferido no CI
   #108 em Vulkan).
-- **Tela lisa:** HUD, barra de giro, trilha, mira, perigos e efeitos são 2D
-  na resolução da tela (`antialiased=true`); as sobreposições do chão usam a
-  afim `cam3d.chao_para_tela` como `transform` do nó pai.
+- **Marcas no chão** (S5b): trilha, mira, áreas de perigo e a onda moram no
+  **mapa do chão** (`jogo/mundo3d/chao.gd`): SubViewport 2D transparente,
+  `UPDATE_ALWAYS`, que cobre a ilha + 1 célula de margem em vista de cima, com
+  afim FIXA px da sim → texel (`chao.raiz`; escala = min(2, 2048 / lado) a
+  texels inteiros por célula — fundacao: 31/32, 2046×806). Desenho em px da
+  sim, `antialiased=true`, sem câmera nem altura. O `toon.gdshader` do
+  **terreno** (`Mat.terreno`, `ilha.ligar_chao`) lê a textura pelo XZ do mundo
+  (`chao_ret`), linear sem mipmap, e mistura no ALBEDO antes da luz (a sombra
+  cai sobre o caminho), só em face para cima (normal y > ~0,7). A textura é
+  **premultiplicada** (mix do canvas sobre fundo transparente; o shader divide
+  por alfa) e sRGB (convertida a linear se `!OUTPUT_IS_SRGB`). Copas, paredes e
+  atores passam por cima, em qualquer yaw e altura; com o Pixel Pass a marca
+  é quantizada junto com o chão.
+- **Tela lisa:** HUD, barra de giro e os **projéteis no ar** (tiro, cuspe:
+  `efeitos_ar`/`perigos_ar`, `no_ar = true`) são 2D na resolução da tela
+  (`antialiased=true`), por cima do 3D; os projéteis usam a afim
+  `cam3d.chao_para_tela` como `transform` do nó pai (`sobre`) e `main.relevo`.
 - **Import de PNG:** padrão do Godot 4 para texturas 2D é sem perda; manter
   mipmaps desligados para sprites. Conferir no `.import` gerado.
 - **Animação de sprite:** `AnimatedSprite2D` + `SpriteFrames` (um `SpriteFrames`

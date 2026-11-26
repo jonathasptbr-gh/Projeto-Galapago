@@ -9,6 +9,11 @@ extends Node3D
 ##   no topo, 6 vértices por parede exposta), `Agua` (plano no nível 0)
 ##   e `Objetos` (primitivas low-poly com casca: arvore, bau, rocha e
 ##   genéricos). Seguro chamar de novo depois de editar o mundo.
+## - `ligar_chao(textura, ret)`: o MAPA DO CHÃO (`jogo/mundo3d/chao.gd`) nos
+##   materiais do terreno (`Mat.terreno`, um por superfície, em
+##   `materiais_terreno`): trilha, mira e perigos aparecem no topo das células,
+##   sob árvores, pedras, paredes e atores. Vale também para os `construir`
+##   seguintes. A água e os objetos não leem o mapa.
 ## - Espaço: o da câmera (sim/camera3d.gd): 1 unidade = 1 célula = 32 px da
 ##   sim; a célula (x, y) ocupa x..x+1 em X e y..y+1 em Z; Y para cima.
 ## - Altura: `ALTURA_NIVEL` unidades por nível de `terrenos.json` (0 mar,
@@ -53,6 +58,10 @@ var casca: MeshInstance3D
 var aba: MeshInstance3D
 var agua: MeshInstance3D
 var objetos: Node3D
+## os materiais do terreno (um por superfície) que leem o mapa do chão
+var materiais_terreno: Array[ShaderMaterial] = []
+var _chao_textura: Texture2D = null
+var _chao_ret := Vector4(0.0, 0.0, 1.0, 1.0)
 ## superfícies por cor no último `construir` (diagnóstico)
 var n_superficies := 0
 
@@ -76,6 +85,19 @@ func construir(mundo: RefCounted) -> void:
 	objetos.name = "Objetos"
 	add_child(objetos)
 	_construir_objetos(mundo)
+
+
+func ligar_chao(textura: Texture2D, ret: Vector4) -> void:
+	_chao_textura = textura
+	_chao_ret = ret
+	for m in materiais_terreno:
+		_aplicar_chao(m)
+
+
+func _aplicar_chao(m: ShaderMaterial) -> void:
+	m.set_shader_parameter("usar_chao", _chao_textura != null)
+	m.set_shader_parameter("chao", _chao_textura)
+	m.set_shader_parameter("chao_ret", _chao_ret)
 
 
 # --- terreno -------------------------------------------------------------------
@@ -113,10 +135,14 @@ func _construir_terreno(mundo: RefCounted) -> void:
 				_aba(st_aba, c, d, topo + CONTORNO_TERRENO_SOBE)
 				tem_casca = true
 	var malha := ArrayMesh.new()
+	materiais_terreno.clear()
 	for html in por_cor:
 		var st: SurfaceTool = por_cor[html]
 		st.commit(malha)
-		malha.surface_set_material(malha.get_surface_count() - 1, Mat.toon(Color(String(html))))
+		var mat := Mat.terreno(Color(String(html)))
+		_aplicar_chao(mat)
+		materiais_terreno.append(mat)
+		malha.surface_set_material(malha.get_surface_count() - 1, mat)
 	n_superficies = malha.get_surface_count()
 	terreno = MeshInstance3D.new()
 	terreno.name = "Terreno"
