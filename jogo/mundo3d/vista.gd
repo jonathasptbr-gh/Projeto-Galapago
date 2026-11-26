@@ -30,7 +30,9 @@ extends CanvasLayer
 ##   profundidade (unidades de mundo) que dá linha cheia. O mesmo shader
 ##   soma a linha de VINCO (S7: mudança brusca de orientação, parede×chão,
 ##   quina até o chão): `limiar_vinco_graus`; saturação 2 no liso, 1 e um
-##   lado só (`vinco_um_lado`) no Pixel Pass.
+##   lado só (`vinco_um_lado`) no Pixel Pass. `profundidade_msaa` (liso,
+##   MSAA 4×): a normal do centro vem dos braços de 1–2 px, sem a
+##   profundidade do próprio pixel (chanfrada pelo resolve em cima da quina).
 ## - `aplicar_camera(cam3d)`: chamar TODO quadro, depois de `cam3d.seguir` /
 ##   `avancar`; `cam3d` = sim/camera3d.gd. Posiciona a Camera3D, o tamanho
 ##   ortográfico, near/far justos ao que a vista mostra (a sombra direcional
@@ -238,12 +240,14 @@ func _reconfigurar() -> void:
 		_mat_contorno.set_shader_parameter("saturacao", 1.0)
 		_mat_contorno.set_shader_parameter("saturacao_vinco", 1.0)
 		_mat_contorno.set_shader_parameter("vinco_um_lado", true)
+		_mat_contorno.set_shader_parameter("profundidade_msaa", false)
 	else:
 		var kf := float(sv.size.y) / maxf(_tela.y, 1.0)
 		_mat_contorno.set_shader_parameter("raio", maxf(espessura_contorno * kf, 1.0))
 		_mat_contorno.set_shader_parameter("saturacao", 3.0)
 		_mat_contorno.set_shader_parameter("saturacao_vinco", 2.0)
 		_mat_contorno.set_shader_parameter("vinco_um_lado", false)
+		_mat_contorno.set_shader_parameter("profundidade_msaa", true)
 	sv.screen_space_aa = (Viewport.SCREEN_SPACE_AA_FXAA if fxaa_liso and not pixel_pass
 		else Viewport.SCREEN_SPACE_AA_DISABLED)
 	# nearest no Pixel Pass (ampliação inteira do pixel art); linear no liso

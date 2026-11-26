@@ -5,6 +5,23 @@
 
 ## Não publicado
 
+- **Contorno: quina sem faixa clara no meio** (liso, MSAA 4×): conforme o
+  ângulo, a linha de vinco de uma quina convexa clareava NO MEIO (a quina
+  aparecia através do preto). Causa: o resolve da profundidade com MSAA
+  (Vulkan Mobile: MAX; Forward+/OpenGL: média) chanfra o pixel em cima da
+  quina, e o shader usava essa profundidade nas diferenças de 1 px da normal
+  do centro (normal híbrida ⇒ ângulo < 75° dos dois lados). Agora, com
+  `profundidade_msaa` (liso; o Pixel Pass segue no método antigo), o centro
+  vem de braços de 1–2 px sem o próprio pixel, `zp` (plano no centro) entra
+  na oclusão e no ponto do meio, e o ponto do meio tem folga de meio px de
+  diferença de inclinação. Linha (1): a compensação de inclinação usa o
+  offset inteiro do texel lido (filtro nearest) — silhuetas e base da copa
+  mais uniformes, degraus duplos do Pixel Pass viram 1 px. Prova local em
+  Vulkan/lavapipe (`vitrine --quinas`, q9: quina da tábua com coluna 98 entre
+  pretos 16 antes, preta depois), possível aqui com um `LD_PRELOAD` que força
+  `LLVMGetHostCPUName` = `cortex-a76` (o llvmpipe emitia SVE ⇒ sinal 4); o
+  `--quinas` local saiu idêntico ao artefato do CI.
+
 ## v0.35.3 — contorno de vinco: linhas até o contato (2026-11-26)
 
 - **Contorno de vinco** (S7): o contorno de tela soma uma linha onde a

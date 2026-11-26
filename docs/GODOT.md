@@ -127,18 +127,26 @@ comando sobrepõe: `--rendering-method gl_compatibility|mobile|forward_plus` e
   16384, `hint_depth_texture`; NDC z por `CURRENT_RENDERER`). Linha = vizinho
   num disco de raio `raio` px MAIS PERTO por > `limiar` (0,25 unidade; começa
   em 0,08), descontada a inclinação local do plano (diferença de 1 px, o menor
-  lado); 16 amostras, cobertura = soma/3 (Pixel Pass: raio 1, soma/1). Raio
+  lado, vezes o offset INTEIRO do texel lido — o filtro é nearest); 16 amostras, cobertura = soma/3 (Pixel Pass: raio 1, soma/1). Raio
   liso = `vista.espessura_contorno` (4 px de canvas) × físico/canvas. A linha
   cai fora do objeto da frente e some no contato (base de tronco, ator,
   quina). **Vinco** (S7), no mesmo shader: linha onde a normal muda mais de
   `vista.limiar_vinco_graus` (75°; copa ≈ 51–58°, tronco 60°, borda do topo
   da pedra 68° ficam de fora), centrada no vinco, no anel de 0,55·raio: normal
-  pela profundidade (centro pelo quadrante de 1 px mais plano; amostra por 2
+  pela profundidade (centro pelo quadrante mais plano; amostra por 2
   vizinhos de 1 px para fora, descartada se um deles salta), só se o ponto do
   meio cai num dos dois planos e não é oclusão com folga — a quina desce até
   o chão e encontra o pé da parede, a rampa encosta na parede com linha.
-  Pixel Pass: 1 px, só o lado mais rasante (anel dos 8 vizinhos). 49
-  leituras de profundidade por pixel no liso, 41 no Pixel Pass (eram 21). Lê a profundidade no Mobile (resolve de MSAA no
+  **MSAA (liso, `profundidade_msaa`):** a profundidade resolvida (Mobile:
+  `VK_RESOLVE_MODE_MAX_BIT`, a sub-amostra mais perto; Forward+/OpenGL:
+  média) dá ao pixel em cima da quina um chanfro de ~1 px fora dos dois planos,
+  conforme o ângulo; usado nas diferenças, ele fazia a normal do centro
+  híbrida e a linha da quina clareava no meio. No liso o centro vem de braços
+  de 1 e 2 px para fora (sem o próprio pixel), com `zp` (plano no centro) na
+  oclusão e no ponto do meio, e o ponto do meio tem folga de meio px de
+  diferença de inclinação. Pixel Pass: 1 px, só o lado mais rasante (anel
+  dos 8 vizinhos), centro pelas diferenças de 1 px. 53 leituras de
+  profundidade por pixel no liso, 41 no Pixel Pass (eram 21). Lê a profundidade no Mobile (resolve de MSAA no
   `render_forward_mobile.cpp`) e no Compatibility (medido na prévia). A
   `casca.gdshader` (casca invertida, `cull_front`, forma 3 = aba do terreno)
   fica de reserva: só com `Mat.modo_contorno = MODO_CASCA`.

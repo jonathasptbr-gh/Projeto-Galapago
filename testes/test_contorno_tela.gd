@@ -72,3 +72,23 @@ func test_vinco_no_shader_e_na_vista() -> void:
 	v.limiar_vinco_graus = 80.0
 	igual(mat.get_shader_parameter("limiar_vinco_graus"), 80.0, "setter repassa ao shader")
 	v.free()
+
+
+func test_profundidade_msaa_liga_no_liso() -> void:
+	# MSAA 4× no liso: a profundidade resolvida chanfra o pixel em cima da
+	# quina; o centro do vinco estima a normal sem ele. Pixel Pass (sem MSAA)
+	# fica no método de 1 px.
+	var v: CanvasLayer = Vista.new()
+	var mat: ShaderMaterial = v.contorno.material_override
+	var nomes := []
+	for u in mat.shader.get_shader_uniform_list():
+		nomes.append(String(u["name"]))
+	checar("profundidade_msaa" in nomes, "uniform profundidade_msaa no shader")
+	# na árvore: _ready → _reconfigurar; o setter de pixel_pass reconfigura
+	(Engine.get_main_loop() as SceneTree).root.add_child(v)
+	igual(v.sv.msaa_3d, Viewport.MSAA_4X, "liso com MSAA 4×")
+	igual(mat.get_shader_parameter("profundidade_msaa"), true, "liso: profundidade_msaa ligado")
+	v.pixel_pass = true
+	igual(v.sv.msaa_3d, Viewport.MSAA_DISABLED, "Pixel Pass sem MSAA")
+	igual(mat.get_shader_parameter("profundidade_msaa"), false, "Pixel Pass: profundidade_msaa desligado")
+	v.free()
