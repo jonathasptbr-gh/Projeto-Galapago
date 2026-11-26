@@ -81,6 +81,47 @@ ferramentas `get_*_capabilities` cotam de graça antes de gastar.
 Os `.json` dos tilesets guardam o `pixellab_id` e os `base_tile_ids` (para
 encadear novos terrenos sem emenda).
 
+## Piloto de natureza 3D — direção em avaliação (2026-11-26)
+
+A direção pedida pelo operador é **low-poly moderadamente detalhado, com
+proporções naturais**: nem o extremo econômico de poucos polígonos, nem
+cartoon/caricatura, nem fotorrealismo. O ensaio busca mata úmida densa, árvores
+esguias irregulares com galhos afilados e folhas recortadas, samambaias,
+sub-bosque, raízes, troncos caídos, rochas e riacho sinuoso; uma trilha/clareira
+preserva a leitura do chão. É uma **proposta visual**, não uma âncora já aprovada
+pelo operador, e não muda o jogo padrão nem o rig congelado.
+
+- Cena separada: [piloto](../jogo/mundo3d/natureza/piloto.tscn), montada por
+  [piloto.gd](../jogo/mundo3d/natureza/piloto.gd). Retrato 720×1280, 3D liso
+  por padrão, câmera fixa inclusive em `--demo`. A perspectiva próxima examina
+  detalhes; `--vista-geral` é ortográfica alta/3-4, para julgar leitura de mapa.
+- [Biblioteca autoral](../jogo/mundo3d/natureza/malhas.gd): quatro variantes de
+  árvores, ramos curvos de três segmentos, ramúsculos com folhas geométricas
+  menores, ponteiro vivo; três variantes de samambaias, plantas largas,
+  gramíneas e rochas, além de tronco caído com cerne e musgo geométrico. Não há
+  esferas de copa, cards transparentes ou downloads. Geração procedural local,
+  **sem custo de PixelLab**; licença do próprio projeto, sem atribuir CC0.
+- [Mapa](../jogo/mundo3d/natureza/mapa.gd): seed fixa **20261126**, relevo e
+  cores contínuos por vértice (terra/folhas/musgo, sem xadrez), leito rebaixado,
+  margens e trilha seca. Materiais StandardMaterial3D baratos com luz/sombra
+  contínuas; nenhum toon ou contorno grosso. Reutiliza apenas a instância local
+  de Vista como compositor; o contorno dela fica sem camada de render.
+- **Medido na seed padrão:** 82 árvores; 1.393 instâncias de malha (madeira e
+  folhas de uma árvore são duas instâncias); 21 MultiMeshes e 25 nós no mapa;
+  600.503 triângulos instanciados e 126.633 vértices armazenados nas malhas
+  compartilhadas. Não são contagens de triângulos visíveis nem de draw calls.
+- [Testes headless](../testes/test_natureza.gd): seed/replay de distribuição e
+  cores em todos os lotes, reconstrução sem acumular, orçamento, cena/câmeras,
+  normais/vértices finitos, winding horário coerente, ausência de triângulos
+  degenerados e validação do leito/margens/trilha. Nenhum teste exige render.
+
+**Limites deliberados:** standalone visual, **sem navegação, colisões ou
+integração com gameplay**. Água opaca estática com filetes geométricos, sem
+reflexo de tela/refração, vento ou animação. Não há FPS mobile comprovado: os
+MultiMeshes ainda cobrem o mapa inteiro, sem divisão por setores; render por
+software não mede desempenho de aparelho. Comandos e ressalvas de render no
+[oráculo](ORACULO.md#piloto-de-natureza-3d-standalone).
+
 ## Pastas
 
 ```

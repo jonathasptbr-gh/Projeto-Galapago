@@ -3,6 +3,16 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## Não publicado
+
+- **Piloto separado de natureza 3D:** [mata úmida procedural](../jogo/mundo3d/natureza/piloto.tscn)
+  com biblioteca autoral de árvores ramificadas, folhas recortadas, samambaias,
+  sub-bosque, raízes, troncos, rochas e riacho sinuoso; seed fixa e MultiMesh.
+  Proposta visual low-poly de detalhe moderado, com vistas fixa próxima,
+  ortográfica geral e Pixel Pass opcional. Sem custo/downloads externos, sem
+  integração no jogo/mobile, navegação ou colisões; desempenho em aparelho e
+  aprovação estética do operador continuam pendentes. Sem nova versão ou APK.
+
 ## v0.35.4 — contorno sem faixa clara no meio das quinas (2026-11-26)
 
 - **Contorno: quina sem faixa clara no meio** (liso, MSAA 4×): conforme o
