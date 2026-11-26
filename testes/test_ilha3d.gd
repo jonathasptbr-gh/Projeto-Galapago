@@ -1,9 +1,12 @@
 extends "res://testes/caso.gd"
 ## Fumaça do construtor da ilha 3D (jogo/mundo3d/ilha.gd): monta sem nó na
 ## árvore, a partir de mapas pequenos, e confere superfícies, casca e objetos.
+## A casca só existe no modo casca (reserva; `Mat.modo_contorno`): os testes
+## dela forçam o modo e o devolvem.
 
 const Mundo := preload("res://sim/mundo.gd")
 const Ilha := preload("res://jogo/mundo3d/ilha.gd")
+const Mat := preload("res://jogo/mundo3d/materiais.gd")
 
 const TERRENOS := {
 	"~": {"altura": 0, "cores": ["#2f6f9f"]},
@@ -13,10 +16,13 @@ const TERRENOS := {
 }
 
 
-func _ilha(celulas: Array, objetos := []) -> Node3D:
+func _ilha(celulas: Array, objetos := [], modo := Mat.MODO_CASCA) -> Node3D:
+	var antes := Mat.modo_contorno
+	Mat.modo_contorno = modo
 	var m = Mundo.criar({"celulas": celulas, "objetos": objetos}, TERRENOS)
 	var ilha: Node3D = Ilha.new()
 	ilha.construir(m)
+	Mat.modo_contorno = antes
 	return ilha
 
 

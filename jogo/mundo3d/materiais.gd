@@ -1,9 +1,17 @@
 extends RefCounted
 ## Fábrica dos materiais do mundo 3D (sem estado além de um cache por cor).
 ## Contrato:
+## - `contorno_tela() -> bool`: o contorno é o pós de TELA pela profundidade
+##   (contorno_tela.gdshader, quad da vista.gd) — então a casca NÃO existe
+##   (nem next_pass, nem casca/aba do terreno). Lê `modo_contorno`.
+## - `modo_contorno`: MODO_TELA (padrão: Mobile e Compatibility leem a
+##   profundidade nesse uso — medido no oráculo) ou MODO_CASCA (a casca
+##   invertida antiga, reserva). Decida ANTES de construir ilha/atores: os
+##   materiais e as malhas de casca saem conforme o modo da hora.
 ## - `toon(cor, contorno := 0.0, forma := FORMA_NORMAL) -> ShaderMaterial`:
-##   toon.gdshader na cor; com `contorno > 0` ganha a casca como `next_pass`
-##   (espessura em unidades 3D, `forma` como em casca.gdshader).
+##   toon.gdshader na cor; com `contorno > 0` e modo casca ganha a casca como
+##   `next_pass` (espessura em unidades 3D, `forma` como em casca.gdshader);
+##   no modo tela `contorno` é ignorado.
 ## - `casca(espessura, forma) -> ShaderMaterial`: só o contorno (a casca do
 ##   terreno usa `FORMA_TERRENO`: paredes já infladas na malha, `espessura` =
 ##   largura da aba do topo).
@@ -24,10 +32,20 @@ const FORMA_TERRENO := 3
 ## espessura padrão do contorno dos objetos (unidades; ~1,3 px interno na vista alta)
 const CONTORNO := 0.05
 
+const MODO_TELA := 0
+const MODO_CASCA := 1
+
+static var modo_contorno := MODO_TELA
 static var _cache := {}
 
 
+static func contorno_tela() -> bool:
+	return modo_contorno == MODO_TELA
+
+
 static func toon(cor: Color, contorno := 0.0, forma := FORMA_NORMAL) -> ShaderMaterial:
+	if contorno_tela():
+		contorno = 0.0
 	var chave := "t|%s|%.4f|%d" % [cor.to_html(), contorno, forma]
 	if _cache.has(chave):
 		return _cache[chave]

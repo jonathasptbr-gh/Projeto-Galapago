@@ -14,10 +14,14 @@ const TERRENOS := {
 }
 
 
+## a aba só existe no modo casca (reserva): força o modo e o devolve
 func _ilha(celulas: Array) -> Node3D:
+	var antes := Mat.modo_contorno
+	Mat.modo_contorno = Mat.MODO_CASCA
 	var m = Mundo.criar({"celulas": celulas, "objetos": []}, TERRENOS)
 	var ilha: Node3D = Ilha.new()
 	ilha.construir(m)
+	Mat.modo_contorno = antes
 	return ilha
 
 

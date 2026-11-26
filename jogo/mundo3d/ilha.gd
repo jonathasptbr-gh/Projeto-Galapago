@@ -22,6 +22,9 @@ extends Node3D
 ## - Terreno: célula com altura > 0 é um bloco; só se emitem o topo e as
 ##   paredes que dão para célula mais baixa (fora do mapa = água). Paredes que
 ##   dão para a água descem até `FUNDO_NIVEIS` (abaixo do plano da água).
+## - Contorno: com `Mat.contorno_tela()` (o padrão) a linha é o pós de tela
+##   da vista (contorno_tela.gdshader) e `Casca`/`Aba` ficam SEM malha, e os
+##   objetos sem next_pass. O que segue vale só no modo casca (reserva).
 ## - Casca do terreno (`Mat.FORMA_TERRENO`): por parede exposta, (1) a
 ##   parede repetida `CONTORNO_TERRENO` para fora (esticada nas pontas e
 ##   `CONTORNO_TERRENO_SOBE` acima do topo), desenhada só de costas
@@ -154,7 +157,8 @@ func _construir_terreno(mundo: RefCounted) -> void:
 	aba = MeshInstance3D.new()
 	aba.name = "Aba"
 	aba.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	if tem_casca:
+	# contorno de tela (Mat.contorno_tela): os nós ficam, VAZIOS
+	if tem_casca and not Mat.contorno_tela():
 		casca.mesh = st_casca.commit()
 		casca.material_override = Mat.casca(CONTORNO_TERRENO, Mat.FORMA_TERRENO)
 		aba.mesh = st_aba.commit()

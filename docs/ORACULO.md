@@ -47,7 +47,9 @@ desenhado erraria o alvo móvel). O demo normal continua igual.
 argumentos. A vitrine do mundo 3D: `QUADROS_FPS=10
 QUADROS_CENA=res://jogo/mundo3d/vitrine.tscn tools/quadros.sh 30 ~/tmp/s3`
 (padrão 3D liso; `DEMO_ARGS="--pixel"` com Pixel Pass; `--vista-intima` na
-vista íntima). A prévia roda a janela em 720×1280, então o liso sai na mesma
+vista íntima; `--sob-arvore`, 20 quadros, câmera parada com o ator rente ao
+tronco sob a copa e a quina do planalto ao fundo — o contorno de tela, S6). A
+prévia roda a janela em 720×1280, então o liso sai na mesma
 resolução do canvas — a resolução física só aparece no aparelho.
 
 ## Fatos medidos (2026-11-20, Godot 4.7.2)

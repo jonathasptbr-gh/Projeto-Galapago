@@ -102,7 +102,8 @@ jobs:
 
       # P24: a vitrine 3D (jogo/mundo3d/) em Vulkan, com e sem Pixel Pass —
       # prova dos shaders no renderizador do APK. Padrão = 3D liso; o Pixel
-      # Pass pede `--pixel` (S5a).
+      # Pass pede `--pixel` (S5a). `--sob-arvore` (S6): o contorno de tela pela
+      # profundidade na base do tronco/ator, na quina e na copa sobre o ator.
       - name: Quadros da vitrine 3D
         run: |
           export QUADROS_RENDER=vulkan GALLIUM_DRIVER=llvmpipe QUADROS_FPS=10
@@ -110,6 +111,7 @@ jobs:
           DEMO_ARGS="--pixel" tools/quadros.sh 30 vitrine3d/pixel
           tools/quadros.sh 30 vitrine3d/liso
           DEMO_ARGS="--vista-intima" tools/quadros.sh 30 vitrine3d/intima
+          DEMO_ARGS="--sob-arvore" tools/quadros.sh 20 vitrine3d/sob-arvore
 
       - name: Publicar vitrine 3D
         if: always()

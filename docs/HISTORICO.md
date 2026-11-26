@@ -5,6 +5,13 @@
 
 ## Não publicado
 
+- **Contorno de tela** (S6): a linha escura vira pós 3D pela profundidade
+  (`jogo/mundo3d/contorno_tela.gdshader`, quad de tela cheia da vista) no
+  lugar da casca invertida e da aba: some no contato (pé do tronco, base do
+  ator, quina de plataforma) e a copa por cima do ator ganha linha na borda.
+  A casca fica de reserva (`Mat.MODO_CASCA`). Vitrine `--sob-arvore` (CI:
+  `vitrine3d/sob-arvore`).
+
 ## v0.35.1 — 3D liso por padrão, nítido, e caminho no chão (2026-11-25)
 
 - **Caminho no chão** (S5b): trilha, mira, perigos e a onda são desenhados

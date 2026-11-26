@@ -110,7 +110,7 @@ sim/                  lógica pura: gestos (1 dedo: caminho, toque=tiro carregad
 jogo/                 main · mundo3d/ (vista = SubViewport + Pixel Pass
                        liga/desliga, chao = mapa do chão que o terreno
                        pinta, ilha, ator provisório, shaders toon/
-                       casca/pixel_pass, vitrine) · barra_giro (topo, gira a
+                       contorno_tela/casca (reserva)/pixel_pass, vitrine) · barra_giro (topo, gira a
                        câmera) · perigos (área no chão; cuspe no ar) · mira
                        (mira+alvo final) · trilha · efeitos (onda no chão;
                        tiro no ar) · hud (legenda,

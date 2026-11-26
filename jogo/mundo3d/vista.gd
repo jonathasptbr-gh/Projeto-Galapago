@@ -20,6 +20,14 @@ extends CanvasLayer
 ##               canvas/físico: 1 px renderizado = 1 px da tela do aparelho.
 ##               MSAA 4×, sem FXAA (`fxaa_liso`), sem pós, câmera suave.
 ## - `niveis`, `forca_dither`: parâmetros do pós (só no Pixel Pass).
+## - `contorno: MeshInstance3D` — o CONTORNO DE TELA (contorno_tela.gdshader):
+##   QuadMesh 2×2 em clip space, filho do SubViewport (mesmo mundo 3D),
+##   `extra_cull_margin` máximo, sem sombra; visível só com
+##   `Mat.contorno_tela()` (senão a casca antiga desenha a linha). Raio em px
+##   renderizados: liso = `espessura_contorno` (px de canvas) × físico/canvas
+##   — a mesma espessura na tela em qualquer aparelho; Pixel Pass = 1 px
+##   interno, nítido (saturação 1). `limiar_contorno`: diferença de
+##   profundidade (unidades de mundo) que dá linha cheia.
 ## - `aplicar_camera(cam3d)`: chamar TODO quadro, depois de `cam3d.seguir` /
 ##   `avancar`; `cam3d` = sim/camera3d.gd. Posiciona a Camera3D, o tamanho
 ##   ortográfico, near/far justos ao que a vista mostra (a sombra direcional
@@ -32,6 +40,8 @@ extends CanvasLayer
 ## stretch `canvas_items` do projeto, 720×1280 expandido).
 
 const POS := preload("res://jogo/mundo3d/pixel_pass.gdshader")
+const CONTORNO := preload("res://jogo/mundo3d/contorno_tela.gdshader")
+const Mat := preload("res://jogo/mundo3d/materiais.gd")
 
 ## px internos de margem em cada borda (o deslocamento de subpixel é ≤ 0,5)
 const MARGEM := 2
@@ -66,8 +76,22 @@ const FOLGA_LONGE := 4.0
 		if is_inside_tree():
 			_reconfigurar()
 
+## espessura do contorno de tela no liso, em px de CANVAS (720×1280)
+@export var espessura_contorno := 4.0:
+	set(v):
+		espessura_contorno = v
+		if is_inside_tree():
+			_reconfigurar()
+@export var limiar_contorno := 0.25:
+	set(v):
+		limiar_contorno = v
+		_mat_contorno.set_shader_parameter("limiar", v)
+		_mat_contorno.set_shader_parameter("limiar_inicio", v * 0.32)
+
 var sv: SubViewport
 var mundo_3d: Node3D
+var contorno: MeshInstance3D
+var _mat_contorno: ShaderMaterial
 var camera: Camera3D
 var sol: DirectionalLight3D
 var ambiente: WorldEnvironment
@@ -134,6 +158,23 @@ func _init() -> void:
 	camera.current = true
 	sv.add_child(camera)
 
+	_mat_contorno = ShaderMaterial.new()
+	_mat_contorno.shader = CONTORNO
+	_mat_contorno.set_shader_parameter("limiar", limiar_contorno)
+	_mat_contorno.set_shader_parameter("limiar_inicio", limiar_contorno * 0.32)
+	var quad := QuadMesh.new()
+	quad.size = Vector2(2.0, 2.0)
+	contorno = MeshInstance3D.new()
+	contorno.name = "ContornoTela"
+	contorno.mesh = quad
+	contorno.material_override = _mat_contorno
+	contorno.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# a CPU não sabe que o vértice já está em clip space: sem isto o quad
+	# sai do frustum quando a câmera se afasta da origem
+	contorno.extra_cull_margin = 16384.0
+	contorno.visible = Mat.contorno_tela()
+	sv.add_child(contorno)
+
 	imagem = Sprite2D.new()
 	imagem.name = "Imagem"
 	imagem.centered = false
@@ -181,6 +222,14 @@ func _reconfigurar() -> void:
 		imagem.material = null
 		imagem.scale = Vector2(1.0 / k, 1.0 / k)
 		imagem.position = Vector2.ZERO
+	contorno.visible = Mat.contorno_tela()
+	if pixel_pass:
+		_mat_contorno.set_shader_parameter("raio", 1.0)
+		_mat_contorno.set_shader_parameter("saturacao", 1.0)
+	else:
+		var kf := float(sv.size.y) / maxf(_tela.y, 1.0)
+		_mat_contorno.set_shader_parameter("raio", maxf(espessura_contorno * kf, 1.0))
+		_mat_contorno.set_shader_parameter("saturacao", 3.0)
 	sv.screen_space_aa = (Viewport.SCREEN_SPACE_AA_FXAA if fxaa_liso and not pixel_pass
 		else Viewport.SCREEN_SPACE_AA_DISABLED)
 	# nearest no Pixel Pass (ampliação inteira do pixel art); linear no liso

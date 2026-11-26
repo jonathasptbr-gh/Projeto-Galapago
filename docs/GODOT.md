@@ -121,9 +121,19 @@ comando sobrepõe: `--rendering-method gl_compatibility|mobile|forward_plus` e
 - **Materiais:** `toon.gdshader` (luz em faixas no `light()`, cada troca um
   `smoothstep` de meia-largura `fwidth(n)`·0,75 — AA analítico, ~1 px; o nível
   passa por `OUTPUT_IS_SRGB` porque o Compatibility soma luz em sRGB e o
-  Mobile em linear) e `casca.gdshader` (contorno por casca invertida,
-  `cull_front`; colapsa no passe de sombra por `IN_SHADOW_PASS`; forma 3 = a
-  aba do topo do terreno, aberta no shader e fechada em borda de frente).
+  Mobile em linear). **Contorno** (S6): `contorno_tela.gdshader`, pós 3D
+  pela profundidade num quad de tela cheia da vista (`vista.contorno`:
+  QuadMesh 2×2, `POSITION = vec4(VERTEX.xy, 1, 1)`, `extra_cull_margin`
+  16384, `hint_depth_texture`; NDC z por `CURRENT_RENDERER`). Linha = vizinho
+  num disco de raio `raio` px MAIS PERTO por > `limiar` (0,25 unidade; começa
+  em 0,08), descontada a inclinação local do plano (diferença de 1 px, o menor
+  lado); 16 amostras, cobertura = soma/3 (Pixel Pass: raio 1, soma/1). Raio
+  liso = `vista.espessura_contorno` (4 px de canvas) × físico/canvas. A linha
+  cai fora do objeto da frente e some no contato (base de tronco, ator,
+  quina). Lê a profundidade no Mobile (resolve de MSAA no
+  `render_forward_mobile.cpp`) e no Compatibility (medido na prévia). A
+  `casca.gdshader` (casca invertida, `cull_front`, forma 3 = aba do terreno)
+  fica de reserva: só com `Mat.modo_contorno = MODO_CASCA`.
   Ambiente/reflexo do `WorldEnvironment` desligados; a faixa baixa faz o papel
   de ambiente. Os três compilam no Mobile e no Compatibility (conferido no CI
   #108 em Vulkan).
