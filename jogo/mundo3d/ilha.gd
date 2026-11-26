@@ -5,7 +5,8 @@ extends Node3D
 ## - `construir(mundo)`: apaga o que havia e cria os filhos
 ##   `Terreno` (uma ArrayMesh, UMA superfície por cor de terreno — o xadrez de
 ##   `dados/terrenos.json` vira duas superfícies por terreno), `Casca` (o
-##   contorno do terreno, malha própria já inflada), `Agua` (plano no nível 0)
+##   contorno do terreno, malha própria já inflada), `Aba` (a aba do contorno
+##   no topo, 6 vértices por parede exposta), `Agua` (plano no nível 0)
 ##   e `Objetos` (primitivas low-poly com casca: arvore, bau, rocha e
 ##   genéricos). Seguro chamar de novo depois de editar o mundo.
 ## - Espaço: o da câmera (sim/camera3d.gd): 1 unidade = 1 célula = 32 px da
@@ -16,12 +17,16 @@ extends Node3D
 ## - Terreno: célula com altura > 0 é um bloco; só se emitem o topo e as
 ##   paredes que dão para célula mais baixa (fora do mapa = água). Paredes que
 ##   dão para a água descem até `FUNDO_NIVEIS` (abaixo do plano da água).
-## - Casca do terreno: cada parede exposta repetida `CONTORNO_TERRENO` para
-##   fora (esticada nas pontas e `CONTORNO_TERRENO_SOBE` acima do topo, para a
-##   linha não sair tracejada com ~1 px interno), desenhada só de costas
-##   (cull_front): vira a
-##   linha atrás da borda do topo quando a borda é silhueta. Bordas de frente
-##   (parede virada para a câmera) não ganham linha — a faixa de luz separa.
+## - Casca do terreno (`Mat.FORMA_TERRENO`): por parede exposta, (1) a
+##   parede repetida `CONTORNO_TERRENO` para fora (esticada nas pontas e
+##   `CONTORNO_TERRENO_SOBE` acima do topo), desenhada só de costas
+##   (cull_front): a linha atrás da borda do topo e da quina quando são
+##   silhueta; (2) a ABA (nó `Aba`): faixa horizontal na altura topo + SOBE, que o shader
+##   abre `CONTORNO_TERRENO` para fora (UV.x = 1 nos vértices de fora) e fecha
+##   quando a parede vira de frente para a câmera. A aba cobre a borda da
+##   parede vista de lado (de quina para a câmera), onde a parede repetida
+##   vira uma lasca de < 1 px e saía TRACEJADA no Vulkan. Bordas de frente não
+##   ganham linha — a faixa de luz separa.
 ## - `#` (rocha, não andável) ganha uma pedra low-poly em cima do bloco.
 ## Fora: subsolo/túneis (`mundo.tuneis`) e células escavadas não são
 ## desenhados; a água é opaca (o `transparente` de terrenos.json é ignorado).
@@ -45,6 +50,7 @@ const COR_GENERICO := Color("#7f8fa6")
 
 var terreno: MeshInstance3D
 var casca: MeshInstance3D
+var aba: MeshInstance3D
 var agua: MeshInstance3D
 var objetos: Node3D
 ## superfícies por cor no último `construir` (diagnóstico)
@@ -78,6 +84,8 @@ func _construir_terreno(mundo: RefCounted) -> void:
 	var por_cor := {}  # html -> SurfaceTool
 	var st_casca := SurfaceTool.new()
 	st_casca.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var st_aba := SurfaceTool.new()
+	st_aba.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var tem_casca := false
 	var lados: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
 	for y in mundo.altura_grade:
@@ -102,6 +110,7 @@ func _construir_terreno(mundo: RefCounted) -> void:
 				var base := altura_3d(hv) if hv > 0.0 else altura_3d(FUNDO_NIVEIS)
 				_parede(_st(por_cor, cor_parede), c, d, base, topo, 0.0)
 				_parede(st_casca, c, d, base, topo + CONTORNO_TERRENO_SOBE, CONTORNO_TERRENO)
+				_aba(st_aba, c, d, topo + CONTORNO_TERRENO_SOBE)
 				tem_casca = true
 	var malha := ArrayMesh.new()
 	for html in por_cor:
@@ -116,10 +125,16 @@ func _construir_terreno(mundo: RefCounted) -> void:
 	casca = MeshInstance3D.new()
 	casca.name = "Casca"
 	casca.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	aba = MeshInstance3D.new()
+	aba.name = "Aba"
+	aba.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	if tem_casca:
 		casca.mesh = st_casca.commit()
-		casca.material_override = Mat.casca(0.0)
+		casca.material_override = Mat.casca(CONTORNO_TERRENO, Mat.FORMA_TERRENO)
+		aba.mesh = st_aba.commit()
+		aba.material_override = casca.material_override
 	add_child(casca)
+	add_child(aba)
 
 
 func _st(por_cor: Dictionary, cor: Color) -> SurfaceTool:
@@ -144,14 +159,40 @@ func _parede(st: SurfaceTool, c: Vector2i, d: Vector2i, base: float, topo: float
 		Vector3(b.x, topo, b.z), Vector3(a.x, topo, a.z), n)
 
 
+## Aba da casca: faixa de largura ZERO na linha da parede (célula `c`, lado
+## `d`), na altura `y`, esticada `CONTORNO_TERRENO` nas pontas; os vértices de
+## fora levam UV.x = 1 e o casca.gdshader (forma 3) os abre pela NORMAL (= d).
+## A face da frente olha para BAIXO: vista de cima é costas (cull_front).
+func _aba(st: SurfaceTool, c: Vector2i, d: Vector2i, y: float) -> void:
+	var centro := Vector3(c.x + 0.5, y, c.y + 0.5)
+	var n := Vector3(d.x, 0.0, d.y)
+	var lado := Vector3(-d.y, 0.0, d.x) * (0.5 + CONTORNO_TERRENO)
+	var meio := centro + n * 0.5
+	var dentro_a := meio - lado
+	var dentro_b := meio + lado
+	# o quad (dentro_a, dentro_b, fora_b, fora_a) aberto 1 unidade em n acerta
+	# a ordem; depois os de fora voltam para a linha da parede
+	var p: Array[Vector3] = [dentro_a, dentro_b, dentro_b + n, dentro_a + n]
+	var u: Array[float] = [0.0, 0.0, 1.0, 1.0]
+	if (p[1] - p[0]).cross(p[2] - p[0]).dot(Vector3.DOWN) > 0.0:
+		p = [p[0], p[3], p[2], p[1]]
+		u = [u[0], u[3], u[2], u[1]]
+	st.set_normal(n)
+	for i in [0, 1, 2, 0, 2, 3]:
+		st.set_uv(Vector2(u[i], 0.0))
+		st.add_vertex(p[i] - n * u[i])
+
+
 ## Quad (dois triângulos) com a normal dada; a ordem dos vértices é acertada
 ## para a face da frente olhar para `n` (o Godot usa sentido horário na frente).
+## UV (0, 0) em todos (a casca do terreno usa UV.x para marcar a aba).
 func _quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, n: Vector3) -> void:
 	if (b - a).cross(c - a).dot(n) > 0.0:
 		var t := b
 		b = d
 		d = t
 	st.set_normal(n)
+	st.set_uv(Vector2.ZERO)
 	for p in [a, b, c, a, c, d]:
 		st.add_vertex(p)
 

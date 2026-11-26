@@ -5,6 +5,16 @@
 
 ## Não publicado
 
+- **3D liso por padrão e nítido** (S5a): o jogo e a vitrine abrem com o Pixel
+  Pass DESLIGADO (`--pixel` liga; `--liso` aceito sem efeito; botão PIXEL ART
+  segue ligando). Liso em **resolução física** (SubViewport = `Window.size`,
+  desenhado 1/k), MSAA 4× sem FXAA; sombra com near/far justos (ortográfica
+  ignora `max_distance`), `shadow_blur` 1 (blur 0 zerava o bias no Mobile:
+  acne nas copas), atlas 4096 e filtro soft_low também no `.mobile`; casca
+  fora do passe de sombra; faixas do toon com AA por `fwidth`; **aba** no
+  contorno do terreno (fim do tracejado na borda vista de quina). CI grava 90
+  quadros e a vitrine pixel passa `--pixel`.
+
 ## v0.35.0 — Fundação 3D: mundo 3D, Pixel Pass desligável, câmera 360° (2026-11-25)
 
 - **Fundação 3D no jogo** (P24.3–4): `jogo/mundo3d/` (ilha toon+casca, Pixel

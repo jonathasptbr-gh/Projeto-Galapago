@@ -163,7 +163,9 @@ func _ready() -> void:
 	cam3d = Cam3D.new(_json("res://dados/camera3d.json"))
 	vista = Vista.new()
 	vista.altura_interna = int(cam3d.cfg["pixel_pass"]["altura_interna"])
-	vista.pixel_pass = not ("--liso" in args)
+	# padrão: 3D liso; `--pixel` liga o Pixel Pass (`--liso`, antigo, é aceito e
+	# não muda nada)
+	vista.pixel_pass = "--pixel" in args
 	add_child(vista)
 	ilha = Ilha.new()
 	ilha.name = "Ilha"
@@ -475,8 +477,8 @@ func definir_hostilidade(v: bool) -> void:
 		hud.nota("HOSTILIDADE %s" % ("LIGADA — ele vai caçar" if v else "desligada"))
 
 
-## Pixel Pass ligado (pixel art) ou desligado (3D liso). O botão da HUD chama;
-## `--liso` começa desligado.
+## Pixel Pass ligado (pixel art) ou desligado (3D liso, o padrão). O botão da
+## HUD chama; `--pixel` começa ligado.
 func definir_pixel_pass(v: bool) -> void:
 	vista.pixel_pass = v
 	vista.aplicar_camera(cam3d)

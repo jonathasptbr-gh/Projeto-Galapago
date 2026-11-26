@@ -93,7 +93,8 @@ comando sobrepõe: `--rendering-method gl_compatibility|mobile|forward_plus` e
 - **Mundo 3D + Pixel Pass** (P24, decisão do operador, 2026-11-25): o mundo é
   3D (`jogo/mundo3d/`), com câmera ortográfica orbital (`sim/camera3d.gd`) e o
   pixel art como **pós desligável** (`vista.pixel_pass`, botão PIXEL ART da
-  HUD, `--liso` começa desligado). **Ligado:** SubViewport com altura
+  HUD). **Padrão: desligado (3D liso)** desde a S5a; `--pixel` começa ligado
+  (`--liso` é aceito e não muda nada). **Ligado:** SubViewport com altura
   `pixel_pass.altura_interna` (640) + 2 px de margem, sem MSAA, ampliado
   *nearest*; `pixel_pass.gdshader` quantiza (níveis por canal; LUT de paleta
   opcional para o P6) e aplica Bayer 4×4 ancorado no mundo por
@@ -101,10 +102,28 @@ comando sobrepõe: `--rendering-method gl_compatibility|mobile|forward_plus` e
   texel (eixos direita/cima da câmera) e a imagem ampliada é deslocada de
   −`resto_px` × fator — cenário estável no deslocamento, movimento liso. No
   **giro** o tremor de pixel é inevitável (some ao parar). **Desligado:**
-  SubViewport do tamanho da tela, MSAA 4×, sem pós, câmera suave.
-- **Materiais:** `toon.gdshader` (luz em faixas no `light()`; o nível passa
-  por `OUTPUT_IS_SRGB` porque o Compatibility soma luz em sRGB e o Mobile em
-  linear) e `casca.gdshader` (contorno por casca invertida, `cull_front`).
+  SubViewport do tamanho **físico** da janela (`get_window().size`; o canvas
+  é 720×1280 lógico e o Android ampliava para 1080×2400, serrilhando e
+  borrando), desenhado com escala 1/k (k = físico/canvas): 1 px renderizado
+  = 1 px da tela; reage a `size_changed`. **AA:** MSAA 4×; FXAA avaliado e
+  desligado (`vista.fxaa_liso`): na resolução física o MSAA cobre as bordas
+  de geometria, as faixas do toon têm AA no shader, e o FXAA borraria os
+  contornos e custaria um passe de tela cheia.
+- **Sombra do sol** (S5a): com câmera **ortográfica** o Godot ignora
+  `directional_shadow_max_distance` (`renderer_scene_cull.cpp`) e a sombra
+  cobre a fatia near..far da câmera — por isso `vista.aplicar_camera` põe
+  near/far justos ao chão visível (pela inclinação e `altura_mundo`) e o
+  `fade_start` depois do último chão visível. `shadow_blur` 1 é obrigatório no
+  Mobile: lá o bias direcional é multiplicado pelo blur (blur 0 = bias 0 =
+  acne, as manchas nas copas); `shadow_bias` 0,06, `normal_bias` 2.
+  `project.godot`: atlas direcional 4096 e `soft_shadow_filter_quality` 2
+  (soft low) **iguais** na chave base (CI) e na `.mobile` (APK).
+- **Materiais:** `toon.gdshader` (luz em faixas no `light()`, cada troca um
+  `smoothstep` de meia-largura `fwidth(n)`·0,75 — AA analítico, ~1 px; o nível
+  passa por `OUTPUT_IS_SRGB` porque o Compatibility soma luz em sRGB e o
+  Mobile em linear) e `casca.gdshader` (contorno por casca invertida,
+  `cull_front`; colapsa no passe de sombra por `IN_SHADOW_PASS`; forma 3 = a
+  aba do topo do terreno, aberta no shader e fechada em borda de frente).
   Ambiente/reflexo do `WorldEnvironment` desligados; a faixa baixa faz o papel
   de ambiente. Os três compilam no Mobile e no Compatibility (conferido no CI
   #108 em Vulkan).

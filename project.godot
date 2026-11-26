@@ -43,5 +43,13 @@ renderer/rendering_method="mobile"
 renderer/rendering_method.mobile="mobile"
 ; true é o padrão do 4.7.2; explícito porque é decisão (Vulkan ausente → OpenGL 3)
 rendering_device/fallback_to_opengl3=true
+; Sombra do sol (S5a): atlas 4096 e filtro suave "low" (2) IGUAIS na chave
+; base (CI/desktop, o oráculo) e na `.mobile` (o APK; padrões 2048 e 0 = duro,
+; que serrilhava). Câmera ortográfica: o atlas inteiro cobre só a fatia
+; near..far justa da vista (jogo/mundo3d/vista.gd), ~40 unidades na vista alta.
+lights_and_shadows/directional_shadow/size=4096
+lights_and_shadows/directional_shadow/size.mobile=4096
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=2
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality.mobile=2
 textures/canvas_textures/default_texture_filter=0
 textures/vram_compression/import_etc2_astc=true

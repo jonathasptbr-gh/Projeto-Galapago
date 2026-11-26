@@ -2,8 +2,9 @@ extends Node2D
 ## Vitrine do mundo 3D para o oráculo (não é o jogo): a ilha de
 ## `dados/mapas/fundacao.json`, a vista e um ator andando em círculo; a câmera
 ## segue o ator e gira 180° de yaw em `DURACAO_GIRO` s, depois para de girar.
-## Argumentos de usuário (depois de `--`): `--liso` desliga o Pixel Pass;
-## `--vista-intima` começa na vista íntima. `--demo` (do oráculo) é ignorado.
+## Argumentos de usuário (depois de `--`): padrão 3D liso; `--pixel` liga o
+## Pixel Pass (`--liso`, antigo, é aceito sem efeito); `--vista-intima`
+## começa na vista íntima. `--demo` (do oráculo) é ignorado.
 ## Filmar: `QUADROS_CENA=res://jogo/mundo3d/vitrine.tscn tools/quadros.sh N dir`
 ## (com `QUADROS_FPS=10`, 30 quadros = os 3 s do giro).
 
@@ -41,7 +42,7 @@ func _ready() -> void:
 
 	vista = Vista.new()
 	vista.altura_interna = int(cam.cfg["pixel_pass"]["altura_interna"])
-	vista.pixel_pass = not ("--liso" in args)
+	vista.pixel_pass = "--pixel" in args
 	add_child(vista)
 
 	ilha = Ilha.new()

@@ -46,7 +46,9 @@ desenhado erraria o alvo móvel). O demo normal continua igual.
 `QUADROS_CENA` filma outra cena (`--scene`; padrão: a principal), com os mesmos
 argumentos. A vitrine do mundo 3D: `QUADROS_FPS=10
 QUADROS_CENA=res://jogo/mundo3d/vitrine.tscn tools/quadros.sh 30 ~/tmp/s3`
-(`DEMO_ARGS="--liso"` sem Pixel Pass; `--vista-intima` na vista íntima).
+(padrão 3D liso; `DEMO_ARGS="--pixel"` com Pixel Pass; `--vista-intima` na
+vista íntima). A prévia roda a janela em 720×1280, então o liso sai na mesma
+resolução do canvas — a resolução física só aparece no aparelho.
 
 ## Fatos medidos (2026-11-20, Godot 4.7.2)
 

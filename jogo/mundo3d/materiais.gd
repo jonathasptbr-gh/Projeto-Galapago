@@ -5,7 +5,8 @@ extends RefCounted
 ##   toon.gdshader na cor; com `contorno > 0` ganha a casca como `next_pass`
 ##   (espessura em unidades 3D, `forma` como em casca.gdshader).
 ## - `casca(espessura, forma) -> ShaderMaterial`: só o contorno (a casca do
-##   terreno usa espessura 0 porque a malha já vem inflada).
+##   terreno usa `FORMA_TERRENO`: paredes já infladas na malha, `espessura` =
+##   largura da aba do topo).
 ## Materiais iguais saem do cache (mesma instância): NÃO altere parâmetros de
 ## um material devolvido — peça outro com os valores que quer.
 
@@ -15,6 +16,8 @@ const CASCA := preload("res://jogo/mundo3d/casca.gdshader")
 const FORMA_NORMAL := 0
 const FORMA_CAIXA := 1
 const FORMA_CILINDRO := 2
+## casca do terreno (ilha.gd): malha pronta + aba do topo empurrada no shader
+const FORMA_TERRENO := 3
 ## espessura padrão do contorno dos objetos (unidades; ~1,3 px interno na vista alta)
 const CONTORNO := 0.05
 

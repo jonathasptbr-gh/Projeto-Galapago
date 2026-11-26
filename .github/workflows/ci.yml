@@ -81,7 +81,8 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri mesa-vulkan-drivers
-          QUADROS_RENDER=vulkan GALLIUM_DRIVER=llvmpipe tools/quadros.sh 60 quadros
+          # 90 quadros (3 s a 30 fps): a demo gira a câmera em t≈2 s
+          QUADROS_RENDER=vulkan GALLIUM_DRIVER=llvmpipe tools/quadros.sh 90 quadros
           grep -m1 -E '^(Vulkan|OpenGL) ' quadros/log.txt >> "$GITHUB_STEP_SUMMARY" || true
 
       # Referência = artefato `quadros` da última publicação verde em main.
@@ -100,13 +101,14 @@ jobs:
           retention-days: ${{ steps.decidir.outputs.publicar == 'true' && 90 || 7 }}
 
       # P24: a vitrine 3D (jogo/mundo3d/) em Vulkan, com e sem Pixel Pass —
-      # prova dos shaders no renderizador do APK enquanto a cena principal é 2D.
+      # prova dos shaders no renderizador do APK. Padrão = 3D liso; o Pixel
+      # Pass pede `--pixel` (S5a).
       - name: Quadros da vitrine 3D
         run: |
           export QUADROS_RENDER=vulkan GALLIUM_DRIVER=llvmpipe QUADROS_FPS=10
           export QUADROS_CENA=res://jogo/mundo3d/vitrine.tscn
-          tools/quadros.sh 30 vitrine3d/pixel
-          DEMO_ARGS="--liso" tools/quadros.sh 30 vitrine3d/liso
+          DEMO_ARGS="--pixel" tools/quadros.sh 30 vitrine3d/pixel
+          tools/quadros.sh 30 vitrine3d/liso
           DEMO_ARGS="--vista-intima" tools/quadros.sh 30 vitrine3d/intima
 
       - name: Publicar vitrine 3D

@@ -55,9 +55,9 @@ var _slider_sincronizado := false
 var _config_btn: Button
 var _mostrar_info := true
 var _intima := false
-# PIXEL ART (P24): estado vem do main (`definir_pixel_pass`)
+# PIXEL ART (P24): estado vem do main (`definir_pixel_pass`); padrão desligado
 var _pixel_btn: Button
-var _pixel := true
+var _pixel := false
 
 
 func definir_vista_intima(ativa: bool) -> void:
@@ -127,7 +127,7 @@ func _ready() -> void:
 	# PIXEL ART (P24): Pixel Pass ligado (imagem interna baixa + dither) ou
 	# desligado (3D liso, MSAA). O main troca a vista e devolve o estado.
 	_pixel_btn = Button.new()
-	_pixel_btn.text = "PIXEL ART: LIGADO"
+	_pixel_btn.text = "PIXEL ART: DESLIGADO"
 	_pixel_btn.add_theme_font_size_override("font_size", 16)
 	_pixel_btn.position = Vector2(20, TOPO + 334)
 	_pixel_btn.custom_minimum_size = Vector2(240, 34)
@@ -217,7 +217,7 @@ func _legenda() -> String:
 	linhas.append("botão PULO AUTO → sobe degrau de 1 nível")
 	linhas.append("botão HOSTILIDADE → o bicho caça e ataca")
 	linhas.append("barra do topo → gira a câmera")
-	linhas.append("PIXEL ART → pixel art × 3D liso")
+	linhas.append("PIXEL ART → liga o pixel art (padrão: 3D liso)")
 	linhas.append("CONFIG → esconde esta HUD")
 	return "\n".join(linhas)
 
