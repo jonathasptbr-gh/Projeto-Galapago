@@ -3,6 +3,35 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.40.0 — diagnóstico resumido e COPIAR REGISTRO (2026-11-27)
+
+- **P25/1.5, autorizada com UM agente e publicação:** o painel DIAGNÓSTICO
+  mostra só o útil, em fonte maior: FPS, quadro médio e pior, e GPU/CPU do 3D
+  contra o orçamento de 60 FPS (`23,2 / 16,7 ms`; sem leitura `n/d`). O resto
+  (escopos, resoluções, calls, notas) foi para o registro.
+- **Botão COPIAR REGISTRO** (só com o painel ligado, abaixo do DIAGNÓSTICO;
+  "Verificar atualização" desceu uma linha): põe na área de transferência um
+  texto para colar no chat — cabeçalho (versão, data, aparelho, sistema, GPU,
+  renderizador, tela, modo, MSAA, resoluções, vista, hostilidade), resumo da
+  sessão, tabela com uma linha por janela de ≥ 0,5 s e notas de escopo.
+- **Histórico:** só com o painel ligado, até 60 s (anel de 120 linhas),
+  janelas inteiras dentro do corte; descarta a que cruza o limite, inclusive
+  travada >60 s, sem rateio. Desligar, CONFIG oculto, vista íntima ou mudança de
+  modo/resolução/MSAA zeram janela e histórico. Médias do resumo por somas e
+  contagens independentes de leituras válidas, não média simples das janelas.
+- **Limites:** CPU de render não é uso total do processador; 16,7 ms é
+  referência de 60 FPS, não medição. Impactos de instrumentação e captura
+  desconhecidos (inclusive possível pausa); foto não comprova regressão/causa.
+  Cópia não entra nas janelas congeladas, mas pode afetar as seguintes. Nenhum
+  ganho alegado; render, AA, sombras, resolução e Pixel Pass intocados.
+  No oráculo por software os tempos saem `n/d`.
+- **Prova:** seletivo 16 testes, 0 falhas; gate `tools/testes.sh` exit 0,
+  202 testes GDScript/0 falhas, parser 51 scripts/0 erros, guardião 35 Markdown
+  e 49 testes. Oráculo `--diagnostico`: 3 PNG Compatibility/softpipe, último
+  aberto (painel/COPIAR sem sobreposição); Verificar provado por retângulos no
+  teste (não nasce no build local). Exemplo textual injetado e fictício, sem
+  benchmark. `git diff --check` e busca de segredos limpos.
+
 ## v0.39.0 — tempo de render por viewport no diagnóstico (2026-11-27)
 
 - **P25/1.4, autorizada com UM agente e publicação:** o painel DIAGNÓSTICO,

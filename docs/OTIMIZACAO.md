@@ -13,7 +13,10 @@
    inteiro, como manda o contrato.
 2. Ler **só as seções 2 a 4 deste guia**: a regra de ritmo, o estado com a
    **PRÓXIMA ETAPA** marcada e a referência medida. O registro (seção 8) é
-   consulta, não leitura obrigatória.
+   consulta, não leitura obrigatória. **Desde a v0.40.0 (etapa 1.5) a
+   referência do aparelho vem do REGISTRO COPIADO** (botão COPIAR REGISTRO com
+   o painel DIAGNÓSTICO ligado, colado no chat pelo operador): cabeçalho,
+   resumo de até 60 s e uma linha por janela — não mais da foto do painel.
 3. Conferir se o código citado na próxima etapa ainda é o descrito (o HEAD de
    referência de cada registro está anotado). Divergência → reconferir antes de
    propor.
@@ -52,7 +55,7 @@ autorização)** · ○ aguardando autorização · ? proposta nova, a confirmar
 | 1.2 | Painel DIAGNÓSTICO opcional na HUD | ✔ 2026-11-27 (publicado na v0.38.0) |
 | 1.3 | APK instrumentado + referência no aparelho | ◐ 2026-11-27: v0.38.0 publicada; 1 leitura no S24 Ultra (seção 4) |
 | 1.4 | Tempo de render CPU/GPU por viewport no painel + corrigir sobreposição | ✔ 2026-11-27: v0.39.0 + leitura no S24 Ultra (seção 4) |
-| 1.5 | Painel resumido (FPS e uso) + botão COPIAR REGISTRO com os dados completos | ○ pedida pelo operador (2026-11-27); **entra na próxima publicação** |
+| 1.5 | Painel resumido (FPS e tempos de render) + COPIAR REGISTRO completo | ✔ 2026-11-27: publicada na v0.40.0; prova local técnica/visual, sem benchmark Android |
 | **2.1** | **Sombras: copa simplificada só para sombra** | **▶ próxima** |
 | 2.2 | Sombras: resolução do atlas, isolada | ○ |
 | 3.1 | Copas leves na vista alta, completas na íntima | ○ |
@@ -96,14 +99,16 @@ pode justificar **propor** outra ordem, nunca executá-la sem autorização.
   A leitura anterior (v0.38.0, criatura parada, outra posição) estava no teto
   de 60 — cena, movimento e instrumentação diferem; as duas não se comparam
   como antes/depois.
-- O **GPU do 3D (23 ms)** é quase todo o quadro; a CPU de render é pequena
-  (< 1 ms por viewport) e o chão e a HUD são baratos. Sinal forte de que o
-  gargalo, aqui, é **desenhar o 3D na GPU** — onde atuam sombras (grupo 2),
-  copas (grupo 3) e resolução/MSAA (grupo 4).
-- Tempos são por viewport e à parte (soma ≠ quadro). Custo da própria
-  instrumentação não medido. Falta amostra sustentada (protocolo da 1.1).
-- **Primeira referência para comparar tempo de GPU** das próximas etapas: mesma
-  cena (vista alta, sob copa densa, andando) e o mesmo painel.
+- A captura mostra **GPU do 3D em 23 ms** e CPU de render <1 ms por viewport.
+  Isso sugere investigar o desenho 3D (sombras, copas, resolução/MSAA), mas
+  **não comprova gargalo, regressão nem causa**: é uma janela isolada.
+- Tempos são por viewport e à parte (soma ≠ quadro). Impacto da instrumentação
+  **e da captura de tela desconhecido**; a hipótese do operador de que a captura
+  pausa/interfere no jogo não foi descartada nem comprovada.
+- Esta foto é contexto histórico, não baseline sustentada. Desde 1.5 a fonte
+  técnica é o registro copiado, com duração e janelas explícitas. A cópia não
+  altera as janelas já congeladas, mas pode afetar as seguintes; também não
+  mede à parte o custo da instrumentação.
 
 
 ### 2026-11-27 — Samsung Galaxy S24 Ultra, v0.38.0-b135 (captura do operador)
@@ -153,7 +158,7 @@ detalhadas no pedido (seção 6); o gate do repositório vale se houver commit.
 | 1.2 | Painel diagnóstico opcional: FPS, tempo de quadro, calls/primitivas quando disponíveis, resolução e renderizador efetivos; sem otimizar | métricas com origem/escopo; CPU/GPU indisponível como tal; painel desligável; testes seletivos |
 | 1.3 | Versão instrumentada publicada e referência no aparelho | leitura registrada; nenhum dado de render por CPU usado como desempenho do APK |
 | 1.4 | Ligar `RenderingServer.viewport_set_measure_render_time` **só com o painel ligado** no SubViewport 3D (e no mapa do chão, se útil) e mostrar `viewport_get_measured_render_time_cpu/gpu` com rótulo de escopo; corrigir a sobreposição do botão "Verificar atualização"; publicar para medir | tempo GPU/CPU do 3D visível no aparelho, `n/d` onde a API devolver 0/indisponível; desligado não mede; layout sem sobreposição; nova referência S24 (e aparelho médio, se houver) |
-| 1.5 | Painel na tela só com o útil ao operador: FPS e uso (tempo de CPU/GPU do 3D). Botão **COPIAR REGISTRO** (só com o painel ligado) põe na área de transferência (`DisplayServer.clipboard_set`) um texto legível com **todos** os dados — os de hoje e mais (build, aparelho/sistema quando a API der, cena/vista, modos, escopos e notas) — para colar no chat em vez de foto. Pergunta aberta antes de executar: "uso do processador" em % não vem do Godot; propor ms × orçamento de quadro | painel curto e legível; registro copiado completo, com rótulos e unidades; `n/d` mantido; desligado não mede; testes do formato |
+| 1.5 | Painel na tela só com o útil ao operador: FPS, quadro médio/pior e GPU/CPU do 3D em ms × orçamento de 60 FPS (CPU de render, não uso total do processador ou % de ocupação). Histórico só com o painel ligado: uma linha por janela ≥ 0,5 s, anel dos **últimos 60 s** (teto 120 linhas), zerado ao religar. Botão **COPIAR REGISTRO** (só com o painel ligado) põe na área de transferência (`DisplayServer.clipboard_set`) um texto legível com **todos** os dados — cabeçalho (versão, data, aparelho/sistema quando a API der, GPU, renderizador, tela, modo, MSAA, resoluções, vista, hostilidade), resumo, tabela e notas de escopo — para colar no chat em vez de foto | painel curto e legível; registro copiado completo, com rótulos e unidades; `n/d` mantido; desligado não mede nem grava; testes do formato, do anel e do layout |
 | 2.1 | Sombras: chave diagnóstica completa/desligada e copa simplificada só para sombra (`SHADOWS_ONLY`), folhas reais sem projetar; atlas inalterado | proxy coerente com a árvore; mesmo enquadramento; diferença de GPU registrada |
 | 2.2 | Sombras: resolução do atlas, separada do proxy | custo × imagem registrados; pés, bordas, serrilhado e bias conferidos; não zerar blur |
 | 3.1 | Árvores internas leves na vista alta (variante `simples` de [`malhas.gd`](../jogo/mundo3d/natureza/malhas.gd)), completas na íntima | silhueta e copa vazada preservadas; transição estável (histerese), guiada pela vista ortográfica |
@@ -322,3 +327,67 @@ Gerente, sem agente; só documentação. Pontos conferidos no código:
 - Leitura do operador no S24 Ultra (v0.39.0-b137): seção 4 — 35,81 FPS, GPU do
   3D 23,18 ms. Etapa concluída. Pedido seguinte do operador: 1.5 (painel
   resumido + COPIAR REGISTRO), para a próxima publicação.
+
+### 1.5 — painel resumido e COPIAR REGISTRO (2026-11-27, 1 agente, v0.40.0)
+
+- [`diagnostico.gd`](../jogo/diagnostico.gd): o **painel** caiu para 6 linhas
+  em fonte 20 — janela, `FPS`, `Quadro: <médio> ms · pior <máx> ms`,
+  `GPU 3D: x / 16,7 ms`, `CPU render 3D: x / 16,7 ms` (média da janela contra o
+  orçamento de 60 FPS, `ORCAMENTO_MS`; sem leitura `n/d / 16,7 ms`) e
+  `Mais dados: COPIAR (N s)`. Escopos, resoluções, calls e notas
+  saíram do painel para o registro. Vírgula decimal (`num`).
+- **Histórico:** com o painel ligado, uma linha por janela ≥ 0,5 s (t, FPS,
+  intervalo médio/máximo, delta, CPU/GPU médios de cada viewport medido, calls,
+  primitivas) num **anel** de `TETO_LINHAS` = 120 posições, cortado pelo tempo
+  aos últimos `HISTORICO_S` = 60 s terminados na última janela concluída.
+  Só entram **janelas inteiras cujo início está dentro do recorte**: a janela
+  que cruza o corte sai sem rateio (inclusive uma travada >60 s, mesmo sozinha).
+  A duração informada é real e pode ser menor que 60 s. **Política:** desligar,
+  ocultar com CONFIG, entrar na vista íntima ou trocar modo/resolução/MSAA
+  **descarta** histórico e janela incompleta; ao religar começa vazio. A cópia
+  também confere a configuração antes de congelar os dados.
+- **Registro** (`montar_registro(cab, linhas)`, estática e pura; `resumir`,
+  `texto_painel`, `ms_orcamento` também): cabeçalho (jogo, versão — a mesma
+  string do título, `Hud.texto_versao()` —, data/hora, `OS.get_model_name`,
+  `OS.get_name`/`get_version`, processador (`n/d` no Android, como a API
+  documenta) e núcleos, GPU `RenderingServer.get_video_adapter_*`,
+  renderizador/API, taxa da tela, VSync, limite de FPS, modo PIXEL ART, MSAA,
+  resoluções, vista, hostilidade); resumo (duração, janelas, FPS médio/mín/máx,
+  quadro médio e pior pico, GPU/CPU de render 3D médio e pior janela).
+  FPS = total de quadros/tempo; média de CPU de render/GPU = somas originais
+  divididas pelas contagens **independentes** de leituras válidas por quadro,
+  preservadas em cada janela (não média simples de janelas, nem ausência como
+  zero). Pior = maior média de janela, não pico de GPU por quadro. Tabela com
+  colunas separadas por ` | ` e legenda; notas (soma ≠ quadro, primitivas ≠
+  triângulos, `n/d`, custo desconhecido de instrumentação/captura/cópia,
+  orçamento de 16,7 ms como referência, não medida).
+- [`hud.gd`](../jogo/hud.gd): botão **COPIAR REGISTRO** em `(20, TOPO + 418)`,
+  visível só com o painel ligado e escondido pelo CONFIG/vista íntima;
+  "Verificar atualização" desceu para `(20, TOPO + 460)`. O toque chama
+  `area_transferencia` (padrão `DisplayServer.clipboard_set`, injetável no
+  teste) e mostra `COPIADO: N janelas` por 1,5 s.
+- Prova: [`test_diagnostico.gd`](../testes/test_diagnostico.gd) **16 testes**,
+  0 falhas no seletivo: anel de 60 s/120 linhas, janelas desiguais e travada
+  >60 s, duração/FPS/contagens válidas diferentes e leitura ausente, mudança de
+  configuração, formato `x / 16,7 ms`/`n/d`, registro, cópia injetada sem
+  clipboard real headless, aviso e layout dos botões (incluindo Verificar).
+  `lint_diagnostics` chamado: sem linter GDScript/Markdown no harness; parser e
+  gate do projeto são a prova executável. No host proot a API de nome da CPU
+  avisa que não encontrou modelo e retorna vazio, convertido em `n/d`.
+- Oráculo `DEMO_ARGS="--diagnostico" tools/quadros.sh 3
+  /root/tmp/etapa15-quadros`, exit 0: **3 PNG**, Compatibility/OpenGL 3.3/softpipe;
+  último **aberto** e copiado para `/root/tmp/etapa15-quadro.png`: painel
+  legível à direita, COPIAR na coluna esquerda sem sobreposição. Verificar
+  não nasce no build local; posição abaixo de COPIAR conferida pelo teste de
+  retângulos. É prova visual, **não desempenho** (Movie Maker/software).
+- Exemplo `/root/tmp/etapa15-registro-exemplo.txt` regenerado pela função pura
+  com janelas e contagens coerentes: **EXEMPLO FICTÍCIO INJETADO — NÃO É
+  BENCHMARK** no cabeçalho. Temporários fora do git. Nenhum ganho alegado;
+  render, AA, sombras, resolução e Pixel Pass intocados. Escopo 1.5 concluído;
+  grupos 2+ não executados, exigem outra autorização.
+- Gate `tools/testes.sh`, exit 0: guardião **35 Markdown/49 testes**, **202
+  testes GDScript, 0 falhas**, parser **51 scripts, 0 erros**. Log local
+  `/root/tmp/etapa15-gate.log`; seletivo `/root/tmp/etapa15-seletivo.log`.
+  `git diff --check` limpo e busca de padrões de segredo sem ocorrências.
+  Commit de publicação e CI identificados no relatório de entrega; não se abre
+  outro commit apenas para registrar CI ainda em andamento.

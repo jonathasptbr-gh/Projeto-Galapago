@@ -21,6 +21,9 @@ signal pixel_pass_alternado(ligado: bool)
 
 ## px do topo reservados à barra de giro (o mesmo `ALTURA_BARRA` do main)
 const TOPO := 100.0
+## P25/1.5: rótulo do botão de cópia e quanto tempo o "COPIADO" fica nele
+const TEXTO_COPIAR := "COPIAR REGISTRO"
+const COPIADO_S := 1.5
 
 const Atualizador := preload("res://jogo/atualizador.gd")
 const Diagnostico := preload("res://jogo/diagnostico.gd")
@@ -28,6 +31,12 @@ const Diagnostico := preload("res://jogo/diagnostico.gd")
 var diagnostico: Label
 var _diagnostico_btn: Button
 var _diagnostico_ligado := false
+# P25/1.5: COPIAR REGISTRO (só com o painel ligado) põe o registro completo na
+# área de transferência. Injetável: o teste troca por um Callable que guarda o
+# texto (o clipboard real não existe em headless).
+var _copiar_btn: Button
+var _copiado_t := 0.0
+var area_transferencia := Callable(DisplayServer, "clipboard_set")
 var _leg: Label
 
 var atualizador: Control
@@ -78,9 +87,8 @@ func definir_vista_intima(ativa: bool) -> void:
 
 
 func _ready() -> void:
-	var versao: String = ProjectSettings.get_setting("application/config/version", "local")
 	var build := int(ProjectSettings.get_setting("galapago/build", 0))
-	_rotulo("Projeto Galápago  ·  %s  ·  retrato (3D)" % ("build local" if versao == "local" else "v" + versao), Vector2(20, TOPO + 8), 22)
+	_rotulo("Projeto Galápago  ·  %s  ·  retrato (3D)" % texto_versao(), Vector2(20, TOPO + 8), 22)
 	var leg := _rotulo(_legenda(), Vector2.ZERO, 16)
 	leg.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
 	leg.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -155,6 +163,17 @@ func _ready() -> void:
 	_diagnostico_btn.focus_mode = Control.FOCUS_NONE
 	_diagnostico_btn.pressed.connect(func(): definir_diagnostico(not _diagnostico_ligado))
 	add_child(_diagnostico_btn)
+	# P25/1.5: logo abaixo do DIAGNÓSTICO, na mesma coluna (nada sobre o painel
+	# à direita nem sobre o centro jogável); visível só com o painel ligado.
+	_copiar_btn = Button.new()
+	_copiar_btn.text = TEXTO_COPIAR
+	_copiar_btn.add_theme_font_size_override("font_size", 16)
+	_copiar_btn.position = Vector2(20, TOPO + 418)
+	_copiar_btn.custom_minimum_size = Vector2(240, 34)
+	_copiar_btn.focus_mode = Control.FOCUS_NONE
+	_copiar_btn.visible = false
+	_copiar_btn.pressed.connect(copiar_registro)
+	add_child(_copiar_btn)
 	_gesto = _rotulo("gesto: —", Vector2.ZERO, 20)
 	_gesto.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 18)
 	_gesto.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -201,11 +220,12 @@ func _ready() -> void:
 ## P25/1.4: "Verificar atualização" mora na coluna da ESQUERDA, abaixo do
 ## DIAGNÓSTICO; no canto direito (`TOPO + 350`) ficava por cima do painel ligado
 ## (captura do S24 Ultra, 2026-11-27). Some com o CONFIG, como os outros botões.
+## P25/1.5: desceu para `TOPO + 460`, abaixo do COPIAR REGISTRO.
 func _criar_verificar() -> Button:
 	var b := Button.new()
 	b.text = "Verificar atualização"
 	b.add_theme_font_size_override("font_size", 16)
-	b.position = Vector2(20, TOPO + 418)
+	b.position = Vector2(20, TOPO + 460)
 	b.custom_minimum_size = Vector2(240, 34)
 	b.focus_mode = Control.FOCUS_NONE
 	b.pressed.connect(func(): atualizador.verificar())
@@ -228,6 +248,10 @@ func _process(delta: float) -> void:
 	if _pixel_btn:
 		_pixel_btn.text = "PIXEL ART: %s" % ("LIGADO" if _pixel else "DESLIGADO")
 		_pixel_btn.modulate = Color(0.7, 0.9, 1.0) if _pixel else Color.WHITE
+	if _copiado_t > 0.0:
+		_copiado_t = maxf(0.0, _copiado_t - delta)
+		if _copiado_t <= 0.0 and _copiar_btn:
+			_copiar_btn.text = TEXTO_COPIAR
 	if _nota_t > 0.0:
 		_nota_t = maxf(0.0, _nota_t - delta)
 		if _nota_t <= 0.0 and _nota:
@@ -328,6 +352,28 @@ func _sincronizar_diagnostico() -> void:
 	# Ocultar CONFIG/vista íntima também suspende TODA coleta. Reabrir limpa a janela.
 	diagnostico.definir_ligado(mostrar and _diagnostico_ligado)
 	_leg.visible = mostrar and not _diagnostico_ligado
+	if _copiar_btn:
+		_copiar_btn.visible = mostrar and _diagnostico_ligado
+
+
+## Monta o registro completo e o põe na área de transferência; o botão avisa
+## por ~1,5 s. Devolve o texto (o teste confere sem clipboard real).
+func copiar_registro() -> String:
+	var txt: String = diagnostico.registro({
+		"Versão": texto_versao(),
+		"Vista": "íntima" if _intima else "alta",
+		"Hostilidade": "ligada" if _hostil else "desligada",
+	})
+	area_transferencia.call(txt)
+	_copiar_btn.text = "COPIADO: %d janelas" % diagnostico.historico().size()
+	_copiado_t = COPIADO_S
+	return txt
+
+
+## A mesma string de versão do título da HUD ("v0.40.0-b140" ou "build local").
+static func texto_versao() -> String:
+	var versao: String = ProjectSettings.get_setting("application/config/version", "local")
+	return "build local" if versao == "local" else "v" + versao
 
 
 ## O `veu` é o ColorRect de TELA CHEIA que o main acrescenta e move para o
