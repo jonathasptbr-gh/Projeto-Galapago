@@ -269,6 +269,9 @@ func _ready() -> void:
 	hud.pixel_pass_alternado.connect(definir_pixel_pass)
 	add_child(hud)
 	hud.definir_pixel_pass(vista.pixel_pass)
+	hud.diagnostico.configurar(vista)
+	# Atalho explícito para a captura mínima; o jogo normal começa sem diagnóstico.
+	hud.definir_diagnostico("--diagnostico" in args)
 	# VÉU do desenho: escurece a tela para ilustrar a desaceleração (fica
 	# ATRÁS dos rótulos da HUD, que são filhos da mesma CanvasLayer).
 	veu = ColorRect.new()

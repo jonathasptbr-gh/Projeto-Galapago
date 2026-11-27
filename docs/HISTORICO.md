@@ -3,6 +3,28 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.38.0 — diagnóstico opcional para a referência P25 (2026-11-27)
+
+- **P25/1.2, instrumentação:** botão DIAGNÓSTICO desligado por padrão na HUD;
+  FPS/intervalos reais por janela >=0,5 s, delta do motor separado, render/API e
+  resoluções efetivas, calls/primitivas globais do último quadro disponível.
+  CPU/GPU e contadores sem confirmação aparecem como `n/d`. Não guarda histórico,
+  não intercepta gestos; CONFIG oculto e vista íntima suspendem a coleta.
+- **P25/1.3 autorizado com UM agente:** validação completa, commit/push,
+  publicação via CI e roteiro curto para a primeira coleta na vista ALTA.
+  Código de 1.2 preservado; sem otimização, alteração de gráficos/defaults,
+  controles/simulação ou novas dependências. Contrato/fila registram o plano,
+  autorizações individuais e as evidências locais de 1.1/1.2.
+- **Gate local:** `tools/testes.sh` inteiro, exit 0: guardião documental
+  (34 Markdown, 49 testes), ferramentas Node offline, **191 testes GDScript,
+  0 falhas**, parser de **51 scripts, 0 erros**. `git diff --check` limpo;
+  busca de padrões de segredo sem ocorrências. Prévia local de 1.2 já revisada
+  (3 quadros Compatibility/softpipe), sem repetir renderização nesta publicação.
+- **Limites:** publicar o APK não conclui 1.3. Nenhum benchmark Android nem
+  custo da instrumentação no aparelho foi medido. Movie Maker e oráculos por
+  software só validam imagem; aguardam-se dados do operador na sessão, sem
+  liberar 2.1. Nenhum novo resíduo de código ou documentação.
+
 ## v0.37.0 — Natureza como mapa único e faxina do legado (2026-11-27)
 
 - **Publicação do pacote acumulado:** Natureza é o único mapa; saem Fundação,

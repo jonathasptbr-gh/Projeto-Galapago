@@ -43,6 +43,17 @@ nesta conversa; a aprovação é a resposta do operador aqui.
 Decisão de **design** (como a criatura se comporta, o que a história diz, como
 a arte fica) é do operador: o agente propõe com opções, não decide calado.
 
+**Ritmo e gastos (operador, 2026-11-27):** cada etapa dentro de cada tema
+precisa de autorização individual neste chat, e cada acionamento de subagente
+(inclusive retomada ou revisão) também. Aprovar um plano não libera sua
+execução inteira. Antes de pedir, informar escopo, entrega, verificações e
+quantidade de agentes; não iniciar agente implicitamente. Ao terminar a etapa,
+relatar o resultado e parar. Organização do plano e P25/1.1 foram autorizadas
+diretamente; P25/1.2 foi concluída localmente, e P25/1.3 está autorizada com
+um agente para validação completa, publicação e preparação de coleta no aparelho,
+sem otimização. Demais etapas aguardam nova autorização. Plano e estado
+em [P25](docs/PEDIDOS-EM-ESPERA.md#p25--cenário-3d-medir-e-otimizar-o-custo-gráfico).
+
 ## Regras de desenvolvimento
 
 - **Duas camadas** ([`ARQUITETURA`](docs/ARQUITETURA.md)): `sim/` é lógica pura

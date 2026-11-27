@@ -23,6 +23,12 @@ signal pixel_pass_alternado(ligado: bool)
 const TOPO := 100.0
 
 const Atualizador := preload("res://jogo/atualizador.gd")
+const Diagnostico := preload("res://jogo/diagnostico.gd")
+
+var diagnostico: Label
+var _diagnostico_btn: Button
+var _diagnostico_ligado := false
+var _leg: Label
 
 var atualizador: Control
 var _gesto: Label
@@ -68,6 +74,7 @@ func definir_vista_intima(ativa: bool) -> void:
 			no.visible = not ativa
 		else:
 			no.visible = not ativa and _mostrar_info
+	_sincronizar_diagnostico()
 
 
 func _ready() -> void:
@@ -79,6 +86,12 @@ func _ready() -> void:
 	leg.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	leg.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	leg.position.y += TOPO + 34
+	_leg = leg
+	diagnostico = Diagnostico.new()
+	add_child(diagnostico)
+	diagnostico.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
+	diagnostico.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	diagnostico.position.y += TOPO + 34
 	_status = _rotulo("", Vector2(20, TOPO + 40), 16)
 	_nota = _rotulo("", Vector2(20, TOPO + 64), 18)
 	# PULO AUTOMÁTICO (v0.13): botão de ligar/desligar (padrão em `pular.auto_padrao`).
@@ -133,6 +146,15 @@ func _ready() -> void:
 	_pixel_btn.focus_mode = Control.FOCUS_NONE
 	_pixel_btn.pressed.connect(func(): pixel_pass_alternado.emit(not _pixel))
 	add_child(_pixel_btn)
+	# Painel ocupa o lugar da legenda, não o centro jogável. Só o botão recebe toque.
+	_diagnostico_btn = Button.new()
+	_diagnostico_btn.text = "DIAGNÓSTICO: DESLIGADO"
+	_diagnostico_btn.add_theme_font_size_override("font_size", 16)
+	_diagnostico_btn.position = Vector2(20, TOPO + 376)
+	_diagnostico_btn.custom_minimum_size = Vector2(240, 34)
+	_diagnostico_btn.focus_mode = Control.FOCUS_NONE
+	_diagnostico_btn.pressed.connect(func(): definir_diagnostico(not _diagnostico_ligado))
+	add_child(_diagnostico_btn)
 	_gesto = _rotulo("gesto: —", Vector2.ZERO, 20)
 	_gesto.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 18)
 	_gesto.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -282,6 +304,22 @@ func _alternar_info() -> void:
 	if _mostrar_info and _carga_bg and _corpo:
 		_carga_bg.visible = _corpo.carregando()
 	_config_btn.text = "CONFIG" if _mostrar_info else "MOSTRAR"
+	_sincronizar_diagnostico()
+
+
+func definir_diagnostico(ligado: bool) -> void:
+	_diagnostico_ligado = ligado
+	_diagnostico_btn.text = "DIAGNÓSTICO: %s" % ("LIGADO" if ligado else "DESLIGADO")
+	_sincronizar_diagnostico()
+
+
+func _sincronizar_diagnostico() -> void:
+	if diagnostico == null:
+		return
+	var mostrar := _mostrar_info and not _intima
+	# Ocultar CONFIG/vista íntima também suspende TODA coleta. Reabrir limpa a janela.
+	diagnostico.definir_ligado(mostrar and _diagnostico_ligado)
+	_leg.visible = mostrar and not _diagnostico_ligado
 
 
 ## O `veu` é o ColorRect de TELA CHEIA que o main acrescenta e move para o
