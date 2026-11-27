@@ -400,3 +400,28 @@
   pacote (subsolo 3D, copa vazada na Fundação, CI filmar Natureza/hostil,
   salvar configurações de teste, LICENSE/proteção de `main`) foram
   descartadas — 9 linhas viraram `descartado (operador)`.
+
+## P6, P9 e P10 — descartados (commit comum, 2026-11-26)
+
+> Não foram feitos: **descartados pelo operador em 2026-11-26**. Motivo: o
+> padrão novo de criaturas é **importar modelos 3D prontos do Sketchfab e
+> fazer pequenos ajustes**; os estudos próprios de criação foram abandonados.
+> Os números P9 e P10 acima (atualização do app, mapa de cima) são pacotes
+> antigos com o mesmo número; a seção "P6 — Âncora de arte" acima é o texto
+> deste mesmo P6, registrado antes.
+
+- **P6 — Âncora de arte:** paleta-mestra, câmera única, tamanho de sprite,
+  base canina aprovada pelo operador e validador de assets em `tools/`
+  (pixel art pelo PixelLab).
+- **P9 — Camadas de pixel art sobre o esqueleto 3D (fase B):** peças de pixel
+  art por osso do esqueleto 3D da v0.29.0, com vistas por ângulo; congelado
+  desde 2026-11-25.
+- **P10 — Esqueleto 3D paramétrico por arquétipo e locomoção:** topologia por
+  arquétipo (quadrúpede, bípede, ave, serpente) e locomoção por contato
+  (núcleo na v0.33.0, ordem de trabalho em `docs/RIG.md` até o item 3);
+  congelado desde 2026-11-25.
+- **Na mesma faxina** saíram o código deles (rig 2D e 3D, `dados/rig/`,
+  módulos, folhas de teste, `docs/RIG.md`), o mapa Wang 2D, o ensaio da água
+  (P27; o conceito ficou escolhido, ver a fila) e o piloto da natureza. Tudo é
+  recuperável pelo git: o último commit com eles é `f002dfb`. O laboratório
+  do galope (fora do repositório) foi apagado e saiu da fila.

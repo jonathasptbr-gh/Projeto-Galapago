@@ -16,10 +16,16 @@
 > 2026-11-26. Os pacotes feitos moram em
 > [`PEDIDOS-FEITOS.md`](PEDIDOS-FEITOS.md), não aqui.
 
+> **Decisões do operador (2026-11-26) — faxina:** o padrão de criatura passa a
+> ser **modelo 3D pronto importado do Sketchfab, com pequenos ajustes**. O rig
+> próprio (2D e 3D), o mapa Wang 2D, o ensaio da água e o piloto da natureza
+> saíram do repositório; **P6, P9 e P10 foram descartados** (registro em
+> [`PEDIDOS-FEITOS.md`](PEDIDOS-FEITOS.md#p6-p9-e-p10--descartados-commit-comum-2026-11-26)).
+> Os resíduos de rig viraram `descartado (rig removido)` em
+> [`RESIDUOS.md`](RESIDUOS.md).
+
 > **Decisões do operador (2026-11-25):**
-> - **P9 e P10 congelados:** a fundação do rig será reestruturada; nada novo
->   nem retoque até lá (os resíduos de rig estão como `congelado (rig)` em
->   [`RESIDUOS.md`](RESIDUOS.md)).
+> - **P9 e P10 congelados** (superada em 2026-11-26: descartados, acima).
 > - **Controles e gestos maduros e estáveis:** não mexer sem pedido do
 >   operador.
 > - **P24 — Fundação 3D autorizado** (mesma data): o mundo vira 3D, com
@@ -27,7 +33,7 @@
 >   tela→chão e na câmera; o vocabulário de gestos continua o mesmo.
 
 > **Pedidos diretos do operador (2026-11-26), fora de pacote:** piloto de
-> natureza 3D (commit 1842ba3) e o mapa de testes NATUREZA jogável com cores
+> natureza 3D (commit 1842ba3; a cena saiu em 2026-11-26) e o mapa de testes NATUREZA jogável com cores
 > vivas (v0.36.0). Os desdobramentos que ele pediu — otimizar o cenário,
 > cenário destrutível e os quatro elementos no cenário — viraram P25–P27.
 
@@ -37,7 +43,7 @@
 |---|---|---|
 | Núcleo de jogo | P5 → P8 | P5 é o próximo do núcleo; P8 é conversa de design |
 | Cenário 3D e arena | P24 ✔ → P25 → P26 → P27 | P24 entregue; P25 mede antes de P26/P27 crescerem o custo |
-| Personagem e arte | P6 · P9 ❄ · P10 ❄ | rig congelado; contorno do ator pendente (retorno de 2026-11-26, em P24) |
+| Personagem e arte | — | P6, P9 e P10 descartados (2026-11-26): padrão novo = modelo 3D do Sketchfab + ajustes, ainda sem pacote; contorno do ator pendente (em P24) |
 | Fatia vertical | P7 | junta núcleo + cenário + personagem |
 | Manutenção | P28 ✔ | triagem dos resíduos feita (commit comum, 2026-11-26): 25 `obsoleto (3D)`, 20 `resolvido`; registro em [`PEDIDOS-FEITOS.md`](PEDIDOS-FEITOS.md#p28--triagem-dos-resíduos-commit-comum-2026-11-26) |
 
@@ -46,11 +52,8 @@
 | pacote | o quê | depende de | estado |
 |---|---|---|---|
 | P5 | Vivência → evolução (sim) + simulação em massa | P4 ✔ | **próximo do núcleo** |
-| P6 | Âncora de arte: paleta-mestra, câmera, base canina | P1 | na fila |
-| P7 | Fatia vertical: arena + cão + gestos + 1 evolução | P2–P6 | na fila |
+| P7 | Fatia vertical: arena + cão + gestos + 1 evolução | P2–P5 | na fila |
 | P8 | GDD do loop diário no laboratório/ilha | — | na fila (design, conversa) |
-| P9 | Camadas de pixel art sobre o esqueleto 3D (fase B) | A: v0.29.0 ✔ | **congelado** (2026-11-25) |
-| P10 | Esqueleto 3D paramétrico por arquétipo e locomoção | — | **congelado** (2026-11-25) |
 | P24 | Fundação 3D: mundo 3D, Pixel Pass opcional, câmera orbital 360° | — | **entregue na v0.35.0**; mapa NATUREZA na v0.36.0; contorno do ator pendente |
 | P25 | Cenário 3D: medir e otimizar o custo gráfico | v0.36.0 ✔ | na fila (pedido 2026-11-26) |
 | P26 | Cenário destrutível: vegetação, árvores que caem, arena que se abre | P25 | na fila (pedido 2026-11-26) |
@@ -62,11 +65,6 @@
   linhas `aberto` depois da triagem P28, de 2026-11-26).
 - [`gdd/historia.md`](gdd/historia.md#decisões-pendentes): decisões de
   história à espera do operador.
-- [`RIG.md`](RIG.md): a ordem de trabalho do rig (parada com P9/P10).
-- Laboratório do galope, **fora do repositório**
-  (`~/workspace/laboratorio-galope`): estudo de galope com dados de
-  referência; só entra no jogo por decisão do operador, quando o rig
-  descongelar.
 
 ---
 
@@ -77,61 +75,16 @@
 - `tools/simular.sh`: N vidas com sementes → distribuição de ramos (tabela).
   Ramo inalcançável ou dominante demais = falha de design visível.
 
-## P6 — Âncora de arte
-
-- Paleta-mestra, câmera única, tamanho de sprite; base canina aprovada pelo
-  operador; validador de assets em `tools/`. Ver `docs/ARTE.md`.
-
 ## P7 — Fatia vertical
 
 - Uma arena, o cão-base, trajetória + 4 gestos, afinidade baixa × alta
   visível, uma evolução (raposa alada de fogo). APK para o operador.
+- **2026-11-26:** P6 (âncora de arte) saiu da dependência, descartado; o
+  cão-base virá do padrão novo (modelo 3D do Sketchfab + ajustes).
 
 ## P8 — GDD do loop diário
 
 - Conversa de design com o operador → `docs/gdd/loop-diario.md`.
-
-## P9 — Camadas de pixel art sobre o esqueleto 3D (fase B)
-
-- **Estado: congelado (2026-11-25):** a fundação do rig será reestruturada;
-  nada novo nem retoque até lá.
-
-- **Decisão do operador (2026-11-23):** o alvo final é a fase B — o esqueleto
-  3D da v0.29.0 recebe as camadas de pixel art por osso, com vistas
-  lateral/frontal/costas trocadas por ângulo; câmera **low top-down (20°)**.
-- **Arte:** peças por osso (cabeça, focinho, orelhas, tronco, pernas, cauda)
-  com pivô e vistas por ângulo; medir o custo antes de gerar.
-- **Contrato:** o campo `pecas` do `dados/rig/canino3d.json` já valida; falta
-  o desenho ordenado (pintor) e o pipeline de arte.
-
-## P10 — Esqueleto 3D paramétrico por arquétipo e locomoção
-
-- **Estado: congelado (2026-11-25):** a fundação do rig será reestruturada;
-  nada novo nem retoque até lá. Antes disso: núcleo entregue na v0.33.0 (voo
-  1,97:1, giro 4/4, 272 testes/0).
-- **O que já existe:** `sim/topologia3d.gd` (schema 3 adaptado e schema 4 com
-  papéis; quadrupede/bípede/ave/serpente; membros e pole), `sim/locomocao3d.gd`
-  (fase por distância e apoios ancorados no mundo), mudanças em
-  `sim/esqueleto3d.gd`, `jogo/criatura.gd` e `jogo/rigs3d.gd`, preset
-  `dados/rig/equino3d.json` e `testes/test_parametrico3d.gd`.
-- **Medido na v0.33.0:** 176 apoios alcançáveis com erro máximo de 0,002 px;
-  voo 1,97:1 (era 0,93); reancoragem 4/4 (era 3/4).
-- **Próximo:** (1) revisar o cão nas 8 direções e o canvas no aparelho;
-  (2) as chaves do voo no equino (hoje herdam default e o teste de voo só roda
-  no cão); (3) as interfaces de bípede, ave e serpente. O método está escrito
-  em [`RIG.md`](RIG.md); o motor ainda não o segue (ordem de trabalho, itens 1–2).
-- **Ordem de trabalho:** em [`RIG.md`](RIG.md) — item (1), porte × quadro,
-  feito na v0.33.2; item (2), marcha por contato, feito na v0.33.3 (walk e
-  galope em dados, trote provado só em dados). Item (3), **feito** em duas
-  partes: a reconciliação `passada = duty × ciclo` na v0.33.4 e as
-  proporções do cão (L2, tronco +25%) na v0.34.0, junto com a locomoção por
-  modo de câmera. O próximo é o item (4): curva e despacho por arquétipo.
-- **Decisões do operador (2026-11-24):** 1C — teto de juntas por arquétipo
-  (quadrúpede 24); 2A — quadro por animal, não por clipe; 3B — patinagem
-  < 1 px também em curva e diagonal.
-- **Aceite:** segundo quadrúpede sem editar o solver; menos de 1 px de
-  patinação por apoio em reta; voo entre 1,8 e 2,0; testes verdes; imagens
-  revisadas no chat.
 
 ## P24 — Fundação 3D
 
@@ -222,7 +175,7 @@
   3. estado persistente durante a batalha (a arena "abre"); regenerar ou não
      entre batalhas é decisão de design.
 - **Dependência:** "criatura maior" pede um **porte** por criatura (não existe
-  ainda; rig congelado, evolução é P5) — começar com um porte provisório em
+  ainda; rig próprio removido, evolução é P5) — começar com um porte provisório em
   dados.
 - **Custo:** baixo a médio — trocar uma instância de MultiMesh por um nó
   animado e voltar a ela é barato; a destruição **reduz** o que se desenha.
@@ -247,18 +200,18 @@
     regra: apaga fogo, deixa o chão encharcado (mais lento, escorregadio),
     empurra no jato, enche buracos da terra. É "física mínima" barata:
     alguns milhares de células atualizadas poucas vezes por segundo.
-- **Ensaio da água feito (2026-11-26, commit comum, fora do jogo):**
-  [`sim/agua.gd`](../sim/agua.gd) (pura, testada: modelo de **canos
-  virtuais** — fluxo com embalo e atrito, conserva, não sobe parede, riacho
-  com nível fixo, evaporação sobretudo da água parada, umidade do chão) e a
-  cena [`agua_ensaio.tscn`](../jogo/mundo3d/natureza/agua_ensaio.tscn): fonte
-  jorra 4 s, a água desce a vala, enche a bacia, transborda até o riacho e
-  seca em ~13 s. O desenho NÃO é cúbico: a grade vira textura suavizada
-  (`agua.gdshader`), a borda da poça é recortada por limiar com ruído, com
-  espuma e filetes no sentido do fluxo; o chão escurece onde está úmido
-  (`natural.gdshader`, `usar_umidade`). Lição: o modelo só por diferença de
-  nível era lento demais em encosta suave (a água virava película); os canos
-  virtuais resolveram.
+- **Conceito escolhido para a água (decisão do operador, 2026-11-26):** o do
+  ensaio do commit `64f0d2f` — **água de grade**: canos virtuais na sim (fluxo
+  com embalo e atrito, conserva, não sobe parede, riacho com nível fixo,
+  evaporação sobretudo da água parada, umidade do chão), desenhada como
+  **lâmina suave com borda orgânica** (a grade vira textura suavizada; borda
+  da poça por limiar com ruído, espuma e filetes no sentido do fluxo) e **chão
+  úmido** que escurece onde molhou. Lição: o modelo só por diferença de nível
+  era lento demais em encosta suave (a água virava película); os canos
+  virtuais resolveram. O ensaio (`sim/agua.gd`, `testes/test_agua.gd`,
+  `agua_ensaio.tscn`/`.gd`, `agua.gdshader`) saiu do repositório na faxina de
+  2026-11-26 e é **recuperável por esse commit**; no jogo ficou só o
+  `usar_umidade` (desligado) do `natural.gdshader`.
 - **Referências de jogos (de memória, não conferidas):** superfícies de
   combate do *Divinity: Original Sin 2* (poças, combinações, temporárias),
   água por bloco/célula do *Minecraft* e do *Terraria* (barata, roda em

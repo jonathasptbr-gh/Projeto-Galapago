@@ -97,7 +97,7 @@ comando sobrepõe: `--rendering-method gl_compatibility|mobile|forward_plus` e
   (`--liso` é aceito e não muda nada). **Ligado:** SubViewport com altura
   `pixel_pass.altura_interna` (640) + 2 px de margem, sem MSAA, ampliado
   *nearest*; `pixel_pass.gdshader` quantiza (níveis por canal; LUT de paleta
-  opcional para o P6) e aplica Bayer 4×4 ancorado no mundo por
+  opcional, era do P6, descartado em 2026-11-26) e aplica Bayer 4×4 ancorado no mundo por
   `celula_trama`. **Snap:** a Camera3D vai para o foco arredondado no grid de
   texel (eixos direita/cima da câmera) e a imagem ampliada é deslocada de
   −`resto_px` × fator — cenário estável no deslocamento, movimento liso. No
@@ -175,13 +175,14 @@ comando sobrepõe: `--rendering-method gl_compatibility|mobile|forward_plus` e
 - **Animação de sprite:** `AnimatedSprite2D` + `SpriteFrames` (um `SpriteFrames`
   por criatura, uma animação por ação×direção). O spritesheet do PixelLab
   (`export_asset(format="spritesheet")`) traz o JSON com `cell_size` e
-  `rows` — o P6 cria um script que gera o `SpriteFrames` a partir dele.
+  `rows` — um script geraria o `SpriteFrames` a partir dele (era do P6,
+  descartado em 2026-11-26).
 - **Evolução por peças:** `Node2D` com `Sprite2D`/`AnimatedSprite2D` filhos
   (corpo, cabeça, asas, galhada) e `offset`/posição por ponto de encaixe.
   `Skeleton2D`/`Bone2D` existem para deformar polígonos — não testado aqui.
 - **Paleta por shader** (envelhecimento, elemento): `ShaderMaterial` com
   `canvas_item` lendo uma textura-LUT de paleta (cor original → cor nova).
-  A desenhar no P6; validar no oráculo.
+  Não desenhada (era do P6, descartado em 2026-11-26); validar no oráculo.
 - **Partículas** (fogo, estática, gelo): `CPUParticles2D` é a aposta segura nos
   dois renderizadores (Mobile e o fallback Compatibility) e no oráculo; `GPUParticles2D` não testado.
 - **Luz 2D:** `PointLight2D` + `CanvasTexture` (`diffuse_texture` +

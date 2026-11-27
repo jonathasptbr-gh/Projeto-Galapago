@@ -3,7 +3,6 @@ extends "res://testes/caso.gd"
 ## vez que segura a cena, ameaça que interrompe e fase (loop × fim).
 
 const A := preload("res://sim/animacao.gd")
-const E := preload("res://sim/esqueleto.gd")
 const CAMINHO := "res://dados/animacoes.json"
 
 class Fake extends RefCounted:
@@ -196,32 +195,6 @@ func test_cauda_fisica_herda_impulso_ao_decolar() -> void:
 	f.cauda = true
 	f.rota = false
 	checar(not bool(A.retrato(f, true, true)["impulso_corrida"]), "inércia fora da rota não recebe fator aéreo")
-
-
-func test_duracoes_do_canino_sincronizadas_com_catalogo() -> void:
-	var m := _cat()
-	var rig := E.de_json(FileAccess.get_file_as_string("res://dados/rig/canino.json"))
-	checar(not rig.is_empty(), "rig do cão válido")
-	var canino := A.para_rig(m, rig)
-	igual(A.validar(canino), "", "catálogo especializado válido")
-	for id in E.CLIPES:
-		perto(E.duracao(rig, id) * 1000.0, float(A.clipe(canino, id).get("duracao_ms", 0)),
-			0.01, "duração do cão em %s" % id)
-	for par in [["walk", 320, 500], ["run", 280, 380], ["bite", 350, 420], ["slam", 340, 450]]:
-		var id: String = par[0]
-		igual(int(A.clipe(canino, id)["duracao_ms"]), int(par[1]), "canino ágil: " + id)
-		igual(int(A.clipe(m, id)["duracao_ms"]), int(par[2]), "catálogo base preservado: " + id)
-	# A janela ornamental continua no tempo já declarado; não é regra de dano.
-	igual(int(A.clipe(canino, "bite")["janelas"][0]["ms"]), 180, "janela bite inalterada")
-	igual(int(A.clipe(canino, "slam")["janelas"][0]["ms"]), 160, "janela slam inalterada")
-	for outro in ["serpente", "ave"]:
-		var r := E.de_json(FileAccess.get_file_as_string("res://dados/rig/" + outro + ".json"))
-		var cat_outro := A.para_rig(m, r)
-		for id in ["walk", "run", "bite", "slam"]:
-			igual(int(A.clipe(cat_outro, id)["duracao_ms"]), int(A.clipe(m, id)["duracao_ms"]),
-				outro + " não acelera " + id)
-	perto(A.fase(_mem("run", 0.0), canino, 280.0), 0.0, 0.001, "galope fecha em 280ms")
-	perto(A.fase(_mem("walk", 0.0), canino, 320.0), 0.0, 0.001, "passo fecha em 320ms")
 
 
 ## v0.34 — o MODO DA CÂMERA manda no clipe base: de LONGE não existe

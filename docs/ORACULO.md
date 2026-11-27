@@ -118,67 +118,41 @@ esperado e some na publicação seguinte.
   de pixel art** (contorno, leitura da silhueta) é do operador, e regras
   objetivas (paleta, tamanho, transparência) viram script em `tools/`.
 
-## Piloto de natureza 3D (standalone)
+## Mapa de testes NATUREZA (3D)
 
-> **Ensaio da água de grade (P27):** `QUADROS_CENA=res://jogo/mundo3d/natureza/agua_ensaio.tscn
-> QUADROS_FPS=8 tools/quadros.sh 112 <saída>` filma o ciclo inteiro (14 s);
-> `DEMO_ARGS="--alta --avancar=5.5"` dá a foto na vista alta do jogo no meio
-> do ciclo. O log imprime, por segundo, a água fora do riacho, a da bacia e a
-> que chega perto do riacho.
+> **2026-11-26:** a cena piloto standalone (`jogo/mundo3d/natureza/piloto.tscn`)
+> e o ensaio da água de grade (P27, `agua_ensaio.tscn`) foram **removidos**
+> por decisão do operador; os comandos deles estão no histórico do git (o
+> ensaio no commit `64f0d2f`). A mata segue viva como mapa jogável.
 
-> **v0.36.0:** a mata também é o **mapa de testes NATUREZA do jogo**. A cena
-> principal com `DEMO_ARGS="--natureza"` roda a demo de sempre nela (caminho,
-> giro pela barra, tiro, pulo, perseguição, cavar na clareira):
-> `DEMO_ARGS="--natureza" tools/quadros.sh 40 ~/tmp/natureza-jogo` (some
-> `--pixel` para o Pixel Pass). O CI segue filmando a Fundação.
-
-A [cena piloto](../jogo/mundo3d/natureza/piloto.tscn) é separada do jogo: mata
-úmida autoral procedural, seed **20261126**, sem atores/rig, colisões, navegação
-ou gameplay. A [direção e orçamento](ARTE.md#piloto-de-natureza-3d--direção-em-avaliação-2026-11-26)
-estão registrados no guia de arte. Câmera **parada**, inclusive em `--demo`:
-2 quadros bastam para avaliar cada composição em retrato 720×1280. Padrão é
-3D liso; `--pixel` liga o pós local. As quatro composições:
-
-```bash
-# Os diretórios de saída são descartáveis: quadros.sh os recria.
-QUADROS_CENA=res://jogo/mundo3d/natureza/piloto.tscn tools/quadros.sh 2 ~/tmp/natureza-piloto
-DEMO_ARGS="--vista-geral" QUADROS_CENA=res://jogo/mundo3d/natureza/piloto.tscn tools/quadros.sh 2 ~/tmp/natureza-geral
-DEMO_ARGS="--detalhe" QUADROS_CENA=res://jogo/mundo3d/natureza/piloto.tscn tools/quadros.sh 2 ~/tmp/natureza-detalhe
-DEMO_ARGS="--verso" QUADROS_CENA=res://jogo/mundo3d/natureza/piloto.tscn tools/quadros.sh 2 ~/tmp/natureza-verso
-# Pode combinar --pixel com qualquer composição; aqui, a geral ortográfica.
-DEMO_ARGS="--vista-geral --pixel" QUADROS_CENA=res://jogo/mundo3d/natureza/piloto.tscn tools/quadros.sh 2 ~/tmp/natureza-pixel
-```
-
-`--vista-geral` é **ortográfica alta/3-4**, para avaliar a densidade em uma
-câmera de mapa. Padrão, `--detalhe` (rio próximo) e `--verso` (margem oposta)
-são perspectivas. Nenhuma opção altera a distribuição de assets ou sorteia
-uma cena nova. Não chamar `Vista.aplicar_camera` neste ensaio: near/far e
-projeção são locais e suportam árvores acima do limite da ilha antiga.
+Desde a v0.36.0 a mata é o **mapa de testes NATUREZA do jogo**. A cena
+principal com `DEMO_ARGS="--natureza"` roda a demo de sempre nela (caminho,
+giro pela barra, tiro, pulo, perseguição, cavar na clareira):
+`DEMO_ARGS="--natureza" tools/quadros.sh 40 ~/tmp/natureza-jogo` (some
+`--pixel` para o Pixel Pass). O CI segue filmando a Fundação. A [direção e
+orçamento](ARTE.md#mata-3d--direção-em-avaliação-2026-11-26) estão no guia de
+arte.
 
 ### Vulkan local: workaround medido, não portátil
 
 Em **2026-11-26**, neste host aarch64/proot, o shim externo abaixo permitiu
-renderizar o piloto em **Vulkan / Forward Mobile / llvmpipe**, confirmado no
-cabeçalho do log. O shim força uma CPU LLVM compatível; desligar SVE/SVE2 e o
-cache foi necessário para evitar SIGILL. O binário e sua fonte estão **fora do
-repositório**, não são requisito do jogo e não devem ser baixados ou presumidos
-em outro host. Apenas onde esse shim local já existe:
+renderizar a mata (então na cena piloto, hoje removida) em **Vulkan / Forward
+Mobile / llvmpipe**, confirmado no cabeçalho do log. O shim força uma CPU LLVM
+compatível; desligar SVE/SVE2 e o cache foi necessário para evitar SIGILL. O
+binário e sua fonte estão **fora do repositório**, não são requisito do jogo e
+não devem ser baixados ou presumidos em outro host. Apenas onde esse shim local
+já existe (não reconferido na cena principal):
 
 ```bash
 LD_PRELOAD=/root/tmp/lvpshim/shim.so SHIM_FEATS='-sve,-sve2' MESA_SHADER_CACHE_DISABLE=true \
-QUADROS_RENDER=vulkan GALLIUM_DRIVER=llvmpipe \
-QUADROS_CENA=res://jogo/mundo3d/natureza/piloto.tscn \
+QUADROS_RENDER=vulkan GALLIUM_DRIVER=llvmpipe DEMO_ARGS="--natureza" \
 tools/quadros.sh 2 ~/tmp/natureza-vulkan
 ```
 
-Acrescentar `DEMO_ARGS="--detalhe"` (ou a opção desejada) à mesma chamada para
-as outras vistas. **Não rodar imports/renderizações concorrentes neste clone**.
-Sem o shim, usar a prévia Compatibility/softpipe padrão (primeiro bloco), sem
-`LD_PRELOAD`, ou renderizar Vulkan no CI compatível. A captura Vulkan de revisão
-teve 2 quadros em 14 s de gravação; isso **não é benchmark mobile**.
-
-O piloto usa névoa não volumétrica de Environment e materiais Standard, não o
-toon da ilha. A referência desta proposta é Mobile/Vulkan; **não foi validada
-a equivalência de névoa, cor e sombra no Compatibility**. A prévia é útil para
-composição, mas não deve ser apresentada como imagem idêntica à do APK. Sempre
-abrir o PNG e conferir o renderizador real no log antes de concluir.
+**Não rodar imports/renderizações concorrentes neste clone**. Sem o shim, usar
+a prévia Compatibility/softpipe padrão, sem `LD_PRELOAD`, ou renderizar Vulkan
+no CI compatível. A captura Vulkan de revisão teve 2 quadros em 14 s de
+gravação; isso **não é benchmark mobile**. A prévia é útil para composição,
+mas não deve ser apresentada como imagem idêntica à do APK: **não foi
+validada a equivalência de cor e sombra no Compatibility**. Sempre abrir o PNG
+e conferir o renderizador real no log antes de concluir.

@@ -26,7 +26,7 @@ uniform bool usar_foco = false;
 uniform vec3 foco = vec3(0.0);
 uniform float raio_foco = 1.9;
 uniform float folga_foco = 0.9;
-// CHÃO MOLHADO (ensaio da água de grade, agua.gdshader): o canal A do campo
+// CHÃO MOLHADO (água de grade, P27; o ensaio está no commit 64f0d2f): o canal A do campo
 // da água é a umidade da célula; o chão escurece e brilha um pouco onde está
 // molhado. Desligado por padrão (a mata do jogo não muda).
 uniform bool usar_umidade = false;

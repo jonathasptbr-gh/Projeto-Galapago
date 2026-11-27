@@ -7,7 +7,7 @@ extends Node3D
 ##
 ## Espaço LOCAL (o de sim/natureza.gd): chão andável PLANO em y = 0; só o leito
 ## do riacho desce. No jogo o nó vai em `Natureza.origem_3d()` (chão em
-## y = 0,4, célula da sim = 1 unidade); no piloto standalone fica na origem.
+## y = 0,4, célula da sim = 1 unidade); construído sozinho (testes) fica na origem.
 ##
 ## Contrato para o jogo:
 ## - `construir(semente)`; `ligar_chao(textura, ret)` — o MAPA DO CHÃO no solo
@@ -70,8 +70,8 @@ static func ponto(x: float, z: float) -> Vector3:
 	return Vector3(x, altura(x, z), z)
 
 
-## Luz e céu da mata: verdes vivos, sem lavagem cinza. `nevoa` só no piloto em
-## perspectiva (profundidade); na vista alta do jogo fica desligada.
+## Luz e céu da mata: verdes vivos, sem lavagem cinza. `nevoa` serve a uma vista
+## em perspectiva (o piloto, removido em 2026-11-26); na vista alta do jogo fica desligada.
 static func ambientar(env: Environment, sol: DirectionalLight3D, nevoa := false) -> void:
 	env.background_mode = Environment.BG_COLOR
 	env.background_color = Color("#9fd3e6")

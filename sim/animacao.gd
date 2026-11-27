@@ -69,20 +69,6 @@ static func validar(m: Dictionary) -> String:
 	return ""
 
 
-## Catálogo privado da pele: só o canino lê seus tempos mais ágeis.
-## O catálogo comum permanece byte a byte igual para os demais rigs.
-static func para_rig(m: Dictionary, rig: Dictionary) -> Dictionary:
-	var copia := m.duplicate(true)
-	if String(rig.get("familia", "")) != "canino":
-		return copia
-	var cat: Dictionary = copia.get("catalogo", {})
-	var clips: Dictionary = rig.get("clips", {})
-	for id in clips:
-		if cat.has(id):
-			cat[id]["duracao_ms"] = roundi(float(clips[id]["duracao_s"]) * 1000.0)
-	return copia
-
-
 static func clipe(m: Dictionary, id: String) -> Dictionary:
 	var cat: Dictionary = m.get("catalogo", {})
 	return cat.get(id, {})

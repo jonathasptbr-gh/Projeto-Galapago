@@ -3,8 +3,6 @@ extends "res://testes/caso.gd"
 const Malhas := preload("res://jogo/mundo3d/natureza/malhas.gd")
 const Natureza := preload("res://sim/natureza.gd")
 const Mapa := preload("res://jogo/mundo3d/natureza/mapa.gd")
-const Piloto := preload("res://jogo/mundo3d/natureza/piloto.gd")
-const CENA := preload("res://jogo/mundo3d/natureza/piloto.tscn")
 
 
 func _validar(m: ArrayMesh, nome: String) -> void:
@@ -129,20 +127,3 @@ func test_riacho_trilha_e_margens_coerentes() -> void:
 		checar(Mapa.altura(Mapa.trilha_x(z), z) > Mapa.AGUA_Y, "trilha seca")
 	checar(absf(Mapa.rio_x(-12.0) - Mapa.rio_x(5.0)) > 1.0, "rio sinuoso")
 
-
-func test_cena_isolada_camera_estatica_e_contorno_local() -> void:
-	var cena := CENA.instantiate()
-	# _ready monta apenas recursos 3D; headless não desenha nada.
-	var raiz: Window = Engine.get_main_loop().root
-	raiz.add_child(cena)
-	igual(cena.vista.contorno.layers, 0, "contorno desativado só na instância piloto")
-	cena.vista._reconfigurar()
-	igual(cena.vista.contorno.layers, 0, "resize não reativa contorno")
-	igual(cena.vista.camera.projection, Camera3D.PROJECTION_PERSPECTIVE, "perspectiva de proximidade padrão")
-	var geral := Piloto.configuracao(PackedStringArray(["--vista-geral", "--demo"]))
-	checar(geral["ortografica"], "vista geral ortográfica compatível com jogo")
-	var detalhe := Piloto.configuracao(PackedStringArray(["--detalhe"]))
-	checar(not detalhe["ortografica"], "detalhe próximo em perspectiva")
-	checar(Piloto.configuracao(PackedStringArray(["--verso"]))["posicao"] != detalhe["posicao"], "outro ângulo real")
-	checar(not cena.is_processing(), "demo não gira câmera automaticamente")
-	cena.free()

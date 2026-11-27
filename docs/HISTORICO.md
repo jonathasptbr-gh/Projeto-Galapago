@@ -5,6 +5,17 @@
 
 ## Não publicado
 
+- **Faxina (decisão do operador, 2026-11-26):** o padrão de criatura passa a
+  ser modelo 3D pronto do Sketchfab com pequenos ajustes. Saíram o rig próprio
+  2D e 3D (`sim/esqueleto*.gd`, `topologia3d`, `locomocao3d`, `sim/modulos.gd`,
+  `jogo/rigs*.gd`, `jogo/pele_geometrica*.gd`, `jogo/modulos.gd`, `dados/rig/`,
+  `dados/modulos.json`, `tools/folha_canino*.gd`, `docs/RIG.md` e os testes
+  deles), o mapa Wang 2D (`sim/mapa.gd`, `ilha_teste.json`, tilesets e objetos
+  2D), a arte 2D de prova, o ensaio da água (P27; o conceito ficou escolhido,
+  código no commit `64f0d2f`) e o piloto da natureza. `sim/animacao.gd` fica
+  (sem `para_rig`). P6, P9 e P10 descartados (`PEDIDOS-FEITOS.md`); resíduos
+  do rig viraram `descartado (rig removido)`. Recuperável pelo git até
+  `f002dfb`. Sem versão.
 - **Ensaio da água de grade (P27), fora do jogo:** `sim/agua.gd` (canos
   virtuais, testado) e a cena `jogo/mundo3d/natureza/agua_ensaio.tscn` — poça
   que nasce, escorre por uma vala, enche uma bacia, transborda até o riacho e
@@ -34,7 +45,7 @@
   moldura de mata distante com árvores simplificadas. Mapa inteiro ~691 mil
   triângulos instanciados; FPS no aparelho não medido.
 - `vista.altura_relevo` (padrão 4, mata 15): a fatia near..far cabe árvores altas.
-- **Piloto separado de natureza 3D:** [mata úmida procedural](../jogo/mundo3d/natureza/piloto.tscn)
+- **Piloto separado de natureza 3D:** mata úmida procedural (`jogo/mundo3d/natureza/piloto.tscn`)
   com biblioteca autoral de árvores ramificadas, folhas recortadas, samambaias,
   sub-bosque, raízes, troncos, rochas e riacho sinuoso; seed fixa e MultiMesh.
   Proposta visual low-poly de detalhe moderado, com vistas fixa próxima,
@@ -268,7 +279,7 @@
 
 ## v0.33.1 — método do rig documentado (2026-11-24)
 
-- **Novo [`RIG.md`](RIG.md):** densidade de arte × porte × quadro × pivô;
+- **Novo `RIG.md`:** densidade de arte × porte × quadro × pivô;
   contato primeiro e ângulo depois; as cinco primitivas de locomoção com status
   honesto (quadrúpede implementada, inseto planejada, bípede/ave/serpente
   conceito); autoridade por arquétipo, não por clipe; decisões 1C/2A/3B; ordem

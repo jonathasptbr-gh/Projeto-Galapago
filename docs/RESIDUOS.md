@@ -3,11 +3,15 @@
 > Toda **publicação** (`vX.Y.Z`) deixa ao menos uma linha aqui antes do push,
 > mesmo que seja "nenhum"; commit comum não registra (nota, se houver, vai em
 > `## Não publicado` do histórico). Linha não se apaga: muda o estado.
-> `congelado (rig)`: parado até a reestruturação da fundação do rig (2026-11-25).
+> `congelado (rig)`: parado até a reestruturação da fundação do rig (2026-11-25);
+> sem linhas desde 2026-11-26 (viraram `descartado (rig removido)`).
 > `obsoleto (3D)`: o assunto saiu do jogo com a Fundação 3D (P24, v0.35.0) — o
 > código ou desenho 2D citado não está no caminho de jogo (`jogo/main.gd`,
 > `jogo/mundo3d/`); conferido com `rg` na triagem P28 (2026-11-26).
 > `descartado (operador)`: o operador decidiu não aplicar (2026-11-26, fechamento do P28).
+> `descartado (rig removido)`: o rig próprio (2D e 3D) saiu do repositório na faxina
+> de 2026-11-26 (decisão do operador: criaturas = modelo 3D do Sketchfab + ajustes);
+> o código segue no git até `f002dfb`. Inclui as antigas `congelado (rig)`.
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
@@ -34,71 +38,71 @@
 | v0.35.0 | visual | no Vulkan (CI #108) o contorno de algumas paredes sai tracejado, aparecem manchas escuras nas copas na vista íntima e o dither está forte | pequeno | resolvido v0.35.1 (dither: Pixel Pass fora do padrão) |
 | v0.35.0 | 3D | criatura e inimigo são atores provisórios (cápsula); a pele real depende do rig, congelado | grande | aberto |
 | v0.35.0 | desempenho | Mobile/Vulkan não medido em aparelho; o oráculo local é só prévia em Compatibility | médio | aberto |
-| v0.34.3 | rig | cotovelo acima do ombro em 6/24 fases do galope: com o polo atrás, exigiria a pata 0,3–6,7 px mais longe que o arco do balanço — conserto de **trajetória** (dados), não de solver | médio | congelado (rig) |
-| v0.34.3 | rig | joelho acima da anca em 3/24 e jarrete acima do joelho em 2/24: só no recolhimento máximo; clampar até a distância de apoio ordenaria, mas mudaria o contato | pequeno | congelado (rig) |
-| v0.34.3 | marcha | o clamp do balanço aumenta a passada aparente do `fe` (17,0 → 17,46) sem mudar o dado | pequeno | congelado (rig) |
-| v0.34.2 | rig | cotovelo dianteiro acima do ombro em 10/24 fases do galope: as duas dobras violam **por geometria** (ombro→pata < 9,72 px, cadeia de 21 px) — o conserto é de alvo/pose | médio | congelado (rig) |
-| v0.34.2 | rig | joelho traseiro acima da anca em 3/24 e jarrete em 4/24: só no recolhimento máximo, onde a dobra válida pularia o joelho > 2,5 px (guarda anti-pisca) | pequeno | congelado (rig) |
-| v0.34.2 | rig | a regra da dobra vale só nos clipes de marcha; idle, jump_*, charge, shot, bite, slam, dig, hit, stunned, death e get_up ficam fora (postura autoral) | pequeno | congelado (rig) |
-| v0.34.2 | nomes | `joelho_fe/fd` é o **cotovelo**: 39 referências em 6 arquivos, 3 deles do rig 2D — renomeação fica para um lote próprio | pequeno | aberto |
-| v0.34.1 | fluidez | pico do joelho traseiro em 3,48 px/quadro a 60 fps (teto do teste subiu 2,5→3,5); o pé não acelera — vigiar "piscada" no jarrete no aparelho | pequeno | congelado (rig) |
-| v0.34.1 | rig | punho não existe com 24 juntas: antebraço e metacarpo são UM osso (só a razão da referência foi aplicada); punho próprio = +2 juntas, teto 26 (decisão 1C) | médio | congelado (rig) |
-| v0.34.1 | rig | omoplata a 62° (prancha: 45°); 45° exigiria o ombro ~6 px à frente da cernelha e prende o fim do apoio do galope em z=12,4 | pequeno | congelado (rig) |
-| v0.34.1 | pose | a fase reunida da prancha não é reproduzida: extensão 1,69 cernelhas (prancha 1,89) e compressão 0,67 (prancha 0,23) — tronco inclina ao contrário | médio | congelado (rig) |
-| v0.34.0 | fluidez | com a passada maior, os tetos do teste subiram (transição walk→run 15 px; pico do run 2,5 px/quadro a 60 fps) — vigiar "estalo" na troca no aparelho | pequeno | congelado (rig) |
-| v0.34.0 | sprint | a corrida acelerada usa a MESMA marcha do galope (muda só a velocidade); marcha própria de sprint (passada/voo maiores) exige perna mais longa | médio | congelado (rig) |
+| v0.34.3 | rig | cotovelo acima do ombro em 6/24 fases do galope: com o polo atrás, exigiria a pata 0,3–6,7 px mais longe que o arco do balanço — conserto de **trajetória** (dados), não de solver | médio | descartado (rig removido) |
+| v0.34.3 | rig | joelho acima da anca em 3/24 e jarrete acima do joelho em 2/24: só no recolhimento máximo; clampar até a distância de apoio ordenaria, mas mudaria o contato | pequeno | descartado (rig removido) |
+| v0.34.3 | marcha | o clamp do balanço aumenta a passada aparente do `fe` (17,0 → 17,46) sem mudar o dado | pequeno | descartado (rig removido) |
+| v0.34.2 | rig | cotovelo dianteiro acima do ombro em 10/24 fases do galope: as duas dobras violam **por geometria** (ombro→pata < 9,72 px, cadeia de 21 px) — o conserto é de alvo/pose | médio | descartado (rig removido) |
+| v0.34.2 | rig | joelho traseiro acima da anca em 3/24 e jarrete em 4/24: só no recolhimento máximo, onde a dobra válida pularia o joelho > 2,5 px (guarda anti-pisca) | pequeno | descartado (rig removido) |
+| v0.34.2 | rig | a regra da dobra vale só nos clipes de marcha; idle, jump_*, charge, shot, bite, slam, dig, hit, stunned, death e get_up ficam fora (postura autoral) | pequeno | descartado (rig removido) |
+| v0.34.2 | nomes | `joelho_fe/fd` é o **cotovelo**: 39 referências em 6 arquivos, 3 deles do rig 2D — renomeação fica para um lote próprio | pequeno | descartado (rig removido) |
+| v0.34.1 | fluidez | pico do joelho traseiro em 3,48 px/quadro a 60 fps (teto do teste subiu 2,5→3,5); o pé não acelera — vigiar "piscada" no jarrete no aparelho | pequeno | descartado (rig removido) |
+| v0.34.1 | rig | punho não existe com 24 juntas: antebraço e metacarpo são UM osso (só a razão da referência foi aplicada); punho próprio = +2 juntas, teto 26 (decisão 1C) | médio | descartado (rig removido) |
+| v0.34.1 | rig | omoplata a 62° (prancha: 45°); 45° exigiria o ombro ~6 px à frente da cernelha e prende o fim do apoio do galope em z=12,4 | pequeno | descartado (rig removido) |
+| v0.34.1 | pose | a fase reunida da prancha não é reproduzida: extensão 1,69 cernelhas (prancha 1,89) e compressão 0,67 (prancha 0,23) — tronco inclina ao contrário | médio | descartado (rig removido) |
+| v0.34.0 | fluidez | com a passada maior, os tetos do teste subiram (transição walk→run 15 px; pico do run 2,5 px/quadro a 60 fps) — vigiar "estalo" na troca no aparelho | pequeno | descartado (rig removido) |
+| v0.34.0 | sprint | a corrida acelerada usa a MESMA marcha do galope (muda só a velocidade); marcha própria de sprint (passada/voo maiores) exige perna mais longa | médio | descartado (rig removido) |
 | v0.34.0 | câmera | no modo perto o segurar, sem rota, ainda cai na habilidade (cavar): o modo não alimenta o reconhecedor, mas o comando existe | pequeno | aberto |
-| v0.34.0 | corpo | L2 aplicado só ao cão; o equino segue com as proporções antigas e a marcha dele (passada 17/21) | pequeno | congelado (rig) |
-| v0.33.4 | animação | cadência do walk subiu ~61% com a reconciliação (0,198 s por ciclo aos 110 px/s); julgar no aparelho — o candidato C existe se ficar miúdo demais | design | aberto |
-| v0.33.4 | rig | proporções do cão (item 3 da ordem) continuam pendentes: pernas, tronco e pescoço ainda são os do ajuste manual, não uma régua anatômica | médio | congelado (rig) |
-| v0.33.3 | rig | descompasso entre `passada` e `duty × ciclo` (walk do cão −7,36 px; galope +1,90 px): a âncora no mundo esconde a diferença; reconciliar é o item (3) | médio | congelado (rig) |
-| v0.33.3 | rig | `motion` ainda guarda chaves legadas (`duty_walk`, `galope_passo_px`, `run_baixa_px`, …) só porque `testes/test_esqueleto3d.gd` as lê; o motor não as usa | pequeno | congelado (rig) |
-| v0.33.3 | rig | `_validar_marchas` assume exatamente 4 patas (`MARCHA_PATAS`); N pernas exige mexer em `_pernas`/topologia — bloqueio do inseto | pequeno | congelado (rig) |
-| v0.33.2 | rig | o equino declara `porte_px` 68×68, o mesmo do cão — a régua de porte por arquétipo/família (decisão 1C) ainda não foi aplicada | médio | congelado (rig) |
-| v0.33.2 | rig | `_patas` continua decidindo a pata por clipe, com defasagens cravadas no código; o item (2) da ordem (marcha por contato) é o próximo | médio | congelado (rig) |
-| v0.33.1 | RIG | o método está escrito, mas o motor ainda decide a pata por clipe (`_patas`) e o inseto continua bloqueado pelo schema 2+2 — os lotes 1–5 da ordem de trabalho não foram feitos | médio | congelado (rig) |
-| v0.33.0 | P10 | bípede, ave e serpente compilam (schema 4) mas seguem sem marcha: `locomocao_suportada` é falso e não há teste de passada para eles | médio | congelado (rig) |
-| v0.33.0 | P10 | as cinco chaves do voo só existem no `canino3d.json`; o equino herda os defaults e o teste de voo só roda no cão | médio | congelado (rig) |
-| v0.33.0 | P10 | decisões de raiz abertas: teto de 20 juntas (o cão tem 24), caixa por clipe × por animal e régua de porte entre arquétipos (canino 68×68, serpente 96×64, ave 64×64) | decisão | congelado (rig) |
-| v0.33.0 | P10 | revisão do cão nas 8 direções e do canvas no aparelho do operador pendente | operador | congelado (rig) |
+| v0.34.0 | corpo | L2 aplicado só ao cão; o equino segue com as proporções antigas e a marcha dele (passada 17/21) | pequeno | descartado (rig removido) |
+| v0.33.4 | animação | cadência do walk subiu ~61% com a reconciliação (0,198 s por ciclo aos 110 px/s); julgar no aparelho — o candidato C existe se ficar miúdo demais | design | descartado (rig removido) |
+| v0.33.4 | rig | proporções do cão (item 3 da ordem) continuam pendentes: pernas, tronco e pescoço ainda são os do ajuste manual, não uma régua anatômica | médio | descartado (rig removido) |
+| v0.33.3 | rig | descompasso entre `passada` e `duty × ciclo` (walk do cão −7,36 px; galope +1,90 px): a âncora no mundo esconde a diferença; reconciliar é o item (3) | médio | descartado (rig removido) |
+| v0.33.3 | rig | `motion` ainda guarda chaves legadas (`duty_walk`, `galope_passo_px`, `run_baixa_px`, …) só porque `testes/test_esqueleto3d.gd` as lê; o motor não as usa | pequeno | descartado (rig removido) |
+| v0.33.3 | rig | `_validar_marchas` assume exatamente 4 patas (`MARCHA_PATAS`); N pernas exige mexer em `_pernas`/topologia — bloqueio do inseto | pequeno | descartado (rig removido) |
+| v0.33.2 | rig | o equino declara `porte_px` 68×68, o mesmo do cão — a régua de porte por arquétipo/família (decisão 1C) ainda não foi aplicada | médio | descartado (rig removido) |
+| v0.33.2 | rig | `_patas` continua decidindo a pata por clipe, com defasagens cravadas no código; o item (2) da ordem (marcha por contato) é o próximo | médio | descartado (rig removido) |
+| v0.33.1 | RIG | o método está escrito, mas o motor ainda decide a pata por clipe (`_patas`) e o inseto continua bloqueado pelo schema 2+2 — os lotes 1–5 da ordem de trabalho não foram feitos | médio | descartado (rig removido) |
+| v0.33.0 | P10 | bípede, ave e serpente compilam (schema 4) mas seguem sem marcha: `locomocao_suportada` é falso e não há teste de passada para eles | médio | descartado (rig removido) |
+| v0.33.0 | P10 | as cinco chaves do voo só existem no `canino3d.json`; o equino herda os defaults e o teste de voo só roda no cão | médio | descartado (rig removido) |
+| v0.33.0 | P10 | decisões de raiz abertas: teto de 20 juntas (o cão tem 24), caixa por clipe × por animal e régua de porte entre arquétipos (canino 68×68, serpente 96×64, ave 64×64) | decisão | descartado (rig removido) |
+| v0.33.0 | P10 | revisão do cão nas 8 direções e do canvas no aparelho do operador pendente | operador | descartado (rig removido) |
 | v0.33.0 | clone | outra sessão commitou a `v0.32.0` (história) dentro do branch do lote às 12:01; o lote foi reconstruído sobre `origin/main` sem perda e o branch antigo `lote/v0.31.6` fica como evidência | pequeno | resolvido |
 | v0.32.0 | história | decisões pendentes do GDD (ver docs/gdd/historia.md §Decisões pendentes) | design | aberto |
 | v0.31.5 | notificações | o comentário automático saiu, mas e-mail de falha de workflow e de revisão ainda depende das configurações pessoais do GitHub | pequeno | aberto |
-| v0.31.4 | P10 | rig paramétrico em WIP no branch `wip/rig-parametrico-3d` (voo 0,93:1; reancoragem 3/4); não entregue | médio | congelado (rig) |
-| v0.31.3 | animação | primeiro quadro walk→run ~2,5 px a 60 fps (o teto do teste subiu de 2 para 3 na mesma edição) — acima do <2 px anterior | pequeno | aberto |
-| v0.31.3 | caminhada | patinação residual: 110 px/s é rápido para passo de 4 tempos com perna de 20 px | médio | aberto |
-| v0.31.3 | cadência | cadência subiu (~12,5 passos/s); julgar no aparelho | design | aberto |
-| v0.31.3 | aparelho | revisão no celular do operador pendente | operador | aberto |
-| v0.31.2 | IK 3D | alvo inalcançável extremo corrige o contato, mas a pata pode sair do alvo | médio | aberto |
-| v0.31.2 | animação | `death`/`get_up` e misturas de clipes continuam deformando ossos | médio | aberto |
-| v0.31.2 | aparelho | revisão das pernas traseiras no celular do operador pendente | operador | aberto |
-| v0.31.1 | animação | `death`/`get_up` e misturas de clipes não preservam a rigidez de todos os ossos | médio | aberto |
-| v0.31.1 | IK 3D | alvo inalcançável é limitado pelo alcance, mas a pata pode perder apoio | médio | aberto |
-| v0.31.1 | aparelho | revisão das dobras e do apoio no celular do operador pendente | operador | aberto |
-| v0.31.0 | transições | a 30 fps o primeiro quadro da troca fica ~3 px (o <2 px é a 60 fps); o crossfade pode borrar pernas sobrepostas | pequeno | aberto |
-| v0.31.0 | sockets | a visibilidade dos sockets troca pelo clipe novo no primeiro quadro (boca/cauda podem piscar na troca) | pequeno | aberto |
-| v0.31.0 | 2D | só a pele 3D mistura clipes; serpente/ave continuam no corte seco | pequeno | aberto |
-| v0.31.0 | aparelho | sem teste no celular; GIFs são prova externa (Pillow) | operador | aberto |
-| v0.30.0 | sockets | `boca` e `base_cauda` piscam nas fronteiras de setor (`oculto_em` é por direção) mesmo com o corpo girando suave | pequeno | aberto |
-| v0.30.0 | silhueta | em 90°/270° a vista frontal vira uma linha de 16 px; em 68 px o arame 3D é mais cruzado que o 2D | design | aberto |
-| v0.30.0 | sombra | com pitch 20° o cão "sobe/desce" em relação à sombra ao girar (patas em alturas diferentes) | design | aberto |
-| v0.30.0 | aparelho | sem teste no celular (só headless/Xvfb softpipe) | operador | aberto |
-| v0.29.0 | câmera | com 20°, as patas caem em alturas diferentes na tela (spread 5,5–7,6 px); não existe mais a base única do 2D — é a câmera escolhida | design | aberto |
-| v0.29.0 | leitura | em 68 px o esqueleto 3D é mais "arame" e cruzado que o 2D, sobretudo nas diagonais; a leitura de cão é menos imediata | design | aberto |
-| v0.29.0 | fase B | camadas de pixel art por osso ainda não desenhadas (só o campo `pecas` e a validação) | médio | aberto |
-| v0.29.0 | rig | validação estrita de 22 juntas/21 ossos: mudar juntas exige migrar schema e testes | pequeno | congelado (rig) |
-| v0.29.0 | aparelho | sem teste no celular (só headless/Xvfb softpipe) | operador | aberto |
-| v0.28.0 | frontal | a anca frontal fica recuada (±4,5 px) para não colidir com a perna dianteira; o quarto largo aparece mais na vista dorsal | design | obsoleto (3D) |
-| v0.28.0 | diagonais | o ombro/anca "longe" fica a ~0,5 px da linha do dorso; no zoom de 5× parece encostado, não articulado | pequeno | obsoleto (3D) |
-| v0.28.0 | arte | a pele esquelética segue como prova de juntas: nada aqui é arte aprovada | decisão | aberto |
+| v0.31.4 | P10 | rig paramétrico em WIP no branch `wip/rig-parametrico-3d` (voo 0,93:1; reancoragem 3/4); não entregue | médio | descartado (rig removido) |
+| v0.31.3 | animação | primeiro quadro walk→run ~2,5 px a 60 fps (o teto do teste subiu de 2 para 3 na mesma edição) — acima do <2 px anterior | pequeno | descartado (rig removido) |
+| v0.31.3 | caminhada | patinação residual: 110 px/s é rápido para passo de 4 tempos com perna de 20 px | médio | descartado (rig removido) |
+| v0.31.3 | cadência | cadência subiu (~12,5 passos/s); julgar no aparelho | design | descartado (rig removido) |
+| v0.31.3 | aparelho | revisão no celular do operador pendente | operador | descartado (rig removido) |
+| v0.31.2 | IK 3D | alvo inalcançável extremo corrige o contato, mas a pata pode sair do alvo | médio | descartado (rig removido) |
+| v0.31.2 | animação | `death`/`get_up` e misturas de clipes continuam deformando ossos | médio | descartado (rig removido) |
+| v0.31.2 | aparelho | revisão das pernas traseiras no celular do operador pendente | operador | descartado (rig removido) |
+| v0.31.1 | animação | `death`/`get_up` e misturas de clipes não preservam a rigidez de todos os ossos | médio | descartado (rig removido) |
+| v0.31.1 | IK 3D | alvo inalcançável é limitado pelo alcance, mas a pata pode perder apoio | médio | descartado (rig removido) |
+| v0.31.1 | aparelho | revisão das dobras e do apoio no celular do operador pendente | operador | descartado (rig removido) |
+| v0.31.0 | transições | a 30 fps o primeiro quadro da troca fica ~3 px (o <2 px é a 60 fps); o crossfade pode borrar pernas sobrepostas | pequeno | descartado (rig removido) |
+| v0.31.0 | sockets | a visibilidade dos sockets troca pelo clipe novo no primeiro quadro (boca/cauda podem piscar na troca) | pequeno | descartado (rig removido) |
+| v0.31.0 | 2D | só a pele 3D mistura clipes; serpente/ave continuam no corte seco | pequeno | descartado (rig removido) |
+| v0.31.0 | aparelho | sem teste no celular; GIFs são prova externa (Pillow) | operador | descartado (rig removido) |
+| v0.30.0 | sockets | `boca` e `base_cauda` piscam nas fronteiras de setor (`oculto_em` é por direção) mesmo com o corpo girando suave | pequeno | descartado (rig removido) |
+| v0.30.0 | silhueta | em 90°/270° a vista frontal vira uma linha de 16 px; em 68 px o arame 3D é mais cruzado que o 2D | design | descartado (rig removido) |
+| v0.30.0 | sombra | com pitch 20° o cão "sobe/desce" em relação à sombra ao girar (patas em alturas diferentes) | design | descartado (rig removido) |
+| v0.30.0 | aparelho | sem teste no celular (só headless/Xvfb softpipe) | operador | descartado (rig removido) |
+| v0.29.0 | câmera | com 20°, as patas caem em alturas diferentes na tela (spread 5,5–7,6 px); não existe mais a base única do 2D — é a câmera escolhida | design | descartado (rig removido) |
+| v0.29.0 | leitura | em 68 px o esqueleto 3D é mais "arame" e cruzado que o 2D, sobretudo nas diagonais; a leitura de cão é menos imediata | design | descartado (rig removido) |
+| v0.29.0 | fase B | camadas de pixel art por osso ainda não desenhadas (só o campo `pecas` e a validação) | médio | descartado (rig removido) |
+| v0.29.0 | rig | validação estrita de 22 juntas/21 ossos: mudar juntas exige migrar schema e testes | pequeno | descartado (rig removido) |
+| v0.29.0 | aparelho | sem teste no celular (só headless/Xvfb softpipe) | operador | descartado (rig removido) |
+| v0.28.0 | frontal | a anca frontal fica recuada (±4,5 px) para não colidir com a perna dianteira; o quarto largo aparece mais na vista dorsal | design | descartado (rig removido) |
+| v0.28.0 | diagonais | o ombro/anca "longe" fica a ~0,5 px da linha do dorso; no zoom de 5× parece encostado, não articulado | pequeno | descartado (rig removido) |
+| v0.28.0 | arte | a pele esquelética segue como prova de juntas: nada aqui é arte aprovada | decisão | descartado (rig removido) |
 | v0.27.1 | — | nenhum | — | — |
 | v0.27.0 | CI | o `preview` num PR falha ao criar o deployment do Pages: o ambiente `github-pages` só aceita `main` (`custom_branch_policies`); liberar `lote/*` em Settings → Environments → github-pages, ou revisar pelo artefato `quadros` do run | médio | resolvido v0.27.1 (sem PR: entrega direto em main; preview só na publicação) |
 | v0.27.0 | animação | `Anim.retrato` lê `corpo._fator_sprint()` (método privado) só para a pose de decolagem; se o corpo trocar de API, o retrato quebra no parser | pequeno | aberto |
-| v0.27.0 | pele | a mordida não tem faísca nas vistas de costas (`north`, `north-east`, `north-west`): a boca é oculta nesses setores, então o VFX falha fechado | pequeno | obsoleto (3D) |
-| v0.27.0 | rig | `west`, `north-west` e `south-west` continuam espelhos dos perfis leste/nordeste; são oito setores, mas quatro desenhos base | pequeno | congelado (rig) |
-| v0.27.0 | arte | a pele esquelética segue como prova de juntas: nada aqui é arte aprovada | decisão | aberto |
-| v0.27.0 | cadência | 400/300/350/340 ms são ponto de partida; afinar no aparelho com o operador | design | aberto |
-| v0.27.0 | ferramenta | `tools/folha_canino.gd` não tem teste automatizado próprio (o desenho tem) | pequeno | aberto |
+| v0.27.0 | pele | a mordida não tem faísca nas vistas de costas (`north`, `north-east`, `north-west`): a boca é oculta nesses setores, então o VFX falha fechado | pequeno | descartado (rig removido) |
+| v0.27.0 | rig | `west`, `north-west` e `south-west` continuam espelhos dos perfis leste/nordeste; são oito setores, mas quatro desenhos base | pequeno | descartado (rig removido) |
+| v0.27.0 | arte | a pele esquelética segue como prova de juntas: nada aqui é arte aprovada | decisão | descartado (rig removido) |
+| v0.27.0 | cadência | 400/300/350/340 ms são ponto de partida; afinar no aparelho com o operador | design | descartado (rig removido) |
+| v0.27.0 | ferramenta | `tools/folha_canino.gd` não tem teste automatizado próprio (o desenho tem) | pequeno | descartado (rig removido) |
 | v0.26.3 | baseline | o artifact de 10 MB pode engasgar na rede do celular; o script tenta 2× e aceita `--zip`/`--pasta` | pequeno | aberto |
 | v0.26.2 | preview | a pausa de 8 s é empírica; se o `deploy-pages` voltar a falhar, aumentar ou trocar por retry com espera | pequeno | aberto |
 | v0.26.1 | preview | GIF de ~1,1 MB ainda é o arquivo mais pesado da revisão; se doer no celular, cortar quadros | pequeno | aberto |
@@ -108,46 +112,46 @@
 | v0.26.0 | rito | `main` continua sem proteção de branch (exige o operador em Settings → Branches); o PR é disciplina, não trava | médio | descartado (operador) |
 | v0.26.0 | licença | repositório público ainda sem LICENSE — decisão do operador (MIT? todos os direitos reservados?) | decisão | descartado (operador) |
 | v0.26.0 | ferramentas | `preview.mjs` e `quadros-baseline.mjs` sem teste automatizado próprio | pequeno | aberto |
-| v0.25.2 | pele | esqueleto puro é para estudo de juntas; a leitura de personagem no mapa fica de propósito em segundo plano até a arte | decisão | aberto |
-| v0.25.2 | foco | serpente e ave seguem sem ossos completos (pontos soltos como asas) — renderizam, mas não foram polidos | médio | obsoleto (3D) |
-| v0.25.2 | sombra | a sombra elíptica do mock continua sob o esqueleto (ajuda a ler o chão) | pequeno | obsoleto (3D) |
-| v0.25.1 | biomecânica | amplitudes (passo 5 px, levantar 3 px, bounce 2,8 px) são ponto de partida; afinar no aparelho com o operador | design | aberto |
-| v0.25.1 | galope | sem inclinação de tronco (pitch) nem curva do dorso; só balanço vertical | médio | aberto |
-| v0.25.1 | marchas | não existe o TROTE intermediário: correr pula direto ao galope | design | aberto |
-| v0.25.1 | serpente | sem revisão de marcha (a ondulação já seguia a biomecânica ofídia) | pequeno | aberto |
+| v0.25.2 | pele | esqueleto puro é para estudo de juntas; a leitura de personagem no mapa fica de propósito em segundo plano até a arte | decisão | descartado (rig removido) |
+| v0.25.2 | foco | serpente e ave seguem sem ossos completos (pontos soltos como asas) — renderizam, mas não foram polidos | médio | descartado (rig removido) |
+| v0.25.2 | sombra | a sombra elíptica do mock continua sob o esqueleto (ajuda a ler o chão) | pequeno | descartado (rig removido) |
+| v0.25.1 | biomecânica | amplitudes (passo 5 px, levantar 3 px, bounce 2,8 px) são ponto de partida; afinar no aparelho com o operador | design | descartado (rig removido) |
+| v0.25.1 | galope | sem inclinação de tronco (pitch) nem curva do dorso; só balanço vertical | médio | descartado (rig removido) |
+| v0.25.1 | marchas | não existe o TROTE intermediário: correr pula direto ao galope | design | descartado (rig removido) |
+| v0.25.1 | serpente | sem revisão de marcha (a ondulação já seguia a biomecânica ofídia) | pequeno | descartado (rig removido) |
 | v0.25.0 | baseline | trocado pelos 60 quadros do CI #57 (llvmpipe) no commit seguinte ao da mudança visível | verificação | resolvido em v0.25.0 |
 | v0.25.0 | animação | `shot` não é acionado no jogo (não há sinal de "acabou de atirar"); `hit`/`death` seguem dormentes | médio | aberto |
-| v0.25.0 | pele | o corpo padrão é o canino; serpente e ave só entram por flag de demo | decisão | obsoleto (3D) |
-| v0.25.0 | aparelho | falta o teste de toque e leitura no celular do operador (é o objetivo deste lote) | operador | obsoleto (3D) |
-| v0.24.0 | módulos | só três formas provisórias (tufo, espinho, membrana) e sem rotação/encaixe fino por direção | pequeno | aberto |
-| v0.24.0 | arte | módulo composto na pele geométrica; a pele de sprite (peças separadas) ainda não existe | médio | aberto |
-| v0.24.0 | VFX | janela fixa de 150 ms e desenho vetorial; partículas e som reais não foram feitos | pequeno | aberto |
-| v0.24.0 | regra | por contrato módulo/efeito não concede habilidade — se um dia conceder, é pacote de regra, não de arte | decisão | aberto |
-| v0.23.1 | animação | `run`, `hit` e `death` têm clipe nos rigs, mas o corpo ainda não os aciona (sprint não exposto, sem vida) | médio | aberto |
+| v0.25.0 | pele | o corpo padrão é o canino; serpente e ave só entram por flag de demo | decisão | descartado (rig removido) |
+| v0.25.0 | aparelho | falta o teste de toque e leitura no celular do operador (é o objetivo deste lote) | operador | descartado (rig removido) |
+| v0.24.0 | módulos | só três formas provisórias (tufo, espinho, membrana) e sem rotação/encaixe fino por direção | pequeno | descartado (rig removido) |
+| v0.24.0 | arte | módulo composto na pele geométrica; a pele de sprite (peças separadas) ainda não existe | médio | descartado (rig removido) |
+| v0.24.0 | VFX | janela fixa de 150 ms e desenho vetorial; partículas e som reais não foram feitos | pequeno | descartado (rig removido) |
+| v0.24.0 | regra | por contrato módulo/efeito não concede habilidade — se um dia conceder, é pacote de regra, não de arte | decisão | descartado (rig removido) |
+| v0.23.1 | animação | `run`, `hit` e `death` têm clipe nos rigs, mas o corpo ainda não os aciona (sprint não exposto, sem vida) | médio | descartado (rig removido) |
 | v0.23.1 | animação | 28 ações (T1/T2/T3: comer, dormir, voar, nadar…) continuam só no catálogo, sem desenho | médio | aberto |
 | v0.23.1 | pulo | a máquina usa `jump_air`; `jump_start`/`jump_land` só aparecem quando a apresentação detectar a transição | pequeno | aberto |
 | v0.23.1 | morte | tomba e para, mas não há vida nem renascimento: clipe dormente | design | aberto |
-| v0.23.0 | animação | só `bite`, `stunned`, `dig` e `charge` têm desenho; as outras 37 ações têm catálogo mas ainda não têm clipe na pele | médio | aberto |
+| v0.23.0 | animação | só `bite`, `stunned`, `dig` e `charge` têm desenho; as outras 37 ações têm catálogo mas ainda não têm clipe na pele | médio | descartado (rig removido) |
 | v0.23.0 | animação | durações e janelas de evento são provisórias (125 ms herdado da E2); ajustar no aparelho | pequeno | aberto |
 | v0.23.0 | vida/dano | `hit`/`death` existem na máquina e no catálogo, mas o jogo não tem vida: ficam dormentes | design | aberto |
 | v0.23.0 | camadas | a máquina escolhe UM clipe; overlay simultâneo (comer andando) só com peças separadas de arte | design | aberto |
 | v0.23.0 | corrida | andar e correr usam o mesmo clipe `walk`; `run` entra quando houver estado de sprint exposto | pequeno | aberto |
-| v0.23.0 | ave/serpente | os drivers de ação (avanço/abaixar) são genéricos; ler bem nas duas anatomias ainda não foi avaliado pelo operador | médio | aberto |
-| v0.22.0 | arte | pele geométrica provisória (silhuetas de ave/serpente ainda fracas); a arte real é a F5 | médio | obsoleto (3D) |
-| v0.22.0 | jogo | a pele só liga na demo (`--geo-*`); o jogo normal continua no mock de xadrez | decisão | obsoleto (3D) |
+| v0.23.0 | ave/serpente | os drivers de ação (avanço/abaixar) são genéricos; ler bem nas duas anatomias ainda não foi avaliado pelo operador | médio | descartado (rig removido) |
+| v0.22.0 | arte | pele geométrica provisória (silhuetas de ave/serpente ainda fracas); a arte real é a F5 | médio | descartado (rig removido) |
+| v0.22.0 | jogo | a pele só liga na demo (`--geo-*`); o jogo normal continua no mock de xadrez | decisão | descartado (rig removido) |
 | v0.22.0 | animação | só `idle`/`walk`; as demais 41 ações e a máquina de estados são a F3 | médio | resolvido v0.23.0 (máquina de estados; as ações seguem na linha v0.23.0) |
-| v0.22.0 | escala | canino 68×68, serpente 96×64 e ave 64×64 sem régua de porte comum entre arquétipos | design | aberto |
-| v0.22.0 | golpe | a âncora `boca` só move a ORIGEM do cone; dano, alcance e regra seguem em `sim/corpo.gd` | pequeno | obsoleto (3D) |
-| v0.21.2 | arte | rigs geométricos de serpente e ave provisórios, ainda sem validação visual (depende da F2) | médio | obsoleto (3D) |
-| v0.21.2 | dados/rig | escalas diferentes por família (canino 68×68, serpente 96×64, ave 64×64); a regra de porte entre arquétipos continua em aberto | design | aberto |
-| v0.21.2 | dados/rig | serpente e ave só têm `idle`/`walk`; voo, nado e as demais 41 ações do catálogo ficam para a F3 | médio | aberto |
-| v0.21.1 | arte | o contrato tem 8 direções, mas a arte existente tem 4 (canino) e 1 (serpente); a pele de sprite deverá declarar o subconjunto por clipe | médio | aberto |
+| v0.22.0 | escala | canino 68×68, serpente 96×64 e ave 64×64 sem régua de porte comum entre arquétipos | design | descartado (rig removido) |
+| v0.22.0 | golpe | a âncora `boca` só move a ORIGEM do cone; dano, alcance e regra seguem em `sim/corpo.gd` | pequeno | descartado (rig removido) |
+| v0.21.2 | arte | rigs geométricos de serpente e ave provisórios, ainda sem validação visual (depende da F2) | médio | descartado (rig removido) |
+| v0.21.2 | dados/rig | escalas diferentes por família (canino 68×68, serpente 96×64, ave 64×64); a regra de porte entre arquétipos continua em aberto | design | descartado (rig removido) |
+| v0.21.2 | dados/rig | serpente e ave só têm `idle`/`walk`; voo, nado e as demais 41 ações do catálogo ficam para a F3 | médio | descartado (rig removido) |
+| v0.21.1 | arte | o contrato tem 8 direções, mas a arte existente tem 4 (canino) e 1 (serpente); a pele de sprite deverá declarar o subconjunto por clipe | médio | descartado (rig removido) |
 | v0.21.0 | `dados/rig/` | só o canino; serpente e ave (as outras âncoras) ainda sem rig | médio | resolvido v0.21.2 (rigs de serpente e ave) |
 | v0.21.0 | `sim/esqueleto.gd` | só `idle`/`walk`; as 43 ações do catálogo e a máquina de estados são F3 | médio | resolvido v0.23.0 (máquina de estados; as ações seguem na linha v0.23.0) |
-| v0.21.0 | `jogo/` | nenhuma pele usa o esqueleto; integração visual é F2 e troca para sprite é F5 | decisão | aberto |
+| v0.21.0 | `jogo/` | nenhuma pele usa o esqueleto; integração visual é F2 e troca para sprite é F5 | decisão | descartado (rig removido) |
 | v0.21.0 | docs | `ARQUITETURA.md` e `AGENTS.md` não listam `dados/rig/` nem a camada do esqueleto (árvore ocupada por outra sessão) | pequeno | resolvido v0.22.0 (`dados/rig/` no AGENTS.md e no ARQUITETURA.md) |
 | v0.21.0 | combate | `hit`/`death` existem no catálogo, mas o jogo não tem regra de vida (só atordoado/empurrão) | design | aberto |
-| v0.21.0 | arte | rig geométrico provisório; nada de arte aprovada e nenhuma geração PixelLab gasta | decisão | aberto |
+| v0.21.0 | arte | rig geométrico provisório; nada de arte aprovada e nenhuma geração PixelLab gasta | decisão | descartado (rig removido) |
 | v0.20.2 | oráculo | 60 quadros não encenam segurar→mover; a prova desse caso é teste headless, e a divergência local q36/q37 continua pré-existente (softpipe × llvmpipe), baseline preservado | verificação | obsoleto (3D) |
 | v0.20.2 | controles | o caminho nascido do segurar foi verificado em teste e em integração headless, mas ainda não no toque físico do aparelho | verificação / operador | aberto |
 | v0.20.2 | `jogo/main.gd` | no desenho NORMAL, um primeiro `tracar` recusado por traço curto ainda marca `_traco_iniciado` (comportamento antigo preservado); só o recomeço do segurar espera o `ok` | pequeno | aberto |
@@ -315,7 +319,7 @@
 | v0.4.0 | mockup | a criatura de xadrez ocupa ~40 px do canvas de 64 (margem de pose); só mock | some quando a arte real entrar | obsoleto (3D) |
 | v0.4.0 | copas | a transparência da copa usa a distância no CHÃO, sem o desnível do planalto | relevante se houver árvore em dois níveis | obsoleto (3D) |
 | v0.4.0 | demo | não cobre alvo (não há inimigos) nem afinidade (P4) | P4, P7 | aberto |
-| v0.4.0 | `jogo/mapa.gd` + `sim/mapa.gd` + `ilha_teste.json` | renderizador Wang do v0.3 ficou PARADO (sem uso) | decidir: manter para a arte futura ou remover | aberto |
+| v0.4.0 | `jogo/mapa.gd` + `sim/mapa.gd` + `ilha_teste.json` | renderizador Wang do v0.3 ficou PARADO (sem uso) | decidir: manter para a arte futura ou remover | obsoleto (3D) |
 | v0.3.1 | atualizador | o caminho Android (shell_open → FileProvider → instalador) foi conferido no código do Godot, NÃO num aparelho | o operador reinstala uma vez e testa a próxima atualização | aberto |
 | v0.3.1 | git (público) | `tools/android/galapago-dev.keystore` + senha seguem no histórico | revogado na prática; nunca reutilizar | aberto |
 | v0.3.0 | `tools/pixellab-tileset.mjs` | com o job FALHO no servidor, fica esperando ~2,5 min em vez de falhar logo | pequeno — espera limitada a 45 s; a API não expõe status | resolvido em v0.16.1 |
@@ -324,4 +328,4 @@
 | v0.2.0 | `tools/android/exportar.sh` passo 5 | no CI #6 o `apksigner verify` não imprimiu linha (o `aapt` sim); a assinatura foi conferida localmente com `keytool -printcert -jarfile` | pequeno — `--verbose`, `2>&1` e queda para `keytool` | resolvido em v0.16.1 |
 | v0.2.0 | `export_presets.cfg` | pacote `com.projetogalapago.jogo` e keystore de dev são provisórios; trocar qualquer um obriga desinstalar | decidir antes da 1ª distribuição externa | aberto |
 | v0.2.0 | P2 | o APK não foi testado em aparelho pelo agente (instalar é do operador) | o operador instala e risca | aberto |
-| v0.1.1 | `arte/fonte/p1-cao-base-pixen.png` | prova sem paleta-mestra (64 cores livres) e câmera ainda não decidida — não é asset do jogo | resolve no P6 (âncora de arte) | aberto |
+| v0.1.1 | `arte/fonte/p1-cao-base-pixen.png` | prova sem paleta-mestra (64 cores livres) e câmera ainda não decidida — não é asset do jogo | resolve no P6 (âncora de arte) | obsoleto (3D) |

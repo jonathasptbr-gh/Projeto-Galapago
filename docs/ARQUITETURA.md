@@ -69,40 +69,34 @@ paredes e atores. Projéteis no ar e HUD continuam 2D, lisos, por cima do 3D
 (os projéteis sob um `Node2D` cuja transformação é a afim da câmera).
 Detalhes em [`GODOT.md`](GODOT.md#6-pixel-art-no-godot).
 
-## Pele e esqueleto (v0.22.0)
+## Criatura e animação
 
-> **P24 (2026-11-25):** no jogo a criatura e o inimigo são **atores 3D
-> provisórios** (`jogo/mundo3d/ator.gd`) que só leem a sim. A pele
-> esquelética 2D abaixo saiu do jogo; o rig da sim fica **congelado** (P9/P10)
-> e só `tools/folha_*` e os testes ainda o desenham.
+> **Faxina de 2026-11-26 (decisão do operador):** o rig próprio (2D e 3D:
+> `sim/esqueleto*.gd`, `sim/topologia3d.gd`, `sim/locomocao3d.gd`,
+> `sim/modulos.gd`, `jogo/rigs*.gd`, `jogo/pele_geometrica*.gd`,
+> `jogo/modulos.gd`, `dados/rig/`, `dados/modulos.json`) foi **removido**. O
+> padrão de criatura passa a ser **modelo 3D pronto importado do Sketchfab,
+> com pequenos ajustes**. O código antigo é recuperável pelo histórico do git
+> (o último commit com ele é `f002dfb`).
 
-O desenho da criatura pode vir de dois lados, com o MESMO contrato: o mock de
-xadrez ou a **pele esquelética** (`jogo/pele_geometrica.gd`), que desenha o rig
-de `dados/rig/<familia>.json` validado por `sim/esqueleto.gd` (pose por fase e
-âncora por nome, 8 direções) como ossos em linhas brancas e juntas em pontos
-vermelhos — sem corpo preenchido. `sim/direcao.gd` mapeia o olhar em setores;
-`jogo/rigs.gd` carrega e cacheia o rig, fail-closed. A pele de sprite do
-PixelLab entra no mesmo lugar quando a arte for aprovada — a regra de jogo
-nunca pergunta qual pele está ativa.
+No jogo a criatura e o inimigo são **atores 3D provisórios**
+(`jogo/mundo3d/ator.gd`) que só leem a sim; a regra de jogo nunca pergunta
+como a criatura é desenhada.
 
 **Animação (v0.23.0):** `dados/animacoes.json` é o catálogo (camada, loop,
 duração, prioridade, janelas de evento por tempo e socket) e
 `sim/animacao.gd` é a máquina pura que transforma o retrato do corpo no clipe
 a desenhar. A prioridade decide quem corta quem; a base troca entre andar e
-parado. Nenhum dano, alcance ou tempo mora aqui.
-
-**Módulos e efeitos (v0.24.0):** `dados/modulos.json` descreve peças
-cosméticas presas a um socket por **nome** e efeitos por evento; `sim/modulos.gd`
-resolve posição/z no rig e recusa qualquer item que declare
-`concede_habilidade`. Efeito nasce nas janelas de tempo do clipe
-(`sim/animacao.janela_ativa`), nunca por índice de quadro.
+parado. Nenhum dano, alcance ou tempo mora aqui. Hoje só os testes a usam
+(o ator provisório não toca clipe); ela fica como contrato para os clipes do
+modelo importado. `sim/direcao.gd` mapeia o olhar em 8 setores.
 
 ## Mundo e mapa
 
-O mapa vem de **dados**: `dados/mapas/<nome>.json` (cantos de terreno + objetos)
-→ `sim/mapa.gd` (pura: valida o desenho e escolhe a peça Wang de cada célula)
-→ hoje `jogo/mundo3d/ilha.gd` monta a ilha 3D a partir de `sim/mundo.gd` (o `TileMapLayer` Wang do v0.3 saiu no P24).
-Objetos e criatura ficam num `Node2D` com `y_sort_enabled`, origem nos pés.
+O mapa vem de **dados**: `dados/mapas/<nome>.json` (células de terreno +
+objetos) → `sim/mundo.gd` (pura) → `jogo/mundo3d/ilha.gd` monta a ilha 3D. O
+mapa Wang 2D do v0.3 (`sim/mapa.gd`, `ilha_teste.json`, tilesets PNG) saiu: o
+`TileMapLayer` no P24 e o resto na faxina de 2026-11-26.
 Design: [`gdd/mapa.md`](gdd/mapa.md).
 
 **Mapas de testes (v0.36.0):** a Fundação (o JSON acima, padrão) e a

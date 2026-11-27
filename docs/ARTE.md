@@ -29,7 +29,8 @@ ferramentas `get_*_capabilities` cotam de graça antes de gastar.
   apareceram na mesma sessão. **Trocar a chave** = editar a ref no cofre e
   reiniciar o motor (a expressão só é avaliada ao montar a entrada).
 - Prova: `get_balance` pela integração + 1 geração `create_image_pixen`
-  (`arte/fonte/p1-cao-base-pixen.png`, seed 20261120).
+  (`arte/fonte/p1-cao-base-pixen.png`, seed 20261120; o PNG saiu na faxina de
+  2026-11-26 e fica no histórico do git até `f002dfb`).
 - Conta: **trial, 40 gerações** + bônus diário de 5 (acumula até 20), que só é
   gasto depois das 40. Planejar cada chamada.
 
@@ -49,8 +50,9 @@ ferramentas `get_*_capabilities` cotam de graça antes de gastar.
 ## Regras de produção
 
 1. **Uma âncora de estilo por projeto.** Paleta-mestra fixa (`arte/paleta.json`,
-   a criar no P6) passada em `palette` em toda geração; uma imagem de estilo
-   aprovada pelo operador reutilizada em `style_image`/`style_character_id`.
+   a criar; era do P6, descartado em 2026-11-26) passada em `palette` em toda
+   geração; uma imagem de estilo aprovada pelo operador reutilizada em
+   `style_image`/`style_character_id`.
    Consistência entre evoluções é o problema difícil — ela se COMPRA com âncora
    fixa, não se espera da IA.
 2. **Evolução = variante + peças.** Forma-base gerada uma vez; as evoluções
@@ -59,12 +61,12 @@ ferramentas `get_*_capabilities` cotam de graça antes de gastar.
    Envelhecimento, elemento e aura saem de **shader de paleta** e partículas,
    não de sprite novo.
 3. **Câmera única:** **low top-down (20°)** para a arena 2,5D — decidido em
-   2026-11-23 (v0.29.0); não misturar. O cão desenha o esqueleto 3D projetado
-   nessa câmera (`sim/esqueleto3d.gd`, `dados/rig/canino3d.json`); a pele de
-   pixel art em camadas é o alvo seguinte (fila P9).
-4. **Todo asset entra por script de validação** (`tools/`, a criar no P6):
-   tamanho múltiplo de 4, cores ⊂ paleta-mestra, fundo transparente, nome no
-   padrão. A IA erra em silêncio; o script não.
+   2026-11-23 (v0.29.0); não misturar. O rig próprio que desenhava o cão nessa
+   câmera foi removido em 2026-11-26 (P9/P10 descartados): o padrão de
+   criatura passa a ser modelo 3D pronto do Sketchfab com pequenos ajustes.
+4. **Todo asset entra por script de validação** (`tools/`, a criar; era do
+   P6, descartado): tamanho múltiplo de 4, cores ⊂ paleta-mestra, fundo
+   transparente, nome no padrão. A IA erra em silêncio; o script não.
 5. **O operador aprova a âncora** (prévia em `/sdcard/Download/DSH-Go/`),
    o agente produz as variações.
 
@@ -72,16 +74,17 @@ ferramentas `get_*_capabilities` cotam de graça antes de gastar.
 
 | arquivo | ferramenta | custo | uso |
 |---|---|---|---|
-| `arte/fonte/p1-cao-base-pixen.png` | `create_image_pixen` 64, side, seed 20261120 | 1 | prova P1; cópia provisória em `arte/criaturas/cao_base_prova.png` |
-| `arte/cenarios/tilesets/mar_areia.*` | `create_topdown_tileset` standard 32 px, transição 0,25 | 1 | ilha de teste |
-| `arte/cenarios/tilesets/areia_grama.*` | idem, `lower_base_tile_id` = areia | 1 | ilha de teste |
-| `arte/cenarios/tilesets/grama_planalto.*` | idem, transição 0,5 (penhasco) | 1 | ilha de teste |
-| `arte/cenarios/objetos/arvore.png` · `rocha.png` · `estacao.png` | `create_image_pixen` high top-down, seeds 3001–3003 | 3 | ilha de teste |
+| `arte/fonte/p1-cao-base-pixen.png` | `create_image_pixen` 64, side, seed 20261120 | 1 | prova P1; cópia em `arte/criaturas/cao_base_prova.png` — os dois removidos em 2026-11-26 |
+| `arte/cenarios/tilesets/mar_areia.*` | `create_topdown_tileset` standard 32 px, transição 0,25 | 1 | ilha de teste (removido em 2026-11-26) |
+| `arte/cenarios/tilesets/areia_grama.*` | idem, `lower_base_tile_id` = areia | 1 | ilha de teste (removido em 2026-11-26) |
+| `arte/cenarios/tilesets/grama_planalto.*` | idem, transição 0,5 (penhasco) | 1 | ilha de teste (removido em 2026-11-26) |
+| `arte/cenarios/objetos/arvore.png` · `rocha.png` · `estacao.png` | `create_image_pixen` high top-down, seeds 3001–3003 | 3 | ilha de teste (removidos em 2026-11-26) |
 
-Os `.json` dos tilesets guardam o `pixellab_id` e os `base_tile_ids` (para
-encadear novos terrenos sem emenda).
+Os `.json` dos tilesets guardavam o `pixellab_id` e os `base_tile_ids` (para
+encadear novos terrenos sem emenda); tudo isso segue no histórico do git até
+`f002dfb`, se o mapa 2D um dia voltar.
 
-## Piloto de natureza 3D — direção em avaliação (2026-11-26)
+## Mata 3D — direção em avaliação (2026-11-26)
 
 A direção pedida pelo operador é **low-poly moderadamente detalhado, com
 proporções naturais**: nem o extremo econômico de poucos polígonos, nem
@@ -89,7 +92,8 @@ cartoon/caricatura, nem fotorrealismo. Depois do primeiro piloto ele pediu
 **cores mais vivas** (verde saturado, água turquesa, terra quente) e que a mata
 virasse **mapa de testes jogável** — feito na v0.36.0 (o botão MAPA da HUD
 troca Fundação ⇄ Natureza; ver [arquitetura](ARQUITETURA.md#mundo-e-mapa)).
-Continua uma **proposta visual**, não uma âncora aprovada; o rig segue congelado.
+Continua uma **proposta visual**, não uma âncora aprovada; o rig próprio foi
+removido em 2026-11-26.
 
 - **Uma fonte para regra e desenho:** [sim/natureza.gd](../sim/natureza.gd)
   (pura) dá riacho, trilha, três vaus de cascalho, clareira de terra fofa,
@@ -110,9 +114,8 @@ Continua uma **proposta visual**, não uma âncora aprovada; o rig segue congela
   madeira entre a câmera e a criatura somem por dither 4×4, então a criatura
   nunca some sob a mata. Ambientação em `Mapa.ambientar` (tonemap linear,
   saturação +12%, céu azul-claro, sem névoa na vista alta).
-- Cena separada do piloto: [piloto](../jogo/mundo3d/natureza/piloto.tscn)
-  ([piloto.gd](../jogo/mundo3d/natureza/piloto.gd)), com `--vista-geral`,
-  `--detalhe`, `--verso` e `--pixel`.
+- A cena piloto standalone (`--vista-geral`, `--detalhe`, `--verso`) foi
+  removida em 2026-11-26: a mata se vê no jogo (botão MAPA ou `--natureza`).
 - **Medido (seed 500, teste):** 82 árvores, 1.399 instâncias, 21 MultiMeshes,
   615.443 triângulos instanciados, 159.669 vértices armazenados (o solo, em
   passo 0,5, é ~68 mil). Não são triângulos visíveis nem draw calls.
@@ -124,7 +127,7 @@ Continua uma **proposta visual**, não uma âncora aprovada; o rig segue congela
 **Limites deliberados:** água opaca estática (sem reflexo, refração ou
 animação); sem vento; o subsolo da mata não existe (só a clareira escava);
 FPS no aparelho **não medido** — MultiMeshes cobrem o mapa inteiro, sem setores.
-Comandos de render no [oráculo](ORACULO.md#piloto-de-natureza-3d-standalone).
+Comandos de render no [oráculo](ORACULO.md#mapa-de-testes-natureza-3d).
 
 ## Pastas
 

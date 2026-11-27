@@ -104,20 +104,19 @@ sim/                  lógica pura: gestos (1 dedo: caminho, toque=tiro carregad
                        comandos · corpo (traço ao vivo+waypoints+overlays+
                        marcas de ataque+autonomia) · alvos · adversario
                        (passeio, hostilidade, preparo+área, esconder) · mundo ·
-                       trajetoria (desconto+RDP) ·
-                       esqueleto (pose e âncoras) · esqueleto3d (juntas 3D
-                       projetadas, congelado) · camera3d (câmera orbital 3D) · natureza (mapa de testes da mata: layout + grade) · agua (água de grade, ensaio P27) · direcao (8 setores) · animacao (estados e prioridades) · modulos (socket por nome) · visibilidade · atualizacao · mapa (Wang, parado)
+                       trajetoria (desconto+RDP) · camera3d (câmera orbital
+                       3D) · natureza (mapa de testes da mata: layout + grade) ·
+                       direcao (8 setores) · animacao (estados e prioridades) ·
+                       afinidade · visibilidade · atualizacao
 jogo/                 main · mundo3d/ (vista = SubViewport + Pixel Pass
                        liga/desliga, chao = mapa do chão que o terreno
                        pinta, ilha, ator provisório, shaders toon/
-                       contorno_tela/casca (reserva)/pixel_pass, vitrine, natureza/ = a mata: malhas, mapa, shaders natural/folha/agua, piloto, agua_ensaio) · barra_giro (topo, gira a
+                       contorno_tela/casca (reserva)/pixel_pass, vitrine, natureza/ = a mata: malhas, mapa, shaders natural/folha) · barra_giro (topo, gira a
                        câmera) · perigos (área no chão; cuspe no ar) · mira
                        (mira+alvo final) · trilha · efeitos (onda no chão;
                        tiro no ar) · hud (legenda,
-                       carga, CONFIG, PIXEL ART, MAPA) · demo · atualizador ·
-                       modulos · rigs/rigs3d/pele_geometrica* (rig congelado:
-                       só tools/folha_* e testes)
-dados/                gestos.json · acoes.json · adversario.json · terrenos.json · mapas/ · rig/ · animacoes.json · modulos.json
+                       carga, CONFIG, PIXEL ART, MAPA) · demo · atualizador
+dados/                gestos.json · acoes.json · adversario.json · terrenos.json · mapas/ · animacoes.json · afinidade.json · camera3d.json
 testes/               run.gd (executor), caso.gd (base), test_*.gd
 tools/                estado.sh · testes.sh · verificar.sh (seletivo) ·
                       docs.sh (docs.mjs + docs.test.mjs) · quadros.sh ·
@@ -126,8 +125,8 @@ tools/                estado.sh · testes.sh · verificar.sh (seletivo) ·
                       ci-log.mjs · baixar-apk.mjs ·
                       pixellab-catalogo.mjs · pixellab-tileset.mjs ·
                       pixellab-imagem.mjs · android/ (exportar.sh)
-arte/                 README.md · fonte/ (bruto da IA, .gdignore) ·
-                      criaturas/ · cenarios/ (tilesets/ PNG+JSON, objetos/)
+arte/                 README.md · fonte/ (bruto, .gdignore; vazia desde a
+                      faxina de 2026-11-26)
 docs/                 guias e design — inventário validado abaixo
 .github/workflows/    ci.yml (testes sempre; preview + APK/versao.json só na publicação)
 ```
@@ -139,7 +138,6 @@ uma vez). Referências externas vendorizadas ficam no catálogo, não se repetem
 
 - Design: [conceito](docs/CONCEITO.md), [história](docs/gdd/historia.md), [gestos e ações](docs/gdd/gestos-e-acoes.md), [mapa](docs/gdd/mapa.md).
 - Código e ambiente: [arquitetura](docs/ARQUITETURA.md), [Godot](docs/GODOT.md), [ambiente](docs/AMBIENTE.md).
-- Esqueleto: [método do rig](docs/RIG.md).
 - Verificação e entrega: [oráculo](docs/ORACULO.md), [build](docs/BUILD.md), [rollback](docs/ROLLBACK.md), [guardião documental](docs/DOCUMENTACAO.md).
 - Arte: [pipeline](docs/ARTE.md), [PixelLab](docs/PIXELLAB.md), [catálogo gerado](docs/pixellab/CATALOGO.md).
 - Continuidade: [fila](docs/PEDIDOS-EM-ESPERA.md), [feitos](docs/PEDIDOS-FEITOS.md), [histórico](docs/HISTORICO.md), [resíduos](docs/RESIDUOS.md).
