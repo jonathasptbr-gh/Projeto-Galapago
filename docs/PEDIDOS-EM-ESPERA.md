@@ -247,6 +247,23 @@
     regra: apaga fogo, deixa o chão encharcado (mais lento, escorregadio),
     empurra no jato, enche buracos da terra. É "física mínima" barata:
     alguns milhares de células atualizadas poucas vezes por segundo.
+- **Ensaio da água feito (2026-11-26, commit comum, fora do jogo):**
+  [`sim/agua.gd`](../sim/agua.gd) (pura, testada: modelo de **canos
+  virtuais** — fluxo com embalo e atrito, conserva, não sobe parede, riacho
+  com nível fixo, evaporação sobretudo da água parada, umidade do chão) e a
+  cena [`agua_ensaio.tscn`](../jogo/mundo3d/natureza/agua_ensaio.tscn): fonte
+  jorra 4 s, a água desce a vala, enche a bacia, transborda até o riacho e
+  seca em ~13 s. O desenho NÃO é cúbico: a grade vira textura suavizada
+  (`agua.gdshader`), a borda da poça é recortada por limiar com ruído, com
+  espuma e filetes no sentido do fluxo; o chão escurece onde está úmido
+  (`natural.gdshader`, `usar_umidade`). Lição: o modelo só por diferença de
+  nível era lento demais em encosta suave (a água virava película); os canos
+  virtuais resolveram.
+- **Referências de jogos (de memória, não conferidas):** superfícies de
+  combate do *Divinity: Original Sin 2* (poças, combinações, temporárias),
+  água por bloco/célula do *Minecraft* e do *Terraria* (barata, roda em
+  celular), fogo pelo capim e vento do *Zelda: Breath of the Wild*. O caro é
+  fluido de verdade (*From Dust*, *Noita*) — fora do escopo.
 - **Combinações** dão a profundidade tática: água apaga fogo, terra represa
   água, ar espalha fogo, fogo seca lama.
 - **Depende de:** P26 (estado destrutível na grade) e P5 (elemento/porte da

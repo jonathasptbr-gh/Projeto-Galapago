@@ -120,6 +120,12 @@ esperado e some na publicação seguinte.
 
 ## Piloto de natureza 3D (standalone)
 
+> **Ensaio da água de grade (P27):** `QUADROS_CENA=res://jogo/mundo3d/natureza/agua_ensaio.tscn
+> QUADROS_FPS=8 tools/quadros.sh 112 <saída>` filma o ciclo inteiro (14 s);
+> `DEMO_ARGS="--alta --avancar=5.5"` dá a foto na vista alta do jogo no meio
+> do ciclo. O log imprime, por segundo, a água fora do riacho, a da bacia e a
+> que chega perto do riacho.
+
 > **v0.36.0:** a mata também é o **mapa de testes NATUREZA do jogo**. A cena
 > principal com `DEMO_ARGS="--natureza"` roda a demo de sempre nela (caminho,
 > giro pela barra, tiro, pulo, perseguição, cavar na clareira):

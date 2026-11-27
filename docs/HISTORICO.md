@@ -3,6 +3,14 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## Não publicado
+
+- **Ensaio da água de grade (P27), fora do jogo:** `sim/agua.gd` (canos
+  virtuais, testado) e a cena `jogo/mundo3d/natureza/agua_ensaio.tscn` — poça
+  que nasce, escorre por uma vala, enche uma bacia, transborda até o riacho e
+  seca; desenho suave (não cúbico) em `agua.gdshader` e chão úmido em
+  `natural.gdshader` (`usar_umidade`, desligado no jogo). Sem versão.
+
 ## v0.36.0 — mapa de testes NATUREZA jogável, cores vivas (2026-11-26)
 
 - **Mapa de testes NATUREZA no jogo:** botão **MAPA** da HUD troca Fundação ⇄

@@ -106,11 +106,11 @@ sim/                  lógica pura: gestos (1 dedo: caminho, toque=tiro carregad
                        (passeio, hostilidade, preparo+área, esconder) · mundo ·
                        trajetoria (desconto+RDP) ·
                        esqueleto (pose e âncoras) · esqueleto3d (juntas 3D
-                       projetadas, congelado) · camera3d (câmera orbital 3D) · natureza (mapa de testes da mata: layout + grade) · direcao (8 setores) · animacao (estados e prioridades) · modulos (socket por nome) · visibilidade · atualizacao · mapa (Wang, parado)
+                       projetadas, congelado) · camera3d (câmera orbital 3D) · natureza (mapa de testes da mata: layout + grade) · agua (água de grade, ensaio P27) · direcao (8 setores) · animacao (estados e prioridades) · modulos (socket por nome) · visibilidade · atualizacao · mapa (Wang, parado)
 jogo/                 main · mundo3d/ (vista = SubViewport + Pixel Pass
                        liga/desliga, chao = mapa do chão que o terreno
                        pinta, ilha, ator provisório, shaders toon/
-                       contorno_tela/casca (reserva)/pixel_pass, vitrine, natureza/ = a mata: malhas, mapa, shaders natural/folha, piloto) · barra_giro (topo, gira a
+                       contorno_tela/casca (reserva)/pixel_pass, vitrine, natureza/ = a mata: malhas, mapa, shaders natural/folha/agua, piloto, agua_ensaio) · barra_giro (topo, gira a
                        câmera) · perigos (área no chão; cuspe no ar) · mira
                        (mira+alvo final) · trilha · efeitos (onda no chão;
                        tiro no ar) · hud (legenda,

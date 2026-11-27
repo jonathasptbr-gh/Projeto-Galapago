@@ -26,6 +26,12 @@ uniform bool usar_foco = false;
 uniform vec3 foco = vec3(0.0);
 uniform float raio_foco = 1.9;
 uniform float folga_foco = 0.9;
+// CHÃO MOLHADO (ensaio da água de grade, agua.gdshader): o canal A do campo
+// da água é a umidade da célula; o chão escurece e brilha um pouco onde está
+// molhado. Desligado por padrão (a mata do jogo não muda).
+uniform bool usar_umidade = false;
+uniform sampler2D campo_agua : filter_linear, repeat_disable;
+uniform vec4 campo_ret = vec4(0.0, 0.0, 1.0, 1.0);
 
 const float BAYER[16] = float[16](0.0, 0.5, 0.125, 0.625, 0.75, 0.25, 0.875, 0.375,
 	0.1875, 0.6875, 0.0625, 0.5625, 0.9375, 0.4375, 0.8125, 0.3125);
@@ -61,7 +67,14 @@ void fragment() {
 			base = mix(base, c, a);
 		}
 	}
+	float rug = rugosidade;
+	if (usar_umidade) {
+		vec3 m = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+		float u = texture(campo_agua, (m.xz - campo_ret.xy) * campo_ret.zw).a;
+		base *= mix(1.0, 0.6, u);
+		rug = mix(rugosidade, 0.35, u);
+	}
 	ALBEDO = base;
-	ROUGHNESS = rugosidade;
+	ROUGHNESS = rug;
 	SPECULAR = especular;
 }
