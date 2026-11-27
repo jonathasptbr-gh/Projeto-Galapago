@@ -1,12 +1,19 @@
 # Pedidos em espera — a fila de pacotes
 
+> **Só o operador adiciona ou remove pendências** (conceito e conteúdo de
+> criação, confirmados com ele); o GDD não vira pacote sozinho, e decisões de
+> história são respondidas quando ele puxar o assunto. Regra completa:
+> [`AGENTS.md`](../AGENTS.md) ("Resíduos e pendências").
+
 > **Nada aqui está autorizado por estar na fila: pergunte ao operador qual
 > pacote seguir.** Lê-se só o pacote escolhido. Um pacote cabe numa sessão; se
 > não couber, divide-se antes de começar.
 
 > **Esta é a LISTA ÚNICA de próximos planos** (reorganizada em 2026-11-26).
-> Todo plano novo entra aqui como pacote `Pn`; o que mora em outro lugar está
-> apontado em "Onde mais há pendência", no fim do índice.
+> Todo plano novo **confirmado pelo operador** entra aqui como pacote `Pn`
+> (2026-11-27: antes dizia "todo plano novo entra aqui", sem a confirmação);
+> o que mora em outro lugar está apontado em "Onde mais há pendência", no fim
+> do índice.
 
 > **Manutenção registrada (2026-11-24):** a faxina documental A (v0.14.1) e o
 > guardião offline B (v0.14.2) já foram feitos; o protocolo de agentes e o
@@ -63,11 +70,12 @@
 
 ### Onde mais há pendência (apontada daqui, não copiada)
 
-- [`RESIDUOS.md`](RESIDUOS.md): o que cada publicação deixou para trás (39
-  linhas `aberto` depois da remoção da Fundação, do baú e da onda do laço,
-  2026-11-27).
+- [`RESIDUOS.md`](RESIDUOS.md): o que cada publicação deixou para trás (38
+  linhas `aberto` depois da remoção da Fundação, do baú e da onda do laço e
+  do fechamento da linha da história, 2026-11-27).
 - [`gdd/historia.md`](gdd/historia.md#decisões-pendentes): decisões de
-  história à espera do operador.
+  história — **não são pendência**: respondidas quando o operador puxar o
+  assunto (regra de 2026-11-27, `AGENTS.md`).
 
 ---
 

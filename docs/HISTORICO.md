@@ -5,6 +5,18 @@
 
 ## Não publicado
 
+- **Contrato: o que é resíduo e o que é pendência (2026-11-27, regra do
+  operador):** `AGENTS.md` ganhou "Resíduos e pendências" — resíduo é só
+  código/documentação a arrumar; teste e avaliação no aparelho não viram
+  resíduo nem aviso (pergunta-se na sessão; silêncio = deu certo); conceito e
+  conteúdo vão para a fila só confirmados, e só o operador adiciona ou remove
+  pendências; o GDD não vira tarefa sozinho; decisões de história são
+  respondidas quando o operador puxar o assunto. Linha-resumo no topo de
+  `RESIDUOS.md` e `PEDIDOS-EM-ESPERA.md`. Ajustado o que contradizia: a fila
+  dizia "todo plano novo entra aqui" (agora: confirmado pelo operador) e
+  listava a história como pendência. A linha v0.32.0 `história` de
+  `RESIDUOS.md` virou `descartado (operador)` (regra e). Abertos: 39 → 38.
+  Sem versão.
 - **Natureza vira o mapa único; Fundação, baú, `travar` e onda do laço saem
   (2026-11-27, decisão do operador):** "a ilha e afins não são mais
   necessários" e "o mapa principal agora é o Natureza". Saíram

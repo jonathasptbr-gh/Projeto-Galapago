@@ -1,5 +1,10 @@
 # Resíduos — o que o lote viu e não consertou
 
+> **O que entra aqui:** só código e documentação a limpar, organizar ou arrumar
+> — teste/avaliação no aparelho não vira linha nem aviso, e decisão de
+> história/design não é resíduo. Regra completa: [`AGENTS.md`](../AGENTS.md)
+> ("Resíduos e pendências").
+
 > Toda **publicação** (`vX.Y.Z`) deixa ao menos uma linha aqui antes do push,
 > mesmo que seja "nenhum"; commit comum não registra (nota, se houver, vai em
 > `## Não publicado` do histórico). Linha não se apaga: muda o estado.
@@ -10,7 +15,8 @@
 > `jogo/mundo3d/`); conferido com `rg` na triagem P28 (2026-11-26).
 > `descartado (operador)`: o operador decidiu não aplicar (2026-11-26, fechamento do P28;
 > 2026-11-27: contorno do ator e linhas do caminho/paredes, chave do PixelLab mantida,
-> GIF da prévia no Pages ok — se precisar, ele pede de novo).
+> GIF da prévia no Pages ok — se precisar, ele pede de novo; também 2026-11-27: as
+> decisões pendentes da história, que não são resíduo — regra e do `AGENTS.md`).
 > `aceito (controles maduros)`: valor de partida ("ajustar no aparelho") ou comportamento
 > descrito de toque, tiro, pulo, rota, inimigo ou demo, aceito como está — os controles
 > estão maduros e não se mexe sem pedido do operador (decisão de 2026-11-27).
@@ -81,7 +87,7 @@
 | v0.33.0 | P10 | decisões de raiz abertas: teto de 20 juntas (o cão tem 24), caixa por clipe × por animal e régua de porte entre arquétipos (canino 68×68, serpente 96×64, ave 64×64) | decisão | descartado (rig removido) |
 | v0.33.0 | P10 | revisão do cão nas 8 direções e do canvas no aparelho do operador pendente | operador | descartado (rig removido) |
 | v0.33.0 | clone | outra sessão commitou a `v0.32.0` (história) dentro do branch do lote às 12:01; o lote foi reconstruído sobre `origin/main` sem perda e o branch antigo `lote/v0.31.6` fica como evidência | pequeno | resolvido |
-| v0.32.0 | história | decisões pendentes do GDD (ver docs/gdd/historia.md §Decisões pendentes) | design | aberto |
+| v0.32.0 | história | decisões pendentes do GDD (ver docs/gdd/historia.md §Decisões pendentes) | design | descartado (operador): decisões de história não são resíduo; respondidas quando o operador falar do assunto (regra e, AGENTS.md, 2026-11-27) |
 | v0.31.5 | notificações | o comentário automático saiu, mas e-mail de falha de workflow e de revisão ainda depende das configurações pessoais do GitHub | pequeno | resolvido v0.35.0 (aceito no BUILD.md: o canal é o chat do DSH) |
 | v0.31.4 | P10 | rig paramétrico em WIP no branch `wip/rig-parametrico-3d` (voo 0,93:1; reancoragem 3/4); não entregue | médio | descartado (rig removido) |
 | v0.31.3 | animação | primeiro quadro walk→run ~2,5 px a 60 fps (o teto do teste subiu de 2 para 3 na mesma edição) — acima do <2 px anterior | pequeno | descartado (rig removido) |

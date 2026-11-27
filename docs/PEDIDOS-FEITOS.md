@@ -468,3 +468,25 @@
   `toon.gdshader` ficam como reserva (desligados na Natureza); o terreno `q`
   (altura 3) fica para o teste do degrau de dois níveis.
 - **Pronto quando:** `tools/testes.sh` verde (200 testes, 0 falhas) e CI verde.
+
+## Contrato: resíduos e pendências (commit comum, 2026-11-27)
+
+- **Pedido do operador:** regras novas sobre o que é resíduo e o que é
+  pendência.
+- **Feito:** `AGENTS.md` ("Resíduos e pendências", em Regras de
+  desenvolvimento): (a) resíduo é só código e documentação a limpar,
+  organizar ou arrumar; (b) teste/avaliação ("medir no aparelho", "testar no
+  celular", "ajustar sentindo") não vira resíduo nem aviso — pergunta-se na
+  sessão e o silêncio do operador é "deu certo"; (c) conceito e conteúdo de
+  criação vão para `PEDIDOS-EM-ESPERA.md` só confirmados, e só o operador
+  adiciona ou remove pendências; (d) o conceito/GDD não vira tarefa sozinho —
+  revisão à procura de tarefas só a pedido; (e) decisões de história/design
+  são respondidas quando o operador puxar o assunto. Linha-resumo no topo de
+  `RESIDUOS.md` e de `PEDIDOS-EM-ESPERA.md`.
+- **Contradições ajustadas:** a fila dizia "todo plano novo entra aqui como
+  pacote `Pn`" (sem exigir confirmação) e apontava `gdd/historia.md` como
+  pendência "à espera do operador"; a linha v0.32.0 `história` de
+  `RESIDUOS.md` virou `descartado (operador)`.
+- **Não tocado:** `docs/gdd/historia.md`; as linhas antigas de `RESIDUOS.md`
+  que pedem medição no aparelho continuam como estão (a regra vale daqui em
+  diante; reclassificá-las é decisão do operador).

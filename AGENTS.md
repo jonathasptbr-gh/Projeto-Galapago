@@ -85,6 +85,23 @@ a arte fica) é do operador: o agente propõe com opções, não decide calado.
 - **A publicação declara o que deixou para trás** em
   [`docs/RESIDUOS.md`](docs/RESIDUOS.md) (uma linha por publicação, mesmo que
   seja "nenhum").
+- **Resíduos e pendências — o que é cada um** (regra do operador,
+  2026-11-27; vale para `RESIDUOS.md` e `PEDIDOS-EM-ESPERA.md`):
+  - **Resíduo é só sobre código e documentação:** coisa a limpar, organizar
+    ou arrumar.
+  - **Teste e avaliação não viram resíduo nem aviso** ("medir no aparelho",
+    "testar no celular", "ajustar sentindo"): pergunta-se ao operador só
+    durante a sessão; se ele não comentar, deu certo — não se deixa lembrete
+    para testar.
+  - **Conceito e conteúdo de criação vão para a fila de pendências**
+    (`PEDIDOS-EM-ESPERA.md`), mas só depois de confirmados com o operador:
+    **só o operador adiciona ou remove pendências**.
+  - **Elementos do conceito/GDD** podem servir de base para uma pendência
+    nova, mas não viram nada automaticamente; a revisão do conceito à procura
+    de tarefas só acontece quando o operador pedir.
+  - **Decisões de história/design** (ex.: `docs/gdd/historia.md`) são
+    respondidas quando o operador puxar o assunto, não em chamada de
+    pendências.
 - Versões do Godot local e do CI andam juntas ([`AMBIENTE`](docs/AMBIENTE.md)).
 - **Segredos** (token GitHub, chave PixelLab, keystore): só no cofre do harness
   ou em *secret* do GitHub — nunca em chat, commit ou documento.
