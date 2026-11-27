@@ -5,6 +5,24 @@
 
 ## Não publicado
 
+- **Natureza vira o mapa único; Fundação, baú, `travar` e onda do laço saem
+  (2026-11-27, decisão do operador):** "a ilha e afins não são mais
+  necessários" e "o mapa principal agora é o Natureza". Saíram
+  `dados/mapas/fundacao.json` (com a extensão de parkour),
+  `jogo/mundo3d/ilha.gd`, a vitrine 3D (`vitrine.gd/.tscn`, e o passo dela no
+  CI, trocado por `DEMO_ARGS=--pixel` na cena principal, artefato `pixel`),
+  o botão MAPA e a troca de mapa do `main`/HUD, `sim/formas.gd` (o leitor do
+  laço), a onda (`corpo`, `efeitos`, `formas` e `combate.onda_*` em
+  `acoes.json`), o `travar`/`alvo_id`/mira vermelha com o aproximar/rondar da
+  autonomia, o baú (`alvos.interativo`, `mais_proximo`) e os terrenos `b`/`r`
+  do parkour. A escala px+níveis→3D foi para `jogo/mundo3d/espaco.gd`; o
+  gatilho da batida virou `combate.batida_gatilho_px`. Testes: saíram
+  `test_formas`, `test_ilha3d`, `test_ilha3d_aba` e os casos de laço, travar,
+  baú e parkour; entrou `test_espaco3d`; ajustados `test_mundo`,
+  `test_mapa_natureza_jogo`, `test_camera_integracao`, `test_contorno_tela`,
+  `test_alvos_adversario` e `test_corpo` (223 → 200 testes). A demo do CI
+  filma a Natureza (a comparação com a última publicação acusa diferença em
+  tudo até a próxima). 13 resíduos `removido (2026-11-27: …)`. Sem versão.
 - **Resíduos: decisões do operador (2026-11-27):** `docs/RESIDUOS.md`, só a
   coluna estado — 104 linhas fechadas: 68 `aceito (controles maduros)`, 7
   `descartado (operador)` (contorno do ator, linhas do caminho/paredes, chave

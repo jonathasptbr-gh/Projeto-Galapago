@@ -450,3 +450,21 @@
   (P27; o conceito ficou escolhido, ver a fila) e o piloto da natureza. Tudo é
   recuperável pelo git: o último commit com eles é `f002dfb`. O laboratório
   do galope (fora do repositório) foi apagado e saiu da fila.
+
+## Natureza como mapa único — Fundação, baú, `travar` e onda do laço removidos (commit comum, 2026-11-27)
+
+- **Pedido do operador:** "a ilha e afins não são mais necessários"; depois,
+  "o mapa principal agora é o Natureza".
+- **Feito:** a Natureza (`sim/natureza.gd` + `jogo/mundo3d/natureza/`) é o
+  único mapa e o inicial; saíram a Fundação (`dados/mapas/fundacao.json`,
+  com a extensão de parkour), `jogo/mundo3d/ilha.gd`, a vitrine 3D e o botão
+  MAPA; o baú; o `travar`/`alvo_id` (mira vermelha) e o aproximar/rondar da
+  autonomia; a onda do laço com `sim/formas.gd`. Escala 3D em
+  `jogo/mundo3d/espaco.gd`. CI: a demo filma a Natureza; o passo da vitrine
+  virou "Quadros com Pixel Pass" (cena principal, `--pixel`).
+- **Resíduos:** 13 linhas `removido (2026-11-27: …)` (parkour 4, laço/formas
+  4, travar/baú 2, contorno/objetos da ilha 3); legenda nova no topo.
+- **Não tocado:** o contorno de tela, a casca e o mapa do chão do
+  `toon.gdshader` ficam como reserva (desligados na Natureza); o terreno `q`
+  (altura 3) fica para o teste do degrau de dois níveis.
+- **Pronto quando:** `tools/testes.sh` verde (200 testes, 0 falhas) e CI verde.

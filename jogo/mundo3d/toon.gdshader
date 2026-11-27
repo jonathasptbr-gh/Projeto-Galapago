@@ -15,7 +15,7 @@
 // luz em sRGB e o Mobile em linear (medido no oráculo, 2026-11-25): com o
 // nível convertido por OUTPUT_IS_SRGB, a mesma faixa dá o mesmo brilho nos
 // dois. Só um DirectionalLight3D é previsto (outras luzes somariam faixas).
-// MAPA DO CHÃO (S5b, só no material do TERRENO — `Mat.terreno`):
+// MAPA DO CHÃO (S5b, era do material do TERRENO da ilha da Fundação, removida em 2026-11-27; reserva):
 //   usar_chao      liga a amostragem (padrão desligado: os outros materiais
 //                  não mudam)
 //   chao           a textura do SubViewport `jogo/mundo3d/chao.gd` (RGBA8

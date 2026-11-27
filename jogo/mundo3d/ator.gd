@@ -13,7 +13,7 @@ extends Node3D
 ##   em UNIDADES 3D (0 = no chão).
 ## - Origem do nó = pés; frente local = -Z (o focinho), girado em Y.
 
-const Ilha := preload("res://jogo/mundo3d/ilha.gd")
+const Espaco := preload("res://jogo/mundo3d/espaco.gd")
 const Mat := preload("res://jogo/mundo3d/materiais.gd")
 
 @export var cor := Color("#e07a3a")
@@ -67,7 +67,7 @@ func pintar(nova: Color) -> void:
 
 
 func atualizar(pos_px: Vector2, h: float, direcao: Vector2, salto := 0.0) -> void:
-	position = Ilha.ponto(pos_px, h) + Vector3(0, salto, 0)
+	position = Espaco.ponto(pos_px, h) + Vector3(0, salto, 0)
 	if direcao.length_squared() > 0.000001:
 		# frente local -Z deve apontar para (direcao.x, 0, direcao.y)
 		rotation.y = atan2(-direcao.x, -direcao.y)

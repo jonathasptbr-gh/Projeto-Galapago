@@ -29,8 +29,8 @@ em código: mudar o design não exige mexer na lógica.
 
 ```
 toque → gesto de TELA + caminho AO VIVO (sim/gestos)
-      → FORMA do desenho (sim/formas: o laço virou onda em área até a v0.11.5 —
-        desligado em `formas.laco_ataque`; hoje só caminho)
+      → o desenho é caminho (o leitor de formas e a onda do laço saíram em
+        2026-11-27; a travessia e o fim no alvo são do sim/corpo)
       → pontos de referência (sim/trajetoria: desconto inicial + Douglas-Peucker)
       → INTENÇÃO
       → decisão da criatura (sim/afinidade: afinidade × temperamento × humor)
@@ -62,7 +62,7 @@ certo em cor linear ou só em sRGB; o toon converte o nível com
 `intima`, snap de texel, chão⇄tela como `Transform2D` afim). O **Pixel Pass**
 é a última camada e desliga: SubViewport em baixa resolução + quantização +
 Bayer ancorado no mundo + ampliação *nearest* + compensação de subpixel.
-Trilha, mira, áreas de perigo e a onda desenham em px de mundo da sim num
+Trilha, mira e áreas de perigo desenham em px de mundo da sim num
 **mapa do chão** (SubViewport 2D, `jogo/mundo3d/chao.gd`) que o material do
 terreno pinta no topo das células, antes da luz: ficam NO chão, sob copas,
 paredes e atores. Projéteis no ar e HUD continuam 2D, lisos, por cima do 3D
@@ -93,20 +93,16 @@ modelo importado. `sim/direcao.gd` mapeia o olhar em 8 setores.
 
 ## Mundo e mapa
 
-O mapa vem de **dados**: `dados/mapas/<nome>.json` (células de terreno +
-objetos) → `sim/mundo.gd` (pura) → `jogo/mundo3d/ilha.gd` monta a ilha 3D. O
-mapa Wang 2D do v0.3 (`sim/mapa.gd`, `ilha_teste.json`, tilesets PNG) saiu: o
-`TileMapLayer` no P24 e o resto na faxina de 2026-11-26.
-Design: [`gdd/mapa.md`](gdd/mapa.md).
-
-**Mapas de testes (v0.36.0):** a Fundação (o JSON acima, padrão) e a
-**Natureza**, gerada por `sim/natureza.gd` (pura, semente fixa): o mesmo layout
-vira a grade da sim (`mundo_dict`, formato do JSON) e o desenho
+O mapa é a **Natureza** — o ÚNICO desde 2026-11-27 (decisão do operador: "o
+mapa principal agora é o Natureza"; a ilha de teste Fundação, com a extensão
+de parkour e o baú, saiu do jogo — o código segue no git até `f38962a`).
+`sim/natureza.gd` (pura, semente fixa) gera o mesmo layout como grade da sim
+(`mundo_dict`, no formato de mapa de `sim/mundo.gd`: células de terreno +
+objetos + início + adversários) e como desenho
 (`jogo/mundo3d/natureza/mapa.gd`, deslocado por `origem_3d()` para a célula
-da sim cair na unidade 3D e o chão andável em y = 0,4). O botão MAPA da HUD
-guarda a escolha em `Engine` (`main.META_MAPA`) e **recarrega a cena**: dedos,
-traço, câmera, adversários e marcas renascem no mapa novo; o Pixel Pass
-atravessa o recarregamento. `--natureza` começa nela (oráculo).
+da sim cair na unidade 3D e o chão andável em y = 0,4). A escala px+níveis →
+unidades 3D é de `jogo/mundo3d/espaco.gd`. O mapa Wang 2D do v0.3 saiu no P24
+e na faxina de 2026-11-26. Design: [`gdd/mapa.md`](gdd/mapa.md).
 
 ## Atualização do app
 

@@ -4,13 +4,10 @@ extends CanvasLayer
 signal hostilidade_alternada(ligado: bool)
 ## P24: o botão PIXEL ART liga/desliga o Pixel Pass da vista 3D (quem manda é o main)
 signal pixel_pass_alternado(ligado: bool)
-## MAPA DE TESTES: o botão MAPA pede o outro mapa ("fundacao" ⇄ "natureza");
-## quem troca (recarregando a cena) é o main
-signal mapa_escolhido(nome: String)
 
 ## HUD de desenvolvimento: título (versão/build), legenda dos gestos (a tabela
 ## v0.18 em linhas curtas + a linha do CONFIG), estado do corpo (rota/waypoints,
-## barreira, alvo, camada, habilidade, alvo final, planejamento e CARGA do tiro),
+## barreira, camada, habilidade, alvo final, planejamento e CARGA do tiro),
 ## barra de energia e barra de carga, última relação gesto → ação, nota do último
 ## golpe/ataque, e o ESTADO DA ATUALIZAÇÃO com botão de verificar à mão.
 ## v0.19: SLIDER DA CARGA DO TIRO (0 a `corpo.tiro_carga_max_s()`, escreve em
@@ -26,7 +23,6 @@ signal mapa_escolhido(nome: String)
 const TOPO := 100.0
 
 const Atualizador := preload("res://jogo/atualizador.gd")
-const Alvos := preload("res://sim/alvos.gd")
 
 var atualizador: Control
 var _gesto: Label
@@ -61,9 +57,6 @@ var _intima := false
 # PIXEL ART (P24): estado vem do main (`definir_pixel_pass`); padrão desligado
 var _pixel_btn: Button
 var _pixel := false
-# MAPA DE TESTES: estado vem do main (`definir_mapa`)
-var _mapa_btn: Button
-var _mapa := "fundacao"
 
 
 func definir_vista_intima(ativa: bool) -> void:
@@ -140,16 +133,6 @@ func _ready() -> void:
 	_pixel_btn.focus_mode = Control.FOCUS_NONE
 	_pixel_btn.pressed.connect(func(): pixel_pass_alternado.emit(not _pixel))
 	add_child(_pixel_btn)
-	# MAPA DE TESTES: Fundação (ilha) ⇄ Natureza (mata). Um Control: o toque
-	# é consumido, não vira caminho; o main recarrega a cena no mapa novo.
-	_mapa_btn = Button.new()
-	_mapa_btn.text = _texto_mapa()
-	_mapa_btn.add_theme_font_size_override("font_size", 16)
-	_mapa_btn.position = Vector2(20, TOPO + 376)
-	_mapa_btn.custom_minimum_size = Vector2(240, 34)
-	_mapa_btn.focus_mode = Control.FOCUS_NONE
-	_mapa_btn.pressed.connect(func(): mapa_escolhido.emit("fundacao" if _mapa == "natureza" else "natureza"))
-	add_child(_mapa_btn)
 	_gesto = _rotulo("gesto: —", Vector2.ZERO, 20)
 	_gesto.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 18)
 	_gesto.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -234,7 +217,6 @@ func _legenda() -> String:
 	linhas.append("botão HOSTILIDADE → o bicho caça e ataca")
 	linhas.append("barra do topo → gira a câmera")
 	linhas.append("PIXEL ART → liga o pixel art (padrão: 3D liso)")
-	linhas.append("MAPA → troca Fundação ⇄ Natureza (mata)")
 	linhas.append("CONFIG → esconde esta HUD")
 	return "\n".join(linhas)
 
@@ -244,22 +226,11 @@ func definir_pixel_pass(ligado: bool) -> void:
 	_pixel = ligado
 
 
-## Mapa atual ("fundacao" | "natureza"); o main chama na partida.
-func definir_mapa(nome: String) -> void:
-	_mapa = nome
-	if _mapa_btn:
-		_mapa_btn.text = _texto_mapa()
-
-
-func _texto_mapa() -> String:
-	return "MAPA: %s" % ("NATUREZA" if _mapa == "natureza" else "FUNDAÇÃO")
-
-
 func gesto(ev: Dictionary, cmd: Dictionary, resultado: String) -> void:
 	_gesto.text = "gesto: %s → %s · %s" % [ev["gesto"], cmd.get("acao", "nada"), resultado]
 
 
-## Nota do último golpe/ataque (onda, tiro, batida, acerto, alvo final).
+## Nota do último golpe/ataque (tiro, batida, acerto, alvo final).
 func nota(texto: String) -> void:
 	if _nota:
 		_nota.text = texto
@@ -322,7 +293,7 @@ func _e_veu(no: Node) -> bool:
 	return cr.anchor_right == 1.0 and cr.anchor_bottom == 1.0
 
 
-func estado(corpo: RefCounted, alvos: Array, planejando := false, escala := 1.0,
+func estado(corpo: RefCounted, _alvos: Array, planejando := false, escala := 1.0,
 		adversarios: Array = [], hostil := false) -> void:
 	_corpo = corpo
 	_hostil = hostil
@@ -344,9 +315,6 @@ func estado(corpo: RefCounted, alvos: Array, planejando := false, escala := 1.0,
 			modo = "rota PARADA na barreira (%d%%)" % pct
 	else:
 		modo = "autonomia: %s" % corpo.autonomia
-	var alvo := "—"
-	if corpo.alvo_id != "":
-		alvo = "%s%s" % [corpo.alvo_tipo, (" a %d px" % roundi(corpo.pos.distance_to(Alvos.pos_de(alvos, corpo.alvo_id))))]
 	var extra := ""
 	if planejando:
 		extra = " · DESENHANDO %d%%" % roundi(escala * 100.0)
@@ -368,7 +336,7 @@ func estado(corpo: RefCounted, alvos: Array, planejando := false, escala := 1.0,
 	var fio := ""
 	if corpo.carregando():
 		fio = "CARREGANDO %d%%" % roundi(carga * 100.0)
-	var linha := "estado: %s · alvo: %s · %s%s%s%s%s%s%s" % [modo, alvo, corpo.camada,
+	var linha := "estado: %s · %s%s%s%s%s%s%s" % [modo, corpo.camada,
 		(" · habilidade" if corpo.habilidade_ativa() else ""),
 		(" · golpe: %s" % corpo.ataque if corpo.ataque != "" else ""),
 		(" · no ar" if corpo.no_ar() else ""), final, extra,

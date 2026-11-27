@@ -1,19 +1,11 @@
 extends "res://testes/caso.gd"
 ## O CONTORNO DE TELA (S6): no modo padrão (`Mat.MODO_TELA`) a linha é o pós
 ## pela profundidade (jogo/mundo3d/contorno_tela.gdshader) num quad de tela
-## cheia da vista, e a casca invertida não existe — sem next_pass nos objetos,
-## `Casca`/`Aba` do terreno sem malha.
+## cheia da vista, e a casca invertida não existe — sem next_pass nos
+## materiais toon. (A ilha da Fundação, com `Casca`/`Aba`, saiu em 2026-11-27.)
 
-const Mundo := preload("res://sim/mundo.gd")
-const Ilha := preload("res://jogo/mundo3d/ilha.gd")
 const Mat := preload("res://jogo/mundo3d/materiais.gd")
 const Vista := preload("res://jogo/mundo3d/vista.gd")
-
-const TERRENOS := {
-	"~": {"altura": 0, "cores": ["#2f6f9f"]},
-	",": {"altura": 1, "cores": ["#4f9a45", "#5cab51"]},
-	"^": {"altura": 2, "cores": ["#9a9aa2"]},
-}
 
 
 func test_padrao_e_o_contorno_de_tela() -> void:
@@ -22,17 +14,6 @@ func test_padrao_e_o_contorno_de_tela() -> void:
 
 
 func test_sem_casca_no_modo_tela() -> void:
-	var objs := [{"tipo": "arvore", "celula": [1, 1], "copa": 46}, {"tipo": "bau", "celula": [2, 1]}]
-	var m = Mundo.criar({"celulas": ["~~~~~", "~,,^~", "~~~~~"], "objetos": objs}, TERRENOS)
-	var ilha: Node3D = Ilha.new()
-	ilha.construir(m)
-	checar(ilha.casca != null and ilha.casca.mesh == null, "Casca sem malha")
-	checar(ilha.aba != null and ilha.aba.mesh == null, "Aba sem malha")
-	checar(ilha.objetos.get_child_count() > 0, "objetos montados")
-	for o in ilha.objetos.get_children():
-		var mat: ShaderMaterial = (o as MeshInstance3D).material_override
-		checar(mat.next_pass == null, "objeto sem casca (next_pass): %s" % o.name)
-	ilha.free()
 	checar(Mat.toon(Color.RED, Mat.CONTORNO).next_pass == null, "toon com contorno pedido, sem casca")
 
 

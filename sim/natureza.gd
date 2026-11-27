@@ -24,7 +24,7 @@ const LARGURA := 46
 const ALTURA := 62
 ## nível da sim do chão andável (o mesmo de "," em dados/terrenos.json)
 const NIVEL_CHAO := 1.0
-## unidades 3D por nível (o mesmo de jogo/mundo3d/ilha.gd)
+## unidades 3D por nível (o mesmo de jogo/mundo3d/espaco.gd)
 const ALTURA_NIVEL := 0.4
 ## folga além da margem visível do riacho em que a célula ainda é água
 const FOLGA_AGUA := 0.25

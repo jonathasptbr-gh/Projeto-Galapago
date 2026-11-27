@@ -148,26 +148,27 @@ comando sobrepõe: `--rendering-method gl_compatibility|mobile|forward_plus` e
   dos 8 vizinhos), centro pelas diferenças de 1 px. 53 leituras de
   profundidade por pixel no liso, 41 no Pixel Pass (eram 21). Lê a profundidade no Mobile (resolve de MSAA no
   `render_forward_mobile.cpp`) e no Compatibility (medido na prévia). A
-  `casca.gdshader` (casca invertida, `cull_front`, forma 3 = aba do terreno)
-  fica de reserva: só com `Mat.modo_contorno = MODO_CASCA`.
+  `casca.gdshader` (casca invertida, `cull_front`) fica de reserva: só com
+  `Mat.modo_contorno = MODO_CASCA`. No mapa NATUREZA (o único desde
+  2026-11-27) o contorno de tela fica DESLIGADO (`vista.contorno.layers = 0`).
   Ambiente/reflexo do `WorldEnvironment` desligados; a faixa baixa faz o papel
   de ambiente. Os três compilam no Mobile e no Compatibility (conferido no CI
   #108 em Vulkan).
-- **Marcas no chão** (S5b): trilha, mira, áreas de perigo e a onda moram no
+- **Marcas no chão** (S5b): trilha, mira e áreas de perigo moram no
   **mapa do chão** (`jogo/mundo3d/chao.gd`): SubViewport 2D transparente,
-  `UPDATE_ALWAYS`, que cobre a ilha + 1 célula de margem em vista de cima, com
+  `UPDATE_ALWAYS`, que cobre o mapa + 1 célula de margem em vista de cima, com
   afim FIXA px da sim → texel (`chao.raiz`; escala = min(2, 2048 / lado) a
-  texels inteiros por célula — fundacao: 31/32, 2046×806). Desenho em px da
-  sim, `antialiased=true`, sem câmera nem altura. O `toon.gdshader` do
-  **terreno** (`Mat.terreno`, `ilha.ligar_chao`) lê a textura pelo XZ do mundo
-  (`chao_ret`), linear sem mipmap, e mistura no ALBEDO antes da luz (a sombra
+  texels inteiros por célula — Natureza: 32/32, 1536×2048). Desenho em px da
+  sim, `antialiased=true`, sem câmera nem altura. O shader do **solo** (o da
+  mata, `mata.ligar_chao`; era o `toon.gdshader` da ilha da Fundação) lê a
+  textura pelo XZ do mundo (`chao_ret`), linear sem mipmap, e mistura no ALBEDO antes da luz (a sombra
   cai sobre o caminho), só em face para cima (normal y > ~0,7). A textura é
   **premultiplicada** (mix do canvas sobre fundo transparente; o shader divide
   por alfa) e sRGB (convertida a linear se `!OUTPUT_IS_SRGB`). Copas, paredes e
   atores passam por cima, em qualquer yaw e altura; com o Pixel Pass a marca
   é quantizada junto com o chão.
 - **Tela lisa:** HUD, barra de giro e os **projéteis no ar** (tiro, cuspe:
-  `efeitos_ar`/`perigos_ar`, `no_ar = true`) são 2D na resolução da tela
+  `efeitos_ar`/`perigos_ar` com `no_ar = true`) são 2D na resolução da tela
   (`antialiased=true`), por cima do 3D; os projéteis usam a afim
   `cam3d.chao_para_tela` como `transform` do nó pai (`sobre`) e `main.relevo`.
 - **Import de PNG:** padrão do Godot 4 para texturas 2D é sem perda; manter

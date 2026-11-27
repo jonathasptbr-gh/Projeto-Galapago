@@ -11,9 +11,8 @@ extends RefCounted
 ## simples fica pendente só pela janela do duplo e o segurar vale em
 ## `segurar_min_ms` em qualquer lugar.
 ##
-## O ATAQUE NÃO PASSA POR AQUI: ele nasce da FORMA do caminho em
-## `sim/formas.gd` → `sim/corpo.gd` (hoje só a travessia; o LAÇO está desligado
-## desde a v0.11.5 — `formas.laco_ataque`).
+## O ATAQUE NÃO PASSA POR AQUI: ele nasce do caminho em `sim/corpo.gd` (a
+## travessia e o fim no alvo; a onda do laço saiu em 2026-11-27).
 ##
 ## Comando: {acao, alvo, pontos, direcao, alcance, gesto}.
 

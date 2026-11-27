@@ -7,7 +7,7 @@
 //                  1 = caixa centrada na origem (VERTEX += sign(VERTEX)·esp:
 //                      cresce a caixa inteira, sem rachar nos cantos)
 //                  2 = cilindro centrado (raio em xz + sign(y) em y)
-//                  3 = terreno (ilha.gd): a malha vem pronta; só a ABA do topo
+//                  3 = terreno (era da ilha da Fundação, removida em 2026-11-27): a malha vem pronta; só a ABA do topo
 //                      (vértices com UV.x = 1) sai NORMAL·espessura, e encolhe
 //                      até sumir quando a parede (NORMAL, horizontal) vira de
 //                      frente para a câmera — borda de frente não ganha linha

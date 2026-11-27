@@ -12,7 +12,7 @@ extends SubViewport
 ##   `origem_px` = −`MARGEM_CELULAS` células (q = px de mundo da sim).
 ## - `escala`: texels por px da sim = min(`ESCALA_MAX`, `LADO_MAX` / maior
 ##   lado em px da sim), arredondada para baixo a um número INTEIRO de texels
-##   por célula (fundacao.json, 64×24 + margem: 31/32 → 2046×806 texels).
+##   por célula (Natureza, 46×62 + margem: 32/32 → 1536×2048 texels).
 ## - `transform_chao() -> Transform2D`: a afim px da sim → texel (= `raiz`).
 ## - `ret_shader() -> Vector4`: o `chao_ret` do toon: (origem X, origem Z em
 ##   unidades 3D, texels por unidade / tamanho), uv = (xz − ret.xy) × ret.zw.

@@ -4,7 +4,7 @@ extends "res://testes/caso.gd"
 ## giro do topo gira o yaw sem virar gesto; o toque cai no chão sob o dedo.
 
 const Main := preload("res://jogo/main.gd")
-const Ilha := preload("res://jogo/mundo3d/ilha.gd")
+const Espaco := preload("res://jogo/mundo3d/espaco.gd")
 
 
 func _criar() -> Node:
@@ -119,7 +119,7 @@ func test_controle_para_na_soltura_cancelamento_e_foco() -> void:
 
 ## P24 — o ponto de tela tocado cai no chão 3D SOB o dedo (ida e volta
 ## `mundo_de` → `tela_de`) em qualquer yaw. S5b — as MARCAS DE CHÃO (trilha,
-## perigos, onda, mira) moram no mapa do chão: o ponto `p` (px da sim) vira o
+## perigos, mira) moram no mapa do chão: o ponto `p` (px da sim) vira o
 ## texel `chao.raiz · p`; o terreno, pelo `chao_ret` do SEU material, lê esse
 ## texel exatamente no topo 3D da célula de `p` — e esse ponto 3D cai na tela
 ## sob o dedo. Os projéteis (no ar) seguem na afim da câmera com `relevo`.
@@ -135,31 +135,31 @@ func test_projecao_comum_para_efeitos_e_chao() -> void:
 	checar(chao.size.x <= chao.LADO_MAX and chao.size.y <= chao.LADO_MAX, "textura do chão até %d px (%s)" % [chao.LADO_MAX, chao.size])
 	checar(chao.transparent_bg and chao.render_target_update_mode == SubViewport.UPDATE_ALWAYS, "mapa do chão transparente e sempre atualizado")
 	checar(chao.raiz.transform.is_equal_approx(chao.transform_chao()), "raiz do chão na afim fixa")
-	var mats: Array = m.ilha.materiais_terreno
-	checar(not mats.is_empty(), "o terreno tem materiais")
+	var mats: Array = [m.mata._mat_solo]
+	checar(mats[0] != null, "o solo da mata tem material")
 	var tex: Texture2D = chao.get_texture()
 	for mat in mats:
 		checar(bool(mat.get_shader_parameter("usar_chao")), "terreno lê o mapa do chão")
 		checar(mat.get_shader_parameter("chao") == tex, "terreno lê ESTA textura")
 	var ret: Vector4 = mats[0].get_shader_parameter("chao_ret")
 	checar(ret.is_equal_approx(chao.ret_shader()), "chao_ret do material = o do mapa")
-	for no in [m.trilha, m.perigos, m.efeitos, m.mira]:
+	for no in [m.trilha, m.perigos, m.mira]:
 		checar(no.get_parent() == chao.raiz and no.transform == Transform2D.IDENTITY,
 			"%s no mapa do chão sem transformação própria" % no.get_class())
 		checar(no.get_viewport() == chao, "%s desenha na textura do chão" % no.get_class())
-	checar(not m.perigos.no_ar and not m.efeitos.no_ar, "marcas de chão não desenham projéteis")
+	checar(not m.perigos.no_ar and m.perigos_ar.no_ar, "marcas de chão não desenham projéteis; o cuspe no ar, sim")
 	for graus in [0.0, 90.0, 180.0]:
 		m.cam3d.yaw = 0.0
 		m.cam3d.girar(deg_to_rad(graus))
 		m._atualizar_camera(0.0)
 		var rot := " (yaw %d°)" % int(graus)
 		perto(absf(angle_difference(m.cam3d.yaw, deg_to_rad(graus))), 0.0, 0.0001, "yaw aplicado" + rot)
-		var ref: Transform2D = m.cam3d.chao_para_tela(tela, Ilha.altura_3d(Main.NIVEL_REF))
+		var ref: Transform2D = m.cam3d.chao_para_tela(tela, Espaco.altura_3d(Main.NIVEL_REF))
 		checar(m.sobre.transform.is_equal_approx(ref), "projéteis na afim da câmera" + rot)
 		checar(m.chao_tela().is_equal_approx(ref), "chao_tela é a mesma afim" + rot)
 		checar(chao.raiz.transform.is_equal_approx(chao.transform_chao()), "o giro não mexe no mapa do chão" + rot)
 		for no in [m.efeitos_ar, m.perigos_ar]:
-			checar(no.no_ar and no.get_parent() == m.sobre and no.transform == Transform2D.IDENTITY,
+			checar(no.get_parent() == m.sobre and no.transform == Transform2D.IDENTITY,
 				"%s (no ar) herda a afim sem transformação própria%s" % [no.get_class(), rot])
 		for t in toques:
 			var p: Vector2 = m.mundo_de(t)
@@ -171,7 +171,7 @@ func test_projecao_comum_para_efeitos_e_chao() -> void:
 			var texel: Vector2 = m.trilha.get_global_transform() * p
 			checar(Rect2(Vector2.ZERO, Vector2(chao.size)).has_point(texel), "texel %s dentro da textura%s" % [texel, rot])
 			# …que o terreno lê no topo 3D da célula de p (conta do toon.gdshader)…
-			var topo := Ilha.ponto(p, m.mundo.altura(c))
+			var topo := Espaco.ponto(p, m.mundo.altura(c))
 			var uv := Vector2((topo.x - ret.x) * ret.z, (topo.z - ret.y) * ret.w)
 			perto_v(uv * Vector2(chao.size), texel, 0.001, "o terreno lê o texel da marca no topo da célula%s" % rot)
 			perto_v(chao.uv_de_3d(topo), uv, 0.000001, "uv_de_3d = a conta do shader" + rot)
@@ -183,7 +183,7 @@ func test_projecao_comum_para_efeitos_e_chao() -> void:
 		# a criatura: o pé dela (ator 3D) projeta onde a trilha marca o corpo
 		var pe: Vector2 = m.cam3d.ponto_para_tela(m.ator_criatura.position, tela)
 		perto_v(m.tela_de(m.corpo.pos), pe, 0.5, "trilha no pé da criatura" + rot)
-		var topo_cria := Ilha.ponto(m.corpo.pos, m.mundo.altura(m.mundo.celula_de(m.corpo.pos)))
+		var topo_cria := Espaco.ponto(m.corpo.pos, m.mundo.altura(m.mundo.celula_de(m.corpo.pos)))
 		perto_v(m.cam3d.ponto_para_tela(topo_cria, tela), pe, 0.5, "marca do chão no pé da criatura" + rot)
 	checar(alturas_vistas.size() >= 2, "a amostra cobre mais de uma altura de terreno (%s)" % [alturas_vistas.keys()])
 	# girar muda a afim: o mesmo ponto de mundo sai em outro lugar da tela

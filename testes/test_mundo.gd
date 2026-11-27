@@ -2,6 +2,7 @@ extends "res://testes/caso.gd"
 
 const M := preload("res://sim/mundo.gd")
 const V := preload("res://sim/visibilidade.gd")
+const N := preload("res://sim/natureza.gd")
 
 var terrenos: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://dados/terrenos.json"))
 
@@ -14,10 +15,10 @@ func _c(x: int, y: int) -> Vector2:
 	return Vector2(x * 32 + 16, y * 32 + 16)
 
 
-func test_mapa_da_fundacao_e_valido() -> void:
-	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://dados/mapas/fundacao.json"))
+func test_mapa_natureza_e_valido() -> void:
+	var d: Dictionary = N.mundo_dict()
 	var m := M.criar(d, terrenos)
-	igual(m.validar().size(), 0, "fundacao.json: %s" % [m.validar()])
+	igual(m.validar().size(), 0, "natureza: %s" % [m.validar()])
 	checar(m.andavel(Vector2i(d["inicio"][0], d["inicio"][1]), M.SUPERFICIE), "início andável")
 
 
@@ -85,47 +86,3 @@ func test_caminho_livre() -> void:
 	var m := _mundo([",,,~~,,"])
 	checar(m.caminho_livre(_c(0, 0), _c(2, 0), M.SUPERFICIE), "até a beira da água")
 	checar(not m.caminho_livre(_c(0, 0), _c(4, 0), M.SUPERFICIE), "atravessar a água não")
-
-
-## v0.12: a EXTENSÃO DE PARKOUR a leste (x=40..63). A trilha entra pela ilha
-## leste, o pátio sobe por rampa ou por pulo, a passarela e a plataforma dão
-## desníveis de 1 nível e a volta desce em degraus — tudo em cima de água.
-func test_extensao_parkour_e_valida_e_ligada() -> void:
-	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://dados/mapas/fundacao.json"))
-	var m := M.criar(d, terrenos)
-	igual(m.validar().size(), 0, "fundacao.json (com a extensão): %s" % [m.validar()])
-	igual(m.largura, 64, "extensão: 24 colunas a leste")
-	checar(m.pode_andar(Vector2i(37, 11), Vector2i(38, 11), M.SUPERFICIE), "a trilha liga a ilha leste")
-	checar(m.pode_andar(Vector2i(39, 11), Vector2i(40, 11), M.SUPERFICIE), "a trilha entra no pátio")
-	checar(m.andavel(Vector2i(42, 11), M.SUPERFICIE), "pátio de trilha é andável")
-
-
-func test_extensao_parkour_rampas_ligam_os_niveis() -> void:
-	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://dados/mapas/fundacao.json"))
-	var m := M.criar(d, terrenos)
-	igual(m.altura(Vector2i(41, 11)), 1.0, "trilha no chão")
-	igual(m.altura(Vector2i(46, 11)), 2.0, "passarela um nível acima")
-	igual(m.altura(Vector2i(54, 11)), 3.0, "plataforma dois níveis acima")
-	igual(m.altura(Vector2i(56, 12)), 2.5, "rampa alta fica entre 2 e 3")
-	checar(m.pode_andar(Vector2i(43, 13), Vector2i(44, 13), M.SUPERFICIE), "pátio entra na rampa")
-	checar(m.pode_andar(Vector2i(44, 13), Vector2i(45, 13), M.SUPERFICIE), "rampa leva à passarela")
-	checar(m.pode_andar(Vector2i(55, 12), Vector2i(56, 12), M.SUPERFICIE), "plataforma entra na rampa alta")
-	checar(m.pode_andar(Vector2i(56, 12), Vector2i(57, 12), M.SUPERFICIE), "rampa alta desce à passarela")
-
-
-func test_extensao_parkour_vaos_e_pulos() -> void:
-	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://dados/mapas/fundacao.json"))
-	var m := M.criar(d, terrenos)
-	checar(not m.andavel(Vector2i(44, 11), M.SUPERFICIE), "vão de 1 célula antes da passarela")
-	checar(not m.pode_andar(Vector2i(43, 11), Vector2i(45, 11), M.SUPERFICIE), "o vão não se anda")
-	checar(m.pouso_valido(_c(43, 11), _c(45, 11), M.SUPERFICIE), "pulo sobe um nível")
-	checar(not m.pouso_valido(_c(43, 11), _c(54, 11), M.SUPERFICIE), "pulo não sobe dois níveis")
-	checar(not m.andavel(Vector2i(51, 11), M.SUPERFICIE), "vão de 2 células antes da plataforma (1)")
-	checar(not m.andavel(Vector2i(52, 11), M.SUPERFICIE), "vão de 2 células antes da plataforma (2)")
-	# a volta: degraus 1→2→3→2→1, com um vão de 2 células no meio
-	igual(m.altura(Vector2i(47, 16)), 2.0, "volta sobe à passarela")
-	igual(m.altura(Vector2i(50, 16)), 3.0, "volta sobe à plataforma")
-	igual(m.altura(Vector2i(53, 16)), 2.0, "volta desce à passarela")
-	igual(m.altura(Vector2i(55, 16)), 1.0, "volta desce à trilha")
-	checar(not m.andavel(Vector2i(57, 16), M.SUPERFICIE), "volta tem vão de 2 células (1)")
-	checar(not m.andavel(Vector2i(58, 16), M.SUPERFICIE), "volta tem vão de 2 células (2)")

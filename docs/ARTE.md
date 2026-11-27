@@ -91,8 +91,9 @@ A direção pedida pelo operador é **low-poly moderadamente detalhado, com
 proporções naturais**: nem o extremo econômico de poucos polígonos, nem
 cartoon/caricatura, nem fotorrealismo. Depois do primeiro piloto ele pediu
 **cores mais vivas** (verde saturado, água turquesa, terra quente) e que a mata
-virasse **mapa de testes jogável** — feito na v0.36.0 (o botão MAPA da HUD
-troca Fundação ⇄ Natureza; ver [arquitetura](ARQUITETURA.md#mundo-e-mapa)).
+virasse **mapa de testes jogável** — feito na v0.36.0; desde 2026-11-27 é o
+**mapa principal e único** do jogo (a Fundação saiu; ver
+[arquitetura](ARQUITETURA.md#mundo-e-mapa)).
 Continua uma **proposta visual**, não uma âncora aprovada; o rig próprio foi
 removido em 2026-11-26.
 
@@ -116,7 +117,7 @@ removido em 2026-11-26.
   nunca some sob a mata. Ambientação em `Mapa.ambientar` (tonemap linear,
   saturação +12%, céu azul-claro, sem névoa na vista alta).
 - A cena piloto standalone (`--vista-geral`, `--detalhe`, `--verso`) foi
-  removida em 2026-11-26: a mata se vê no jogo (botão MAPA ou `--natureza`).
+  removida em 2026-11-26: a mata se vê no jogo (é o mapa principal).
 - **Medido (seed 500, teste):** 82 árvores, 1.399 instâncias, 21 MultiMeshes,
   615.443 triângulos instanciados, 159.669 vértices armazenados (o solo, em
   passo 0,5, é ~68 mil). Não são triângulos visíveis nem draw calls.

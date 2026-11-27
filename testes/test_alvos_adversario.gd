@@ -14,17 +14,16 @@ func _mundo() -> RefCounted:
 	return M.criar({"celula_px": 32, "celulas": linhas}, terrenos)
 
 
-func test_montar_e_mais_proximo() -> void:
+func test_montar_alvos_dos_objetos() -> void:
 	var m := _mundo()
-	var objetos := [{"tipo": "arvore", "celula": [2, 2]}, {"tipo": "bau", "celula": [8, 2]}]
+	var objetos := [{"tipo": "arvore", "celula": [2, 2]}, {"tipo": "tronco", "celula": [8, 2]}]
 	var out := Alvos.montar(objetos, [], m)
 	igual(out.size(), 2, "dois alvos")
+	igual(out[0]["id"], "arvore:2,2", "id = tipo:célula")
 	checar(out[0]["travavel"], "árvore travável")
-	checar(not out[1]["travavel"], "baú não é alvo")
-	checar(out[1]["interativo"], "baú interativo")
-	var achado := Alvos.mais_proximo(out, Vector2(80, 70), 60.0)
-	igual(achado.get("id", ""), "arvore:2,2", "o mais perto")
-	igual(Alvos.mais_proximo(out, Vector2(500, 400), 20.0), {}, "fora de alcance: nada")
+	checar(not out[1]["travavel"], "tronco não é alvo")
+	checar(not out[0].has("interativo"), "o baú interativo saiu")
+	perto_v(Alvos.pos_de(out, "arvore:2,2"), m.centro(Vector2i(2, 2)) + Vector2(0, 6), 0.001, "posição pelo id")
 
 
 func test_sincronizar_move_o_alvo_do_adversario() -> void:
@@ -78,9 +77,9 @@ func test_empurrao_move_e_pisca() -> void:
 	checar(not adv.piscando(), "a piscada acaba")
 
 
-func test_arvore_e_bau_nao_reagem() -> void:
+func test_arvore_e_tronco_nao_reagem() -> void:
 	var m := _mundo()
-	var objetos := [{"tipo": "arvore", "celula": [2, 2]}, {"tipo": "bau", "celula": [8, 2]}]
+	var objetos := [{"tipo": "arvore", "celula": [2, 2]}, {"tipo": "tronco", "celula": [8, 2]}]
 	var out := Alvos.montar(objetos, [], m)
 	checar(not Alvos.reage(out[0]), "árvore não reage")
 	checar(not Alvos.empurrar(out, "arvore:2,2", Vector2.RIGHT, 20.0), "árvore não é empurrada")

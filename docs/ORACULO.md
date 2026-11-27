@@ -44,12 +44,11 @@ golpe roteirizado no fim (o estado ESCONDIDO precisa aparecer; um caminho
 desenhado erraria o alvo móvel). O demo normal continua igual.
 
 `QUADROS_CENA` filma outra cena (`--scene`; padrão: a principal), com os mesmos
-argumentos. A vitrine do mundo 3D: `QUADROS_FPS=10
-QUADROS_CENA=res://jogo/mundo3d/vitrine.tscn tools/quadros.sh 30 ~/tmp/s3`
-(padrão 3D liso; `DEMO_ARGS="--pixel"` com Pixel Pass; `--vista-intima` na
-vista íntima; `--sob-arvore`, 20 quadros, câmera parada com o ator rente ao
-tronco sob a copa e a quina do planalto ao fundo — o contorno de tela, S6). A
-prévia roda a janela em 720×1280, então o liso sai na mesma
+argumentos. O Pixel Pass na cena principal: `QUADROS_FPS=10 DEMO_ARGS="--pixel"
+tools/quadros.sh 30 ~/tmp/pixel` (o CI faz o mesmo em Vulkan, artefato
+`pixel`). A vitrine 3D da Fundação (`jogo/mundo3d/vitrine.tscn`, com
+`--sob-arvore`/`--quinas` do contorno de tela) saiu com a Fundação em
+2026-11-27. A prévia roda a janela em 720×1280, então o liso sai na mesma
 resolução do canvas — a resolução física só aparece no aparelho.
 
 ## Fatos medidos (2026-11-20, Godot 4.7.2)
@@ -125,11 +124,13 @@ esperado e some na publicação seguinte.
 > por decisão do operador; os comandos deles estão no histórico do git (o
 > ensaio no commit `64f0d2f`). A mata segue viva como mapa jogável.
 
-Desde a v0.36.0 a mata é o **mapa de testes NATUREZA do jogo**. A cena
-principal com `DEMO_ARGS="--natureza"` roda a demo de sempre nela (caminho,
-giro pela barra, tiro, pulo, perseguição, cavar na clareira):
-`DEMO_ARGS="--natureza" tools/quadros.sh 40 ~/tmp/natureza-jogo` (some
-`--pixel` para o Pixel Pass). O CI segue filmando a Fundação. A [direção e
+Desde a v0.36.0 a mata é mapa jogável e, desde 2026-11-27, o **ÚNICO mapa do
+jogo** (a Fundação saiu). A cena principal roda a demo de sempre nela
+(caminho, giro pela barra, tiro, pulo, perseguição, cavar na clareira):
+`tools/quadros.sh 40 ~/tmp/natureza-jogo` (some `DEMO_ARGS="--pixel"` para o
+Pixel Pass). O CI filma a Natureza (o argumento antigo `--natureza` não
+existe mais). A referência do CI é a última publicação: até a próxima, a
+comparação aponta diferença em todos os quadros (eram da Fundação). A [direção e
 orçamento](ARTE.md#mata-3d--direção-em-avaliação-2026-11-26) estão no guia de
 arte.
 
@@ -151,7 +152,7 @@ Depois (não reconferido na cena principal):
 
 ```bash
 LD_PRELOAD=/root/tmp/lvpshim/shim.so SHIM_FEATS='-sve,-sve2' MESA_SHADER_CACHE_DISABLE=true \
-QUADROS_RENDER=vulkan GALLIUM_DRIVER=llvmpipe DEMO_ARGS="--natureza" \
+QUADROS_RENDER=vulkan GALLIUM_DRIVER=llvmpipe \
 tools/quadros.sh 2 ~/tmp/natureza-vulkan
 ```
 

@@ -50,7 +50,7 @@ func _rodar(c: RefCounted, m: RefCounted, segundos: float, alvos: Array = [], dt
 
 
 func _alvo(id: String, pos: Vector2, tipo := "arvore") -> Dictionary:
-	return {"id": id, "tipo": tipo, "pos": pos, "raio": 14.0, "travavel": true, "interativo": false, "dados": {}}
+	return {"id": id, "tipo": tipo, "pos": pos, "raio": 14.0, "travavel": true, "dados": {}}
 
 
 ## O ÚLTIMO projétil de tiro vivo (o mais recente, se o teste atirou duas vezes).
@@ -237,23 +237,7 @@ func test_nova_rota_substitui_a_anterior() -> void:
 	checar(c.pos.x < 120.0, "e abandonou a antiga (x=%s)" % c.pos.x)
 
 
-# ---------------------------------------------------------------- alvo
-
-func test_travar_solta_e_mira_no_movel() -> void:
-	var s := _setup(MAPA)
-	var m: RefCounted = s[0]
-	var c: RefCounted = s[1]
-	var alvos := [_alvo("arvore:3,1", Vector2(112, 48)), _alvo("adversario:0", Vector2(200, 48), "adversario")]
-	checar(c.comandar({"acao": "travar", "alvo": Vector2(112, 40)}, m, alvos).begins_with("ok"), "travou na árvore")
-	igual(c.alvo_id, "arvore:3,1", "id certo")
-	igual(c.comandar({"acao": "travar", "alvo": Vector2(112, 40)}, m, alvos), "ok: mira solta", "mesmo alvo solta")
-	igual(c.alvo_id, "", "soltou")
-	c.comandar({"acao": "travar", "alvo": Vector2(200, 48)}, m, alvos)
-	igual(c.alvo_id, "adversario:0", "travou no adversário")
-	alvos[1]["pos"] = Vector2(48, 140)  # o adversário ANDOU
-	c.comandar({"acao": "ataque"}, m, alvos)
-	checar(c.ataque_dir.y > 0.9, "golpe para onde o alvo está AGORA (%s)" % c.ataque_dir)
-
+# ---------------------------------------------------------------- golpe
 
 func test_ataque_sem_alvo_usa_a_direcao_da_rota() -> void:
 	var s := _setup(MAPA)
@@ -265,29 +249,7 @@ func test_ataque_sem_alvo_usa_a_direcao_da_rota() -> void:
 	checar(c.ataque_dir.x > 0.5, "golpe na direção em que segue (%s)" % c.ataque_dir)
 
 
-func test_interagir_com_bau_nao_trava() -> void:
-	var s := _setup(MAPA)
-	var m: RefCounted = s[0]
-	var c: RefCounted = s[1]
-	var bau := {"id": "bau:2,1", "tipo": "bau", "pos": Vector2(80, 48), "raio": 14.0, "travavel": false, "interativo": true, "dados": {}}
-	checar(c.comandar({"acao": "travar", "alvo": Vector2(80, 48)}, m, [bau]).begins_with("ok"), "interagiu")
-	igual(c.alvo_id, "", "não travou mira")
-	checar("interagir:bau:2,1" in c.drenar_eventos(), "evento de interação")
-
-
 # ---------------------------------------------------------------- autonomia
-
-func test_autonomia_vai_ate_o_alvo_marcado() -> void:
-	var s := _setup(MAPA)
-	var m: RefCounted = s[0]
-	var c: RefCounted = s[1]
-	var alvos := [_alvo("adversario:0", Vector2(280, 48), "adversario")]
-	c.comandar({"acao": "travar", "alvo": Vector2(280, 48)}, m, alvos)
-	var antes: float = c.pos.distance_to(Vector2(280, 48))
-	_rodar(c, m, 5.0, alvos)
-	var depois: float = c.pos.distance_to(alvos[0]["pos"])
-	checar(depois < antes - 60.0, "chegou mais perto do alvo (%s → %s)" % [antes, depois])
-
 
 func test_autonomia_e_deterministica_com_a_mesma_semente() -> void:
 	var a := _setup(MAPA, [], 99)
@@ -560,7 +522,7 @@ func test_traco_comeca_onde_ela_estava_na_descida() -> void:
 	checar(c.pos.x < 96.0, "voltou para o começo (x=%s)" % c.pos.x)
 
 
-# ---------------------------------------------------------------- v0.9: formas do desenho
+# ---------------------------------------------------------------- v0.9: o desenho (travessia, bico, fim no alvo)
 
 ## Adversário parado (só reage ao golpe) e o alvo que a lista de alvos usa.
 func _adv(lugar: Vector2) -> RefCounted:
@@ -572,17 +534,7 @@ func _adv(lugar: Vector2) -> RefCounted:
 
 func _alvo_adv(id: String, adv: RefCounted) -> Dictionary:
 	return {"id": id, "tipo": "adversario", "pos": adv.pos, "raio": adv.raio,
-		"travavel": true, "interativo": false, "dados": adv}
-
-
-## As ações do jogo com o LAÇO forçado. v0.11.5 desligou a área por padrão;
-## os testes da ONDA ligam de propósito para provar que o código está inteiro.
-func _acoes_com_laco(ligado: bool) -> Dictionary:
-	var d := acoes.duplicate(true)
-	var f: Dictionary = d.get("formas", {})
-	f["laco_ataque"] = ligado
-	d["formas"] = f
-	return d
+		"travavel": true, "dados": adv}
 
 
 ## Avança corpo e adversário juntos, mantendo a lista de alvos sincronizada.
@@ -598,31 +550,6 @@ func _rodar_com(c: RefCounted, m: RefCounted, alvos: Array, adv: RefCounted, seg
 		evs.append_array(c.drenar_eventos())
 		t += dt
 	return evs
-
-
-## LAÇO: o traço fecha em cima de si mesmo. A onda nasce no CENTRO do laço
-## quando a criatura passa pelo nó, e varre (empurra) quem está lá.
-func test_laco_vira_onda_em_area_no_centro() -> void:
-	var s := _setup(MAPA, [], 5, _acoes_com_laco(true))
-	var m: RefCounted = s[0]
-	var c: RefCounted = s[1]
-	var adv := _adv(Vector2(175, 119))  # centro do laço
-	var alvos := [_alvo_adv("adversario:0", adv)]
-	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([
-		Vector2(240, 48), Vector2(240, 190), Vector2(110, 190), Vector2(110, 30)])}, m, alvos).begins_with("ok"), "rota com laço")
-	checar(not c.marcas.is_empty(), "o laço foi lido")
-	var tipo := ""
-	var centro := Vector2.ZERO
-	for mm in c.marcas:
-		if str(mm["tipo"]) == "laco":
-			tipo = "laco"
-			centro = Vector2(mm["centro"])
-	igual(tipo, "laco", "tem marca de laço")
-	perto_v(centro, Vector2(175, 119), 12.0, "centro estimado do laço")
-	var evs := _rodar_com(c, m, alvos, adv, 8.0)
-	checar("laco:onda" in evs, "a onda disparou ao passar pelo nó")
-	checar("acerto:adversario:0" in evs, "varreu o inimigo no centro (%s)" % [evs])
-	checar(adv.pos.distance_to(Vector2(175, 119)) > 5.0, "o empurrão moveu o inimigo (%s)" % adv.pos)
 
 
 ## v0.11: o BICO é ANDADO — o traço é obedecido como foi desenhado (o "beco"
@@ -692,19 +619,6 @@ func test_perseguicao_final_vai_atras_do_alvo() -> void:
 
 # ---------------------------------------------------------------- v0.9.1: ajustes
 
-## v0.10: o laço acende pela DISTÂNCIA da criatura ao CENTRO da área (até
-## `area_gatilho_px`, ~7× o corpo): não precisa chegar no anel.
-func test_laco_acende_pela_distancia_ao_centro() -> void:
-	var s := _setup(MAPA, [], 5, _acoes_com_laco(true))
-	var m: RefCounted = s[0]
-	var c: RefCounted = s[1]
-	# o centro do laço fica a ~58 px do ponto de partida (bem dentro dos 224 px)
-	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([
-		Vector2(130, 48), Vector2(130, 120), Vector2(60, 120), Vector2(60, 30)])}, m, []).begins_with("ok"), "rota com laço")
-	var evs := _rodar(c, m, 0.1)
-	checar("laco:onda" in evs, "onda saiu pela distância ao centro (%s)" % [evs])
-
-
 ## A ESTRADA: a criatura anda por dentro de uma faixa (não colada na linha) e o
 ## caminho não é retilíneo — mas não sai da largura.
 func test_estrada_organica_nao_e_reta() -> void:
@@ -762,29 +676,6 @@ func test_inercia_depois_do_fim_do_caminho() -> void:
 
 
 # ---------------------------------------------------------------- v0.9.2: recarga e embalo
-
-## Os ataques especiais têm 1 s de RECARGA: uma segunda marca não dispara
-## durante o cooldown (fica pendente e acende quando a recarga termina).
-func test_recarga_de_um_segundo_nos_especiais() -> void:
-	var s := _setup(MAPA, [], 5, _acoes_com_laco(true))
-	var m: RefCounted = s[0]
-	var c: RefCounted = s[1]
-	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([
-		Vector2(130, 48), Vector2(130, 120), Vector2(60, 120), Vector2(60, 30)])}, m, []).begins_with("ok"), "rota com laço")
-	var evs := _rodar(c, m, 0.1)
-	checar("laco:onda" in evs, "1ª onda saiu")
-	checar(float(c._recargas.get("onda", 0.0)) > 0.7, "entrou em recarga (%.2f)" % float(c._recargas.get("onda", 0.0)))
-	# uma marca de laço em cima dela NÃO acende durante o cooldown
-	c.marcas.append({"tipo": "laco", "ponto": c.pos, "centro": c.pos, "raio": 30.0,
-		"dir": Vector2.RIGHT, "chave": "teste:laco"})
-	var evs2 := _rodar(c, m, 0.15)
-	checar("laco:onda" not in evs2, "não disparou em recarga")
-	checar(not c._tem_marca("teste:laco") == false, "a marca ficou pendente")
-	# libera a recarga e a marca acende
-	c._recargas["onda"] = 0.0
-	var evs3 := _rodar(c, m, 0.05)
-	checar("laco:onda" in evs3 or c._tem_marca("teste:laco") == false, "acendeu ao liberar (%s)" % [evs3])
-
 
 ## O EMPURRÃO embala: passa mais rápido que a caminhada normal pelo alvo.
 func test_empurrao_embala_e_desacelera() -> void:
@@ -1388,24 +1279,6 @@ func test_amontoado_curto_e_cortado_da_rota() -> void:
 	checar(c.pos.x > 235.0, "seguiu ao fim (x=%.0f)" % c.pos.x)
 
 
-## LAÇO PEQUENO não acende a área: o traço do amontoado passa pelo leitor de
-## formas, mas fica abaixo do tamanho mínimo (não vira marca).
-func test_laco_pequeno_nao_acende_a_area() -> void:
-	var s := _setup(MAPA, [], 5, _acoes_com_laco(true))
-	var m: RefCounted = s[0]
-	var c: RefCounted = s[1]
-	c.comandar({"acao": "mover", "pontos": PackedVector2Array([
-		Vector2(120, 48), Vector2(140, 48), Vector2(140, 70), Vector2(120, 70),
-		Vector2(120, 48), Vector2(240, 48)])}, m, [])
-	var lacos := 0
-	for marca in c.marcas:
-		if str(marca["tipo"]) == "laco":
-			lacos += 1
-	igual(lacos, 0, "laço pequeno não marcou a área")
-	var evs := _rodar(c, m, 1.0)
-	checar("laco:onda" not in evs, "não disparou a onda (%s)" % [evs])
-
-
 ## INÉRCIA maior no SPRINT manual: o pedaço de frenagem fora da rota cresce um
 ## pouco quando a criatura chega acelerada pelo segurar.
 func _frenagem(sprint: bool) -> float:
@@ -1512,11 +1385,11 @@ func test_pulo_com_cauda_do_sprint_vai_mais_longe() -> void:
 	checar(com_cauda > normal * 1.2, "o pulo com cauda vai mais longe (%.1f vs %.1f px)" % [com_cauda, normal])
 
 
-# ---------------------------------------------------------------- v0.11.5: laço desligado
+# ---------------------------------------------------------------- v0.11.5: laço é só caminho
 
-## v0.11.5: o ATAQUE EM ÁREA do laço está DESLIGADO (decisão do operador).
-## Desenhar um círculo continua sendo CAMINHO — a rota é andada normalmente —
-## mas não nasce marca de área nem sai a ONDA.
+## v0.11.5 desligou o ATAQUE EM ÁREA do laço e 2026-11-27 o removeu: desenhar
+## um círculo é CAMINHO — a rota é andada normalmente — e não nasce marca de
+## área nem sai ONDA.
 func test_laco_desenhado_nao_vira_mais_ataque_em_area() -> void:
 	var s := _setup(MAPA)
 	var m: RefCounted = s[0]

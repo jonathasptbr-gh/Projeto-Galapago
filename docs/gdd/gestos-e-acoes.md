@@ -8,9 +8,8 @@
 ```
 dedos (toque real ou demo roteirizada — mesmo caminho)
   → sim/gestos.gd   : UM dedo = caminho · toque · toque duplo · segurar
-  → sim/formas.gd   : lê a FORMA do traço (LAÇO)
   → sim/comandos.gd : traduz o gesto em COMANDO (ação + alvo no mundo)
-  → sim/corpo.gd    : ROTA ao vivo (estrada) + marcas (onda, batida) +
+  → sim/corpo.gd    : ROTA ao vivo (estrada) + marcas (batida) +
                       MARCA do alvo (tiro/golpe) + PERSEGUIÇÃO + AUTONOMIA
 ```
 
@@ -21,7 +20,7 @@ Tempo **simulado** (`tempo_ms`): teste, demo e oráculo são determinísticos.
 | gesto | vira |
 |---|---|
 | **1 dedo arrastando** (acima de 16 px) | **caminho**, desenhado **AO VIVO** (sem espera) |
-| **laço** no caminho | **DESLIGADO na v0.11.5** (era ataque em área: uma onda que crescia do centro do laço). Hoje o círculo é **só caminho** — a rota é andada e nada acende. O código da onda fica atrás de `formas.laco_ataque` |
+| **laço** no caminho | **só caminho** — a rota é andada e nada acende. A onda em área do laço foi desligada na v0.11.5 e **removida em 2026-11-27** (com o `sim/formas.gd`) |
 | **bico** (ida e volta brusca, em "T" ou "V") | **v0.11: o bico é ANDADO** — o traço é obedecido como foi desenhado, nada é ignorado |
 | **levar o fim do caminho até o alvo** | ele fica **MARCADO** (um "X" amarelo que anda com ele); a marca vale para o **tiro** e para o **golpe físico** — e está ligada ao caminho. **v0.11.4:** a marca segue a **PONTA** do traço — passar por cima e **seguir longe** não marca (não há volta para bater) |
 | **passar por cima** de um alvo com a linha | **batida/empurrão** ao chegar naquele ponto (embalo longo) |
@@ -161,9 +160,6 @@ a área por engano. Depois do Douglas-Peucker:
 - o teste é o **RETORNO**, não a proximidade: o arco precisa ser bem maior do
   que a distância líquida (`arco ≥ d·1,8 + 12`) — reta e curva de verdade não
   são tocadas;
-- **laço mínimo para a ÁREA (v0.11.5: sem efeito, a área está desligada):**
-  `laco_area_min` 2200 px², `laco_arco_min` 160 px e `laco_raio_min` 28 px
-  (≈1,4× a área do corpo de 40×40). Abaixo disso o traço não virava marca.
 
 ### O laço e o bico são ANDADOS (v0.11.1)
 
@@ -222,24 +218,16 @@ referência e ficava quebrada):
   desenha só do corte para a frente, com um **rabinho de fade** de 22 px atrás.
   O que já passou some; o caminho à frente fica inteiro.
 
-## As formas (o ataque nasce do desenho)
+## O ataque nasce do desenho
 
-Tudo em `sim/formas.gd` (puro). O traço CRU é lido antes de virar rota:
+O leitor de formas (`sim/formas.gd`) e a **onda do laço** saíram em
+2026-11-27 (decisão do operador); o que o traço faz de ataque está no
+`sim/corpo.gd`: a **travessia** (passar por cima → batida, a até
+`combate.batida_gatilho_px` do ponto) e o **fim no alvo** (marca, abaixo).
 
-| forma | como é reconhecida | o que a marca guarda |
-|---|---|---|
-| **laço** | o traço volta e **cruza** a si mesmo; a área fechada tem `laco_area_min` (2200 px²) e o arco `laco_arco_min` (160 px) — tamanho mínimo v0.11.1 | o **nó**, o **centro** (centroide da área), o **raio** (`√area/π`, limitado a 28–120 px) e a direção do fechamento |
-
-- **Laço → onda em área (DESLIGADO na v0.11.5).** `formas.laco_ataque`
-  falso faz `Formas.analisar` devolver `[]` **sem nem reduzir o traço**: o laço
-  não vira marca. A regra fica registrada para quando (se) voltar: a marca
-  acendia quando a **distância da criatura ao CENTRO** do laço era
-  ≤ `area_gatilho_px` (224 px ≈ 7× o corpo), sem precisar chegar no anel; a
-  onda era um círculo que cresce do centro e empurra quem varre.
 - **O bico é andado.** O espinho faz parte do traço: a criatura sai, vai até a
   ponta e volta, como desenhado. (v0.10 ele era ignorado; v0.11 não é mais.)
-- **Sem "desenho certo":** as marcas são lidas a cada ~5 pontos do traço; o
-  que já acendeu não volta, e a marca é a mesma mesmo redesenhando por cima.
+- **O laço é andado**: desenhar um círculo é só caminho.
 
 ## A MARCA do alvo e o TIRO CARREGADO (v0.10/v0.19)
 
@@ -399,7 +387,6 @@ habilidade) **não** desacelera o mundo.
 
 | overlay | o que faz | efeito na rota |
 |---|---|---|
-| **onda** (laço) | círculo que cresce do centro do laço e empurra quem varre — **DESLIGADA desde a v0.11.5** (`formas.laco_ataque`) | nenhum: continua andando |
 | **tiro** (toque) | projétil no **alvo marcado vivo** ou no **fim do caminho** (destino final); o **tempo de preparo** (slider 0–1,5 s) escala raio/alcance/empurrão — 0 s é o tiro base instantâneo, 1,5 s o máximo; para no primeiro alvo | nenhum: o animal **PARA** para carregar (a rota fica guardada e ele **retoma** depois; **não há pausa de saída**) |
 | **golpe** (`ataque`/`batida`) | arco de fases (antecipação → ativa → recuperação) | nenhum |
 | **pulo** | arco no ar enquanto segue; atravessa barreira; **v0.13:** o automático sobe o degrau de 1 nível quando a rota continua | nenhum |
@@ -433,8 +420,8 @@ mostrando o **PREPARO** (0 → 1 no tempo escolhido), **não** o tamanho do tiro
 ## Autonomia (sem rota)
 
 Ao terminar a rota, a criatura decide sozinha, com sorteio **semeado**:
-**fica parada**, **vagueia devagar** ou, se há alvo marcado, **aproxima** dele e
-depois **ronda** ao redor. Cada passo é cortado pelo mundo.
+**fica parada** ou **vagueia devagar** (o aproximar/rondar do alvo travado saiu
+com o `travar` em 2026-11-27). Cada passo é cortado pelo mundo.
 
 ## Ações (`dados/acoes.json`)
 
@@ -446,9 +433,8 @@ depois **ronda** ao redor. Cada passo é cortado pelo mundo.
 | `pular` | `fases` [0,06 · 0,42 · 0,06] s, `altura` 26 px, `recarga` 0,08 (cooldown de POUSO), `buffer_s` 0,60 (fila do pulo no ar), `auto_padrao` falso (PULO AUTO começa desligado), `sprint_fator` 1,5 (avanço no ar com o sprint/cauda) |
 | `habilidade` | `nome` = `cavar` (o que o segurar ativa **sem caminho nem alvo**) |
 | `cavar` | `fases` [0,15 · 0,55 · 0,15] s |
-| `formas` | limiares do laço (tabela abaixo) |
 | `sprint` | **o sprint do segurar** no caminho (tabela abaixo) |
-| `combate` | onda/tiro carregado/batida/alvo final (tabela abaixo) |
+| `combate` | tiro carregado/batida/alvo final (tabela abaixo) |
 | `rota` | `simplificar_px` 10 · `desconto_raio_px` 44 · `desconto_janela_px` 140 · `amontoado_raio_px` 24 · `amontoado_janela_px` 100 · `contorno_alcance_px` 260 · `contorno_raio_px` 128 · `desvio_teimoso_*` 36/6 · `rampa_s` 0,30 (rampa de início) · **estrada/inércia** abaixo |
 
 ### `embalo` — a aceleração dos golpes físicos (v0.9.2)
@@ -484,17 +470,6 @@ acende quando a recarga termina).
 | `parada_px` | 4 | folga para virar `rota:fim` (a inércia continua) |
 | `rampa_s` | 0,30 | **v0.18:** RAMPA de aceleração do começo da caminhada NOVA — 15% → 100%, smoothstep |
 
-### `formas`
-
-| chave | valor | o quê |
-|---|---|---|
-| `laco_ataque` | **falso** | v0.11.5: liga/desliga o ataque em área do laço (falso = o laço é só caminho) |
-| `gatilho_raio_px` | 24 | distância da marca que acende o gatilho |
-| `laco_arco_min` | 160 | arco mínimo do laço (tamanho mínimo v0.11.1) |
-| `laco_area_min` | 2200 | área mínima (px²) — abaixo disso não acende a área |
-| `laco_raio_min` / `laco_raio_max` | 28 / 120 | raio da onda |
-| `laco_dedupe_px` | 26 | laços repetidos |
-
 ### `sprint` — o sprint do segurar (v0.18)
 
 | chave | valor | o quê |
@@ -508,7 +483,6 @@ acende quando a recarga termina).
 
 | chave | valor | o quê |
 |---|---|---|
-| `onda_velocidade` / `onda_empurrao` | 100 px/s / 30 px | expansão e empurrão da onda (laço DESLIGADO desde a v0.11.5) |
 | `tiro_velocidade` / `tiro_alcance` | 420 px/s / 280 px | base do tiro carregado do **toque** (alvo marcado vivo ou fim do caminho) |
 | `tiro_raio` / `tiro_empurrao` | 9 / 24 px | acerto e empurrão **brutos** do tiro — só saem inteiros com o preparo em 0 s |
 | `tiro_carga_s` | **0,5 s** | **v0.19:** o **padrão** do tempo de preparo do toque (o slider da HUD escreve `corpo.carga_tiro_s`); com 0 o tiro é instantâneo e base |
@@ -518,8 +492,8 @@ acende quando a recarga termina).
 | `tiro_carga_empurrao_x` | 2,0× | empurrão 24 → 48 px no máximo |
 | `batida_cruza_px` / `batida_tol_px` | 8 / 34 px | quando a linha "passa por cima" e a tolerância na chegada |
 | `batida_empurrao` | 26 px | empurrão da batida |
-| `onda_recarga_s` / `tiro_recarga_s` | 1,0 s | **cooldown** dos especiais (área/tiro) |
-| `area_gatilho_px` | 224 | distância da criatura ao **centro** que acende a área (≈7× o corpo) |
+| `batida_gatilho_px` | 24 px | distância ao ponto da travessia que acende a batida (era `formas.gatilho_raio_px`) |
+| `tiro_recarga_s` | 1,0 s | **cooldown** do tiro |
 | `tiro_pausa_s` | 0,25 s | a pausa curta DEPOIS do disparo; o animal retoma a rota em seguida |
 | `mira_final_raio` | 34 px | onde o fim do caminho MARCA o alvo — e o quanto a PONTA pode se afastar dele sem perder a marca (v0.11.4) |
 | `mira_final_empurrao` | 44 px | empurrão do golpe final |
@@ -553,10 +527,8 @@ acende quando a recarga termina).
   **golpe físico** (a marca sai no golpe, ou num caminho novo).
 - **Árvore:** alvo da **batida de travessia** (leva a pancada, mas não é
   empurrada — não reage).
-- **Baú:** ficou **sem gesto** na v0.10 (o **toque** é o TIRO e o toque duplo é
-  o PULO) — ver RESIDUOS.
-- A **mira vermelha** (travar no toque) também ficou sem gesto; o código do
-  `travar`/`alvo_id` continua no corpo, sem uso.
+- **Baú** e **mira vermelha** (`travar`/`alvo_id`): sem gesto desde a v0.10,
+  **removidos em 2026-11-27** (decisão do operador).
 
 ## Como mudar sem tocar em código
 
@@ -573,7 +545,6 @@ acende quando a recarga termina).
   chave para eles nem valor salvo; a HUD de teste não grava configuração.
 - **Sprint do segurar**: `sprint` (`fator`, `gasto_s`, `recarga_s`, `cauda_s`,
   `minimo`; sem `dura_s`).
-- **O que é laço** (e se ele ataca): `formas.laco_ataque` e os limiares `laco_*` em `dados/acoes.json`.
 - **O que cada ataque faz no alvo**: `combate` (empurrões, alcances, raio).
 - **Inimigo hostil**: `dados/adversario.json` (movimento, as quatro ações,
   recarga do esconder) e `reacao` em `dados/acoes.json` (invencibilidade e
@@ -594,8 +565,6 @@ acende quando a recarga termina).
   `duracao`), falta conteúdo.
 - **Bico**: é **andado** como desenhado (v0.11) e não tem ataque próprio; o
   espinho pode deixar o caminho mais longo.
-- **Baú e mira vermelha**: sem gesto desde a v0.10 (hoje o toque é o TIRO e o
-  toque duplo é o PULO) — o baú precisa de um gatilho novo.
 - **Estrada**: a largura, a amplitude/onda, a inércia (`freio_extra_px`,
   `freio_sprint_x`) e o giro (`giro_suavidade`/`giro_max_graus_s`) são pontos
   de partida — ajustar no aparelho com o operador.

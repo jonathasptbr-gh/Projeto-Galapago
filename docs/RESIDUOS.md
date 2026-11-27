@@ -22,6 +22,11 @@
 > `descartado (rig removido)`: o rig próprio (2D e 3D) saiu do repositório na faxina
 > de 2026-11-26 (decisão do operador: criaturas = modelo 3D do Sketchfab + ajustes);
 > o código segue no git até `f002dfb`. Inclui as antigas `congelado (rig)`.
+> `removido (2026-11-27: …)`: o assunto saiu do jogo num commit comum, sem versão
+> (decisão do operador: "a ilha e afins não são mais necessários" e "o mapa principal
+> agora é o Natureza") — a ilha Fundação com a extensão de parkour, o baú, o
+> `travar`/mira vermelha, a onda do laço e o leitor de formas; conferido com `rg`.
+> O código segue no git até `f38962a`.
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
@@ -34,11 +39,11 @@
 | v0.35.4 | contorno | o "pescoço" do ator provisório (esfera × cápsula) mudou levemente no contorno e já era ruidoso; conferir no aparelho | pequeno | descartado (operador) |
 | v0.35.4 | oráculo | a prova local em Vulkan/lavapipe depende de um shim fora do repositório (`~/tmp/lvpshim/shim.so`, `LD_PRELOAD` que força `LLVMGetHostCPUName` = `cortex-a76`, porque o llvmpipe emitia SVE que o kernel não expõe); não está em `docs/AMBIENTE.md` nem `docs/ORACULO.md` | pequeno | resolvido v0.36.0 (shim descrito em ORACULO.md) |
 | v0.35.3 | contorno | na vista alta, paredes baixas (planalto, costa, rampa) ganham duas linhas próximas (topo e pé) | pequeno | descartado (operador) |
-| v0.35.3 | contorno | pontinhos quase invisíveis em vértices de 4 facetas da copa e em 1 ponto da pedra | pequeno | aberto |
-| v0.35.3 | desempenho | contorno sobe para 49 leituras de profundidade/pixel no liso (41 no Pixel Pass); custo no aparelho não medido | médio | aberto |
+| v0.35.3 | contorno | pontinhos quase invisíveis em vértices de 4 facetas da copa e em 1 ponto da pedra | pequeno | removido (2026-11-27: a copa e a pedra eram da ilha da Fundação) |
+| v0.35.3 | desempenho | contorno sobe para 49 leituras de profundidade/pixel no liso (41 no Pixel Pass); custo no aparelho não medido | médio | removido (2026-11-27: o contorno de tela só rodava na Fundação; na Natureza, o único mapa, fica desligado) |
 | v0.35.2 | contorno | o ator provisório é cápsula de fundo redondo: a linha abraça a base em vez de sumir (some com pés de verdade) | pequeno | descartado (operador) |
 | v0.35.2 | contorno | linha um pouco mais fina que a casca antiga (~3 px de canvas); espessura em `vista.espessura_contorno` | pequeno | descartado (operador) |
-| v0.35.2 | desempenho | contorno de tela lê 21 amostras de profundidade por pixel na resolução física (+ resolve do MSAA no Mobile); custo no aparelho não medido | médio | aberto |
+| v0.35.2 | desempenho | contorno de tela lê 21 amostras de profundidade por pixel na resolução física (+ resolve do MSAA no Mobile); custo no aparelho não medido | médio | removido (2026-11-27: o contorno de tela só rodava na Fundação; na Natureza, o único mapa, fica desligado) |
 | v0.35.1 | chão | a textura do chão tem ~1 texel por px da sim: ampliada 3× (vista alta) a 6× (íntima) no aparelho, pontos e anéis ficam um pouco macios | pequeno | aberto |
 | v0.35.1 | desempenho | a textura do chão (2046×806) é redesenhada todo quadro, e o liso roda MSAA 4× na resolução física com atlas de sombra 4096 — custo no aparelho não medido | médio | aberto |
 | v0.35.1 | chão | não há quadro do caminho passando sob uma copa (a demo não passa por lá); garantido pela profundidade, não filmado | pequeno | aberto |
@@ -218,12 +223,12 @@
 | v0.13.0 | `sim/corpo.gd` | o alcance do pulo automático é estimado (`velocidade × fatores × 0,42 s × 0,9`), não simulado: numa rota muito curva ou no limite do vão o sistema pode não disparar (fica o toque duplo) ou disparar no último quadro | pequeno | aceito (controles maduros) |
 | v0.13.0 | `dados/acoes.json` | `pular.sprint_fator` 1,5 (pulo ~3,1 células) e a margem 0,9 do alcance são pontos de partida — ajustar no aparelho; com sprint o pulo pode passar do pouso em plataforma curta | design | aceito (controles maduros) |
 | v0.13.0 | oráculo | o botão aparece nos quadros, mas o demo não **clica** nele; a regra do automático é provada pelos testes e por simulação, não por quadro | pequeno | aceito (controles maduros) |
-| v0.12.0 | `dados/mapas/fundacao.json` | a extensão é só MOCKUP: trilha/passarela/rampa alta/plataforma ainda não têm arte (P6); a área também não tem decoração (árvore, pedra) | design | aberto |
-| v0.12.0 | `jogo/main.gd` | não há atalho para a área de parkour: chega-se pelo túnel ou pelo pulo do canal e atravessando a ilha leste — dá ~40 s de caminhada desde o início | decisão | aberto |
-| v0.12.0 | `sim/mundo.gd` | o vão de 2 células não tem regra própria: exige **pulo emendado ou sprint**; quem cai na água depende de outro pulo (é a regra que já existia) | design | aberto |
-| v0.12.0 | `docs/gdd/mapa.md` | não há checkpoint/reset na extensão: sair da trilha é voltar andando ou pulando pela água até uma plataforma | pequeno | aberto |
-| v0.11.5 | `dados/acoes.json` | com `formas.laco_ataque` falso, `formas.laco_*`, `formas.gatilho_raio_px` e `combate.onda_*`/`area_gatilho_px` ficam **sem uso** — voltam junto se a onda for religada | decisão | aberto |
-| v0.11.5 | `sim/corpo.gd` | o ramo `laco` de `_checar_marcas`/`_disparar` e o desenho da onda em `jogo/efeitos.gd` ficam **parados** (código morto atrás do interruptor); só o teste com a chave ligada os exercita | decisão | aberto |
+| v0.12.0 | `dados/mapas/fundacao.json` | a extensão é só MOCKUP: trilha/passarela/rampa alta/plataforma ainda não têm arte (P6); a área também não tem decoração (árvore, pedra) | design | removido (2026-11-27: a extensão de parkour saiu com a Fundação) |
+| v0.12.0 | `jogo/main.gd` | não há atalho para a área de parkour: chega-se pelo túnel ou pelo pulo do canal e atravessando a ilha leste — dá ~40 s de caminhada desde o início | decisão | removido (2026-11-27: a extensão de parkour saiu com a Fundação) |
+| v0.12.0 | `sim/mundo.gd` | o vão de 2 células não tem regra própria: exige **pulo emendado ou sprint**; quem cai na água depende de outro pulo (é a regra que já existia) | design | removido (2026-11-27: a extensão de parkour saiu com a Fundação) |
+| v0.12.0 | `docs/gdd/mapa.md` | não há checkpoint/reset na extensão: sair da trilha é voltar andando ou pulando pela água até uma plataforma | pequeno | removido (2026-11-27: a extensão de parkour saiu com a Fundação) |
+| v0.11.5 | `dados/acoes.json` | com `formas.laco_ataque` falso, `formas.laco_*`, `formas.gatilho_raio_px` e `combate.onda_*`/`area_gatilho_px` ficam **sem uso** — voltam junto se a onda for religada | decisão | removido (2026-11-27: `formas` e `combate.onda_*`/`area_gatilho_px` saíram; o gatilho da batida virou `combate.batida_gatilho_px`) |
+| v0.11.5 | `sim/corpo.gd` | o ramo `laco` de `_checar_marcas`/`_disparar` e o desenho da onda em `jogo/efeitos.gd` ficam **parados** (código morto atrás do interruptor); só o teste com a chave ligada os exercita | decisão | removido (2026-11-27: o ramo `laco` e a onda de `jogo/efeitos.gd` saíram) |
 | v0.11.5 | `sim/formas.gd` | desenhar um círculo agora só anda em círculo: um traço que volta sobre si mesmo **não é encurtado** pelo leitor de formas (quem trata vai-e-volta curto é o `limpar_amontoados`) | pequeno | aceito (controles maduros) |
 | v0.11.4 | HUD (`jogo/hud.gd`) | com o zoom 1,6 o mapa ocupa a tela inteira e a **legenda GESTOS** passa a ficar **por cima do mapa** (antes caía no fundo azul); é HUD de desenvolvimento — some com a UI real | pequeno | aberto |
 | v0.11.4 | `jogo/mock.gd` | o `ZOOM` 1,6 é **fracionário**: 1 px de arte vira 1–2 px de tela. No xadrez do mock não se nota; com a **arte real** (P6) é preciso decidir — arte desenhada em 2× ou voltar a um zoom inteiro (1 ou 2) | design | obsoleto (3D) |
@@ -247,7 +252,7 @@
 | v0.11.1 | `sim/trajetoria.gd` | o amontoado é medido por 24 px/100 px de arco: um **bico de até ~48 px** e um laço de ~15 px de raio são cortados (decisão: nessa escala é tremida, não desenho) | design | aceito (controles maduros) |
 | v0.11.1 | `sim/corpo.gd` | a INÉRCIA passa do último ponto (`freio_extra_px` 16 px; 26 px no sprint): o animal termina um pouco além da ponta do traço | decisão | aceito (controles maduros) |
 | v0.11.1 | `dados/acoes.json` | `freio_extra_px` 16, `freio_sprint_x` 1,6, `amontoado_*` 24/100 e os mínimos do laço (2200/160/28) são pontos de partida — ajustar no aparelho | pequeno | aceito (controles maduros) |
-| v0.11.1 | `sim/formas.gd` | o laço pequeno não acende a área, mas o traço ainda é lido (custa o RDP dos laços a cada ~5 pontos); não foi medido no aparelho | pequeno | aberto |
+| v0.11.1 | `sim/formas.gd` | o laço pequeno não acende a área, mas o traço ainda é lido (custa o RDP dos laços a cada ~5 pontos); não foi medido no aparelho | pequeno | removido (2026-11-27: `sim/formas.gd` saiu) |
 | v0.11.0 | `sim/formas.gd` | o **bico** não é mais reconhecido: o espinho é andado como qualquer traço (sem ataque próprio) — se o operador quiser um efeito no bico, é conteúdo novo | decisão | aceito (controles maduros) |
 | v0.11.0 | `sim/gestos.gd` | o **toque simples (tiro) fica pendente** até a janela do duplo (280 ms): o tiro sai ~0,28 s depois do toque | decisão | aceito (controles maduros) |
 | v0.11.0 | `sim/corpo.gd` | o **SPRINT só existe dentro de um caminho**: na perseguição final (sem rota) o segurar cava (se a célula for escavável) em vez de acelerar | decisão | aceito (controles maduros) |
@@ -261,7 +266,7 @@
 | v0.10.0 | `dados/acoes.json` | `area_gatilho_px` 224 (≈7× o corpo de 32 px) é ponto de partida; o "tamanho do animal" pode ser o sprite de 64 px — ajustar no aparelho | pequeno | aceito (controles maduros) |
 | v0.10.0 | demo | o caminho do demo vai em "L" para desviar do planalto (a criatura não sobe andando); o golpe final do roteiro depende de o alvo estar alcançável | — | aceito (controles maduros) |
 | v0.10.0 | oráculo | 45 quadros 720×1280 em ~3 min (~4 s/quadro) com a linha pontilhada no `softpipe` local; o CI grava 60 e passa | pequeno | obsoleto (3D) |
-| v0.10.0 | `sim/corpo.gd` | o `travar`/`alvo_id` (mira vermelha) e o **baú** ficaram **sem gesto**: o toque agora é o PULO; decidir se o baú ganha outro gatilho | design | aberto |
+| v0.10.0 | `sim/corpo.gd` | o `travar`/`alvo_id` (mira vermelha) e o **baú** ficaram **sem gesto**: o toque agora é o PULO; decidir se o baú ganha outro gatilho | design | removido (2026-11-27: `travar`/`alvo_id`, a mira vermelha e o baú saíram) |
 | v0.9.2 | `jogo/trilha.gd` | a linha mostra o traço CRU do dedo (inclusive o tremor inicial e o beco do bico), não o rastro do animal; é uma decisão, não um defeito | design | aceito (controles maduros) |
 | v0.9.2 | `jogo/trilha.gd` | os pontinhos são círculos em coordenadas de mundo (sem snap de pixel): em telas de zoom fracionário podem sair levemente borrados | pequeno | obsoleto (3D) |
 | v0.9.2 | `sim/corpo.gd` | a marca do especial durante a recarga fica PENDENTE; se a criatura sair do anel/perto da base, ela não acende mais (é consumida no fim da rota) | decisão | aceito (controles maduros) |
@@ -275,7 +280,7 @@
 | v0.9.1 | `sim/corpo.gd` | quando a rota acaba DURANTE o desenho, o alvo final usa a posição ATUAL do inimigo (não a do soltar): é o que permite o golpe final com traço ao vivo | decisão | aceito (controles maduros) |
 | v0.9.1 | `sim/corpo.gd` | o bico pausa 0,25 s: a pausa também congela a autonomia/rota por um instante (o mundo continua) | decisão | resolvido v0.10.0 (`bico_pausa_s` saiu) |
 | v0.9.1 | demo | o beco do demo virou um "T" no meio do caminho; o golpe final do roteiro depende de a criatura chegar perto do adversário | — | aceito (controles maduros) |
-| v0.9.1 | `sim/corpo.gd` | a leitura das formas refaz o RDP/laços e a busca do bico sobre o TRAÇO INTEIRO a cada ~5 pontos desenhados; o custo não foi medido no aparelho | pequeno | aberto |
+| v0.9.1 | `sim/corpo.gd` | a leitura das formas refaz o RDP/laços e a busca do bico sobre o TRAÇO INTEIRO a cada ~5 pontos desenhados; o custo não foi medido no aparelho | pequeno | removido (2026-11-27: o leitor de formas saiu; o traço não é mais relido) |
 | v0.9.1 | oráculo | 180 quadros 720×1280 em ~5 min (~1,7 s/quadro); a demo agora passa dos 19 s (o golpe final do roteiro fica fora dos 180) | operador | obsoleto (3D) |
 | v0.9.0 | `sim/formas.gd` | a base do bico é o ponto onde a VOLTA reencontra o caminho (ou a partida, se o traço acaba na volta): num bico desenhado no MEIO de uma reta, a base pode sair alguns px antes do ponto exato | design | resolvido v0.11.0 (o bico saiu do leitor de formas) |
 | v0.9.0 | `sim/formas.gd` | um laço é lido no traço reduzido (RDP 3 px) e um bico no traço amostrado (6 px): desenhos minúsculos (laço < 700 px², espinho < 18 px) não contam — limiares em `formas` | pequeno | aceito (controles maduros) |
@@ -324,7 +329,7 @@
 | v0.5.0 | movimento | pular é só VISUAL: não atravessa água/vão (a rota é cortada e ela para na beira) | decidir com o operador se o pulo deve vencer vãos | resolvido v0.6.0 (o pulo atravessa e retoma a rota) |
 | v0.5.0 | combate | golpe desenha o cone mas não acerta nada (sem vida/dano por decisão do operador) | P4/P7 | resolvido v0.9.0 (onda e tiro empurram o adversário; vida segue fora) |
 | v0.5.0 | `jogo/main.gd` | a lista de alvos é reconstruída só ao abrir (objetos fixos) e sincronizada a cada quadro | ok enquanto nada nasce/morre em jogo | aberto |
-| v0.5.0 | interação | o baú só muda de cor; não há conteúdo nem inventário | design (P8) | aberto |
+| v0.5.0 | interação | o baú só muda de cor; não há conteúdo nem inventário | design (P8) | removido (2026-11-27: o baú saiu com a Fundação) |
 | v0.4.0 | verificação | o modelo da sessão não lê imagem: quadros conferidos por amostragem de pixels, não por olho | operador confirma o APK; ou delegar a um agente com visão | resolvido (2026-11-27: o agente lê imagem e abre os PNG) |
 | v0.4.0 | mockup | a criatura de xadrez ocupa ~40 px do canvas de 64 (margem de pose); só mock | some quando a arte real entrar | obsoleto (3D) |
 | v0.4.0 | copas | a transparência da copa usa a distância no CHÃO, sem o desnível do planalto | relevante se houver árvore em dois níveis | obsoleto (3D) |

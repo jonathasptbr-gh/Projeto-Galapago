@@ -6,7 +6,7 @@ extends RefCounted
 ##   (nem next_pass, nem casca/aba do terreno). Lê `modo_contorno`.
 ## - `modo_contorno`: MODO_TELA (padrão: Mobile e Compatibility leem a
 ##   profundidade nesse uso — medido no oráculo) ou MODO_CASCA (a casca
-##   invertida antiga, reserva). Decida ANTES de construir ilha/atores: os
+##   invertida antiga, reserva). Decida ANTES de construir os atores: os
 ##   materiais e as malhas de casca saem conforme o modo da hora.
 ## - `toon(cor, contorno := 0.0, forma := FORMA_NORMAL) -> ShaderMaterial`:
 ##   toon.gdshader na cor; com `contorno > 0` e modo casca ganha a casca como
@@ -15,9 +15,6 @@ extends RefCounted
 ## - `casca(espessura, forma) -> ShaderMaterial`: só o contorno (a casca do
 ##   terreno usa `FORMA_TERRENO`: paredes já infladas na malha, `espessura` =
 ##   largura da aba do topo).
-## - `terreno(cor) -> ShaderMaterial`: toon do TERRENO, instância NOVA (fora
-##   do cache) para receber o mapa do chão (`usar_chao`, `chao`, `chao_ret`;
-##   ver `jogo/mundo3d/chao.gd`); quem liga é `ilha.ligar_chao`.
 ## Materiais iguais saem do cache (mesma instância): NÃO altere parâmetros de
 ## um material devolvido — peça outro com os valores que quer.
 
@@ -27,7 +24,7 @@ const CASCA := preload("res://jogo/mundo3d/casca.gdshader")
 const FORMA_NORMAL := 0
 const FORMA_CAIXA := 1
 const FORMA_CILINDRO := 2
-## casca do terreno (ilha.gd): malha pronta + aba do topo empurrada no shader
+## casca do terreno (era da ilha da Fundação, removida em 2026-11-27): malha pronta + aba do topo
 const FORMA_TERRENO := 3
 ## espessura padrão do contorno dos objetos (unidades; ~1,3 px interno na vista alta)
 const CONTORNO := 0.05
@@ -55,13 +52,6 @@ static func toon(cor: Color, contorno := 0.0, forma := FORMA_NORMAL) -> ShaderMa
 	if contorno > 0.0:
 		m.next_pass = casca(contorno, forma)
 	_cache[chave] = m
-	return m
-
-
-static func terreno(cor: Color) -> ShaderMaterial:
-	var m := ShaderMaterial.new()
-	m.shader = TOON
-	m.set_shader_parameter("cor", cor)
 	return m
 
 

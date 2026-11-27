@@ -4,9 +4,8 @@ extends RefCounted
 ## **UM DEDO FAZ TUDO.** O primeiro dedo que desce é o do CAMINHO:
 ##
 ## - arrastar além de `desenho_min_px` já desenha a rota AO VIVO, sem espera.
-##   A FORMA do desenho é lida por `sim/formas.gd` (hoje o LAÇO está DESLIGADO
-##   por `formas.laco_ataque` — v0.11.5; ficou só o caminho). O gesto não tem
-##   de decidir isso.
+##   O desenho é só caminho (a onda do laço e o leitor de formas saíram em
+##   2026-11-27).
 ## - soltar sem arrastar = **toque** (v0.18: a AÇÃO é TIRO, pela tabela
 ##   `mapa`); dois toques = **toque duplo** (PULO). Para o primeiro toque de um
 ##   duplo não atirar, o toque simples fica PENDENTE até a janela do duplo

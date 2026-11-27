@@ -1,5 +1,6 @@
 extends Node
-## DEMO roteirizada (`-- --demo`, usada pelo oráculo): sintetiza DEDOS — não
+## DEMO roteirizada (`-- --demo`, usada pelo oráculo), no mapa NATUREZA (o
+## único desde 2026-11-27): sintetiza DEDOS — não
 ## comandos — e os entrega pelo MESMO caminho de um toque de verdade
 ## (main.dedo_* → sim/gestos → sim/comandos → sim/corpo).
 ##
@@ -49,9 +50,6 @@ var _giro: Dictionary = {}
 
 func _init(m: Node) -> void:
 	main = m
-	if "--camera-planalto" in OS.get_cmdline_user_args():
-		main.corpo.pos = main.mundo.centro(Vector2i(8, 8))
-		main.posicionar_camera()
 	if "--camera-intermediaria" in OS.get_cmdline_user_args() or "--camera-intima" in OS.get_cmdline_user_args():
 		main.dedo_desceu(0, Vector2(200, 500))
 		main.dedo_desceu(1, Vector2(300, 500))
@@ -177,7 +175,7 @@ func _disparar(p: Dictionary, agora: float) -> void:
 				"trilhas": [{"dedo": 0, "pts": PackedVector2Array([alvo, alvo])}]})
 		"perto":
 			# em cima do ADVERSÁRIO: passa por cima (batida) ou termina nele (marca
-			# do alvo e golpe final). O "L" desvia do planalto no meio da arena.
+			# do alvo e golpe final). O caminho vai em "L".
 			var adv := Vector2(main.adversarios[0].pos)
 			var cria := Vector2(main.corpo.pos)
 			var dir := (adv - cria)

@@ -54,7 +54,7 @@
 | P5 | Vivência → evolução (sim) + simulação em massa | P4 ✔ | **próximo do núcleo** |
 | P7 | Fatia vertical: arena + cão + gestos + 1 evolução | P2–P5 | na fila |
 | P8 | GDD do loop diário no laboratório/ilha | — | na fila (design, conversa) |
-| P24 | Fundação 3D: mundo 3D, Pixel Pass opcional, câmera orbital 360° | — | **entregue na v0.35.0**; mapa NATUREZA na v0.36.0; contorno do ator pendente |
+| P24 | Fundação 3D: mundo 3D, Pixel Pass opcional, câmera orbital 360° | — | **entregue na v0.35.0**; mapa NATUREZA na v0.36.0 e mapa único em 2026-11-27 (a ilha Fundação saiu); contorno do ator descartado |
 | P25 | Cenário 3D: medir e otimizar o custo gráfico | v0.36.0 ✔ | na fila (pedido 2026-11-26) |
 | P26 | Cenário destrutível: vegetação, árvores que caem, arena que se abre | P25 | na fila (pedido 2026-11-26) |
 | P27 | Os quatro elementos no cenário (fogo, terra, ar, água) | P26 · P5 (porte) | na fila (design + sim; pedido 2026-11-26) |
@@ -63,8 +63,9 @@
 
 ### Onde mais há pendência (apontada daqui, não copiada)
 
-- [`RESIDUOS.md`](RESIDUOS.md): o que cada publicação deixou para trás (52
-  linhas `aberto` depois das decisões do operador de 2026-11-27).
+- [`RESIDUOS.md`](RESIDUOS.md): o que cada publicação deixou para trás (39
+  linhas `aberto` depois da remoção da Fundação, do baú e da onda do laço,
+  2026-11-27).
 - [`gdd/historia.md`](gdd/historia.md#decisões-pendentes): decisões de
   história à espera do operador.
 

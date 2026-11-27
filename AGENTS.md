@@ -99,24 +99,25 @@ export_presets.cfg    preset Android (arm64, sem Gradle)
 CLAUDE.md             ponteiro de uma linha para este arquivo (Claude Code)
 sim/                  lógica pura: gestos (1 dedo: caminho, toque=tiro carregado
                        (0–1,5 s, tamanho pelo tempo), toque duplo=pulo,
-                       segurar=correr/habilidade; rampa de início) · formas
-                       (laço/bico do desenho) ·
+                       segurar=correr/habilidade; rampa de início) ·
                        comandos · corpo (traço ao vivo+waypoints+overlays+
                        marcas de ataque+autonomia) · alvos · adversario
                        (passeio, hostilidade, preparo+área, esconder) · mundo ·
                        trajetoria (desconto+RDP) · camera3d (câmera orbital
-                       3D) · natureza (mapa de testes da mata: layout + grade) ·
+                       3D) · natureza (o mapa, a mata: layout + grade) ·
                        direcao (8 setores) · animacao (estados e prioridades) ·
                        afinidade · visibilidade · atualizacao
 jogo/                 main · mundo3d/ (vista = SubViewport + Pixel Pass
-                       liga/desliga, chao = mapa do chão que o terreno
-                       pinta, ilha, ator provisório, shaders toon/
-                       contorno_tela/casca (reserva)/pixel_pass, vitrine, natureza/ = a mata: malhas, mapa, shaders natural/folha) · barra_giro (topo, gira a
+                       liga/desliga, chao = mapa do chão que o solo pinta,
+                       espaco (px+níveis → 3D), ator provisório, shaders
+                       toon/contorno_tela/casca (reserva)/pixel_pass,
+                       natureza/ = a mata, o ÚNICO mapa: malhas, mapa,
+                       shaders natural/folha) · barra_giro (topo, gira a
                        câmera) · perigos (área no chão; cuspe no ar) · mira
-                       (mira+alvo final) · trilha · efeitos (onda no chão;
-                       tiro no ar) · hud (legenda,
-                       carga, CONFIG, PIXEL ART, MAPA) · demo · atualizador
-dados/                gestos.json · acoes.json · adversario.json · terrenos.json · mapas/ · animacoes.json · afinidade.json · camera3d.json
+                       (alvo final) · trilha · efeitos (tiro no ar) · hud
+                       (legenda, carga, CONFIG, PIXEL ART) · demo ·
+                       atualizador
+dados/                gestos.json · acoes.json · adversario.json · terrenos.json · animacoes.json · afinidade.json · camera3d.json
 testes/               run.gd (executor), caso.gd (base), test_*.gd
 tools/                estado.sh · testes.sh · verificar.sh (seletivo) ·
                       docs.sh (docs.mjs + docs.test.mjs) · quadros.sh ·

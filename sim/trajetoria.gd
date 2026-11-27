@@ -155,7 +155,7 @@ static func limpar_amontoados(pontos: PackedVector2Array, raio: float, janela: f
 
 
 ## Comprimento de arco acumulado em cada ponto (arcos_pontos[0] = 0). Igual ao
-## `sim/formas.arcos`, repetido aqui para a trajetória não depender das formas.
+## antigo `sim/formas.arcos` (o leitor de formas saiu em 2026-11-27).
 static func arcos_pontos(pontos: PackedVector2Array) -> PackedFloat32Array:
 	var out := PackedFloat32Array()
 	if pontos.is_empty():

@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Oráculo visual: roda a cena principal em modo --demo e grava N quadros PNG,
-# sem GPU (Xvfb + Mesa por software). Ver docs/ORACULO.md.
+# Oráculo visual: roda a cena principal (o mapa NATUREZA) em modo --demo e
+# grava N quadros PNG, sem GPU (Xvfb + Mesa por software). Ver docs/ORACULO.md.
 #   tools/quadros.sh [N=60] [saída=~/tmp/galapago-quadros]   (QUADROS_FPS=30 por padrão)
 #   DEMO_ARGS="--hostil" tools/quadros.sh 180 ...  → cena de inimigo hostil
-#   QUADROS_CENA=res://jogo/mundo3d/vitrine.tscn tools/quadros.sh 30 ...  → filma
-#     outra cena (padrão: a principal); os argumentos (--demo $DEMO_ARGS) vão iguais
+#   DEMO_ARGS="--pixel" tools/quadros.sh 30 ...  → com o Pixel Pass
+#   QUADROS_CENA=res://<cena>.tscn tools/quadros.sh 30 ...  → filma outra cena
+#     (padrão: a principal); os argumentos (--demo $DEMO_ARGS) vão iguais
 #   QUADROS_RENDER=previa|vulkan (padrão previa):
 #     previa → Compatibility/OpenGL 3 por software (GALLIUM_DRIVER, softpipe
 #              por padrão: neste celular o llvmpipe morre com SIGILL no JIT);

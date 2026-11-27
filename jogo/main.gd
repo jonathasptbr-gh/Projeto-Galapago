@@ -1,16 +1,18 @@
 extends Node2D
-## Cena principal (v0.9): a FUNDAÇÃO em RETRATO, com caminho desenhado AO VIVO
-## e o ataque nascendo da FORMA do desenho.
+## Cena principal: o mapa NATUREZA (a mata de `sim/natureza.gd` +
+## `jogo/mundo3d/natureza/`) em RETRATO, com caminho desenhado AO VIVO. Desde
+## 2026-11-27 é o ÚNICO mapa: a Fundação (ilha de teste), o baú e a onda do
+## laço saíram do jogo (decisão do operador).
 ##
 ## P24 — MUNDO 3D. De trás para frente:
-##   vista (CanvasLayer −1, `jogo/mundo3d/vista.gd`: SubViewport com a ilha 3D,
+##   vista (CanvasLayer −1, `jogo/mundo3d/vista.gd`: SubViewport com a mata 3D,
 ##   os atores 3D e o Pixel Pass; o TERRENO pinta no topo das células o MAPA
 ##   DO CHÃO, `chao` — S5b) · `sobre` (Node2D, canvas 0: só o que está NO AR,
 ##   os projéteis — `efeitos_ar` z24 e `perigos_ar` z1; o `transform` do nó é,
 ##   a cada quadro, `cam3d.chao_para_tela(tela, NIVEL_REF)`; ortográfica ⇒ afim
 ##   exata) · barra de giro (CanvasLayer 1) · HUD.
 ## MAPA DO CHÃO (`jogo/mundo3d/chao.gd`, SubViewport 2D fora da tela): trilha
-##   z1, perigos z1, efeitos (onda) z24 e mira z25, filhos de `chao.raiz`, em px
+##   z1, perigos z1 e mira z25, filhos de `chao.raiz`, em px
 ##   de mundo da sim → texels por uma afim FIXA; não dependem da câmera nem da
 ##   altura — árvores, paredes e atores passam por cima deles.
 ## Câmera: `sim/camera3d.gd` (`dados/camera3d.json`) segue a criatura; a BARRA
@@ -21,16 +23,15 @@ extends Node2D
 ##
 ## Fluxo: dedo → sim/gestos (um dedo: caminho ao vivo; toque = TIRO CARREGADO,
 ## toque duplo = pulo, segurar = CORRER com caminho / habilidade sem ele) →
-## sim/comandos → sim/corpo (traço ao vivo + formas do caminho + carga do tiro
+## sim/comandos → sim/corpo (traço ao vivo + travessias do caminho + carga do tiro
 ## + overlays + autonomia). O tempo é SIMULADO (tempo_ms): demo e oráculo são
 ## determinísticos. Nenhuma regra de jogo mora aqui: o main lê o dedo, desenha
 ## e chama o comando.
 ##
 ## v0.9 — a ORIGEM do caminho é congelada no `dedo_desceu` (posição da criatura
-## naquele instante). A FORMA do traço vira ataque dentro do `sim/corpo.gd`
-## (travessia → batida; fim em cima do adversário → golpe final marcado nele;
-## o laço NÃO vira mais onda em área desde a v0.11.5 — ver `formas.laco_ataque`
-## em `dados/acoes.json`). Enquanto desenha, o mundo roda em tempo lento e a
+## naquele instante). O traço vira ataque dentro do `sim/corpo.gd` (travessia
+## → batida; fim em cima do adversário → golpe final marcado nele; a onda do
+## laço saiu em 2026-11-27). Enquanto desenha, o mundo roda em tempo lento e a
 ## tela escurece; ao soltar, o tempo ACELERA numa rampa.
 ##
 ## v0.18 — a **PAUSA DE SAÍDA** não existe mais (nem `corpo.em_atraso()`): o
@@ -51,7 +52,7 @@ const Alvos := preload("res://sim/alvos.gd")
 const Adversario := preload("res://sim/adversario.gd")
 const Vista := preload("res://jogo/mundo3d/vista.gd")
 const Chao := preload("res://jogo/mundo3d/chao.gd")
-const Ilha := preload("res://jogo/mundo3d/ilha.gd")
+const Espaco := preload("res://jogo/mundo3d/espaco.gd")
 const Ator := preload("res://jogo/mundo3d/ator.gd")
 const BarraGiro := preload("res://jogo/barra_giro.gd")
 const Perigos := preload("res://jogo/perigos.gd")
@@ -63,12 +64,6 @@ const Demo := preload("res://jogo/demo.gd")
 const Natureza := preload("res://sim/natureza.gd")
 const Mata := preload("res://jogo/mundo3d/natureza/mapa.gd")
 
-const MAPA := "res://dados/mapas/fundacao.json"
-## MAPA DE TESTES escolhido: "fundacao" (padrão) ou "natureza" (a mata de
-## sim/natureza.gd + jogo/mundo3d/natureza/). O botão MAPA da HUD guarda a
-## escolha em `Engine` (META_MAPA) e recarrega a cena; `--natureza` começa nela.
-const META_MAPA := &"galapago_mapa"
-const META_PIXEL := &"galapago_pixel"
 ## a mata tem árvores de até ~14 unidades: a fatia near..far da vista cresce
 const RELEVO_MATA := 15.0
 ## altura (unidades) acima dos pés onde fica o centro da COPA VAZADA
@@ -112,7 +107,6 @@ var hostilidade := false
 var mira: Node2D
 var trilha: Node2D
 var perigos: Node2D
-var efeitos: Node2D
 ## os projéteis (no ar): na tela, por cima do 3D
 var efeitos_ar: Node2D
 var perigos_ar: Node2D
@@ -123,14 +117,11 @@ var camera_toque := CameraToque.new()
 # --- P24: o mundo 3D ---
 var cam3d: RefCounted
 var vista: CanvasLayer
-## "fundacao" | "natureza"; vazio = decide no `_ready` (argumento, Engine)
-var mapa_nome := ""
-## Fundação: a ilha; Natureza: a mata (só um dos dois existe)
-var ilha: Node3D
+## a mata 3D (jogo/mundo3d/natureza/mapa.gd)
 var mata: Node3D
 var ator_criatura: Node3D
 var atores_adv: Array = []
-## o MAPA DO CHÃO (SubViewport): trilha, perigos, efeitos (onda) e mira
+## o MAPA DO CHÃO (SubViewport): trilha, perigos e mira
 var chao: SubViewport
 ## Node2D pai das sobreposições NO AR (projéteis: efeitos_ar, perigos_ar)
 var sobre: Node2D
@@ -172,9 +163,7 @@ var _tempo_vis := 0.0
 
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
-	if mapa_nome == "":
-		mapa_nome = "natureza" if "--natureza" in args else String(Engine.get_meta(META_MAPA, "fundacao"))
-	var mapa := Natureza.mundo_dict() if mapa_nome == "natureza" else _json(MAPA)
+	var mapa := Natureza.mundo_dict()
 	cfg_gestos = _json("res://dados/gestos.json")
 	cfg_adversario = _json("res://dados/adversario.json")
 	mundo = Mundo.criar(mapa, _json("res://dados/terrenos.json"))
@@ -193,38 +182,25 @@ func _ready() -> void:
 	chao.configurar(mundo.largura, mundo.altura_grade)
 	add_child(chao)
 
-	# o PALCO 3D: ilha + atores, câmera ortográfica orbital
+	# o PALCO 3D: mata + atores, câmera ortográfica orbital
 	cam3d = Cam3D.new(_json("res://dados/camera3d.json"))
 	vista = Vista.new()
 	vista.altura_interna = int(cam3d.cfg["pixel_pass"]["altura_interna"])
 	# padrão: 3D liso; `--pixel` liga o Pixel Pass (`--liso`, antigo, é aceito e
 	# não muda nada)
 	vista.pixel_pass = "--pixel" in args
-	# a troca de mapa recarrega a cena: o Pixel Pass atravessa o recarregamento
-	# uma vez (META_PIXEL), sem virar padrão
-	if Engine.has_meta(META_PIXEL):
-		vista.pixel_pass = bool(Engine.get_meta(META_PIXEL))
-		Engine.remove_meta(META_PIXEL)
-	if mapa_nome == "natureza":
-		vista.altura_relevo = RELEVO_MATA
+	vista.altura_relevo = RELEVO_MATA
 	add_child(vista)
-	if mapa_nome == "natureza":
-		# a mata: luz contínua e cores vivas; sem o contorno de tela (linha preta
-		# em cada folha viraria desenho animado e custaria caro)
-		mata = Mata.new()
-		mata.name = "Mata"
-		mata.position = Natureza.origem_3d()
-		vista.mundo_3d.add_child(mata)
-		mata.construir()
-		mata.ligar_chao(chao.get_texture(), chao.ret_shader())
-		Mata.ambientar(vista.ambiente.environment, vista.sol, false)
-		vista.contorno.layers = 0
-	else:
-		ilha = Ilha.new()
-		ilha.name = "Ilha"
-		vista.mundo_3d.add_child(ilha)
-		ilha.construir(mundo)
-		ilha.ligar_chao(chao.get_texture(), chao.ret_shader())
+	# a mata: luz contínua e cores vivas; sem o contorno de tela (linha preta
+	# em cada folha viraria desenho animado e custaria caro)
+	mata = Mata.new()
+	mata.name = "Mata"
+	mata.position = Natureza.origem_3d()
+	vista.mundo_3d.add_child(mata)
+	mata.construir()
+	mata.ligar_chao(chao.get_texture(), chao.ret_shader())
+	Mata.ambientar(vista.ambiente.environment, vista.sol, false)
+	vista.contorno.layers = 0
 	ator_criatura = Ator.new()
 	ator_criatura.name = "Criatura"
 	ator_criatura.cor = COR_CRIATURA
@@ -253,11 +229,6 @@ func _ready() -> void:
 	perigos.mundo = mundo
 	perigos.z_index = 1
 	chao.raiz.add_child(perigos)
-	efeitos = Efeitos.new()
-	efeitos.corpo = corpo
-	efeitos.mundo = mundo
-	efeitos.z_index = 24
-	chao.raiz.add_child(efeitos)
 	mira = Mira.new()
 	mira.corpo = corpo
 	mira.mundo = mundo
@@ -278,7 +249,6 @@ func _ready() -> void:
 	perigos_ar.z_index = 1
 	sobre.add_child(perigos_ar)
 	efeitos_ar = Efeitos.new()
-	efeitos_ar.no_ar = true
 	efeitos_ar.corpo = corpo
 	efeitos_ar.mundo = mundo
 	efeitos_ar.relevo = relevo
@@ -297,10 +267,8 @@ func _ready() -> void:
 	hud = Hud.new()
 	hud.hostilidade_alternada.connect(definir_hostilidade)
 	hud.pixel_pass_alternado.connect(definir_pixel_pass)
-	hud.mapa_escolhido.connect(trocar_mapa)
 	add_child(hud)
 	hud.definir_pixel_pass(vista.pixel_pass)
-	hud.definir_mapa(mapa_nome)
 	# VÉU do desenho: escurece a tela para ilustrar a desaceleração (fica
 	# ATRÁS dos rótulos da HUD, que são filhos da mesma CanvasLayer).
 	veu = ColorRect.new()
@@ -326,7 +294,7 @@ func posicionar_camera() -> void:
 
 
 func _foco_criatura() -> Vector3:
-	return Ilha.ponto(corpo.pos, _h_cria) + Vector3(0.0, ALTURA_FOCO, 0.0)
+	return Espaco.ponto(corpo.pos, _h_cria) + Vector3(0.0, ALTURA_FOCO, 0.0)
 
 
 func _process(delta: float) -> void:
@@ -429,9 +397,8 @@ func _atualizar_camera(delta: float) -> void:
 	cam3d.seguir(_foco_criatura(), delta)
 	cam3d.avancar(delta)
 	vista.aplicar_camera(cam3d)
-	if mata:
-		mata.definir_foco(ator_criatura.position + Vector3(0.0, FOCO_COPA, 0.0))
-	var ref := Ilha.altura_3d(NIVEL_REF)
+	mata.definir_foco(ator_criatura.position + Vector3(0.0, FOCO_COPA, 0.0))
+	var ref := Espaco.altura_3d(NIVEL_REF)
 	var m: Transform2D = cam3d.chao_para_tela(_tela, ref)
 	sobre.transform = m
 	var m1: Transform2D = cam3d.chao_para_tela(_tela, ref + 1.0)
@@ -445,8 +412,8 @@ func _atualizar_camera(delta: float) -> void:
 ## (`sobre`) o põe na tela exatamente onde fica o chão 3D daquela célula. Só os
 ## projéteis usam; as marcas de chão estão no mapa do chão.
 func relevo(p: Vector2) -> Vector2:
-	var h := Ilha.altura_3d(mundo.altura(mundo.celula_de(p)))
-	return p + _subir * (h - Ilha.altura_3d(NIVEL_REF))
+	var h := Espaco.altura_3d(mundo.altura(mundo.celula_de(p)))
+	return p + _subir * (h - Espaco.altura_3d(NIVEL_REF))
 
 
 ## VÉU: escurece enquanto desenha e clareia junto com a rampa de aceleração.
@@ -464,10 +431,6 @@ func _evento(e: String) -> void:
 		# P24: o subsolo não é desenhado em 3D; o ator afunda e escurece
 		print("evento: ", e)
 		hud.nota("SUBSOLO" if corpo.camada == Mundo.SUBSOLO else "SUPERFÍCIE")
-	elif e.begins_with("interagir:"):
-		# P24: o baú 3D ainda não abre (é estático na ilha)
-		print("evento: ", e)
-		hud.nota("ABRIU %s" % e.substr(10))
 	elif e == "rota:fim":
 		trilha.mostrar(PackedVector2Array())
 	elif e == "carga:on":
@@ -480,9 +443,6 @@ func _evento(e: String) -> void:
 		# soltou o segurar: a CAUDA mantém o embalo por `sprint.cauda_s`
 		print("evento: ", e)
 		hud.nota("CAUDA — o embalo continua")
-	elif e.begins_with("laco:"):
-		print("evento: ", e)
-		hud.nota("LAÇO: onda em área")
 	elif e.begins_with("tiro:"):
 		print("evento: ", e)
 		hud.nota("TIRO")
@@ -556,22 +516,6 @@ func definir_pixel_pass(v: bool) -> void:
 	if hud:
 		hud.definir_pixel_pass(v)
 		hud.nota("PIXEL ART %s" % ("ligado" if v else "desligado — 3D liso"))
-
-
-## Troca o MAPA DE TESTES (o botão MAPA da HUD chama). Guarda a escolha em
-## `Engine` e RECARREGA a cena: dedos, traço, câmera, adversários e marcas
-## nascem do zero no mapa novo — nada do mapa velho sobra. O Pixel Pass
-## atravessa o recarregamento. Devolve se recarregou (só quando esta é a cena
-## atual; nos testes a escolha fica guardada e nada recarrega).
-func trocar_mapa(nome: String) -> bool:
-	if nome == mapa_nome or not nome in ["fundacao", "natureza"]:
-		return false
-	Engine.set_meta(META_MAPA, nome)
-	if get_tree().current_scene != self:
-		return false
-	Engine.set_meta(META_PIXEL, vista.pixel_pass)
-	get_tree().call_deferred("reload_current_scene")
-	return true
 
 
 # ---------- o dedo (toque real e demo passam por aqui) ----------
@@ -825,7 +769,7 @@ func _pontos_gesto() -> PackedVector2Array:
 func mundo_de(tela: Vector2) -> Vector2:
 	var p := Vector2.ZERO
 	for nivel in _niveis:
-		p = cam3d.tela_para_chao(_tela, Ilha.altura_3d(float(nivel))) * tela
+		p = cam3d.tela_para_chao(_tela, Espaco.altura_3d(float(nivel))) * tela
 		if is_equal_approx(mundo.altura(mundo.celula_de(p)), float(nivel)):
 			return p
 	return p
@@ -833,14 +777,14 @@ func mundo_de(tela: Vector2) -> Vector2:
 
 ## Chão (px de mundo da sim, no topo do terreno da célula) → tela.
 func tela_de(mundo_pos: Vector2) -> Vector2:
-	var h := Ilha.altura_3d(mundo.altura(mundo.celula_de(mundo_pos)))
+	var h := Espaco.altura_3d(mundo.altura(mundo.celula_de(mundo_pos)))
 	return cam3d.chao_para_tela(_tela, h) * mundo_pos
 
 
 ## A afim chão→tela no plano de referência (a das sobreposições). A demo usa
 ## a base dela para converter deslocamentos de mundo em px de tela.
 func chao_tela() -> Transform2D:
-	return cam3d.chao_para_tela(_tela, Ilha.altura_3d(NIVEL_REF))
+	return cam3d.chao_para_tela(_tela, Espaco.altura_3d(NIVEL_REF))
 
 
 ## As alturas (níveis) que existem no mapa, da maior para a menor.
