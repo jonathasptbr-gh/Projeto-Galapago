@@ -7,15 +7,16 @@
 > `obsoleto (3D)`: o assunto saiu do jogo com a Fundação 3D (P24, v0.35.0) — o
 > código ou desenho 2D citado não está no caminho de jogo (`jogo/main.gd`,
 > `jogo/mundo3d/`); conferido com `rg` na triagem P28 (2026-11-26).
+> `descartado (operador)`: o operador decidiu não aplicar (2026-11-26, fechamento do P28).
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
 | v0.36.0 | desempenho | mapa NATUREZA: ~691 mil triângulos instanciados no mapa inteiro, 341 MultiMeshes em setores; FPS e aquecimento no aparelho não medidos | médio | aberto |
 | v0.36.0 | natureza | água opaca e parada (sem reflexo, refração ou correnteza animada); sem vento nas folhas | pequeno | aberto |
-| v0.36.0 | natureza | sem subsolo desenhado: cavar só na clareira de terra fofa, e o túnel não aparece (como na Fundação) | pequeno | aberto |
+| v0.36.0 | natureza | sem subsolo desenhado: cavar só na clareira de terra fofa, e o túnel não aparece (como na Fundação) | pequeno | descartado (operador) |
 | v0.36.0 | natureza | sem contorno de tela na mata: o ator provisório fica sem linha ali; árvores e pedras não são alvo de colisão física do tiro além do tronco da célula | pequeno | aberto |
 | v0.36.0 | natureza | a linha do caminho (pontos escuros e translúcidos de `jogo/trilha.gd`) fica discreta na terra escura da mata; a cor é compartilhada com a Fundação e não foi mexida | pequeno | aberto (design) |
-| v0.36.0 | oráculo | o CI filma só a Fundação; a Natureza é filmada à mão (`DEMO_ARGS="--natureza"`) | pequeno | aberto |
+| v0.36.0 | oráculo | o CI filma só a Fundação; a Natureza é filmada à mão (`DEMO_ARGS="--natureza"`) | pequeno | descartado (operador) |
 | v0.35.4 | contorno | o "pescoço" do ator provisório (esfera × cápsula) mudou levemente no contorno e já era ruidoso; conferir no aparelho | pequeno | aberto |
 | v0.35.4 | oráculo | a prova local em Vulkan/lavapipe depende de um shim fora do repositório (`~/tmp/lvpshim/shim.so`, `LD_PRELOAD` que força `LLVMGetHostCPUName` = `cortex-a76`, porque o llvmpipe emitia SVE que o kernel não expõe); não está em `docs/AMBIENTE.md` nem `docs/ORACULO.md` | pequeno | resolvido v0.36.0 (shim descrito em ORACULO.md) |
 | v0.35.3 | contorno | na vista alta, paredes baixas (planalto, costa, rampa) ganham duas linhas próximas (topo e pé) | pequeno | aberto (design) |
@@ -28,8 +29,8 @@
 | v0.35.1 | desempenho | a textura do chão (2046×806) é redesenhada todo quadro, e o liso roda MSAA 4× na resolução física com atlas de sombra 4096 — custo no aparelho não medido | médio | aberto |
 | v0.35.1 | chão | não há quadro do caminho passando sob uma copa (a demo não passa por lá); garantido pela profundidade, não filmado | pequeno | aberto |
 | v0.35.0 | 3D | sobreposições (trilha, mira, perigos, efeitos) ficam por cima do 3D: uma copa não esconde a trilha | pequeno | resolvido v0.35.1 (projéteis seguem no ar) |
-| v0.35.0 | 3D | copas de árvore escondem a criatura que passa por baixo (no 2D a copa ficava translúcida) | pequeno | aberto |
-| v0.35.0 | 3D | subsolo e células escavadas não são desenhados no mundo 3D | médio | aberto |
+| v0.35.0 | 3D | copas de árvore escondem a criatura que passa por baixo (no 2D a copa ficava translúcida) | pequeno | descartado (operador) |
+| v0.35.0 | 3D | subsolo e células escavadas não são desenhados no mundo 3D | médio | descartado (operador) |
 | v0.35.0 | visual | no Vulkan (CI #108) o contorno de algumas paredes sai tracejado, aparecem manchas escuras nas copas na vista íntima e o dither está forte | pequeno | resolvido v0.35.1 (dither: Pixel Pass fora do padrão) |
 | v0.35.0 | 3D | criatura e inimigo são atores provisórios (cápsula); a pele real depende do rig, congelado | grande | aberto |
 | v0.35.0 | desempenho | Mobile/Vulkan não medido em aparelho; o oráculo local é só prévia em Compatibility | médio | aberto |
@@ -104,8 +105,8 @@
 | v0.26.0 | preview | GIF depende de `python3-pil` no runner; sem ele o comentário sai só com os quadros-chave | pequeno | aberto |
 | v0.26.0 | preview | o Pages substitui a página a cada push: imagem de lote antigo dá 404 (o comentário é atualizado no lugar) | pequeno | aberto |
 | v0.26.0 | preview | o branch `gh-pages` existe só porque o Pages exigiu uma origem para ser criado; o site vem de `build_type=workflow` | pequeno | aberto |
-| v0.26.0 | rito | `main` continua sem proteção de branch (exige o operador em Settings → Branches); o PR é disciplina, não trava | médio | aberto |
-| v0.26.0 | licença | repositório público ainda sem LICENSE — decisão do operador (MIT? todos os direitos reservados?) | decisão | aberto |
+| v0.26.0 | rito | `main` continua sem proteção de branch (exige o operador em Settings → Branches); o PR é disciplina, não trava | médio | descartado (operador) |
+| v0.26.0 | licença | repositório público ainda sem LICENSE — decisão do operador (MIT? todos os direitos reservados?) | decisão | descartado (operador) |
 | v0.26.0 | ferramentas | `preview.mjs` e `quadros-baseline.mjs` sem teste automatizado próprio | pequeno | aberto |
 | v0.25.2 | pele | esqueleto puro é para estudo de juntas; a leitura de personagem no mapa fica de propósito em segundo plano até a arte | decisão | aberto |
 | v0.25.2 | foco | serpente e ave seguem sem ossos completos (pontos soltos como asas) — renderizam, mas não foram polidos | médio | obsoleto (3D) |
@@ -156,7 +157,7 @@
 | v0.20.0 | `jogo/mock.gd` | marcas, efeitos, perigos e adversários em terreno elevado interpolam da posição histórica ao topo: nas inclinações intermediárias não coincidem exatamente com o topo | visual | obsoleto (3D) |
 | v0.20.0 | controles | vista íntima não tem gestos definidos para ataque ou salto; pinça e controle relativo precisam de teste no aparelho | decisão / operador | aberto |
 | v0.20.0 | oráculo | quadros capturados não mostram marcas ou efeitos sobre planalto; continuidade verificada em teste numérico, não visualmente; baseline CI não atualizado | verificação | obsoleto (3D) |
-| v0.19.0 | `jogo/hud.gd` | o **slider** da carga é **runtime-only**: o valor **não é salvo** entre aberturas — cada partida começa em `combate.tiro_carga_s` (0,5 s); salvar configuração é da UI real | pequeno | aberto |
+| v0.19.0 | `jogo/hud.gd` | o **slider** da carga é **runtime-only**: o valor **não é salvo** entre aberturas — cada partida começa em `combate.tiro_carga_s` (0,5 s); salvar configuração é da UI real | pequeno | descartado (operador) |
 | v0.19.0 | `dados/acoes.json` | o **padrão 0,5 s** e a **faixa 0–1,5 s** do slider (`tiro_carga_s`/`tiro_carga_max_s`) são **pontos de partida** — ajustar no aparelho com o operador | pequeno | aberto |
 | v0.19.0 | `sim/corpo.gd` | o **tamanho** do tiro é **linear no tempo** (`carga_tiro_s / tiro_carga_max_s`): a faixa toda só dá **2× no empurrão** e **1,5× no raio** — o padrão 0,5 s já é **1/3 do ganho**, não um tiro "fraco" | design | aberto |
 | v0.19.0 | `sim/corpo.gd` | o **instantâneo (0 s)** não tem estado de carga: dispara dentro do próprio comando (`"ok: tiro"`), então a HUD **não** mostra "CARREGANDO" nem barra/anel nesse caso | pequeno | aberto |
@@ -197,9 +198,9 @@
 | v0.14.0 | `sim/corpo.gd` | o **atordoamento** não cancela um golpe seu já em curso (ele termina), só o sprint; a rota fica guardada | pequeno | aberto |
 | v0.14.0 | `jogo/perigos.gd` | a demarcação tem **três formas** (círculo/faixa/linha); um ataque novo (cone, vários círculos) precisa de forma nova | pequeno | aberto |
 | v0.14.0 | `sim/adversario.gd` | o acerto **não checa altura**: um bote/cuspe de cima de um barranco de 1 nível alcança quem está embaixo (o esbarrão para na borda) | pequeno | aberto |
-| v0.14.0 | oráculo | a cena hostil exige `DEMO_ARGS="--hostil"`; os 60 quadros do CI mostram o começo do demo normal, **sem hostilidade** | pequeno | aberto |
+| v0.14.0 | oráculo | a cena hostil exige `DEMO_ARGS="--hostil"`; os 60 quadros do CI mostram o começo do demo normal, **sem hostilidade** | pequeno | descartado (operador) |
 | v0.13.0 | `sim/corpo.gd` | o pulo automático só sobe degrau de **1 nível**; **descer** degrau, água no mesmo nível e degrau de 2+ níveis continuam no toque duplo | decisão | aberto |
-| v0.13.0 | `jogo/hud.gd` | o botão PULO AUTO é HUD de desenvolvimento (por cima do mapa) e **não persiste** entre aberturas: cada partida começa em `pular.auto_padrao` (falso) | pequeno | aberto |
+| v0.13.0 | `jogo/hud.gd` | o botão PULO AUTO é HUD de desenvolvimento (por cima do mapa) e **não persiste** entre aberturas: cada partida começa em `pular.auto_padrao` (falso) | pequeno | descartado (operador) |
 | v0.13.0 | `sim/corpo.gd` | o alcance do pulo automático é estimado (`velocidade × fatores × 0,42 s × 0,9`), não simulado: numa rota muito curva ou no limite do vão o sistema pode não disparar (fica o toque duplo) ou disparar no último quadro | pequeno | aberto |
 | v0.13.0 | `dados/acoes.json` | `pular.sprint_fator` 1,5 (pulo ~3,1 células) e a margem 0,9 do alcance são pontos de partida — ajustar no aparelho; com sprint o pulo pode passar do pouso em plataforma curta | design | aberto |
 | v0.13.0 | oráculo | o botão aparece nos quadros, mas o demo não **clica** nele; a regra do automático é provada pelos testes e por simulação, não por quadro | pequeno | aberto |

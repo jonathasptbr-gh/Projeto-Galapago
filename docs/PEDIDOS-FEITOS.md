@@ -395,3 +395,8 @@
   obsoletas cujo objeto saiu do jogo. Nenhum pacote novo criado.
 - **Pronto quando:** nenhuma linha já resolvida ou sem objeto fica `aberto`
   sem evidência contrária, e `tools/docs.sh` segue verde.
+- **Decisão do operador (2026-11-26, fechamento):** as 9 linhas do rig 2D
+  marcadas `obsoleto (3D)` ficam assim (já superadas); as 5 candidatas a
+  pacote (subsolo 3D, copa vazada na Fundação, CI filmar Natureza/hostil,
+  salvar configurações de teste, LICENSE/proteção de `main`) foram
+  descartadas — 9 linhas viraram `descartado (operador)`.
