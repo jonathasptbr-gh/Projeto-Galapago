@@ -70,9 +70,9 @@
 
 ### Onde mais há pendência (apontada daqui, não copiada)
 
-- [`RESIDUOS.md`](RESIDUOS.md): o que cada publicação deixou para trás (38
-  linhas `aberto` depois da remoção da Fundação, do baú e da onda do laço e
-  do fechamento da linha da história, 2026-11-27).
+- [`RESIDUOS.md`](RESIDUOS.md): o que cada publicação deixou para trás (0
+  linhas `aberto` desde a limpeza de 2026-11-27, "pode limpar todos esses
+  resíduos": eram 38; o custo do mapa do chão virou `movido para P25`).
 - [`gdd/historia.md`](gdd/historia.md#decisões-pendentes): decisões de
   história — **não são pendência**: respondidas quando o operador puxar o
   assunto (regra de 2026-11-27, `AGENTS.md`).
@@ -162,7 +162,8 @@
   3. **escala de resolução** do 3D no liso (HUD continua nítida); o Pixel
      Pass já é o modo barato;
   4. densidade de capim/samambaia menor longe do centro da ação;
-  5. a textura do mapa do chão redesenhada só quando muda (resíduo v0.35.1).
+  5. a textura do mapa do chão redesenhada só quando muda (resíduo v0.35.1,
+     `movido para P25`).
 - **Aceite:** FPS medido no aparelho antes e depois; nenhuma perda visível na
   vista alta aprovada pelo operador; testes e CI verdes.
 
@@ -256,8 +257,9 @@
 - Resíduos que fecham aqui (estado `movido para P30` em
   [`RESIDUOS.md`](RESIDUOS.md)): v0.23.1 `morte` (tomba e para, sem vida nem
   renascimento), v0.23.0 `vida/dano` (`hit`/`death` dormentes) e v0.21.0
-  `combate` (`hit`/`death` no catálogo, sem regra de vida). Relacionado e
-  ainda aberto: v0.25.0 `animação` (`shot`/`hit`/`death` sem acionar).
+  `combate` (`hit`/`death` no catálogo, sem regra de vida). Relacionado: v0.25.0
+  `animação` (`shot`/`hit`/`death` sem acionar), `descartado (operador)` em
+  2026-11-27 com a máquina de animação 2D, que saiu.
 - A decidir com o operador antes de codar: quem tem vida (criatura, inimigo,
   ambos), o que tira vida (golpe, tiro, perigos, água), o que acontece na
   derrota (renascer onde, o que se perde) e como a vida aparece na tela.

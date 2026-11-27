@@ -490,3 +490,23 @@
 - **Não tocado:** `docs/gdd/historia.md`; as linhas antigas de `RESIDUOS.md`
   que pedem medição no aparelho continuam como estão (a regra vale daqui em
   diante; reclassificá-las é decisão do operador).
+
+## Limpeza dos resíduos abertos (commit comum, 2026-11-27)
+
+- **Pedido do operador:** "pode limpar todos esses resíduos" — os 38 `aberto`
+  de `RESIDUOS.md`, pela reavaliação com as regras a–e.
+- **Feito (38 → 0 `aberto`):** 12 `descartado (regra b)` (medir ou conferir
+  no aparelho); 1 `movido para P25` (mapa do chão redesenhado todo quadro, o
+  candidato 5); 15 `descartado (operador)` (HUD de desenvolvimento, clipes e
+  camadas da animação, cápsula provisória, afinidade no jogo, água/vento,
+  alvo do tiro, formas de perigo — conteúdo de criação que não vira pendência
+  agora; a fila não ganhou pacote); 5 `aceito (controles maduros)` (traço
+  recusado e `_traco_iniciado`, pinça HUD+mundo, acerto sem altura, contorno
+  e desvio gulosos); 2 `aceito (operador)` (sem linter JS por ora; lista de
+  alvos, rever em P26/P30); 1 `removido` e 2 `resolvido` com código.
+- **Código:** saíram `sim/animacao.gd`, `dados/animacoes.json` e
+  `testes/test_animacao.gd` (sem uso no jogo desde a v0.35; leva junto o
+  `_fator_sprint` privado lido de fora) e `mundo.limitar_caminho` com o teste
+  dele; entrou `tools/preview.test.mjs` (`--site` monta a página; sem quadros
+  falha), rodado pelo `tools/testes.sh`. Testes: 200 → 186.
+- **Pronto quando:** `tools/testes.sh` verde e CI verde; sem versão.

@@ -5,6 +5,14 @@
 
 ## Não publicado
 
+- **Resíduos abertos limpos (2026-11-27, decisão do operador "pode limpar
+  todos esses resíduos"):** `RESIDUOS.md` 38 → 0 `aberto` — 12 `descartado
+  (regra b)` (legenda nova), 1 `movido para P25`, 15 `descartado (operador)`,
+  5 `aceito (controles maduros)`, 2 `aceito (operador)`, 1 `removido`, 2
+  `resolvido`. Saíram `sim/animacao.gd`, `dados/animacoes.json`,
+  `testes/test_animacao.gd` e `mundo.limitar_caminho` (com o teste); entrou
+  `tools/preview.test.mjs` no `tools/testes.sh` (200 → 186 testes GDScript).
+  Sem versão.
 - **Contrato: o que é resíduo e o que é pendência (2026-11-27, regra do
   operador):** `AGENTS.md` ganhou "Resíduos e pendências" — resíduo é só
   código/documentação a arrumar; teste e avaliação no aparelho não viram
