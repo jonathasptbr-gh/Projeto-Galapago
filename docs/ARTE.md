@@ -63,7 +63,8 @@ ferramentas `get_*_capabilities` cotam de graça antes de gastar.
 3. **Câmera única:** **low top-down (20°)** para a arena 2,5D — decidido em
    2026-11-23 (v0.29.0); não misturar. O rig próprio que desenhava o cão nessa
    câmera foi removido em 2026-11-26 (P9/P10 descartados): o padrão de
-   criatura passa a ser modelo 3D pronto do Sketchfab com pequenos ajustes.
+   criatura passa a ser modelo 3D pronto do Sketchfab com pequenos ajustes —
+   fontes, licenças, crédito, prancha e ajustes em [MODELOS-3D](MODELOS-3D.md).
 4. **Todo asset entra por script de validação** (`tools/`, a criar; era do
    P6, descartado): tamanho múltiplo de 4, cores ⊂ paleta-mestra, fundo
    transparente, nome no padrão. A IA erra em silêncio; o script não.

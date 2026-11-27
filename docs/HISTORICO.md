@@ -5,6 +5,16 @@
 
 ## Não publicado
 
+- **Padrão de modelos 3D no repositório:** guia `docs/MODELOS-3D.md`
+  (fontes, licenças aceitas/recusadas, `.credito.txt`, prancha para o
+  operador, o que é "pequeno ajuste", onde o escolhido mora, 22 candidatos com
+  licença conferida). Ferramentas: `tools/sketchfab.mjs` (busca/info/baixar,
+  chave lida do cofre, veredito de licença testado offline em
+  `tools/sketchfab.test.mjs`, que entrou no `tools/testes.sh`),
+  `tools/prancha3d/` (prancha e mosaico de GLB por CPU; `npm ci`,
+  `node_modules` fora do git) e `tools/lvpshim.c` (fonte do shim do oráculo
+  Vulkan local, antes só em `~/tmp`). Nenhum `.glb` commitado. P29 na fila.
+  Sem versão.
 - **Faxina (decisão do operador, 2026-11-26):** o padrão de criatura passa a
   ser modelo 3D pronto do Sketchfab com pequenos ajustes. Saíram o rig próprio
   2D e 3D (`sim/esqueleto*.gd`, `topologia3d`, `locomocao3d`, `sim/modulos.gd`,

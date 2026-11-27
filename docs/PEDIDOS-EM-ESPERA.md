@@ -43,7 +43,7 @@
 |---|---|---|
 | Núcleo de jogo | P5 → P8 | P5 é o próximo do núcleo; P8 é conversa de design |
 | Cenário 3D e arena | P24 ✔ → P25 → P26 → P27 | P24 entregue; P25 mede antes de P26/P27 crescerem o custo |
-| Personagem e arte | — | P6, P9 e P10 descartados (2026-11-26): padrão novo = modelo 3D do Sketchfab + ajustes, ainda sem pacote; contorno do ator pendente (em P24) |
+| Personagem e arte | P29 | P6, P9 e P10 descartados (2026-11-26): padrão novo = modelo 3D pronto + ajustes ([MODELOS-3D](MODELOS-3D.md)); P29 escolhe o modelo do cão/lobo; contorno do ator pendente (em P24) |
 | Fatia vertical | P7 | junta núcleo + cenário + personagem |
 | Manutenção | P28 ✔ | triagem dos resíduos feita (commit comum, 2026-11-26): 25 `obsoleto (3D)`, 20 `resolvido`; registro em [`PEDIDOS-FEITOS.md`](PEDIDOS-FEITOS.md#p28--triagem-dos-resíduos-commit-comum-2026-11-26) |
 
@@ -58,6 +58,7 @@
 | P25 | Cenário 3D: medir e otimizar o custo gráfico | v0.36.0 ✔ | na fila (pedido 2026-11-26) |
 | P26 | Cenário destrutível: vegetação, árvores que caem, arena que se abre | P25 | na fila (pedido 2026-11-26) |
 | P27 | Os quatro elementos no cenário (fogo, terra, ar, água) | P26 · P5 (porte) | na fila (design + sim; pedido 2026-11-26) |
+| P29 | Modelo do lobo/cão: o Wolf.glb é o melhor disponível? | — | na fila (pedido 2026-11-26) |
 
 ### Onde mais há pendência (apontada daqui, não copiada)
 
@@ -222,3 +223,16 @@
 - **Depende de:** P26 (estado destrutível na grade) e P5 (elemento/porte da
   criatura). Decisões do operador pendentes: duração dos efeitos, se a água
   sobe de nível em buracos, se o fogo pode sair do controle.
+
+## P29 — Modelo do lobo/cão: o Wolf.glb é o melhor disponível?
+
+- **Pedido do operador (2026-11-26), para o futuro:** analisar se o `Wolf.glb`
+  (Quaternius, CC0 — candidato registrado em
+  [MODELOS-3D](MODELOS-3D.md#candidatos-registrados-2026-11-26)) é o melhor
+  modelo de lobo/cão disponível para a criatura-base.
+- Comparar com os outros candidatos do arquétipo (husky, shiba, raposa) e com
+  busca nova (`tools/sketchfab.mjs buscar wolf|dog`): licença do padrão,
+  clipes que o jogo pede (andar, correr, pular, atacar, parado), faces, estilo
+  ao lado da mata. Prancha por CPU de cada finalista, mostrada no chat.
+- Entrega: recomendação com opções; a escolha é do operador. O escolhido entra
+  em `arte/modelos/` com o `.credito.txt` (fluxo do guia).

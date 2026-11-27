@@ -124,7 +124,9 @@ tools/                estado.sh · testes.sh · verificar.sh (seletivo) ·
                       preview.mjs · godot-api.sh ·
                       ci-log.mjs · baixar-apk.mjs ·
                       pixellab-catalogo.mjs · pixellab-tileset.mjs ·
-                      pixellab-imagem.mjs · android/ (exportar.sh)
+                      pixellab-imagem.mjs · android/ (exportar.sh) ·
+                      sketchfab.mjs (+ .test) · prancha3d/ (prancha e
+                      mosaico de GLB por CPU) · lvpshim.c (shim do oráculo)
 arte/                 README.md · fonte/ (bruto, .gdignore; vazia desde a
                       faxina de 2026-11-26)
 docs/                 guias e design — inventário validado abaixo
@@ -139,6 +141,6 @@ uma vez). Referências externas vendorizadas ficam no catálogo, não se repetem
 - Design: [conceito](docs/CONCEITO.md), [história](docs/gdd/historia.md), [gestos e ações](docs/gdd/gestos-e-acoes.md), [mapa](docs/gdd/mapa.md).
 - Código e ambiente: [arquitetura](docs/ARQUITETURA.md), [Godot](docs/GODOT.md), [ambiente](docs/AMBIENTE.md).
 - Verificação e entrega: [oráculo](docs/ORACULO.md), [build](docs/BUILD.md), [rollback](docs/ROLLBACK.md), [guardião documental](docs/DOCUMENTACAO.md).
-- Arte: [pipeline](docs/ARTE.md), [PixelLab](docs/PIXELLAB.md), [catálogo gerado](docs/pixellab/CATALOGO.md).
+- Arte: [pipeline](docs/ARTE.md), [modelos 3D prontos](docs/MODELOS-3D.md), [PixelLab](docs/PIXELLAB.md), [catálogo gerado](docs/pixellab/CATALOGO.md).
 - Continuidade: [fila](docs/PEDIDOS-EM-ESPERA.md), [feitos](docs/PEDIDOS-FEITOS.md), [histórico](docs/HISTORICO.md), [resíduos](docs/RESIDUOS.md).
 - Agentes: [protocolo de agentes](docs/PROTOCOLO-AGENTES.md), [multi-sessão](docs/MULTI-AGENTE.md).

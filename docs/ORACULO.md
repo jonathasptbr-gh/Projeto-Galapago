@@ -135,13 +135,19 @@ arte.
 
 ### Vulkan local: workaround medido, não portátil
 
-Em **2026-11-26**, neste host aarch64/proot, o shim externo abaixo permitiu
+Em **2026-11-26**, neste host aarch64/proot, o shim `LD_PRELOAD` abaixo permitiu
 renderizar a mata (então na cena piloto, hoje removida) em **Vulkan / Forward
 Mobile / llvmpipe**, confirmado no cabeçalho do log. O shim força uma CPU LLVM
-compatível; desligar SVE/SVE2 e o cache foi necessário para evitar SIGILL. O
-binário e sua fonte estão **fora do repositório**, não são requisito do jogo e
-não devem ser baixados ou presumidos em outro host. Apenas onde esse shim local
-já existe (não reconferido na cena principal):
+compatível; desligar SVE/SVE2 e o cache foi necessário para evitar SIGILL. A
+fonte é [`tools/lvpshim.c`](../tools/lvpshim.c) (o cabeçalho explica o porquê);
+o binário é local, **fora do git**, e não é requisito do jogo nem do CI.
+Compila-se uma vez por host:
+
+```bash
+mkdir -p ~/tmp/lvpshim && gcc -shared -fPIC -O2 -o ~/tmp/lvpshim/shim.so tools/lvpshim.c -ldl
+```
+
+Depois (não reconferido na cena principal):
 
 ```bash
 LD_PRELOAD=/root/tmp/lvpshim/shim.so SHIM_FEATS='-sve,-sve2' MESA_SHADER_CACHE_DISABLE=true \

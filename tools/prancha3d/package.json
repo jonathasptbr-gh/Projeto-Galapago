@@ -1,0 +1,10 @@
+{
+  "name": "galapago-prancha3d",
+  "private": true,
+  "description": "Prancha de animação de um GLB, renderizada por CPU (sem GPU) — docs/MODELOS-3D.md",
+  "type": "module",
+  "dependencies": {
+    "pngjs": "^7.0.0",
+    "three": "^0.187.0"
+  }
+}

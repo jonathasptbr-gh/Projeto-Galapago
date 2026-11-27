@@ -10,3 +10,7 @@ export_presets.cfg.orig
 project.godot.orig
 # Referência do oráculo: baixada do CI (tools/quadros-referencia.mjs), fora do git.
 /testes/baseline/
+# Prancha 3D (tools/prancha3d): dependências reinstaláveis com `npm ci`.
+node_modules/
+# Binário do shim do oráculo (fonte em tools/lvpshim.c): local, nunca no git.
+*.so
