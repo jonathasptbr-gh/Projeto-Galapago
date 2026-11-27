@@ -376,3 +376,22 @@
   tolerância passa; a falha diz qual quadro e quanto saiu da faixa. Provado
   com bloco de 200×200 (reprova, 4,33%), 1 pixel (passa) e quadro faltando
   (reprova); a rodada real do CI é o aceite final.
+
+## P28 — Triagem dos resíduos (commit comum, 2026-11-26)
+
+- **O quê:** [`RESIDUOS.md`](RESIDUOS.md) tinha 256 linhas `aberto`, muitas
+  do mockup 2D e do rig 2D superados pela Fundação 3D (P24). Revisar linha a
+  linha e mudar só a coluna **estado**; nada se apaga, "o quê" não muda.
+- **Feito:** 45 linhas mudaram — **25 `obsoleto (3D)`** (o arquivo citado saiu
+  no commit `7ee9d91` — `jogo/mock.gd`, `jogo/criatura.gd`, `jogo/camadas/` —
+  ou não é mais referenciado pelo caminho de jogo, conferido com `rg`: pele
+  geométrica 2D, `jogo/modulos.gd`, arte 2D de `arte/`, tempos e baseline do
+  oráculo 2D)
+  e **20 `resolvido vX.Y.Z (motivo)`** (conserto em linha posterior, no
+  `HISTORICO.md` ou no código). Legenda nova de `obsoleto (3D)` no topo.
+  Ficaram 211 `aberto`, 2 `aberto (design)` e 27 `congelado (rig)`.
+- **Não tocado:** linhas `congelado (rig)`, as do rig/esqueleto 3D (v0.29–v0.34,
+  inclusive as revisões no aparelho) e as de estado do operador, salvo as
+  obsoletas cujo objeto saiu do jogo. Nenhum pacote novo criado.
+- **Pronto quando:** nenhuma linha já resolvida ou sem objeto fica `aberto`
+  sem evidência contrária, e `tools/docs.sh` segue verde.

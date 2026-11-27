@@ -4,6 +4,9 @@
 > mesmo que seja "nenhum"; commit comum não registra (nota, se houver, vai em
 > `## Não publicado` do histórico). Linha não se apaga: muda o estado.
 > `congelado (rig)`: parado até a reestruturação da fundação do rig (2026-11-25).
+> `obsoleto (3D)`: o assunto saiu do jogo com a Fundação 3D (P24, v0.35.0) — o
+> código ou desenho 2D citado não está no caminho de jogo (`jogo/main.gd`,
+> `jogo/mundo3d/`); conferido com `rg` na triagem P28 (2026-11-26).
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
@@ -14,7 +17,7 @@
 | v0.36.0 | natureza | a linha do caminho (pontos escuros e translúcidos de `jogo/trilha.gd`) fica discreta na terra escura da mata; a cor é compartilhada com a Fundação e não foi mexida | pequeno | aberto (design) |
 | v0.36.0 | oráculo | o CI filma só a Fundação; a Natureza é filmada à mão (`DEMO_ARGS="--natureza"`) | pequeno | aberto |
 | v0.35.4 | contorno | o "pescoço" do ator provisório (esfera × cápsula) mudou levemente no contorno e já era ruidoso; conferir no aparelho | pequeno | aberto |
-| v0.35.4 | oráculo | a prova local em Vulkan/lavapipe depende de um shim fora do repositório (`~/tmp/lvpshim/shim.so`, `LD_PRELOAD` que força `LLVMGetHostCPUName` = `cortex-a76`, porque o llvmpipe emitia SVE que o kernel não expõe); não está em `docs/AMBIENTE.md` nem `docs/ORACULO.md` | pequeno | aberto |
+| v0.35.4 | oráculo | a prova local em Vulkan/lavapipe depende de um shim fora do repositório (`~/tmp/lvpshim/shim.so`, `LD_PRELOAD` que força `LLVMGetHostCPUName` = `cortex-a76`, porque o llvmpipe emitia SVE que o kernel não expõe); não está em `docs/AMBIENTE.md` nem `docs/ORACULO.md` | pequeno | resolvido v0.36.0 (shim descrito em ORACULO.md) |
 | v0.35.3 | contorno | na vista alta, paredes baixas (planalto, costa, rampa) ganham duas linhas próximas (topo e pé) | pequeno | aberto (design) |
 | v0.35.3 | contorno | pontinhos quase invisíveis em vértices de 4 facetas da copa e em 1 ponto da pedra | pequeno | aberto |
 | v0.35.3 | desempenho | contorno sobe para 49 leituras de profundidade/pixel no liso (41 no Pixel Pass); custo no aparelho não medido | médio | aberto |
@@ -84,13 +87,13 @@
 | v0.29.0 | fase B | camadas de pixel art por osso ainda não desenhadas (só o campo `pecas` e a validação) | médio | aberto |
 | v0.29.0 | rig | validação estrita de 22 juntas/21 ossos: mudar juntas exige migrar schema e testes | pequeno | congelado (rig) |
 | v0.29.0 | aparelho | sem teste no celular (só headless/Xvfb softpipe) | operador | aberto |
-| v0.28.0 | frontal | a anca frontal fica recuada (±4,5 px) para não colidir com a perna dianteira; o quarto largo aparece mais na vista dorsal | design | aberto |
-| v0.28.0 | diagonais | o ombro/anca "longe" fica a ~0,5 px da linha do dorso; no zoom de 5× parece encostado, não articulado | pequeno | aberto |
+| v0.28.0 | frontal | a anca frontal fica recuada (±4,5 px) para não colidir com a perna dianteira; o quarto largo aparece mais na vista dorsal | design | obsoleto (3D) |
+| v0.28.0 | diagonais | o ombro/anca "longe" fica a ~0,5 px da linha do dorso; no zoom de 5× parece encostado, não articulado | pequeno | obsoleto (3D) |
 | v0.28.0 | arte | a pele esquelética segue como prova de juntas: nada aqui é arte aprovada | decisão | aberto |
 | v0.27.1 | — | nenhum | — | — |
-| v0.27.0 | CI | o `preview` num PR falha ao criar o deployment do Pages: o ambiente `github-pages` só aceita `main` (`custom_branch_policies`); liberar `lote/*` em Settings → Environments → github-pages, ou revisar pelo artefato `quadros` do run | médio | aberto |
+| v0.27.0 | CI | o `preview` num PR falha ao criar o deployment do Pages: o ambiente `github-pages` só aceita `main` (`custom_branch_policies`); liberar `lote/*` em Settings → Environments → github-pages, ou revisar pelo artefato `quadros` do run | médio | resolvido v0.27.1 (sem PR: entrega direto em main; preview só na publicação) |
 | v0.27.0 | animação | `Anim.retrato` lê `corpo._fator_sprint()` (método privado) só para a pose de decolagem; se o corpo trocar de API, o retrato quebra no parser | pequeno | aberto |
-| v0.27.0 | pele | a mordida não tem faísca nas vistas de costas (`north`, `north-east`, `north-west`): a boca é oculta nesses setores, então o VFX falha fechado | pequeno | aberto |
+| v0.27.0 | pele | a mordida não tem faísca nas vistas de costas (`north`, `north-east`, `north-west`): a boca é oculta nesses setores, então o VFX falha fechado | pequeno | obsoleto (3D) |
 | v0.27.0 | rig | `west`, `north-west` e `south-west` continuam espelhos dos perfis leste/nordeste; são oito setores, mas quatro desenhos base | pequeno | congelado (rig) |
 | v0.27.0 | arte | a pele esquelética segue como prova de juntas: nada aqui é arte aprovada | decisão | aberto |
 | v0.27.0 | cadência | 400/300/350/340 ms são ponto de partida; afinar no aparelho com o operador | design | aberto |
@@ -105,16 +108,16 @@
 | v0.26.0 | licença | repositório público ainda sem LICENSE — decisão do operador (MIT? todos os direitos reservados?) | decisão | aberto |
 | v0.26.0 | ferramentas | `preview.mjs` e `quadros-baseline.mjs` sem teste automatizado próprio | pequeno | aberto |
 | v0.25.2 | pele | esqueleto puro é para estudo de juntas; a leitura de personagem no mapa fica de propósito em segundo plano até a arte | decisão | aberto |
-| v0.25.2 | foco | serpente e ave seguem sem ossos completos (pontos soltos como asas) — renderizam, mas não foram polidos | médio | aberto |
-| v0.25.2 | sombra | a sombra elíptica do mock continua sob o esqueleto (ajuda a ler o chão) | pequeno | aberto |
+| v0.25.2 | foco | serpente e ave seguem sem ossos completos (pontos soltos como asas) — renderizam, mas não foram polidos | médio | obsoleto (3D) |
+| v0.25.2 | sombra | a sombra elíptica do mock continua sob o esqueleto (ajuda a ler o chão) | pequeno | obsoleto (3D) |
 | v0.25.1 | biomecânica | amplitudes (passo 5 px, levantar 3 px, bounce 2,8 px) são ponto de partida; afinar no aparelho com o operador | design | aberto |
 | v0.25.1 | galope | sem inclinação de tronco (pitch) nem curva do dorso; só balanço vertical | médio | aberto |
 | v0.25.1 | marchas | não existe o TROTE intermediário: correr pula direto ao galope | design | aberto |
 | v0.25.1 | serpente | sem revisão de marcha (a ondulação já seguia a biomecânica ofídia) | pequeno | aberto |
 | v0.25.0 | baseline | trocado pelos 60 quadros do CI #57 (llvmpipe) no commit seguinte ao da mudança visível | verificação | resolvido em v0.25.0 |
 | v0.25.0 | animação | `shot` não é acionado no jogo (não há sinal de "acabou de atirar"); `hit`/`death` seguem dormentes | médio | aberto |
-| v0.25.0 | pele | o corpo padrão é o canino; serpente e ave só entram por flag de demo | decisão | aberto |
-| v0.25.0 | aparelho | falta o teste de toque e leitura no celular do operador (é o objetivo deste lote) | operador | aberto |
+| v0.25.0 | pele | o corpo padrão é o canino; serpente e ave só entram por flag de demo | decisão | obsoleto (3D) |
+| v0.25.0 | aparelho | falta o teste de toque e leitura no celular do operador (é o objetivo deste lote) | operador | obsoleto (3D) |
 | v0.24.0 | módulos | só três formas provisórias (tufo, espinho, membrana) e sem rotação/encaixe fino por direção | pequeno | aberto |
 | v0.24.0 | arte | módulo composto na pele geométrica; a pele de sprite (peças separadas) ainda não existe | médio | aberto |
 | v0.24.0 | VFX | janela fixa de 150 ms e desenho vetorial; partículas e som reais não foram feitos | pequeno | aberto |
@@ -129,30 +132,30 @@
 | v0.23.0 | camadas | a máquina escolhe UM clipe; overlay simultâneo (comer andando) só com peças separadas de arte | design | aberto |
 | v0.23.0 | corrida | andar e correr usam o mesmo clipe `walk`; `run` entra quando houver estado de sprint exposto | pequeno | aberto |
 | v0.23.0 | ave/serpente | os drivers de ação (avanço/abaixar) são genéricos; ler bem nas duas anatomias ainda não foi avaliado pelo operador | médio | aberto |
-| v0.22.0 | arte | pele geométrica provisória (silhuetas de ave/serpente ainda fracas); a arte real é a F5 | médio | aberto |
-| v0.22.0 | jogo | a pele só liga na demo (`--geo-*`); o jogo normal continua no mock de xadrez | decisão | aberto |
-| v0.22.0 | animação | só `idle`/`walk`; as demais 41 ações e a máquina de estados são a F3 | médio | aberto |
+| v0.22.0 | arte | pele geométrica provisória (silhuetas de ave/serpente ainda fracas); a arte real é a F5 | médio | obsoleto (3D) |
+| v0.22.0 | jogo | a pele só liga na demo (`--geo-*`); o jogo normal continua no mock de xadrez | decisão | obsoleto (3D) |
+| v0.22.0 | animação | só `idle`/`walk`; as demais 41 ações e a máquina de estados são a F3 | médio | resolvido v0.23.0 (máquina de estados; as ações seguem na linha v0.23.0) |
 | v0.22.0 | escala | canino 68×68, serpente 96×64 e ave 64×64 sem régua de porte comum entre arquétipos | design | aberto |
-| v0.22.0 | golpe | a âncora `boca` só move a ORIGEM do cone; dano, alcance e regra seguem em `sim/corpo.gd` | pequeno | aberto |
-| v0.21.2 | arte | rigs geométricos de serpente e ave provisórios, ainda sem validação visual (depende da F2) | médio | aberto |
+| v0.22.0 | golpe | a âncora `boca` só move a ORIGEM do cone; dano, alcance e regra seguem em `sim/corpo.gd` | pequeno | obsoleto (3D) |
+| v0.21.2 | arte | rigs geométricos de serpente e ave provisórios, ainda sem validação visual (depende da F2) | médio | obsoleto (3D) |
 | v0.21.2 | dados/rig | escalas diferentes por família (canino 68×68, serpente 96×64, ave 64×64); a regra de porte entre arquétipos continua em aberto | design | aberto |
 | v0.21.2 | dados/rig | serpente e ave só têm `idle`/`walk`; voo, nado e as demais 41 ações do catálogo ficam para a F3 | médio | aberto |
 | v0.21.1 | arte | o contrato tem 8 direções, mas a arte existente tem 4 (canino) e 1 (serpente); a pele de sprite deverá declarar o subconjunto por clipe | médio | aberto |
-| v0.21.0 | `dados/rig/` | só o canino; serpente e ave (as outras âncoras) ainda sem rig | médio | aberto |
-| v0.21.0 | `sim/esqueleto.gd` | só `idle`/`walk`; as 43 ações do catálogo e a máquina de estados são F3 | médio | aberto |
+| v0.21.0 | `dados/rig/` | só o canino; serpente e ave (as outras âncoras) ainda sem rig | médio | resolvido v0.21.2 (rigs de serpente e ave) |
+| v0.21.0 | `sim/esqueleto.gd` | só `idle`/`walk`; as 43 ações do catálogo e a máquina de estados são F3 | médio | resolvido v0.23.0 (máquina de estados; as ações seguem na linha v0.23.0) |
 | v0.21.0 | `jogo/` | nenhuma pele usa o esqueleto; integração visual é F2 e troca para sprite é F5 | decisão | aberto |
-| v0.21.0 | docs | `ARQUITETURA.md` e `AGENTS.md` não listam `dados/rig/` nem a camada do esqueleto (árvore ocupada por outra sessão) | pequeno | aberto |
+| v0.21.0 | docs | `ARQUITETURA.md` e `AGENTS.md` não listam `dados/rig/` nem a camada do esqueleto (árvore ocupada por outra sessão) | pequeno | resolvido v0.22.0 (`dados/rig/` no AGENTS.md e no ARQUITETURA.md) |
 | v0.21.0 | combate | `hit`/`death` existem no catálogo, mas o jogo não tem regra de vida (só atordoado/empurrão) | design | aberto |
 | v0.21.0 | arte | rig geométrico provisório; nada de arte aprovada e nenhuma geração PixelLab gasta | decisão | aberto |
-| v0.20.2 | oráculo | 60 quadros não encenam segurar→mover; a prova desse caso é teste headless, e a divergência local q36/q37 continua pré-existente (softpipe × llvmpipe), baseline preservado | verificação | aberto |
+| v0.20.2 | oráculo | 60 quadros não encenam segurar→mover; a prova desse caso é teste headless, e a divergência local q36/q37 continua pré-existente (softpipe × llvmpipe), baseline preservado | verificação | obsoleto (3D) |
 | v0.20.2 | controles | o caminho nascido do segurar foi verificado em teste e em integração headless, mas ainda não no toque físico do aparelho | verificação / operador | aberto |
 | v0.20.2 | `jogo/main.gd` | no desenho NORMAL, um primeiro `tracar` recusado por traço curto ainda marca `_traco_iniciado` (comportamento antigo preservado); só o recomeço do segurar espera o `ok` | pequeno | aberto |
-| v0.20.1 | oráculo | comparação local softpipe divergiu em 2 de 60 quadros superiores contra baseline llvmpipe; confirmar no CI, baseline preservado | verificação | aberto |
+| v0.20.1 | oráculo | comparação local softpipe divergiu em 2 de 60 quadros superiores contra baseline llvmpipe; confirmar no CI, baseline preservado | verificação | obsoleto (3D) |
 | v0.20.1 | vista íntima | inclinação mais baixa e controles ainda precisam de avaliação no aparelho pelo operador; seguem as limitações visuais da v0.20.0 | verificação | aberto |
 | v0.20.0 | `jogo/main.gd` | primeiro dedo na HUD seguido de segundo no mundo não é reconhecido como pinça; tratamento seguro requer testar propagação real e preservar botões | médio | aberto |
-| v0.20.0 | `jogo/mock.gd` | marcas, efeitos, perigos e adversários em terreno elevado interpolam da posição histórica ao topo: nas inclinações intermediárias não coincidem exatamente com o topo | visual | aberto |
+| v0.20.0 | `jogo/mock.gd` | marcas, efeitos, perigos e adversários em terreno elevado interpolam da posição histórica ao topo: nas inclinações intermediárias não coincidem exatamente com o topo | visual | obsoleto (3D) |
 | v0.20.0 | controles | vista íntima não tem gestos definidos para ataque ou salto; pinça e controle relativo precisam de teste no aparelho | decisão / operador | aberto |
-| v0.20.0 | oráculo | quadros capturados não mostram marcas ou efeitos sobre planalto; continuidade verificada em teste numérico, não visualmente; baseline CI não atualizado | verificação | aberto |
+| v0.20.0 | oráculo | quadros capturados não mostram marcas ou efeitos sobre planalto; continuidade verificada em teste numérico, não visualmente; baseline CI não atualizado | verificação | obsoleto (3D) |
 | v0.19.0 | `jogo/hud.gd` | o **slider** da carga é **runtime-only**: o valor **não é salvo** entre aberturas — cada partida começa em `combate.tiro_carga_s` (0,5 s); salvar configuração é da UI real | pequeno | aberto |
 | v0.19.0 | `dados/acoes.json` | o **padrão 0,5 s** e a **faixa 0–1,5 s** do slider (`tiro_carga_s`/`tiro_carga_max_s`) são **pontos de partida** — ajustar no aparelho com o operador | pequeno | aberto |
 | v0.19.0 | `sim/corpo.gd` | o **tamanho** do tiro é **linear no tempo** (`carga_tiro_s / tiro_carga_max_s`): a faixa toda só dá **2× no empurrão** e **1,5× no raio** — o padrão 0,5 s já é **1/3 do ganho**, não um tiro "fraco" | design | aberto |
@@ -180,7 +183,7 @@
 | v0.17.0 | `testes/baseline/` | baseline atualizado com os 60 quadros do **CI #41** (`llvmpipe`, commit `3b01634`); o CI #41 reprovou só no diff (3,28% na legenda, 6,14% no último quadro pela pausa) — prova de que a mudança era visível | pequeno | resolvido em v0.17.0 |
 | v0.16.1 | — | nenhum | — | — |
 | v0.16.0 | `testes/baseline/` | baseline versionado (~9,6 MB) cresce a cada lote que muda o visível: cada atualização guarda 60 PNGs novos no histórico; avaliar poda/compressão se o repositório pesar | pequeno | resolvido (2026-11-25: baseline fora do git, referência = artefato da última publicação) |
-| v0.16.0 | `testes/baseline/` | o baseline é do `llvmpipe` do runner; troca de runner, driver ou versão do Godot pode exigir atualizar o baseline no lote que a fizer | pequeno | aberto |
+| v0.16.0 | `testes/baseline/` | o baseline é do `llvmpipe` do runner; troca de runner, driver ou versão do Godot pode exigir atualizar o baseline no lote que a fizer | pequeno | resolvido v0.35.0 (baseline fora do git: a referência é a última publicação) |
 | v0.16.0 | `tools/quadros-diff.mjs` | o diff pega mudança objetiva de pixels, não juízo fino de arte: o olho do operador continua sendo o aceite visual | limite | aberto |
 | v0.15.0 | `sim/afinidade.gd` | a afinidade **não está ligada ao `jogo/`**: no aparelho a criatura continua obedecendo; ligar é P7 | decisão | aberto |
 | v0.15.0 | `dados/afinidade.json` | traços, pesos, limiar, atraso, desvio e ganhos são **pontos de partida** — ajustar no aparelho | pequeno | aberto |
@@ -208,7 +211,7 @@
 | v0.11.5 | `sim/corpo.gd` | o ramo `laco` de `_checar_marcas`/`_disparar` e o desenho da onda em `jogo/efeitos.gd` ficam **parados** (código morto atrás do interruptor); só o teste com a chave ligada os exercita | decisão | aberto |
 | v0.11.5 | `sim/formas.gd` | desenhar um círculo agora só anda em círculo: um traço que volta sobre si mesmo **não é encurtado** pelo leitor de formas (quem trata vai-e-volta curto é o `limpar_amontoados`) | pequeno | aberto |
 | v0.11.4 | HUD (`jogo/hud.gd`) | com o zoom 1,6 o mapa ocupa a tela inteira e a **legenda GESTOS** passa a ficar **por cima do mapa** (antes caía no fundo azul); é HUD de desenvolvimento — some com a UI real | pequeno | aberto |
-| v0.11.4 | `jogo/mock.gd` | o `ZOOM` 1,6 é **fracionário**: 1 px de arte vira 1–2 px de tela. No xadrez do mock não se nota; com a **arte real** (P6) é preciso decidir — arte desenhada em 2× ou voltar a um zoom inteiro (1 ou 2) | design | aberto |
+| v0.11.4 | `jogo/mock.gd` | o `ZOOM` 1,6 é **fracionário**: 1 px de arte vira 1–2 px de tela. No xadrez do mock não se nota; com a **arte real** (P6) é preciso decidir — arte desenhada em 2× ou voltar a um zoom inteiro (1 ou 2) | design | obsoleto (3D) |
 | v0.11.4 | `sim/corpo.gd` | a **cauda do sprint** é queda linear de 0,60 s (1,7× → 1,0×): soltar o segurar ainda empurra o animal por ~40 px; `sprint.cauda_s` é ponto de partida | pequeno | aberto |
 | v0.11.4 | `sim/corpo.gd` | a **fila do pulo** guarda UM pedido por `pular.buffer_s` (0,60 s): dois toques duplos no MESMO ar não empilham dois pulos (o segundo é ignorado) | decisão | aberto |
 | v0.11.4 | `sim/corpo.gd` | a marca é validada na ponta **só enquanto o caminho é desenhado**; depois de soltar ela viaja com o alvo — passar por cima e SEGUIR já não a deixa nascer (o alvo é reavaliado a cada traço) | decisão | aberto |
@@ -223,7 +226,7 @@
 | v0.11.2 | `sim/corpo.gd` | se o desvio real precisar de mais de 36 passos **sem a projeção andar 6 px**, a teimosia para antes — um lago grande com a volta longe pode dar `barrado` cedo | pequeno | aberto |
 | v0.11.2 | `sim/corpo.gd` | o contorno é o **leque guloso** (o mesmo do tronco): bolsões de várias pedras em quina ainda podem deter a criatura (ela para, não atravessa) | design | aberto |
 | v0.11.1 | `sim/corpo.gd` | o **desvio de tronco** é guloso (leque de ângulos + lado mantido): num **bolsão de 3+ troncos em quina** ainda pode ficar indo e volta na beirada; uma busca BFS local foi tentada e ficou fora (o resultado era pior e mais caro) | design | aberto |
-| v0.11.1 | `sim/corpo.gd` | o **TIRO sem marca** vai na direção do toque **sem assistência**: toque atrás do animal atira para trás; toque em cima usa o olhar | decisão | aberto |
+| v0.11.1 | `sim/corpo.gd` | o **TIRO sem marca** vai na direção do toque **sem assistência**: toque atrás do animal atira para trás; toque em cima usa o olhar | decisão | resolvido v0.18.0 (a direção do tiro nunca é o toque) |
 | v0.11.1 | `sim/corpo.gd` | o avanço da projeção tem teto por quadro (`esperado×4`, mínimo 24 px): em dt muito grande (travada de FPS) a criatura pode "segurar" o progresso por 1 quadro — não perde a rota | pequeno | aberto |
 | v0.11.1 | `sim/corpo.gd` | a ponta do bico é arredondada em ~3 px (o passo de 3,7 px passa da ponta antes de a projeção virar) — não trava, mas não é um canto perfeito | pequeno | aberto |
 | v0.11.1 | `sim/trajetoria.gd` | o amontoado é medido por 24 px/100 px de arco: um **bico de até ~48 px** e um laço de ~15 px de raio são cortados (decisão: nessa escala é tremida, não desenho) | design | aberto |
@@ -235,40 +238,40 @@
 | v0.11.0 | `sim/corpo.gd` | o **SPRINT só existe dentro de um caminho**: na perseguição final (sem rota) o segurar cava (se a célula for escavável) em vez de acelerar | decisão | aberto |
 | v0.11.0 | `sim/corpo.gd` | a **barra de energia** é uma só (`energia` 0..1): gasto 0,45/s (~2,2 s de sprint cheio) e recarga 0,22/s são pontos de partida | pequeno | aberto |
 | v0.11.0 | HUD | a barra de energia fica em cima do `estado`, à esquerda; em tela muito baixa pode encostar nos rótulos | pequeno | aberto |
-| v0.10.0 | `sim/formas.gd` | o **bico** continua sendo lido e o beco sai da rota, mas **não atira mais** (o tiro é o toque duplo): o gesto ficou sem efeito — decidir com o operador se sai de vez | design | aberto |
-| v0.10.0 | `sim/gestos.gd` | o **toque simples fica pendente** até a janela do duplo (280 ms): o pulo sai ~0,28 s depois do toque | decisão | aberto |
+| v0.10.0 | `sim/formas.gd` | o **bico** continua sendo lido e o beco sai da rota, mas **não atira mais** (o tiro é o toque duplo): o gesto ficou sem efeito — decidir com o operador se sai de vez | design | resolvido v0.11.0 (o bico saiu do leitor de formas) |
+| v0.10.0 | `sim/gestos.gd` | o **toque simples fica pendente** até a janela do duplo (280 ms): o pulo sai ~0,28 s depois do toque | decisão | resolvido v0.11.0 (o pulo foi para o toque duplo) |
 | v0.10.0 | `sim/corpo.gd` | a marca está **ligada ao caminho**: um caminho novo a apaga; o alvo pode andar à vontade (o animal persegue), não há mais a perda por 48 px | decisão | aberto |
 | v0.10.0 | `sim/corpo.gd` | a perseguição final tem teto (`perseguir_s` 3 s): barrada (água/altura) ou lenta demais, a marca se perde (`mira_final:perde`) | design | aberto |
 | v0.10.0 | `sim/corpo.gd` | o tiro mira na posição do alvo **no disparo** (projétil reto): se ele andar durante o voo, pode errar | design | aberto |
 | v0.10.0 | `dados/acoes.json` | `area_gatilho_px` 224 (≈7× o corpo de 32 px) é ponto de partida; o "tamanho do animal" pode ser o sprite de 64 px — ajustar no aparelho | pequeno | aberto |
 | v0.10.0 | demo | o caminho do demo vai em "L" para desviar do planalto (a criatura não sobe andando); o golpe final do roteiro depende de o alvo estar alcançável | — | aberto |
-| v0.10.0 | oráculo | 45 quadros 720×1280 em ~3 min (~4 s/quadro) com a linha pontilhada no `softpipe` local; o CI grava 60 e passa | pequeno | aberto |
+| v0.10.0 | oráculo | 45 quadros 720×1280 em ~3 min (~4 s/quadro) com a linha pontilhada no `softpipe` local; o CI grava 60 e passa | pequeno | obsoleto (3D) |
 | v0.10.0 | `sim/corpo.gd` | o `travar`/`alvo_id` (mira vermelha) e o **baú** ficaram **sem gesto**: o toque agora é o PULO; decidir se o baú ganha outro gatilho | design | aberto |
 | v0.9.2 | `jogo/trilha.gd` | a linha mostra o traço CRU do dedo (inclusive o tremor inicial e o beco do bico), não o rastro do animal; é uma decisão, não um defeito | design | aberto |
-| v0.9.2 | `jogo/trilha.gd` | os pontinhos são círculos em coordenadas de mundo (sem snap de pixel): em telas de zoom fracionário podem sair levemente borrados | pequeno | aberto |
+| v0.9.2 | `jogo/trilha.gd` | os pontinhos são círculos em coordenadas de mundo (sem snap de pixel): em telas de zoom fracionário podem sair levemente borrados | pequeno | obsoleto (3D) |
 | v0.9.2 | `sim/corpo.gd` | a marca do especial durante a recarga fica PENDENTE; se a criatura sair do anel/perto da base, ela não acende mais (é consumida no fim da rota) | decisão | aberto |
 | v0.9.2 | `sim/corpo.gd` | o embalo é um multiplicador de velocidade do passo (pico `sin`); 0,25 s/1,7× e 0,6 s/2,0× são pontos de partida — ajustar no aparelho | pequeno | aberto |
 | v0.9.2 | `sim/corpo.gd` | a marcação embala uma vez por marca (`_embalo_final_feito`); se a criatura for barrada depois do embalo, ele não repete ao retomar | design | aberto |
 | v0.9.2 | oráculo | a linha pontilhada são dezenas de `draw_circle` por quadro: no `softpipe` local cada quadro caiu para ~4,5 s (33 quadros em ~2,5 min); no aparelho/CI a GPU resolve — medir no celular | pequeno | aberto |
-| v0.9.1 | `sim/formas.gd` | a BASE do bico é o ponto do traço mais perto da volta: num "T" a volta entra na estrada e a base pode ficar alguns px dentro da boca do beco | design | aberto |
-| v0.9.1 | `sim/formas.gd` | a base é achada por uma CURVA (≥ 45°) na volta; se o dedo reencontrar a estrada numa curva muito suave, o bico pode não ser lido (o fim do traço tem a regra própria) | pequeno | aberto |
+| v0.9.1 | `sim/formas.gd` | a BASE do bico é o ponto do traço mais perto da volta: num "T" a volta entra na estrada e a base pode ficar alguns px dentro da boca do beco | design | resolvido v0.11.0 (o bico saiu do leitor de formas) |
+| v0.9.1 | `sim/formas.gd` | a base é achada por uma CURVA (≥ 45°) na volta; se o dedo reencontrar a estrada numa curva muito suave, o bico pode não ser lido (o fim do traço tem a regra própria) | pequeno | resolvido v0.11.0 (o bico saiu do leitor de formas) |
 | v0.9.1 | `sim/corpo.gd` | a estrada é um alvo À FRENTE + senoides; os valores (largura 30, desvio 9, ondas 120/47, freio 44) são pontos de partida — ajustar no aparelho | pequeno | aberto |
 | v0.9.1 | `sim/corpo.gd` | o desvio de tronco mantém o LADO escolhido até passar: pode dar a volta pelo lado mais longo, mas não fica oscilando | design | aberto |
 | v0.9.1 | `sim/corpo.gd` | quando a rota acaba DURANTE o desenho, o alvo final usa a posição ATUAL do inimigo (não a do soltar): é o que permite o golpe final com traço ao vivo | decisão | aberto |
-| v0.9.1 | `sim/corpo.gd` | o bico pausa 0,25 s: a pausa também congela a autonomia/rota por um instante (o mundo continua) | decisão | aberto |
+| v0.9.1 | `sim/corpo.gd` | o bico pausa 0,25 s: a pausa também congela a autonomia/rota por um instante (o mundo continua) | decisão | resolvido v0.10.0 (`bico_pausa_s` saiu) |
 | v0.9.1 | demo | o beco do demo virou um "T" no meio do caminho; o golpe final do roteiro depende de a criatura chegar perto do adversário | — | aberto |
 | v0.9.1 | `sim/corpo.gd` | a leitura das formas refaz o RDP/laços e a busca do bico sobre o TRAÇO INTEIRO a cada ~5 pontos desenhados; o custo não foi medido no aparelho | pequeno | aberto |
-| v0.9.1 | oráculo | 180 quadros 720×1280 em ~5 min (~1,7 s/quadro); a demo agora passa dos 19 s (o golpe final do roteiro fica fora dos 180) | operador | aberto |
-| v0.9.0 | `sim/formas.gd` | a base do bico é o ponto onde a VOLTA reencontra o caminho (ou a partida, se o traço acaba na volta): num bico desenhado no MEIO de uma reta, a base pode sair alguns px antes do ponto exato | design | aberto |
+| v0.9.1 | oráculo | 180 quadros 720×1280 em ~5 min (~1,7 s/quadro); a demo agora passa dos 19 s (o golpe final do roteiro fica fora dos 180) | operador | obsoleto (3D) |
+| v0.9.0 | `sim/formas.gd` | a base do bico é o ponto onde a VOLTA reencontra o caminho (ou a partida, se o traço acaba na volta): num bico desenhado no MEIO de uma reta, a base pode sair alguns px antes do ponto exato | design | resolvido v0.11.0 (o bico saiu do leitor de formas) |
 | v0.9.0 | `sim/formas.gd` | um laço é lido no traço reduzido (RDP 3 px) e um bico no traço amostrado (6 px): desenhos minúsculos (laço < 700 px², espinho < 18 px) não contam — limiares em `formas` | pequeno | aberto |
 | v0.9.0 | `sim/corpo.gd` | a onda e o tiro só atingem ADVERSÁRIO (quem sabe reagir); árvore leva a batida de travessia mas não reage | design | aberto |
 | v0.9.0 | `sim/corpo.gd` | o laço acende na passagem pelo nó; se a criatura já estiver DEPOIS do nó quando a forma é reconhecida, ele acende na volta (é o mesmo ponto) — e a onda não espera a criatura chegar ao centro | decisão | aberto |
-| v0.9.0 | `sim/corpo.gd` | o bico acende na base; se a forma só é reconhecida com a criatura já DENTRO do espinho, ela acende ali (por isso o tiro pode sair ~30 px depois da base) | decisão | aberto |
+| v0.9.0 | `sim/corpo.gd` | o bico acende na base; se a forma só é reconhecida com a criatura já DENTRO do espinho, ela acende ali (por isso o tiro pode sair ~30 px depois da base) | decisão | resolvido v0.11.0 (o bico saiu do leitor de formas) |
 | v0.9.0 | `sim/corpo.gd` | `_checar_marcas` dispara por PROXIMIDADE: se a rota for barrada antes da marca, o ataque não acontece | design | aberto |
 | v0.9.0 | `sim/corpo.gd` | as formas são lidas a cada ~5 pontos do traço; num traço muito curto o laço/bico pode ser lido um quadro depois (sem prejuízo de regra) | pequeno | aberto |
 | v0.9.0 | `sim/corpo.gd` | o golpe final divide a máquina de golpe com a batida: se um golpe já está em curso, o empurrão sai mas o arco não aparece | pequeno | aberto |
 | v0.9.0 | demo | o roteiro é um SHOWCASE, não teste: se o adversário andar muito, a marca do alvo final do demo pode se perder (o log mostra `mira_final:perde`) | — | aberto |
-| v0.9.0 | oráculo | 150 quadros 720×1280 em ~3 min 50 s (~1,5 s/quadro) neste celular; a demo completa (~17 s) pede ~510 quadros (~13 min) | operador | aberto |
+| v0.9.0 | oráculo | 150 quadros 720×1280 em ~3 min 50 s (~1,5 s/quadro) neste celular; a demo completa (~17 s) pede ~510 quadros (~13 min) | operador | obsoleto (3D) |
 | v0.9.0 | `docs/HISTORICO.md` | a nota do lote cita a demo; números de quadros medidos localmente, não no CI | — | aberto |
 | v0.8.0 | `dados/acoes.json` | ~~a `esquiva` ficou sem gesto~~ — **removida na v0.9** (esquivar é andar) | — | resolvido em v0.9.0 |
 | v0.8.0 | `sim/gestos.gd` | ~~espalhamento vertical lido como ataque/defesa~~ — **não há mais gesto de dois dedos na v0.9** | — | resolvido em v0.9.0 |
@@ -295,27 +298,27 @@
 | v0.6.0 | HUD | legenda/estado ainda de desenvolvimento; estado longo pode encostar na borda no retrato | pequeno | aberto |
 | v0.6.0 | Android | `window/handheld/orientation=1` depende do manifesto gerado; o `exportar.sh` imprime `screenOrientation` no CI, mas o agente não instala o APK | operador confirma no aparelho | aberto |
 | v0.6.0 | `jogo/atualizador.gd` | painel reorganizado para retrato, mas não visto com uma atualização real | pequeno | aberto |
-| v0.6.0 | gestos | o caminho exigia SEGURAR antes e o arrasto rápido era ação — **suplantado na v0.7.0** (caminho ao vivo + risco) | — | aberto |
+| v0.6.0 | gestos | o caminho exigia SEGURAR antes e o arrasto rápido era ação — **suplantado na v0.7.0** (caminho ao vivo + risco) | — | resolvido v0.7.0 (suplantado) |
 | v0.6.0 | demo | o toque no adversário móvel pode falhar se ele andar > 110 px; a demo é roteiro, não teste | pequeno | aberto |
-| v0.6.0 | oráculo | 60 quadros locais em ~1 min 46 s; a demo completa (~16 s) pede ~480 quadros / ~15 min | operador | aberto |
-| v0.1.0 | `jogo/main.gd` `_draw` | traço de 1 px sai com falhas nas diagonais (snap de vértice + `draw_polyline` largura 1) | pequeno — trocar por desenho por pixel (Bresenham) ou largura 2 quando a arena chegar (P3) | aberto |
+| v0.6.0 | oráculo | 60 quadros locais em ~1 min 46 s; a demo completa (~16 s) pede ~480 quadros / ~15 min | operador | obsoleto (3D) |
+| v0.1.0 | `jogo/main.gd` `_draw` | traço de 1 px sai com falhas nas diagonais (snap de vértice + `draw_polyline` largura 1) | pequeno — trocar por desenho por pixel (Bresenham) ou largura 2 quando a arena chegar (P3) | resolvido v0.9.2 (a linha virou pontilhada em `jogo/trilha.gd`) |
 | v0.1.0 | `ci.yml` | ~~oráculo llvmpipe/x86_64 não provado~~ — **resolvido**: CI #1 (`cfdbb34`) verde com o passo de quadros | — | resolvido em v0.1.0 |
 | v0.1.1 | cofre / histórico da sessão | a chave do PixelLab passou pelo chat: está no log da sessão de 2026-11-20 | operador gera chave nova e troca no cofre; agente reinicia/confirma com `get_balance` | aberto |
-| v0.3.0 | jogo | sem altura nem colisão: a criatura anda sobre o mar e sobe o planalto como chão | P3/P4 (ver `docs/gdd/mapa.md`) | aberto |
-| v0.3.0 | `arte/criaturas/cao_base_prova.png` | sprite de LADO num mapa visto de CIMA | P6 decide a vista da criatura | aberto |
-| v0.5.0 | movimento | pular é só VISUAL: não atravessa água/vão (a rota é cortada e ela para na beira) | decidir com o operador se o pulo deve vencer vãos | aberto |
-| v0.5.0 | combate | golpe desenha o cone mas não acerta nada (sem vida/dano por decisão do operador) | P4/P7 | aberto |
+| v0.3.0 | jogo | sem altura nem colisão: a criatura anda sobre o mar e sobe o planalto como chão | P3/P4 (ver `docs/gdd/mapa.md`) | resolvido v0.4.0 (mundo em camadas: altura e andável) |
+| v0.3.0 | `arte/criaturas/cao_base_prova.png` | sprite de LADO num mapa visto de CIMA | P6 decide a vista da criatura | obsoleto (3D) |
+| v0.5.0 | movimento | pular é só VISUAL: não atravessa água/vão (a rota é cortada e ela para na beira) | decidir com o operador se o pulo deve vencer vãos | resolvido v0.6.0 (o pulo atravessa e retoma a rota) |
+| v0.5.0 | combate | golpe desenha o cone mas não acerta nada (sem vida/dano por decisão do operador) | P4/P7 | resolvido v0.9.0 (onda e tiro empurram o adversário; vida segue fora) |
 | v0.5.0 | `jogo/main.gd` | a lista de alvos é reconstruída só ao abrir (objetos fixos) e sincronizada a cada quadro | ok enquanto nada nasce/morre em jogo | aberto |
 | v0.5.0 | interação | o baú só muda de cor; não há conteúdo nem inventário | design (P8) | aberto |
 | v0.4.0 | verificação | o modelo da sessão não lê imagem: quadros conferidos por amostragem de pixels, não por olho | operador confirma o APK; ou delegar a um agente com visão | aberto |
-| v0.4.0 | mockup | a criatura de xadrez ocupa ~40 px do canvas de 64 (margem de pose); só mock | some quando a arte real entrar | aberto |
-| v0.4.0 | copas | a transparência da copa usa a distância no CHÃO, sem o desnível do planalto | relevante se houver árvore em dois níveis | aberto |
+| v0.4.0 | mockup | a criatura de xadrez ocupa ~40 px do canvas de 64 (margem de pose); só mock | some quando a arte real entrar | obsoleto (3D) |
+| v0.4.0 | copas | a transparência da copa usa a distância no CHÃO, sem o desnível do planalto | relevante se houver árvore em dois níveis | obsoleto (3D) |
 | v0.4.0 | demo | não cobre alvo (não há inimigos) nem afinidade (P4) | P4, P7 | aberto |
 | v0.4.0 | `jogo/mapa.gd` + `sim/mapa.gd` + `ilha_teste.json` | renderizador Wang do v0.3 ficou PARADO (sem uso) | decidir: manter para a arte futura ou remover | aberto |
 | v0.3.1 | atualizador | o caminho Android (shell_open → FileProvider → instalador) foi conferido no código do Godot, NÃO num aparelho | o operador reinstala uma vez e testa a próxima atualização | aberto |
 | v0.3.1 | git (público) | `tools/android/galapago-dev.keystore` + senha seguem no histórico | revogado na prática; nunca reutilizar | aberto |
 | v0.3.0 | `tools/pixellab-tileset.mjs` | com o job FALHO no servidor, fica esperando ~2,5 min em vez de falhar logo | pequeno — espera limitada a 45 s; a API não expõe status | resolvido em v0.16.1 |
-| v0.3.0 | `arte/cenarios/objetos/arvore.png` | sombra desenhada na arte (desligamos a nossa para não dobrar) — as outras artes não têm | P6: padronizar (sombra sempre nossa) | aberto |
+| v0.3.0 | `arte/cenarios/objetos/arvore.png` | sombra desenhada na arte (desligamos a nossa para não dobrar) — as outras artes não têm | P6: padronizar (sombra sempre nossa) | obsoleto (3D) |
 | v0.2.0 | `ci.yml` | Actions avisa: `checkout@v4`, `setup-java@v4`, `cache@v4` ainda miram Node 20 (forçadas a Node 24) | pequeno — subidas para v7/v6/v6 | resolvido em v0.16.1 |
 | v0.2.0 | `tools/android/exportar.sh` passo 5 | no CI #6 o `apksigner verify` não imprimiu linha (o `aapt` sim); a assinatura foi conferida localmente com `keytool -printcert -jarfile` | pequeno — `--verbose`, `2>&1` e queda para `keytool` | resolvido em v0.16.1 |
 | v0.2.0 | `export_presets.cfg` | pacote `com.projetogalapago.jogo` e keystore de dev são provisórios; trocar qualquer um obriga desinstalar | decidir antes da 1ª distribuição externa | aberto |

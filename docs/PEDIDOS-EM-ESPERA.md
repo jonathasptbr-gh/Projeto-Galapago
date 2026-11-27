@@ -12,7 +12,8 @@
 > guardião offline B (v0.14.2) já foram feitos; o protocolo de agentes e o
 > multi-sessão (P21) ficaram na v0.14.3; o P22 (fila enxuta) foi entregue na
 > v0.14.4 e o registro dele fechado na v0.15.0; o P23 (oráculo com baseline)
-> ficou na v0.16.0. Os pacotes feitos moram em
+> ficou na v0.16.0; o P28 (triagem dos resíduos) foi um commit comum em
+> 2026-11-26. Os pacotes feitos moram em
 > [`PEDIDOS-FEITOS.md`](PEDIDOS-FEITOS.md), não aqui.
 
 > **Decisões do operador (2026-11-25):**
@@ -38,7 +39,7 @@
 | Cenário 3D e arena | P24 ✔ → P25 → P26 → P27 | P24 entregue; P25 mede antes de P26/P27 crescerem o custo |
 | Personagem e arte | P6 · P9 ❄ · P10 ❄ | rig congelado; contorno do ator pendente (retorno de 2026-11-26, em P24) |
 | Fatia vertical | P7 | junta núcleo + cenário + personagem |
-| Manutenção | P28 | triagem dos resíduos |
+| Manutenção | P28 ✔ | triagem dos resíduos feita (commit comum, 2026-11-26): 25 `obsoleto (3D)`, 20 `resolvido`; registro em [`PEDIDOS-FEITOS.md`](PEDIDOS-FEITOS.md#p28--triagem-dos-resíduos-commit-comum-2026-11-26) |
 
 ### Índice
 
@@ -54,12 +55,11 @@
 | P25 | Cenário 3D: medir e otimizar o custo gráfico | v0.36.0 ✔ | na fila (pedido 2026-11-26) |
 | P26 | Cenário destrutível: vegetação, árvores que caem, arena que se abre | P25 | na fila (pedido 2026-11-26) |
 | P27 | Os quatro elementos no cenário (fogo, terra, ar, água) | P26 · P5 (porte) | na fila (design + sim; pedido 2026-11-26) |
-| P28 | Triagem dos resíduos (fechar o que o 3D tornou obsoleto) | — | na fila (manutenção) |
 
 ### Onde mais há pendência (apontada daqui, não copiada)
 
-- [`RESIDUOS.md`](RESIDUOS.md): o que cada publicação deixou para trás (~250
-  linhas "aberto", muitas do 2D já superado — é o P28).
+- [`RESIDUOS.md`](RESIDUOS.md): o que cada publicação deixou para trás (211
+  linhas `aberto` depois da triagem P28, de 2026-11-26).
 - [`gdd/historia.md`](gdd/historia.md#decisões-pendentes): decisões de
   história à espera do operador.
 - [`RIG.md`](RIG.md): a ordem de trabalho do rig (parada com P9/P10).
@@ -269,10 +269,3 @@
 - **Depende de:** P26 (estado destrutível na grade) e P5 (elemento/porte da
   criatura). Decisões do operador pendentes: duração dos efeitos, se a água
   sobe de nível em buracos, se o fogo pode sair do controle.
-
-## P28 — Triagem dos resíduos
-
-- [`RESIDUOS.md`](RESIDUOS.md) tem ~250 linhas "aberto", muitas do mockup 2D
-  e do rig 2D já superados pelo 3D (P24). Revisar linha a linha: marcar
-  `obsoleto (3D)`, `resolvido vX` ou promover a pacote; nada se apaga (regra
-  do arquivo). Só documentação; sem versão.

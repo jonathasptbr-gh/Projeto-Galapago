@@ -10,6 +10,10 @@
   que nasce, escorre por uma vala, enche uma bacia, transborda até o riacho e
   seca; desenho suave (não cúbico) em `agua.gdshader` e chão úmido em
   `natural.gdshader` (`usar_umidade`, desligado no jogo). Sem versão.
+- **Triagem dos resíduos (P28):** `docs/RESIDUOS.md` revisado linha a linha,
+  só a coluna estado — 25 `obsoleto (3D)` (legenda nova no topo), 20
+  `resolvido vX.Y.Z (motivo)`; ficam 211 `aberto`. Rig congelado intocado. Sem
+  versão.
 
 ## v0.36.0 — mapa de testes NATUREZA jogável, cores vivas (2026-11-26)
 
