@@ -401,6 +401,31 @@
   salvar configurações de teste, LICENSE/proteção de `main`) foram
   descartadas — 9 linhas viraram `descartado (operador)`.
 
+## P28, 2ª rodada — decisões do operador sobre os resíduos (commit comum, 2026-11-27)
+
+- **O quê:** depois da faxina do rig, [`RESIDUOS.md`](RESIDUOS.md) tinha 156
+  linhas abertas (154 `aberto` + 2 `aberto (design)`). Uma triagem de leitura
+  (fora do repositório) as separou em obsoleto (10), já resolvido (12), ainda
+  vale (41) e decisão do operador (93); o operador respondeu no chat. Só a
+  coluna **estado** mudou; nada se apaga, "o quê" não muda.
+- **Feito:** 104 linhas — **68 `aceito (controles maduros)`** (valores de
+  partida e comportamentos descritos de toque, tiro, pulo, rota, inimigo e
+  demo); **7 `descartado (operador)`** (contorno/linha do ator, linhas do
+  caminho e das paredes, chave do PixelLab mantida, GIF do Pages ok);
+  **6 `aceito (operador)`** (atualização pelo botão ATUALIZAR, orientação em
+  pé, nome `com.projetogalapago.jogo`); **3 `movido para P30`** (vida, dano e
+  morte — pacote novo na fila: vai ter, não agora); **1 `obsoleto (3D)`** e
+  **19 `resolvido vX.Y.Z (motivo)`**, cada evidência reconferida no código ou
+  nos guias. Legendas novas no topo (`aceito (controles maduros)`,
+  `aceito (operador)`, `movido para Pn`). Ficaram **52 `aberto`**.
+- **Não tocado:** as 41 que ainda valem; as 8 da ilha Fundação/parkour, do baú
+  e da onda do laço (o operador quer tirá-las do jogo: fecham no lote que
+  remover o código); v0.32.0 `história` (fora das decisões dadas); v0.19.0 e
+  v0.18.0 `oráculo` (a demo de 3 s do CI ainda não filma o toque/carga, então
+  a evidência de obsoleto não se sustentou).
+- **Pronto quando:** cada estado novo tem legenda, a contagem da fila bate
+  com a tabela e `tools/testes.sh` segue verde.
+
 ## P6, P9 e P10 — descartados (commit comum, 2026-11-26)
 
 > Não foram feitos: **descartados pelo operador em 2026-11-26**. Motivo: o

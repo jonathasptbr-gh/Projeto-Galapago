@@ -5,6 +5,16 @@
 
 ## Não publicado
 
+- **Resíduos: decisões do operador (2026-11-27):** `docs/RESIDUOS.md`, só a
+  coluna estado — 104 linhas fechadas: 68 `aceito (controles maduros)`, 7
+  `descartado (operador)` (contorno do ator, linhas do caminho/paredes, chave
+  do PixelLab, GIF do Pages), 6 `aceito (operador)` (atualizador, retrato,
+  nome do pacote), 3 `movido para P30` (vida, dano e morte: pacote novo na
+  fila, vai ter mas não agora), 1 `obsoleto (3D)` e 19 `resolvido` (evidência
+  reconferida no código). Legendas novas no topo. Ficam 52 `aberto` (eram 156;
+  o 211 da nota P28 abaixo era o número daquele dia). A ilha Fundação/parkour,
+  o baú e a onda do laço ficam abertos até o lote que os tira do jogo. Sem
+  versão.
 - **Padrão de modelos 3D no repositório:** guia `docs/MODELOS-3D.md`
   (fontes, licenças aceitas/recusadas, `.credito.txt`, prancha para o
   operador, o que é "pequeno ajuste", onde o escolhido mora, 22 candidatos com

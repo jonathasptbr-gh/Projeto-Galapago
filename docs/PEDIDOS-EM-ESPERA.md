@@ -13,7 +13,7 @@
 > multi-sessão (P21) ficaram na v0.14.3; o P22 (fila enxuta) foi entregue na
 > v0.14.4 e o registro dele fechado na v0.15.0; o P23 (oráculo com baseline)
 > ficou na v0.16.0; o P28 (triagem dos resíduos) foi um commit comum em
-> 2026-11-26. Os pacotes feitos moram em
+> 2026-11-26, e o fechamento com as decisões do operador outro, em 2026-11-27. Os pacotes feitos moram em
 > [`PEDIDOS-FEITOS.md`](PEDIDOS-FEITOS.md), não aqui.
 
 > **Decisões do operador (2026-11-26) — faxina:** o padrão de criatura passa a
@@ -41,11 +41,11 @@
 
 | frente | pacotes | situação |
 |---|---|---|
-| Núcleo de jogo | P5 → P8 | P5 é o próximo do núcleo; P8 é conversa de design |
+| Núcleo de jogo | P5 → P8 · P30 | P5 é o próximo do núcleo; P8 é conversa de design; P30 (vida, dano e morte) vai ter, mas não agora |
 | Cenário 3D e arena | P24 ✔ → P25 → P26 → P27 | P24 entregue; P25 mede antes de P26/P27 crescerem o custo |
 | Personagem e arte | P29 | P6, P9 e P10 descartados (2026-11-26): padrão novo = modelo 3D pronto + ajustes ([MODELOS-3D](MODELOS-3D.md)); P29 escolhe o modelo do cão/lobo; contorno do ator pendente (em P24) |
 | Fatia vertical | P7 | junta núcleo + cenário + personagem |
-| Manutenção | P28 ✔ | triagem dos resíduos feita (commit comum, 2026-11-26): 25 `obsoleto (3D)`, 20 `resolvido`; registro em [`PEDIDOS-FEITOS.md`](PEDIDOS-FEITOS.md#p28--triagem-dos-resíduos-commit-comum-2026-11-26) |
+| Manutenção | P28 ✔ | triagem dos resíduos feita (commit comum, 2026-11-26): 25 `obsoleto (3D)`, 20 `resolvido`; registro em [`PEDIDOS-FEITOS.md`](PEDIDOS-FEITOS.md#p28--triagem-dos-resíduos-commit-comum-2026-11-26); decisões do operador aplicadas em 2026-11-27 (104 linhas fechadas) |
 
 ### Índice
 
@@ -59,11 +59,12 @@
 | P26 | Cenário destrutível: vegetação, árvores que caem, arena que se abre | P25 | na fila (pedido 2026-11-26) |
 | P27 | Os quatro elementos no cenário (fogo, terra, ar, água) | P26 · P5 (porte) | na fila (design + sim; pedido 2026-11-26) |
 | P29 | Modelo do lobo/cão: o Wolf.glb é o melhor disponível? | — | na fila (pedido 2026-11-26) |
+| P30 | Vida, dano e morte | design com o operador | na fila — vai ter, **não agora** (decisão 2026-11-27) |
 
 ### Onde mais há pendência (apontada daqui, não copiada)
 
-- [`RESIDUOS.md`](RESIDUOS.md): o que cada publicação deixou para trás (211
-  linhas `aberto` depois da triagem P28, de 2026-11-26).
+- [`RESIDUOS.md`](RESIDUOS.md): o que cada publicação deixou para trás (52
+  linhas `aberto` depois das decisões do operador de 2026-11-27).
 - [`gdd/historia.md`](gdd/historia.md#decisões-pendentes): decisões de
   história à espera do operador.
 
@@ -236,3 +237,20 @@
   ao lado da mata. Prancha por CPU de cada finalista, mostrada no chat.
 - Entrega: recomendação com opções; a escolha é do operador. O escolhido entra
   em `arte/modelos/` com o `.credito.txt` (fluxo do guia).
+
+## P30 — Vida, dano e morte
+
+- **Decisão do operador (2026-11-27):** o jogo **vai ter** vida, dano e
+  morte, **mas não agora**. Até lá vale o que está no código: os golpes
+  empurram e atordoam, ninguém perde vida (`dados/adversario.json`, "NÃO há
+  vida nem dano", v0.14; [`RESIDUOS.md`](RESIDUOS.md) v0.5.0 `combate`).
+- Resíduos que fecham aqui (estado `movido para P30` em
+  [`RESIDUOS.md`](RESIDUOS.md)): v0.23.1 `morte` (tomba e para, sem vida nem
+  renascimento), v0.23.0 `vida/dano` (`hit`/`death` dormentes) e v0.21.0
+  `combate` (`hit`/`death` no catálogo, sem regra de vida). Relacionado e
+  ainda aberto: v0.25.0 `animação` (`shot`/`hit`/`death` sem acionar).
+- A decidir com o operador antes de codar: quem tem vida (criatura, inimigo,
+  ambos), o que tira vida (golpe, tiro, perigos, água), o que acontece na
+  derrota (renascer onde, o que se perde) e como a vida aparece na tela.
+- Regra na `sim/` com teste (`AGENTS.md`); os clipes `hit`/`death` vêm do
+  modelo 3D escolhido (P29/P7).
