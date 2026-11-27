@@ -47,6 +47,7 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.37.0 | — | nenhum novo de código ou documentação | — | — |
 | v0.36.0 | desempenho | mapa NATUREZA: ~691 mil triângulos instanciados no mapa inteiro, 341 MultiMeshes em setores; FPS e aquecimento no aparelho não medidos | médio | descartado (regra b) |
 | v0.36.0 | natureza | água opaca e parada (sem reflexo, refração ou correnteza animada); sem vento nas folhas | pequeno | descartado (operador) |
 | v0.36.0 | natureza | sem subsolo desenhado: cavar só na clareira de terra fofa, e o túnel não aparece (como na Fundação) | pequeno | descartado (operador) |

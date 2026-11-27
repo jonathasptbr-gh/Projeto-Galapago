@@ -3,7 +3,15 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
-## Não publicado
+## v0.37.0 — Natureza como mapa único e faxina do legado (2026-11-27)
+
+- **Publicação do pacote acumulado:** Natureza é o único mapa; saem Fundação,
+  parkour, baú, travar, onda do laço e os sistemas antigos de rig/animação.
+  Controles maduros preservados. A referência visual passa automaticamente
+  aos quadros desta publicação após o CI verde; a diferença para a Fundação
+  da v0.36.0 é intencional, sem relaxar os gates do oráculo.
+- **Resíduos desta publicação:** nenhum novo de código ou documentação;
+  as decisões e limpezas do lote estão registradas abaixo e em `RESIDUOS.md`.
 
 - **Resíduos abertos limpos (2026-11-27, decisão do operador "pode limpar
   todos esses resíduos"):** `RESIDUOS.md` 38 → 0 `aberto` — 12 `descartado
