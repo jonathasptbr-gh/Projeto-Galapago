@@ -51,8 +51,8 @@ autorização)** · ○ aguardando autorização · ? proposta nova, a confirmar
 | 1.1 | Inventário do código e protocolo de medição | ✔ 2026-11-27 |
 | 1.2 | Painel DIAGNÓSTICO opcional na HUD | ✔ 2026-11-27 (publicado na v0.38.0) |
 | 1.3 | APK instrumentado + referência no aparelho | ◐ 2026-11-27: v0.38.0 publicada; 1 leitura no S24 Ultra (seção 4) |
-| **1.4** | **Tempo de render CPU/GPU por viewport no painel + corrigir sobreposição** | **▶ próxima** (? proposta após a leitura de 1.3) |
-| 2.1 | Sombras: copa simplificada só para sombra | ○ |
+| 1.4 | Tempo de render CPU/GPU por viewport no painel + corrigir sobreposição | ◐ 2026-11-27: implementada e publicada na v0.39.0; falta a leitura do operador no aparelho |
+| **2.1** | **Sombras: copa simplificada só para sombra** | **▶ próxima** |
 | 2.2 | Sombras: resolução do atlas, isolada | ○ |
 | 3.1 | Copas leves na vista alta, completas na íntima | ○ |
 | 3.2 | Vegetação decorativa: detalhe e densidade | ○ |
@@ -105,9 +105,10 @@ pode justificar **propor** outra ordem, nunca executá-la sem autorização.
 - ~500 mil primitivas por quadro incluem o passe de sombra: coerente com o
   grupo 2 ser o primeiro candidato, a confirmar com tempo de GPU.
 
-**Defeito visto na captura:** o botão "Verificar atualização" (canto superior
-direito, [`hud.gd`](../jogo/hud.gd), `TOPO + 350`) fica **por cima do painel
-DIAGNÓSTICO**. Correção pequena prevista dentro da 1.4.
+**Defeito visto na captura (corrigido na 1.4, v0.39.0):** o botão "Verificar
+atualização" (canto superior direito, `TOPO + 350`) ficava **por cima do painel
+DIAGNÓSTICO**; agora mora na coluna da esquerda, abaixo do botão DIAGNÓSTICO
+([`hud.gd`](../jogo/hud.gd), `_criar_verificar`).
 
 ## 5. Plano por grupos — escopo e aceite
 
@@ -251,3 +252,33 @@ Gerente, sem agente; só documentação. Pontos conferidos no código:
   conferiu CI e manifesto diretamente, sem novo agente.
 - Leitura do operador no S24 Ultra: seção 4. **Em parte:** uma janela só, sem
   amostras sustentadas nem custo da instrumentação — ficam para 1.4.
+
+### 1.4 — tempo de render por viewport e sobreposição (2026-11-27, 1 agente, v0.39.0)
+
+- [`diagnostico.gd`](../jogo/diagnostico.gd): com o painel **ligado**,
+  `RenderingServer.viewport_set_measure_render_time(rid, true)` em três
+  viewports, cada um com rótulo de escopo: **"3D (vista.sv)"** (o SubViewport do
+  mundo 3D), **"Chão (mapa)"** (o SubViewport 2D de
+  [`chao.gd`](../jogo/mundo3d/chao.gd)) e **"Tela (HUD+imagem)"** (o viewport
+  raiz: HUD e a imagem do 3D composta). A API mede cada viewport à parte: a soma
+  não é o quadro inteiro (o painel diz isso). Desligar o painel, ocultar com o
+  CONFIG, entrar na vista íntima ou sair da árvore chama `false` em todos:
+  desligado não mede. `medindo()` devolve os rótulos ligados (consultável no
+  teste). A medição segue o objeto Viewport e é conferida a cada janela (o Pixel
+  Pass só redimensiona o mesmo `sv`; trocar de SubViewport religa sozinho).
+- Valor mostrado: **média das leituras > 0** de
+  `viewport_get_measured_render_time_cpu/gpu` na janela ≥ 0,5 s (2 getters por
+  viewport por quadro); nenhuma leitura > 0 → `n/d`, nada estimado. Substitui a
+  linha "CPU/GPU: n/d".
+- [`hud.gd`](../jogo/hud.gd): "Verificar atualização" saiu do canto direito
+  (`TOPO + 350`, sobre o painel) para a coluna da esquerda, `(20, TOPO + 418)`,
+  abaixo do DIAGNÓSTICO; continua sumindo com o CONFIG. O aviso "ATUALIZAR" do
+  [`atualizador.gd`](../jogo/atualizador.gd), quando há versão nova, segue no
+  canto direito e fica por cima do painel (ação tem prioridade; comentário
+  atualizado).
+- Prova: [`test_diagnostico.gd`](../testes/test_diagnostico.gd) 8 testes (3
+  novos: `tempo_ms`/`media`, liga/desliga + média injetada, HUD oculta/íntima
+  desligando a medição e o retângulo do Verificar fora do painel). Oráculo
+  `--diagnostico` (Compatibility/softpipe, com o botão forçado só na cópia
+  local): painel x ≈ 362–704, botão x 20–260; tempos `n/d` por software,
+  esperado — prova de imagem, não de desempenho.

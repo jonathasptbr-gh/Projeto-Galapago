@@ -1,5 +1,6 @@
 extends "res://testes/caso.gd"
 ## P25/1.2: janela real não é delta simulado nem cronômetro de CPU/GPU.
+## P25/1.4: tempo de render da API só com o painel ligado; <=0 vira n/d.
 const Diagnostico := preload("res://jogo/diagnostico.gd")
 const Hud := preload("res://jogo/hud.gd")
 const Main := preload("res://jogo/main.gd")
@@ -32,7 +33,7 @@ func test_janela_real_delta_e_reinicio_sem_historia_da_pausa() -> void:
 	checar(d.text.contains("FPS (callbacks/Time): 4.0"), "FPS conta intervalos, não inverte delta")
 	checar(d.text.contains("Intervalo real: 250.0 ms · máx 250.0"), "média/máximo da janela")
 	checar(d.text.contains("Delta _process médio: 30.0 ms (motor)"), "delta rotulado separadamente")
-	checar(d.text.contains("CPU/GPU: n/d"), "sem estimativa CPU/GPU")
+	checar(d.text.contains(Diagnostico.ROTULO_TELA + ": CPU n/d · GPU n/d"), "sem leitura >0 não estima CPU/GPU")
 	checar(d.text.contains("RS global · último quadro disponível"), "não atribui global só ao mundo 3D")
 	checar(d.text.contains("Draw calls: n/d · primitivas: n/d"), "headless sem contador não vira zero")
 	var texto := d.text
@@ -98,4 +99,69 @@ func test_main_integra_vista_sem_alterar_render_ou_acoes() -> void:
 	igual(m.vista.pixel_pass, not pixel, "ação PIXEL ART preservada")
 	m.hud._hostil_btn.pressed.emit()
 	checar(m.hostilidade, "ação HOSTILIDADE preservada")
+	m.free()
+
+
+func test_tempo_ms_n_d_sem_medida_e_ms_com_medida() -> void:
+	igual(Diagnostico.tempo_ms(0.0), "n/d", "API devolve 0 sem medida")
+	igual(Diagnostico.tempo_ms(-1.0), "n/d")
+	igual(Diagnostico.tempo_ms(NAN), "n/d", "NaN não vira número")
+	igual(Diagnostico.tempo_ms(4.214), "4.21 ms")
+	igual(Diagnostico.media(9.0, 3), 3.0)
+	igual(Diagnostico.media(0.0, 0), -1.0, "janela sem leitura >0 não é zero")
+
+
+func test_medicao_liga_so_com_painel_e_media_da_janela() -> void:
+	var d := _painel()
+	igual(d.medindo().size(), 0, "padrão desligado não mede")
+	d.definir_ligado(true)
+	igual(d.medindo(), PackedStringArray([Diagnostico.ROTULO_TELA]), "ligado mede o viewport raiz")
+	d.amostrar(1000000, 0.016) # origem
+	d.registrar_tempos(0, 2.0, 0.0)
+	d.registrar_tempos(0, 4.0, 6.0)
+	d.registrar_tempos(0, -1.0, 0.0) # sem medida: fora da média
+	d.amostrar(1500000, 0.016)
+	checar(d.text.contains(Diagnostico.ROTULO_TELA + ": CPU 3.00 ms · GPU 6.00 ms"), "média das leituras >0 da janela")
+	d.amostrar(2000000, 0.016)
+	checar(d.text.contains(Diagnostico.ROTULO_TELA + ": CPU n/d · GPU n/d"), "janela nova não herda leituras")
+	d.definir_ligado(false)
+	igual(d.medindo().size(), 0, "desligar desliga a medição")
+	d.registrar_tempos(0, 5.0, 5.0)
+	d.definir_ligado(true)
+	igual(d.medindo().size(), 1, "religar volta a medir")
+	d.free()
+
+
+func test_hud_oculta_desliga_medicao_e_verificar_fora_do_painel() -> void:
+	var m := Main.new()
+	Engine.get_main_loop().root.add_child(m)
+	var h = m.hud
+	igual(h.diagnostico.medindo().size(), 0, "jogo começa sem medir")
+	h._diagnostico_btn.pressed.emit()
+	igual(h.diagnostico.medindo(), PackedStringArray([Diagnostico.ROTULO_3D, Diagnostico.ROTULO_CHAO, Diagnostico.ROTULO_TELA]), "3D, chão e tela, cada um com rótulo")
+	m.definir_pixel_pass(not m.vista.pixel_pass) # mesmo sv: a medição continua no viewport certo
+	h.diagnostico.amostrar(1000000, 0.1)
+	h.diagnostico.amostrar(1500000, 0.1)
+	igual(h.diagnostico.medindo().size(), 3, "troca do Pixel Pass mantém os três")
+	h._alternar_info()
+	igual(h.diagnostico.medindo().size(), 0, "CONFIG oculto desliga a medição")
+	h._alternar_info()
+	h.definir_vista_intima(true)
+	igual(h.diagnostico.medindo().size(), 0, "vista íntima desliga a medição")
+	h.definir_vista_intima(false)
+	igual(h.diagnostico.medindo().size(), 3, "volta a medir")
+	# o botão Verificar (só existe em build publicado) fica na coluna esquerda,
+	# fora do retângulo do painel ancorado à direita, com o texto cheio
+	h.diagnostico.amostrar(3000000, 0.1) # religar limpou o texto: janela nova cheia
+	h.diagnostico.amostrar(3500000, 0.1)
+	var b: Button = h._criar_verificar()
+	var largura := 720.0
+	var tam: Vector2 = h.diagnostico.get_combined_minimum_size()
+	var painel := Rect2(Vector2(largura - 16.0 - tam.x, Hud.TOPO + 34.0), tam)
+	var botao := Rect2(b.position, b.get_combined_minimum_size())
+	checar(tam.y > 300.0, "painel com texto cheio medido (%s)" % tam)
+	checar(not painel.intersects(botao), "Verificar não cobre o painel (%s × %s)" % [painel, botao])
+	checar(botao.position.x <= 20.0 and botao.end.x <= 260.0, "mesma coluna dos outros botões, longe do centro")
+	h._diagnostico_btn.pressed.emit()
+	igual(h.diagnostico.medindo().size(), 0, "botão desliga a medição")
 	m.free()

@@ -62,7 +62,7 @@
 | P7 | Fatia vertical: arena + cão + gestos + 1 evolução | P2–P5 | na fila |
 | P8 | GDD do loop diário no laboratório/ilha | — | na fila (design, conversa) |
 | P24 | Fundação 3D: mundo 3D, Pixel Pass opcional, câmera orbital 360° | — | **entregue na v0.35.0**; mapa NATUREZA na v0.36.0 e mapa único em 2026-11-27 (a ilha Fundação saiu); contorno do ator descartado |
-| P25 | Cenário 3D: medir e otimizar o custo gráfico — plano em [OTIMIZACAO](OTIMIZACAO.md) | v0.36.0 ✔ | 1.1 e 1.2 ✔; 1.3 em parte (v0.38.0 + leitura S24 Ultra); **próxima: 1.4** (aguarda autorização) |
+| P25 | Cenário 3D: medir e otimizar o custo gráfico — plano em [OTIMIZACAO](OTIMIZACAO.md) | v0.36.0 ✔ | 1.1 e 1.2 ✔; 1.3 e 1.4 em parte (v0.38.0/v0.39.0 + leitura S24 Ultra); **próxima: 2.1** (aguarda autorização) |
 | P26 | Cenário destrutível: vegetação, árvores que caem, arena que se abre | P25 | na fila (pedido 2026-11-26) |
 | P27 | Os quatro elementos no cenário (fogo, terra, ar, água) | P26 · P5 (porte) | na fila (design + sim; pedido 2026-11-26) |
 | P29 | Modelo do lobo/cão: o Wolf.glb é o melhor disponível? | — | na fila (pedido 2026-11-26) |
@@ -157,7 +157,8 @@
   ([detalhe](OTIMIZACAO.md#2-regra-de-ritmo-e-gastos-decisão-do-operador-2026-11-27)).
 - **Estado (2026-11-27):** 1.1 e 1.2 concluídas; 1.3 em parte (v0.38.0
   publicada, uma leitura no S24 Ultra: 60 FPS no teto, 1440×3120, Vulkan);
-  próxima proposta: **1.4**, tempo de GPU/CPU no painel.
+  1.4 publicada na v0.39.0 (tempo de GPU/CPU por viewport no painel), falta a
+  leitura no aparelho; próxima: **2.1**, sombras.
 - **Aceite do pacote:** comparação antes/depois no aparelho, sem mudar
   regras/gestos; aparência da vista alta aprovada pelo operador; testes e CI
   verdes quando houver código. Sem promessa de ganho antes da medição.

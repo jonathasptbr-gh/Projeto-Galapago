@@ -47,7 +47,8 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
-| v0.38.0 | `jogo/hud.gd` | o botão "Verificar atualização" (canto superior direito, `TOPO + 350`) fica por cima do painel DIAGNÓSTICO ligado — visto na captura do operador no S24 Ultra (2026-11-27); correção prevista na etapa 1.4 de [OTIMIZACAO](OTIMIZACAO.md) | pequeno | aberto |
+| v0.39.0 | — | nenhum novo de código ou documentação | — | — |
+| v0.38.0 | `jogo/hud.gd` | o botão "Verificar atualização" (canto superior direito, `TOPO + 350`) fica por cima do painel DIAGNÓSTICO ligado — visto na captura do operador no S24 Ultra (2026-11-27); correção prevista na etapa 1.4 de [OTIMIZACAO](OTIMIZACAO.md) | pequeno | resolvido em v0.39.0 |
 | v0.37.0 | — | nenhum novo de código ou documentação | — | — |
 | v0.36.0 | desempenho | mapa NATUREZA: ~691 mil triângulos instanciados no mapa inteiro, 341 MultiMeshes em setores; FPS e aquecimento no aparelho não medidos | médio | descartado (regra b) |
 | v0.36.0 | natureza | água opaca e parada (sem reflexo, refração ou correnteza animada); sem vento nas folhas | pequeno | descartado (operador) |

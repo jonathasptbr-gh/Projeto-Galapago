@@ -3,8 +3,19 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
-## Não publicado
+## v0.39.0 — tempo de render por viewport no diagnóstico (2026-11-27)
 
+- **P25/1.4, autorizada com UM agente e publicação:** o painel DIAGNÓSTICO,
+  ligado, mede o tempo de render da API (`viewport_set_measure_render_time`)
+  em "3D (vista.sv)", "Chão (mapa)" e "Tela (HUD+imagem)" e mostra CPU/GPU em
+  ms, média das leituras > 0 da janela ≥ 0,5 s; sem leitura → `n/d`. Desligado,
+  oculto pelo CONFIG ou na vista íntima, a medição é desligada (`false`).
+- **Sobreposição corrigida:** "Verificar atualização" foi do canto direito
+  (sobre o painel) para a coluna da esquerda, abaixo do DIAGNÓSTICO.
+- **Limites:** nenhum ganho de desempenho alegado; nada de render, AA, sombras,
+  resolução ou Pixel Pass mudou. No oráculo por software os tempos saem `n/d`.
+  O aviso "ATUALIZAR" (só quando há versão nova) continua no canto direito, por
+  cima do painel, de propósito.
 - **docs: plano de otimização em guia próprio** (2026-11-27, pedido do
   operador para continuar em outras sessões): `docs/OTIMIZACAO.md` vira a fonte
   única do P25 — retomada, regra de ritmo, estado com a próxima etapa, referência

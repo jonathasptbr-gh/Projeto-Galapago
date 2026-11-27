@@ -195,14 +195,22 @@ func _ready() -> void:
 	atualizador = Atualizador.new()
 	add_child(atualizador)
 	if build > 0 and atualizador.estado != "dev":
-		var b := Button.new()
-		b.text = "Verificar atualização"
-		b.add_theme_font_size_override("font_size", 16)
-		b.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
-		b.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-		b.position.y += TOPO + 350
-		b.pressed.connect(func(): atualizador.verificar())
-		add_child(b)
+		_criar_verificar()
+
+
+## P25/1.4: "Verificar atualização" mora na coluna da ESQUERDA, abaixo do
+## DIAGNÓSTICO; no canto direito (`TOPO + 350`) ficava por cima do painel ligado
+## (captura do S24 Ultra, 2026-11-27). Some com o CONFIG, como os outros botões.
+func _criar_verificar() -> Button:
+	var b := Button.new()
+	b.text = "Verificar atualização"
+	b.add_theme_font_size_override("font_size", 16)
+	b.position = Vector2(20, TOPO + 418)
+	b.custom_minimum_size = Vector2(240, 34)
+	b.focus_mode = Control.FOCUS_NONE
+	b.pressed.connect(func(): atualizador.verificar())
+	add_child(b)
+	return b
 
 
 func _process(delta: float) -> void:

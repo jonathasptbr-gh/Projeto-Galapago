@@ -188,8 +188,10 @@ func _mostrar_aviso() -> void:
 	_botao_aviso.custom_minimum_size = Vector2(240, 56)
 	_botao_aviso.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 12)
 	_botao_aviso.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	# abaixo da legenda/verificar, mas dentro da tela nos dois formatos
-	_botao_aviso.position.y += 500  # abaixo do "Verificar" da HUD (P24: a barra de giro empurrou a HUD)
+	# abaixo da legenda, mas dentro da tela nos dois formatos (o "Verificar" da
+	# HUD foi para a coluna da esquerda na P25/1.4). Com o painel DIAGNÓSTICO
+	# ligado este aviso, quando existe, fica por cima dele: ação tem prioridade.
+	_botao_aviso.position.y += 500
 	_botao_aviso.pressed.connect(_abrir_painel)
 	add_child(_botao_aviso)
 	# a PRIMEIRA detecção abre o painel sozinha: o aviso não pode depender de o
