@@ -33,7 +33,7 @@ julgam depois, no Godot, pelo [oráculo](ORACULO.md).
 | fonte | como | observação |
 |---|---|---|
 | **Sketchfab** (principal) | `tools/sketchfab.mjs`; busca pública, download com chave | conta do operador, plano basic; chave só no cofre do harness, `refs.SKETCHFAB_TOKEN` (`~/.dsh/.credentials.yaml`) — nunca em chat, commit ou doc |
-| **Poly Pizza** (Quaternius e outros) | página `https://poly.pizza/m/<id>` (licença e autor); GLB público em `https://static.poly.pizza/<arquivo>.glb`, sem chave | de onde vieram os candidatos de 2026-11-26; o kit não baixa daqui: o `.credito.txt` se escreve à mão, no mesmo formato |
+| **Poly Pizza** (segunda fonte — aprovada pelo operador em 2026-11-26; Quaternius e outros) | página `https://poly.pizza/m/<id>` (licença e autor); GLB público em `https://static.poly.pizza/<arquivo>.glb`, sem chave | de onde vieram os candidatos de 2026-11-26; o kit não baixa daqui: o `.credito.txt` se escreve à mão, no mesmo formato |
 
 Estudo mais largo de fontes (Smithsonian, Tripo, Truebones…) ficou fora do
 repositório, como pesquisa; o que vale está nesta tabela.
