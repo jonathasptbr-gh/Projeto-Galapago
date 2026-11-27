@@ -83,13 +83,11 @@ No jogo a criatura e o inimigo são **atores 3D provisórios**
 (`jogo/mundo3d/ator.gd`) que só leem a sim; a regra de jogo nunca pergunta
 como a criatura é desenhada.
 
-**Animação (v0.23.0):** `dados/animacoes.json` é o catálogo (camada, loop,
-duração, prioridade, janelas de evento por tempo e socket) e
-`sim/animacao.gd` é a máquina pura que transforma o retrato do corpo no clipe
-a desenhar. A prioridade decide quem corta quem; a base troca entre andar e
-parado. Nenhum dano, alcance ou tempo mora aqui. Hoje só os testes a usam
-(o ator provisório não toca clipe); ela fica como contrato para os clipes do
-modelo importado. `sim/direcao.gd` mapeia o olhar em 8 setores.
+**Animação:** a máquina de clipes 2D (`sim/animacao.gd` + `dados/animacoes.json`,
+v0.23.0) saiu em 2026-11-27 — o jogo não a usava desde a v0.35 (o ator
+provisório não toca clipe); os clipes do modelo importado ganham contrato
+próprio quando chegarem (o código segue no git até `a27982d`).
+`sim/direcao.gd` mapeia o olhar em 8 setores.
 
 ## Mundo e mapa
 

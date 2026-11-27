@@ -118,24 +118,6 @@ func caminho_livre(a: Vector2, b: Vector2, camada: String) -> bool:
 	return limitar_segmento(a, b, camada).distance_to(b) < 0.5
 
 
-## Corta um trajeto desenhado no primeiro passo impossível. Devolve o trecho
-## andável (pelo menos o ponto de partida).
-func limitar_caminho(pontos: PackedVector2Array, camada: String) -> PackedVector2Array:
-	var saida := PackedVector2Array()
-	if pontos.is_empty():
-		return saida
-	saida.append(pontos[0])
-	var atual := pontos[0]
-	for i in range(1, pontos.size()):
-		var fim := limitar_segmento(atual, pontos[i], camada)
-		if fim != atual:
-			saida.append(fim)
-		if fim.distance_to(pontos[i]) > 0.01:
-			break
-		atual = fim
-	return saida
-
-
 ## Do ponto a em direção a b, até onde dá para ANDAR.
 func limitar_segmento(a: Vector2, b: Vector2, camada: String) -> Vector2:
 	var dist := a.distance_to(b)

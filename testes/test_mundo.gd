@@ -36,13 +36,6 @@ func test_altura_rampa() -> void:
 	checar(m.pode_andar(Vector2i(3, 0), Vector2i(4, 0), M.SUPERFICIE), "rampa→planalto")
 
 
-func test_limitar_caminho_para_na_agua() -> void:
-	var m := _mundo([",,,~~,,"])
-	var c: PackedVector2Array = m.limitar_caminho(PackedVector2Array([_c(0, 0), _c(6, 0)]), M.SUPERFICIE)
-	checar(c[c.size() - 1].x < 3 * 32, "parou antes da água (x=%s)" % c[c.size() - 1].x)
-	checar(c[c.size() - 1].x > 2 * 32, "andou até a beira")
-
-
 func test_pulo_atravessa_canal_e_sobe_um_nivel() -> void:
 	var m := _mundo([",,~~,,", ",,~~^^"])
 	var p: Vector2 = m.pouso(_c(1, 0), _c(4, 0), 84.0, M.SUPERFICIE)

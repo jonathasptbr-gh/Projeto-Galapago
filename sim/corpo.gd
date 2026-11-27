@@ -59,8 +59,7 @@ extends RefCounted
 ##   **NÃO existe sprint**: o segurar não acelera, não gasta energia de sprint
 ##   e não deixa cauda (`_fator_sprint` = 1 e `_cmd_segurar` recusa);
 ## - **LONGE** (padrão): **não existe caminhada** — andando, ela já está em
-##   CORRIDA (`sim/animacao.gd` pede `run`); o segurar ACELERA (sprint 1,7× =
-##   187 px/s) por cima da corrida.
+##   CORRIDA; o segurar ACELERA (sprint 1,7× = 187 px/s) por cima da corrida.
 ##
 ## O teto entra em `_passo_camera` (na VELOCIDADE, antes de virar deslocamento);
 ## de LONGE a conta é bit a bit a de antes (métricas de marcha/voo intactas).

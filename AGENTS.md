@@ -122,8 +122,8 @@ sim/                  lógica pura: gestos (1 dedo: caminho, toque=tiro carregad
                        (passeio, hostilidade, preparo+área, esconder) · mundo ·
                        trajetoria (desconto+RDP) · camera3d (câmera orbital
                        3D) · natureza (o mapa, a mata: layout + grade) ·
-                       direcao (8 setores) · animacao (estados e prioridades) ·
-                       afinidade · visibilidade · atualizacao
+                       direcao (8 setores) · afinidade · visibilidade ·
+                       atualizacao
 jogo/                 main · mundo3d/ (vista = SubViewport + Pixel Pass
                        liga/desliga, chao = mapa do chão que o solo pinta,
                        espaco (px+níveis → 3D), ator provisório, shaders
@@ -134,12 +134,12 @@ jogo/                 main · mundo3d/ (vista = SubViewport + Pixel Pass
                        (alvo final) · trilha · efeitos (tiro no ar) · hud
                        (legenda, carga, CONFIG, PIXEL ART) · demo ·
                        atualizador
-dados/                gestos.json · acoes.json · adversario.json · terrenos.json · animacoes.json · afinidade.json · camera3d.json
+dados/                gestos.json · acoes.json · adversario.json · terrenos.json · afinidade.json · camera3d.json
 testes/               run.gd (executor), caso.gd (base), test_*.gd
 tools/                estado.sh · testes.sh · verificar.sh (seletivo) ·
                       docs.sh (docs.mjs + docs.test.mjs) · quadros.sh ·
                       quadros-diff.mjs · quadros-referencia.mjs ·
-                      preview.mjs · godot-api.sh ·
+                      preview.mjs (+ .test) · godot-api.sh ·
                       ci-log.mjs · baixar-apk.mjs ·
                       pixellab-catalogo.mjs · pixellab-tileset.mjs ·
                       pixellab-imagem.mjs · android/ (exportar.sh) ·

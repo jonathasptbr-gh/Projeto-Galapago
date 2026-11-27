@@ -7,8 +7,10 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 # Falha documental interrompe antes de importar/rodar o Godot (local e CI).
 tools/docs.sh || exit "$?"
-# Kit de modelos 3D: veredito de licença e crédito (offline, < 1 s).
-node --test tools/sketchfab.test.mjs >/dev/null || { node --test tools/sketchfab.test.mjs; exit 1; }
+# Ferramentas Node (offline, ~1 s): kit de modelos 3D (licença e crédito) e
+# o preview do Pages (`--site`).
+NT=(tools/sketchfab.test.mjs tools/preview.test.mjs)
+node --test "${NT[@]}" >/dev/null || { node --test "${NT[@]}"; exit 1; }
 G="${GODOT:-$(command -v godot || echo "$HOME/.local/bin/godot")}"
 export GODOT_SILENCE_ROOT_WARNING=1
 
