@@ -48,11 +48,9 @@ precisa de autorização individual neste chat, e cada acionamento de subagente
 (inclusive retomada ou revisão) também. Aprovar um plano não libera sua
 execução inteira. Antes de pedir, informar escopo, entrega, verificações e
 quantidade de agentes; não iniciar agente implicitamente. Ao terminar a etapa,
-relatar o resultado e parar. Organização do plano e P25/1.1 foram autorizadas
-diretamente; P25/1.2 foi concluída localmente, e P25/1.3 está autorizada com
-um agente para validação completa, publicação e preparação de coleta no aparelho,
-sem otimização. Demais etapas aguardam nova autorização. Plano e estado
-em [P25](docs/PEDIDOS-EM-ESPERA.md#p25--cenário-3d-medir-e-otimizar-o-custo-gráfico).
+relatar o resultado e parar. **Plano de otimização (P25), estado, próxima
+etapa e como retomar:** [`OTIMIZACAO`](docs/OTIMIZACAO.md) — fonte única; o
+estado das etapas mora lá, não aqui.
 
 ## Regras de desenvolvimento
 
@@ -168,7 +166,7 @@ Consulta por tarefa; este inventário é validado por `tools/docs.sh` (cada guia
 uma vez). Referências externas vendorizadas ficam no catálogo, não se repetem.
 
 - Design: [conceito](docs/CONCEITO.md), [história](docs/gdd/historia.md), [gestos e ações](docs/gdd/gestos-e-acoes.md), [mapa](docs/gdd/mapa.md).
-- Código e ambiente: [arquitetura](docs/ARQUITETURA.md), [Godot](docs/GODOT.md), [ambiente](docs/AMBIENTE.md).
+- Código e ambiente: [arquitetura](docs/ARQUITETURA.md), [Godot](docs/GODOT.md), [ambiente](docs/AMBIENTE.md), [otimização gráfica](docs/OTIMIZACAO.md).
 - Verificação e entrega: [oráculo](docs/ORACULO.md), [build](docs/BUILD.md), [rollback](docs/ROLLBACK.md), [guardião documental](docs/DOCUMENTACAO.md).
 - Arte: [pipeline](docs/ARTE.md), [modelos 3D prontos](docs/MODELOS-3D.md), [PixelLab](docs/PIXELLAB.md), [catálogo gerado](docs/pixellab/CATALOGO.md).
 - Continuidade: [fila](docs/PEDIDOS-EM-ESPERA.md), [feitos](docs/PEDIDOS-FEITOS.md), [histórico](docs/HISTORICO.md), [resíduos](docs/RESIDUOS.md).

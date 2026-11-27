@@ -3,6 +3,18 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## Não publicado
+
+- **docs: plano de otimização em guia próprio** (2026-11-27, pedido do
+  operador para continuar em outras sessões): `docs/OTIMIZACAO.md` vira a fonte
+  única do P25 — retomada, regra de ritmo, estado com a próxima etapa, referência
+  do S24 Ultra (v0.38.0-b135: Vulkan, 1440×3120, 60,09 FPS no teto, 16,6/18,7 ms,
+  260 calls, 501.469 primitivas), escopo/aceite por etapa, invariantes com
+  água/elementos/destruição e registro de 1.1–1.3. A fila e o contrato passam a
+  apontar para ele. Proposta nova: etapa 1.4 (tempo GPU/CPU por viewport).
+  Resíduo da v0.38.0 registrado (a linha "nenhum" estava errada): botão
+  "Verificar atualização" sobre o painel, a corrigir na 1.4.
+
 ## v0.38.0 — diagnóstico opcional para a referência P25 (2026-11-27)
 
 - **P25/1.2, instrumentação:** botão DIAGNÓSTICO desligado por padrão na HUD;
