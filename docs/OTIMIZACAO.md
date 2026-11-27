@@ -51,7 +51,8 @@ autorização)** · ○ aguardando autorização · ? proposta nova, a confirmar
 | 1.1 | Inventário do código e protocolo de medição | ✔ 2026-11-27 |
 | 1.2 | Painel DIAGNÓSTICO opcional na HUD | ✔ 2026-11-27 (publicado na v0.38.0) |
 | 1.3 | APK instrumentado + referência no aparelho | ◐ 2026-11-27: v0.38.0 publicada; 1 leitura no S24 Ultra (seção 4) |
-| 1.4 | Tempo de render CPU/GPU por viewport no painel + corrigir sobreposição | ◐ 2026-11-27: implementada e publicada na v0.39.0; falta a leitura do operador no aparelho |
+| 1.4 | Tempo de render CPU/GPU por viewport no painel + corrigir sobreposição | ✔ 2026-11-27: v0.39.0 + leitura no S24 Ultra (seção 4) |
+| 1.5 | Painel resumido (FPS e uso) + botão COPIAR REGISTRO com os dados completos | ○ pedida pelo operador (2026-11-27); **entra na próxima publicação** |
 | **2.1** | **Sombras: copa simplificada só para sombra** | **▶ próxima** |
 | 2.2 | Sombras: resolução do atlas, isolada | ○ |
 | 3.1 | Copas leves na vista alta, completas na íntima | ○ |
@@ -73,6 +74,37 @@ Escopo e aceite de cada etapa: seção 5. A ordem é a inicial; um resultado
 pode justificar **propor** outra ordem, nunca executá-la sem autorização.
 
 ## 4. Referência medida no aparelho
+
+### 2026-11-27 — Samsung Galaxy S24 Ultra, v0.39.0-b137 (captura do operador)
+
+| campo | valor |
+|---|---|
+| renderizador / API | `mobile` / `vulkan` |
+| modo / resoluções | 3D liso, MSAA 4×; interna = alvo = física **1440×3120 px** |
+| FPS (callbacks/relógio real) | **35,81** |
+| intervalo real médio / máximo | **27,9 ms / 34,7 ms** (delta do motor 27,4 ms) |
+| 3D (vista.sv), média da janela | **CPU 0,78 ms · GPU 23,18 ms** |
+| Chão (mapa) | CPU 0,26 ms · GPU 0,47 ms |
+| Tela (HUD+imagem) | CPU 0,54 ms · GPU 2,26 ms |
+| draw calls / primitivas (globais, último quadro) | **345 / 505.257** |
+| janela | **uma** janela de 0,53 s (amostra única, não sustentada) |
+| cena | vista alta, criatura **andando** (rota 70%) sob copas densas, hostilidade desligada |
+
+**O que esta leitura diz (sem generalizar além dela):**
+
+- Nesta cena o quadro **não fecha em 16,7 ms**: ~28 ms por quadro, ~36 FPS.
+  A leitura anterior (v0.38.0, criatura parada, outra posição) estava no teto
+  de 60 — cena, movimento e instrumentação diferem; as duas não se comparam
+  como antes/depois.
+- O **GPU do 3D (23 ms)** é quase todo o quadro; a CPU de render é pequena
+  (< 1 ms por viewport) e o chão e a HUD são baratos. Sinal forte de que o
+  gargalo, aqui, é **desenhar o 3D na GPU** — onde atuam sombras (grupo 2),
+  copas (grupo 3) e resolução/MSAA (grupo 4).
+- Tempos são por viewport e à parte (soma ≠ quadro). Custo da própria
+  instrumentação não medido. Falta amostra sustentada (protocolo da 1.1).
+- **Primeira referência para comparar tempo de GPU** das próximas etapas: mesma
+  cena (vista alta, sob copa densa, andando) e o mesmo painel.
+
 
 ### 2026-11-27 — Samsung Galaxy S24 Ultra, v0.38.0-b135 (captura do operador)
 
@@ -121,6 +153,7 @@ detalhadas no pedido (seção 6); o gate do repositório vale se houver commit.
 | 1.2 | Painel diagnóstico opcional: FPS, tempo de quadro, calls/primitivas quando disponíveis, resolução e renderizador efetivos; sem otimizar | métricas com origem/escopo; CPU/GPU indisponível como tal; painel desligável; testes seletivos |
 | 1.3 | Versão instrumentada publicada e referência no aparelho | leitura registrada; nenhum dado de render por CPU usado como desempenho do APK |
 | 1.4 | Ligar `RenderingServer.viewport_set_measure_render_time` **só com o painel ligado** no SubViewport 3D (e no mapa do chão, se útil) e mostrar `viewport_get_measured_render_time_cpu/gpu` com rótulo de escopo; corrigir a sobreposição do botão "Verificar atualização"; publicar para medir | tempo GPU/CPU do 3D visível no aparelho, `n/d` onde a API devolver 0/indisponível; desligado não mede; layout sem sobreposição; nova referência S24 (e aparelho médio, se houver) |
+| 1.5 | Painel na tela só com o útil ao operador: FPS e uso (tempo de CPU/GPU do 3D). Botão **COPIAR REGISTRO** (só com o painel ligado) põe na área de transferência (`DisplayServer.clipboard_set`) um texto legível com **todos** os dados — os de hoje e mais (build, aparelho/sistema quando a API der, cena/vista, modos, escopos e notas) — para colar no chat em vez de foto. Pergunta aberta antes de executar: "uso do processador" em % não vem do Godot; propor ms × orçamento de quadro | painel curto e legível; registro copiado completo, com rótulos e unidades; `n/d` mantido; desligado não mede; testes do formato |
 | 2.1 | Sombras: chave diagnóstica completa/desligada e copa simplificada só para sombra (`SHADOWS_ONLY`), folhas reais sem projetar; atlas inalterado | proxy coerente com a árvore; mesmo enquadramento; diferença de GPU registrada |
 | 2.2 | Sombras: resolução do atlas, separada do proxy | custo × imagem registrados; pés, bordas, serrilhado e bias conferidos; não zerar blur |
 | 3.1 | Árvores internas leves na vista alta (variante `simples` de [`malhas.gd`](../jogo/mundo3d/natureza/malhas.gd)), completas na íntima | silhueta e copa vazada preservadas; transição estável (histerese), guiada pela vista ortográfica |
@@ -286,4 +319,6 @@ Gerente, sem agente; só documentação. Pontos conferidos no código:
   scripts; guardião documental (35 Markdown). Commit `4bb65cd` (v0.39.0), CI
   #137 verde (testes, apk, preview). Release `dev`: `versao_codigo` 137,
   `0.39.0-b137`, 26.658.100 bytes, commit `4bb65cd` no manifesto.
-- **Em parte:** falta a leitura do operador no aparelho com o painel ligado.
+- Leitura do operador no S24 Ultra (v0.39.0-b137): seção 4 — 35,81 FPS, GPU do
+  3D 23,18 ms. Etapa concluída. Pedido seguinte do operador: 1.5 (painel
+  resumido + COPIAR REGISTRO), para a próxima publicação.
