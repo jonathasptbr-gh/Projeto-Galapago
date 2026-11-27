@@ -4,6 +4,7 @@ extends CanvasLayer
 signal hostilidade_alternada(ligado: bool)
 ## P24: o botão PIXEL ART liga/desliga o Pixel Pass da vista 3D (quem manda é o main)
 signal pixel_pass_alternado(ligado: bool)
+signal sombras_alternadas(modo: int)
 
 ## HUD de desenvolvimento: título (versão/build), legenda dos gestos (a tabela
 ## v0.18 em linhas curtas + a linha do CONFIG), estado do corpo (rota/waypoints,
@@ -26,6 +27,7 @@ const TEXTO_COPIAR := "COPIAR REGISTRO"
 const COPIADO_S := 1.5
 
 const Atualizador := preload("res://jogo/atualizador.gd")
+const Mata := preload("res://jogo/mundo3d/natureza/mapa.gd")
 const Diagnostico := preload("res://jogo/diagnostico.gd")
 
 var diagnostico: Label
@@ -72,6 +74,8 @@ var _intima := false
 # PIXEL ART (P24): estado vem do main (`definir_pixel_pass`); padrão desligado
 var _pixel_btn: Button
 var _pixel := false
+var _sombras_btn: Button
+var _sombras := Mata.Sombras.COMPLETAS
 
 
 func definir_vista_intima(ativa: bool) -> void:
@@ -174,6 +178,15 @@ func _ready() -> void:
 	_copiar_btn.visible = false
 	_copiar_btn.pressed.connect(copiar_registro)
 	add_child(_copiar_btn)
+	# P25/2.1: controle explícito de sessão. O main devolve o modo aplicado.
+	_sombras_btn = Button.new()
+	_sombras_btn.add_theme_font_size_override("font_size", 16)
+	_sombras_btn.position = Vector2(20, TOPO + 460)
+	_sombras_btn.custom_minimum_size = Vector2(240, 34)
+	_sombras_btn.focus_mode = Control.FOCUS_NONE
+	_sombras_btn.pressed.connect(func(): sombras_alternadas.emit((_sombras + 1) % 3))
+	add_child(_sombras_btn)
+	definir_sombras(_sombras)
 	_gesto = _rotulo("gesto: —", Vector2.ZERO, 20)
 	_gesto.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 18)
 	_gesto.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -220,12 +233,12 @@ func _ready() -> void:
 ## P25/1.4: "Verificar atualização" mora na coluna da ESQUERDA, abaixo do
 ## DIAGNÓSTICO; no canto direito (`TOPO + 350`) ficava por cima do painel ligado
 ## (captura do S24 Ultra, 2026-11-27). Some com o CONFIG, como os outros botões.
-## P25/1.5: desceu para `TOPO + 460`, abaixo do COPIAR REGISTRO.
+## P25/2.1: desceu para `TOPO + 502`, abaixo de SOMBRAS.
 func _criar_verificar() -> Button:
 	var b := Button.new()
 	b.text = "Verificar atualização"
 	b.add_theme_font_size_override("font_size", 16)
-	b.position = Vector2(20, TOPO + 460)
+	b.position = Vector2(20, TOPO + 502)
 	b.custom_minimum_size = Vector2(240, 34)
 	b.focus_mode = Control.FOCUS_NONE
 	b.pressed.connect(func(): atualizador.verificar())
@@ -273,6 +286,16 @@ func _legenda() -> String:
 	linhas.append("PIXEL ART → liga o pixel art (padrão: 3D liso)")
 	linhas.append("CONFIG → esconde esta HUD")
 	return "\n".join(linhas)
+
+
+## Modo de sombra aplicado pelo main (sessão, sem persistência).
+func definir_sombras(modo: int) -> void:
+	_sombras = modo
+	_sombras_btn.text = "SOMBRAS: " + Mata.NOMES_SOMBRAS[modo]
+	diagnostico.definir_sombras(Mata.NOMES_SOMBRAS[modo])
+	# Uma cópia anterior não pode continuar anunciada após a troca.
+	_copiado_t = 0.0
+	_copiar_btn.text = TEXTO_COPIAR
 
 
 ## Estado do Pixel Pass (o main chama na partida e a cada troca).

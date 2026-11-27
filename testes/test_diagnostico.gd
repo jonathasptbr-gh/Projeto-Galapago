@@ -340,7 +340,7 @@ func test_hud_oculta_desliga_medicao_e_botoes_fora_do_painel() -> void:
 	var painel := Rect2(Vector2(largura - 16.0 - tam.x, Hud.TOPO + 34.0), tam)
 	checar(tam.y > 150.0, "painel com texto cheio medido (%s)" % tam)
 	var botoes: Array = [h._pulo_auto, h._hostil_btn, h._config_btn, h._pixel_btn,
-		h._diagnostico_btn, h._copiar_btn, b]
+		h._diagnostico_btn, h._copiar_btn, h._sombras_btn, b]
 	var rets: Array = []
 	for bt in botoes:
 		var r := Rect2(bt.position, bt.get_combined_minimum_size())
@@ -352,4 +352,50 @@ func test_hud_oculta_desliga_medicao_e_botoes_fora_do_painel() -> void:
 			checar(not rets[i].intersects(rets[j]), "%s × %s sem sobreposição" % [botoes[i].text, botoes[j].text])
 	h._diagnostico_btn.pressed.emit()
 	igual(h.diagnostico.medindo().size(), 0, "botão desliga a medição")
+	m.free()
+
+
+func test_sombras_ciclo_registro_e_historico_isolado_sem_mover_camera() -> void:
+	var m := Main.new()
+	Engine.get_main_loop().root.add_child(m)
+	var h = m.hud
+	var d = h.diagnostico
+	var copiado := []
+	h.area_transferencia = func(t: String) -> void: copiado.append(t)
+	var camera: Transform3D = m.vista.camera.transform
+	var corpo: Vector2 = m.corpo.pos
+	var sv: Vector2i = m.vista.sv.size
+	var msaa: int = m.vista.sv.msaa_3d
+	var atlas: Variant = ProjectSettings.get_setting("rendering/lights_and_shadows/directional_shadow/size")
+	h.definir_diagnostico(true)
+	igual(m.mata.modo_sombras, 0, "partida começa COMPLETAS")
+	for modo in [0, 1, 2, 0]:
+		if modo != 0 or not copiado.is_empty():
+			h._sombras_btn.pressed.emit()
+		igual(m.mata.modo_sombras, modo, "botão cicla os três modos")
+		igual(m.vista.sol.shadow_enabled, modo != 2, "desligadas tira sombras de TODA a luz direcional")
+		igual(d.historico().size(), 0, "troca limpa histórico imediatamente")
+		igual(d._intervalos, 0, "troca descarta janela parcial")
+		d.amostrar(1000000, 0.01)
+		d.amostrar(1500000, 0.01)
+		d.amostrar(1700000, 0.01) # janela incompleta antes da próxima troca
+		h._copiar_btn.pressed.emit()
+		var nome: String = m.mata.NOMES_SOMBRAS[modo]
+		checar(copiado[-1].contains("Sombras: " + nome), "cabeçalho da cópia rotula modo")
+		checar(d.text.contains("Sombras: " + nome), "painel rotula modo")
+		igual(d.historico()[0]["sombras"], nome, "linha só do modo atual")
+		igual(d.historico().size(), 1, "não herdou janela de outro modo")
+		igual(m.vista.camera.transform, camera, "enquadramento inalterado")
+		igual(m.corpo.pos, corpo, "não move criatura")
+		igual(m.vista.sv.size, sv, "resolução intacta")
+		igual(m.vista.sv.msaa_3d, msaa, "MSAA intacto")
+		igual(ProjectSettings.get_setting("rendering/lights_and_shadows/directional_shadow/size"), atlas, "atlas intacto")
+	h._alternar_info()
+	checar(not h._sombras_btn.visible, "CONFIG oculta chave")
+	h._alternar_info()
+	checar(h._sombras_btn.visible, "CONFIG reabre chave")
+	m.free()
+	m = Main.new()
+	Engine.get_main_loop().root.add_child(m)
+	igual(m.mata.modo_sombras, 0, "qualidade não é persistida")
 	m.free()

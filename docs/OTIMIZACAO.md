@@ -56,7 +56,7 @@ autorização)** · ○ aguardando autorização · ? proposta nova, a confirmar
 | 1.3 | APK instrumentado + referência no aparelho | ◐ 2026-11-27: v0.38.0 publicada; 1 leitura no S24 Ultra (seção 4) |
 | 1.4 | Tempo de render CPU/GPU por viewport no painel + corrigir sobreposição | ✔ 2026-11-27: v0.39.0 + leitura no S24 Ultra (seção 4) |
 | 1.5 | Painel resumido (FPS e tempos de render) + COPIAR REGISTRO completo | ✔ 2026-11-27: publicada na v0.40.0; prova local técnica/visual, sem benchmark Android |
-| **2.1** | **Sombras: copa simplificada só para sombra** | **▶ próxima** |
+| **2.1** | **Sombras: copa simplificada só para sombra** | **◐ v0.41.0: código publicado; ganho e aceite no aparelho AINDA NÃO MEDIDOS** |
 | 2.2 | Sombras: resolução do atlas, isolada | ○ |
 | 3.1 | Copas leves na vista alta, completas na íntima | ○ |
 | 3.2 | Vegetação decorativa: detalhe e densidade | ○ |
@@ -72,6 +72,11 @@ autorização)** · ○ aguardando autorização · ? proposta nova, a confirmar
 | 9.1–9.3 | Água de grade (P27) com custo controlado | ○ |
 | 10.1–10.5 | Elementos (P27): contrato comum, fogo, ar, terra, combinações | ○ |
 | 11.1–11.2 | Perfis de qualidade e fechamento sustentado | ○ |
+
+**▶ Próxima ação do plano:** comparar a 2.1 no aparelho, no mesmo enquadramento,
+com registros separados por modo; nenhuma diferença de GPU está demonstrada.
+A 2.2 e os grupos seguintes continuam sem autorização. COMPLETAS permanece
+padrão até decisão explícita do operador; publicar a chave não aprova qualidade.
 
 Escopo e aceite de cada etapa: seção 5. A ordem é a inicial; um resultado
 pode justificar **propor** outra ordem, nunca executá-la sem autorização.
@@ -391,3 +396,84 @@ Gerente, sem agente; só documentação. Pontos conferidos no código:
   `git diff --check` limpo e busca de padrões de segredo sem ocorrências.
   Commit de publicação e CI identificados no relatório de entrega; não se abre
   outro commit apenas para registrar CI ainda em andamento.
+
+
+### 2.1 — alternância de sombras e copas proxy (2026-11-27, 1 agente, v0.41.0)
+
+- Autorização delimitada à **2.1**, testes, imagens e publicação. **Código
+  publicado; ganho e aceite no aparelho AINDA NÃO MEDIDOS.** Nenhuma diferença
+  de GPU concluída; nenhum modo de qualidade aprovado por esta publicação.
+- **CONFIG → SOMBRAS:** um toque cicla **COMPLETAS → SIMPLIFICADAS →
+  DESLIGADAS → COMPLETAS**, sem reconstruir a mata, mover câmera/criatura ou
+  trocar resolução/MSAA/atlas. COMPLETAS continua padrão em cada partida;
+  escolha só de sessão, sem persistência. O controle aparece mesmo com o painel
+  desligado, some com CONFIG/vista íntima e reaparece na mesma escolha.
+- COMPLETAS: folhas reais e madeira projetam como antes. SIMPLIFICADAS:
+  **somente as folhas das copas** deixam de projetar; troncos/ramos, plantas
+  baixas e atores conservam seus estados. DESLIGADAS: `shadow_enabled=false`
+  na **luz direcional de toda a cena**, inclusive atores, chão e madeira — não
+  é apenas “sem copa”. Folhas voltam ao estado original; proxies ocultos.
+- [`malhas.gd`](../jogo/mundo3d/natureza/malhas.gd): um octaedro fechado de
+  **8 triângulos por ramúsculo**, inscrito na caixa das folhas efetivamente
+  geradas naquele ramo, inclusive os três ponteiros. Completas: 544 triângulos
+  proxy contra 3.264 de folhas; moldura: 232 contra 976. Não se chama de novo
+  `arvore(..., true)` para aproximar uma árvore completa: isso alteraria os
+  ramos da variante. As caixas são derivadas **sem consumir RNG** e sem mudar
+  vértices, normais ou cores visíveis. Faces com normal geométrica para fora;
+  winding e produto normal × centro da face conferidos em teste.
+- [`mapa.gd`](../jogo/mundo3d/natureza/mapa.gd): uma malha proxy compartilhada
+  por variante (4 internas + moldura), instanciada nos **mesmos transforms e
+  setores** das folhas. Emissor `SHADOWS_ONLY`, visível só em SIMPLIFICADAS,
+  **filho do lote de folhas**, com transform local identidade: remover/mover
+  o lote leva sua sombra. Não cria nó por planta; não prepara destruição nem
+  muda a sim. Proxies não entram nas estatísticas de geometria **visível**.
+- [`main.gd`](../jogo/main.gd) aplica o modo à mata e ao sol;
+  [`hud.gd`](../jogo/hud.gd) emite a escolha. Botão SOMBRAS em
+  `(20, TOPO + 460)`; Verificar atualização desceu para `TOPO + 502`.
+  [`diagnostico.gd`](../jogo/diagnostico.gd): modo no painel, em cada janela e
+  no cabeçalho do **COPIAR REGISTRO**, com a semântica de DESLIGADAS explícita.
+  Cada troca limpa **imediatamente** anel, somas e janela incompleta, inclusive
+  antes da cópia; uma nova janela não herda leituras antigas. Aviso COPIADO
+  anterior também sai na troca. Sem alteração de gestos ou regras.
+- Comparação executável com `b5904de`, fontes temporárias fora do git:
+  **20 malhas de árvore** (madeira/folhas, 5 seeds, completa/moldura), mapas
+  seeds **500/501/20261126**, todos os buffers reais de transforms/cores dos lotes e
+  alinhamento dos proxies — **0 falhas**, Compatibility/softpipe. Mesma seed
+  500: **82 árvores, 30 moldura, 341 lotes, 1.459 instâncias visíveis,
+  691.195 triângulos visíveis instanciados**, idênticos ao original.
+  Script/log em `/root/tmp/galapago-2-1-evidencias/comparar.gd` e `comparar.log`.
+- Testes focados: **23 testes, 0 falhas** (diagnóstico + natureza), incluindo
+  ciclo pelo botão, padrão e nova partida, histórico/registro, luz desligada,
+  identidade dos lotes, geometria/caixas/normais externas, proxies filhos,
+  sombra da madeira e layout por retângulos. `lint_diagnostics` chamado a cada
+  arquivo: harness não tem linter GDScript/Markdown; a prova é o parser/gate do
+  projeto. O aviso preexistente de nome da CPU no proot retorna vazio → `n/d`.
+- Escopo intocado: atlas **4096**, filtro/bias/blur do sol, resolução/MSAA,
+  Pixel Pass, geometria/cores visíveis, densidade/LOD, `sim/`, gestos, dados,
+  CI e pendências de conteúdo. Nenhuma dependência, asset, PixelLab ou download
+  pago. **Sem benchmark GPU no Android**; software/Movie Maker só prova imagem.
+- Oráculo Vulkan local: `LD_PRELOAD=/root/tmp/lvpshim/shim.so
+  SHIM_FEATS='-sve,-sve2' MESA_SHADER_CACHE_DISABLE=true QUADROS_RENDER=vulkan
+  GALLIUM_DRIVER=llvmpipe DEMO_ARGS='--diagnostico --sombras=<modo>'
+  tools/quadros.sh 2 /root/tmp/galapago-2-1-<modo>-vulkan`, uma captura por vez,
+  modos `completas`, `simplificadas`, `desligadas`: **6 PNG, exit 0**.
+  `q00000001.png` dos três **abertos**; logs confirmam **Vulkan 1.4.318,
+  Forward Mobile, llvmpipe (LLVM 20.1.2)**. Mesma seed padrão 20261126, câmera e
+  instante de demo (quadro 1, 30 FPS fixos). Árvores/folhas visíveis intactas;
+  sombra simplificada é mais maciça/poligonal (troca explícita de qualidade),
+  desligada remove as sombras; botão e painel legíveis sem sobreposição.
+  Verificar atualização não nasce no build local: retângulo coberto pelo teste.
+  Os números exibidos nesta gravação são de software/tempo fixo, **não Android**.
+- Prévia local: `DEMO_ARGS='--diagnostico --sombras=<modo>' tools/quadros.sh 2
+  /root/tmp/galapago-2-1-<modo>-previa-final`, mesmos três modos, sequenciais:
+  **6 PNG, exit 0**, Compatibility/OpenGL 3.3/softpipe; os três
+  `q00000001.png` **abertos**. Confirma layout e árvore intacta, não equivalência
+  de cor com Vulkan. Uma captura anterior foi cancelada antes da correção de
+  winding; não é usada como evidência final.
+- Gate imediatamente antes do commit: `tools/testes.sh`, **205 testes
+  GDScript, 0 falhas**, parser **51 scripts, 0 erros**, guardião **35 Markdown,
+  49 testes**. Log `/root/tmp/galapago-2-1-evidencias/gate.log`; foco
+  `/root/tmp/galapago-2-1-evidencias/foco-final.log`; seletivo
+  `/root/tmp/galapago-2-1-evidencias/seletivo-final.log`. `git diff --check`
+  limpo e busca de segredos do BUILD sem ocorrências. Commit/CI no relatório de
+  entrega, sem novo commit só para registrar run ainda em andamento.

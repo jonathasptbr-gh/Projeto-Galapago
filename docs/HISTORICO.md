@@ -3,6 +3,27 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.41.0 — comparação de sombras das copas (2026-11-27)
+
+- **P25/2.1, autorizada com UM agente e publicação:** em CONFIG, o botão
+  **SOMBRAS** cicla COMPLETAS / SIMPLIFICADAS / DESLIGADAS sem reconstruir a
+  mata nem mudar enquadramento. COMPLETAS permanece padrão a cada partida;
+  escolha não persistida. SIMPLIFICADAS usa copas proxy `SHADOWS_ONLY`, filhas
+  dos mesmos lotes/setores, com transforms/variantes alinhados e malhas
+  compartilhadas. Só as folhas reais das copas deixam de projetar nesse modo;
+  madeira continua. DESLIGADAS tira sombras da luz direcional **de toda a cena**.
+- Árvores visíveis, geometria, cores, posições, RNG e regras intactos. Proxy:
+  octaedro de 8 triângulos por ramúsculo derivado das próprias folhas, sem
+  novo sorteio. Não altera atlas 4096, filtro/bias/blur, MSAA, resolução,
+  densidade/LOD ou Pixel Pass; nenhuma dependência/asset novo ou etapa 2.2/3.x.
+- Modo no painel e no COPIAR REGISTRO; troca zera imediatamente histórico,
+  janela parcial e contagens, sem misturar medições. Botão abaixo do COPIAR;
+  Verificar atualização desce uma linha, sem sobreposição.
+- **Código publicado, ganho e aceite no aparelho AINDA NÃO MEDIDOS.**
+  Sem benchmark GPU no Android, sem alegar melhoria; comparação por software
+  prova imagem/invariantes, não desempenho. Detalhes, evidências e limites no
+  [registro 2.1](OTIMIZACAO.md#21--alternância-de-sombras-e-copas-proxy-2026-11-27-1-agente-v0410).
+
 ## v0.40.0 — diagnóstico resumido e COPIAR REGISTRO (2026-11-27)
 
 - **P25/1.5, autorizada com UM agente e publicação:** o painel DIAGNÓSTICO

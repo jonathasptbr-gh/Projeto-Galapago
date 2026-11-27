@@ -1,5 +1,5 @@
 extends Label
-## P25/1.2 + 1.4 + 1.5: observação; não muda render, AA, sombras nem resolução.
+## P25/1.2 + 1.4 + 1.5: observação; não muda render, AA nem resolução.
 ## Time mede intervalos entre callbacks _process (inclui espera, VSync e limites).
 ## O delta recebido é tempo do motor, não tempo gasto processando este script.
 ## Contadores, resolução e texto só a cada >=0,5 s reais. Desligado/oculto
@@ -62,10 +62,21 @@ var _hist_ini := 0
 var _hist_n := 0
 # Impede que o cabeçalho atual rotule janelas de outra configuração visual.
 var _configuracao: Array = []
+var _sombras := "COMPLETAS"
+
+
+## A troca é síncrona: limpa inclusive a janela parcial antes de copiar/coletar.
+func definir_sombras(nome: String) -> void:
+	if _sombras == nome:
+		return
+	_sombras = nome
+	_conferir_configuracao()
+
 
 
 func _conferir_configuracao() -> void:
 	var atual: Array = [get_window().size] if is_inside_tree() else []
+	atual.append(_sombras)
 	if is_instance_valid(_vista) and is_instance_valid(_vista.sv):
 		atual.append_array([_vista.pixel_pass, _vista.tamanho_interno(),
 			_vista.sv.size, _vista.sv.msaa_3d])
@@ -260,6 +271,7 @@ func amostrar(agora_us: int, delta: float, calls := -2, primitivas := -2) -> voi
 	var linha := {
 		"t": float(agora_us - _sessao_us) / 1000000.0,
 		"janela": janela,
+		"sombras": _sombras,
 		"quadros": _intervalos,
 		"fps": _intervalos / janela,
 		"intervalo_ms": float(decorrido) / _intervalos / 1000.0,
@@ -313,6 +325,7 @@ static func texto_painel(linha: Dictionary, hist: Array) -> String:
 	var gravado := 0.0
 	for l in hist:
 		gravado += float(l["janela"])
+	linhas.append("Sombras: " + str(linha.get("sombras", "COMPLETAS")))
 	linhas.append("Mais dados: COPIAR (%d s)" % roundi(gravado))
 	return "\n".join(linhas)
 
@@ -430,7 +443,7 @@ static func montar_registro(cab: Dictionary, linhas: Array) -> String:
 	o.append("- CPU de render/GPU: API do Godot (viewport_get_measured_render_time_*), média das leituras >0 por quadro na janela; resumo ponderado pelas contagens válidas, pior = maior média de janela. Cada viewport à parte: 3D = mundo 3D (vista.sv); Chão = mapa do chão (SubViewport 2D); Tela = viewport raiz (HUD + imagem do 3D). A soma ≠ o quadro inteiro.")
 	o.append("- Draw calls e primitivas: globais, só o último quadro de cada janela. Primitivas ≠ só triângulos; calls ≠ MultiMesh.")
 	o.append("- n/d = sem leitura (a API devolve 0 também quando indisponível).")
-	o.append("- Histórico: só janelas inteiras dentro dos %d s terminados na última janela concluída (teto %d); janela que cruza o corte, inclusive travada >60 s, é descartada sem rateio. A duração real pode ser menor. Desligar, ocultar (CONFIG), vista íntima ou mudar modo/resolução/MSAA zeram o histórico." % [roundi(HISTORICO_S), TETO_LINHAS])
+	o.append("- Histórico: só janelas inteiras dentro dos %d s terminados na última janela concluída (teto %d); janela que cruza o corte, inclusive travada >60 s, é descartada sem rateio. A duração real pode ser menor. Desligar, ocultar (CONFIG), vista íntima ou mudar modo/resolução/MSAA/sombras zeram o histórico." % [roundi(HISTORICO_S), TETO_LINHAS])
 	o.append("- Cabeçalho lido na cópia. Instrumentação e captura de tela podem interferir; impacto desconhecido, inclusive possível pausa ao capturar. A cópia não entra nas janelas já congeladas, mas pode afetar as seguintes.")
 	o.append("- Custo da instrumentação: relógio + 2 leituras por viewport por quadro, texto a cada ≥0,5 s; não medido à parte.")
 	return "\n".join(o)
@@ -459,6 +472,7 @@ func cabecalho(extra: Dictionary = {}) -> Dictionary:
 		c["MSAA 3D"] = ["desligado", "2×", "4×", "8×"][clampi(_vista.sv.msaa_3d, 0, 3)]
 		c["3D interno (vista)"] = dimensoes(_vista.tamanho_interno())
 		c["Alvo 3D c/margem (sv)"] = dimensoes(_vista.sv.size)
+	c["Sombras"] = _sombras + (" (luz direcional sem sombras em toda a cena)" if _sombras == "DESLIGADAS" else " (copas proxy; troncos mantidos)" if _sombras == "SIMPLIFICADAS" else " (folhas reais e troncos)")
 	c["Janela física"] = dimensoes(get_window().size) if is_inside_tree() else "n/d"
 	for k in extra:
 		if not c.has(k):

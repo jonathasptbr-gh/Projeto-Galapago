@@ -47,6 +47,7 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.41.0 | — | nenhum novo de código ou documentação | — | — |
 | v0.40.0 | — | nenhum novo de código ou documentação | — | — |
 | v0.39.0 | — | nenhum novo de código ou documentação | — | — |
 | v0.38.0 | `jogo/hud.gd` | o botão "Verificar atualização" (canto superior direito, `TOPO + 350`) fica por cima do painel DIAGNÓSTICO ligado — visto na captura do operador no S24 Ultra (2026-11-27); correção prevista na etapa 1.4 de [OTIMIZACAO](OTIMIZACAO.md) | pequeno | resolvido em v0.39.0 |

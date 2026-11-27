@@ -41,6 +41,22 @@ var registro: Dictionary = {}
 var _mats_foco: Array[ShaderMaterial] = []
 var _mat_solo: ShaderMaterial
 
+## P25/2.1: escolha de sessão, nunca persistida. Só as copas trocam de emissor.
+enum Sombras { COMPLETAS, SIMPLIFICADAS, DESLIGADAS }
+const NOMES_SOMBRAS := ["COMPLETAS", "SIMPLIFICADAS", "DESLIGADAS"]
+var modo_sombras := Sombras.COMPLETAS
+var _copas: Array[MultiMeshInstance3D] = []
+var proxies: Array[MultiMeshInstance3D] = []
+
+
+func definir_sombras(modo: int) -> void:
+	modo_sombras = clampi(modo, Sombras.COMPLETAS, Sombras.DESLIGADAS)
+	var simplificadas := modo_sombras == Sombras.SIMPLIFICADAS
+	for copa in _copas:
+		copa.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if simplificadas else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	for proxy in proxies:
+		proxy.visible = simplificadas
+
 
 static func rio_x(z: float) -> float:
 	return Natureza.rio_x(z)
@@ -97,6 +113,8 @@ func construir(semente := SEMENTE) -> void:
 	for filho in get_children():
 		filho.free()
 	lotes.clear()
+	_copas.clear()
+	proxies.clear()
 	registro.clear()
 	_mats_foco.clear()
 	estatisticas = {"semente": semente, "instancias": 0, "lotes": 0, "arvores": 0,
@@ -126,14 +144,14 @@ func construir(semente := SEMENTE) -> void:
 	estatisticas["arvores_moldura"] = moldura.size()
 	var simples: Dictionary = Biblioteca.arvore(semente + 909, true)
 	_lote("Moldura_troncos", simples["madeira"], moldura, madeira, r)
-	_lote("Moldura_folhas", simples["folhas"], moldura, folha_arvore, r)
+	_lote("Moldura_folhas", simples["folhas"], moldura, folha_arvore, r, true, simples["sombra"])
 	for variante in range(4):
 		var arv: Dictionary = Biblioteca.arvore(semente + variante * 101)
 		var ts: Array[Transform3D] = []
 		for i in range(variante, posicoes.size(), 4):
 			ts.append(posicoes[i])
 		_lote("Troncos_%d" % variante, arv["madeira"], ts, madeira, r)
-		_lote("Folhas_%d" % variante, arv["folhas"], ts, folha_arvore, r)
+		_lote("Folhas_%d" % variante, arv["folhas"], ts, folha_arvore, r, true, arv["sombra"])
 	# Samambaias preferem margem; arbustos e capim enchem a mata.
 	for variante in range(3):
 		var samambaias: Array[Transform3D] = []
@@ -196,6 +214,7 @@ func construir(semente := SEMENTE) -> void:
 	_serrapilheira(r)
 	estatisticas["lotes"] = lotes.size()
 	estatisticas["familias"] = registro.size()
+	definir_sombras(modo_sombras)
 
 
 func ligar_chao(textura: Texture2D, ret: Vector4) -> void:
@@ -228,7 +247,7 @@ static func _transforme(p: Vector3, yaw: float, escala: Vector3) -> Transform3D:
 
 
 func _lote(nome: String, m: ArrayMesh, ts: Array[Transform3D], mat: Material,
-		r: RandomNumberGenerator, sombra := true) -> void:
+		r: RandomNumberGenerator, sombra := true, proxy: ArrayMesh = null) -> void:
 	if ts.is_empty():
 		return
 	m.surface_set_material(0, mat)
@@ -263,6 +282,24 @@ func _lote(nome: String, m: ArrayMesh, ts: Array[Transform3D], mat: Material,
 			no.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(no)
 		lotes.append(no)
+		if proxy != null:
+			_copas.append(no)
+			# Mesmos transforms/setor/ordem, sem RNG extra ou leitura de buffers
+			# (o servidor headless não guarda buffers de MultiMesh).
+			var mm := MultiMesh.new()
+			mm.transform_format = MultiMesh.TRANSFORM_3D
+			mm.mesh = proxy
+			mm.instance_count = idx.size()
+			for j in range(idx.size()):
+				mm.set_instance_transform(j, ts[idx[j]])
+			var emissor := MultiMeshInstance3D.new()
+			emissor.name = "Copa_sombra"
+			emissor.multimesh = mm
+			emissor.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+			emissor.visible = false
+			# Filho do lote: mover/remover o lote leva sua sombra junto (P26).
+			no.add_child(emissor)
+			proxies.append(emissor)
 	registro[nome] = ts.duplicate()
 	var nv := m.surface_get_array_len(0)
 	estatisticas["instancias"] += ts.size()

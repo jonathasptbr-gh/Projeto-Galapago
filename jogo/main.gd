@@ -267,9 +267,17 @@ func _ready() -> void:
 	hud = Hud.new()
 	hud.hostilidade_alternada.connect(definir_hostilidade)
 	hud.pixel_pass_alternado.connect(definir_pixel_pass)
+	hud.sombras_alternadas.connect(definir_sombras)
 	add_child(hud)
 	hud.definir_pixel_pass(vista.pixel_pass)
 	hud.diagnostico.configurar(vista, chao)
+	# Capturas comparáveis: mesma seed/câmera/demo; só a sombra muda.
+	var modo_sombra := Mata.Sombras.COMPLETAS
+	if "--sombras=simplificadas" in args:
+		modo_sombra = Mata.Sombras.SIMPLIFICADAS
+	elif "--sombras=desligadas" in args:
+		modo_sombra = Mata.Sombras.DESLIGADAS
+	definir_sombras(modo_sombra)
 	# Atalho explícito para a captura mínima; o jogo normal começa sem diagnóstico.
 	hud.definir_diagnostico("--diagnostico" in args)
 	# VÉU do desenho: escurece a tela para ilustrar a desaceleração (fica
@@ -519,6 +527,15 @@ func definir_pixel_pass(v: bool) -> void:
 	if hud:
 		hud.definir_pixel_pass(v)
 		hud.nota("PIXEL ART %s" % ("ligado" if v else "desligado — 3D liso"))
+
+
+## P25/2.1: DESLIGADAS = sem sombra da luz direcional em TODA a cena,
+## inclusive atores e chão, não só as árvores. Nenhuma geometria é reconstruída.
+## Não grava qualidade: cada partida começa em COMPLETAS.
+func definir_sombras(modo: int) -> void:
+	mata.definir_sombras(modo)
+	vista.sol.shadow_enabled = mata.modo_sombras != Mata.Sombras.DESLIGADAS
+	hud.definir_sombras(mata.modo_sombras)
 
 
 # ---------- o dedo (toque real e demo passam por aqui) ----------

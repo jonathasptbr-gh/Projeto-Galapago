@@ -83,6 +83,7 @@ static func arvore(semente: int, simples := false) -> Dictionary:
 	var r := _rng(semente)
 	var lenho := Oficina.new()
 	var folhas := Oficina.new()
+	var sombra := Oficina.new()
 	var casca := Color("#6e5134")
 	var verde := Color("#4fa63a").lerp(Color("#2d8a46"), r.randf())
 	var altura := r.randf_range(8.4, 11.8)
@@ -122,6 +123,7 @@ static func arvore(semente: int, simples := false) -> Dictionary:
 			var direcao := Vector3(cos(giro), r.randf_range(0.10, 0.56), sin(giro))
 			var ponta := broto + direcao * r.randf_range(0.75, 1.3)
 			lenho.ramo(broto, ponta, 0.019, 0.004, casca, 4)
+			var inicio_folhas := folhas.vertices.size()
 			for k in range(8 if simples else 12):
 				var t := 0.04 + k * (0.12 if simples else 0.081)
 				var origem := broto.lerp(ponta, t)
@@ -130,18 +132,43 @@ static func arvore(semente: int, simples := false) -> Dictionary:
 				var dest := origem + Vector3(cos(ang) * tamanho, r.randf_range(-0.16, 0.19), sin(ang) * tamanho)
 				var esc := 1.35 if simples else 1.0
 				folhas.folha(origem, origem + (dest - origem) * esc, tamanho * 0.32 * esc, verde.lightened(r.randf_range(0.0, 0.15)), 0.035)
+			_proxy_folhas(sombra, folhas, inicio_folhas)
 	# Ponteiro vivo fecha a silhueta no alto em vez de terminar em estaca nua.
 	for j in range(3):
 		var ang := j * 2.399 + r.randf()
 		var base := pontos[6].lerp(pontos[7], 0.4 + j * 0.25)
 		var ponta := base + Vector3(cos(ang), 0.6, sin(ang)) * 0.7
 		lenho.ramo(base, ponta, 0.024, 0.005, casca, 4)
+		var inicio_folhas := folhas.vertices.size()
 		for k in range(12):
 			var origem := base.lerp(ponta, k / 12.0)
 			var lado := ang + (1.2 if k % 2 == 0 else -1.2)
 			folhas.folha(origem, origem + Vector3(cos(lado) * 0.4, 0.10, sin(lado) * 0.4),
 				0.12, verde.lightened(0.12), 0.035)
-	return {"madeira": lenho.malha(), "folhas": folhas.malha()}
+		_proxy_folhas(sombra, folhas, inicio_folhas)
+	return {"madeira": lenho.malha(), "folhas": folhas.malha(), "sombra": sombra.malha()}
+
+
+## Um octaedro (8 triângulos) por ramúsculo, inscrito na caixa das folhas que
+## ACABARAM de nascer. Mesmos centros/variantes, sem sortear nem alterar o RNG.
+## Não é a variante visual `simples`: esta muda a sequência dos ramos.
+static func _proxy_folhas(sombra: Oficina, folhas: Oficina, inicio: int) -> void:
+	var menor := folhas.vertices[inicio]
+	var maior := menor
+	for i in range(inicio + 1, folhas.vertices.size()):
+		menor = menor.min(folhas.vertices[i])
+		maior = maior.max(folhas.vertices[i])
+	var centro := (menor + maior) * 0.5
+	var raio := (maior - menor) * 0.5
+	var anel: Array[Vector3] = [Vector3(raio.x, 0, 0), Vector3(0, 0, raio.z),
+		Vector3(-raio.x, 0, 0), Vector3(0, 0, -raio.z)]
+	for i in 4:
+		var a := centro + anel[i]
+		var b := centro + anel[(i + 1) % 4]
+		var topo := centro + Vector3.UP * raio.y
+		var fundo := centro - Vector3.UP * raio.y
+		sombra.tri(topo, a, b, Color.WHITE, (b - topo).cross(a - topo).normalized())
+		sombra.tri(fundo, b, a, Color.WHITE, (a - fundo).cross(b - fundo).normalized())
 
 
 static func samambaia(semente: int) -> ArrayMesh:
