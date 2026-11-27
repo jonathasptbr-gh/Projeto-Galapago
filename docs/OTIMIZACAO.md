@@ -282,3 +282,8 @@ Gerente, sem agente; só documentação. Pontos conferidos no código:
   `--diagnostico` (Compatibility/softpipe, com o botão forçado só na cópia
   local): painel x ≈ 362–704, botão x 20–260; tempos `n/d` por software,
   esperado — prova de imagem, não de desempenho.
+- Gate `tools/testes.sh`: 194 testes GDScript, 0 falhas; parser de 51
+  scripts; guardião documental (35 Markdown). Commit `4bb65cd` (v0.39.0), CI
+  #137 verde (testes, apk, preview). Release `dev`: `versao_codigo` 137,
+  `0.39.0-b137`, 26.658.100 bytes, commit `4bb65cd` no manifesto.
+- **Em parte:** falta a leitura do operador no aparelho com o painel ligado.
