@@ -54,6 +54,7 @@ const Vista := preload("res://jogo/mundo3d/vista.gd")
 const Chao := preload("res://jogo/mundo3d/chao.gd")
 const Espaco := preload("res://jogo/mundo3d/espaco.gd")
 const Ator := preload("res://jogo/mundo3d/ator.gd")
+const Lobo := preload("res://jogo/mundo3d/lobo.gd")
 const BarraGiro := preload("res://jogo/barra_giro.gd")
 const Perigos := preload("res://jogo/perigos.gd")
 const Mira := preload("res://jogo/mira.gd")
@@ -82,8 +83,8 @@ const NIVEL_REF := 1.0
 ## "ponto da criatura" na tela
 const ALTURA_FOCO := 0.0
 const ALTURA_CORPO_TELA := 0.6
-# atores provisórios (P24): cores por estado
-const COR_CRIATURA := Color("#e07a3a")
+# A criatura conserva os quatro materiais do GLB; tintas só para estados.
+const COR_CRIATURA := Color.WHITE
 const COR_CRIATURA_SUBSOLO := Color("#4f5b6b")
 const COR_CRIATURA_ATORDOADA := Color("#d8403a")
 const COR_ADV := Color("#8b5cf6")
@@ -120,6 +121,7 @@ var vista: CanvasLayer
 ## a mata 3D (jogo/mundo3d/natureza/mapa.gd)
 var mata: Node3D
 var ator_criatura: Node3D
+var _pos_anim_criatura := Vector2.ZERO
 var atores_adv: Array = []
 ## o MAPA DO CHÃO (SubViewport): trilha, perigos e mira
 var chao: SubViewport
@@ -201,10 +203,11 @@ func _ready() -> void:
 	mata.ligar_chao(chao.get_texture(), chao.ret_shader())
 	Mata.ambientar(vista.ambiente.environment, vista.sol, false)
 	vista.contorno.layers = 0
-	ator_criatura = Ator.new()
+	ator_criatura = Lobo.new()
 	ator_criatura.name = "Criatura"
 	ator_criatura.cor = COR_CRIATURA
 	vista.mundo_3d.add_child(ator_criatura)
+	_pos_anim_criatura = corpo.pos
 
 	for a in mapa.get("adversarios", []):
 		var adv := Adversario.new(int(a.get("semente", 1)), Rect2(), cfg_adversario)
@@ -376,14 +379,17 @@ func _process(delta: float) -> void:
 	_escurecer(planejando, plano, retomada_s, delta)
 
 
-## Atores 3D provisórios: só LEEM a sim (posição, olhar, salto, camada,
-## hostilidade, preparo, esconderijo) e trocam de cor por estado.
+## A criatura 3D lê movimento/pulo/ataque reais da sim; os adversários
+## provisórios continuam lendo posição, olhar, salto, camada e hostilidade.
 func _atualizar_atores(delta: float) -> void:
 	var subsolo: bool = corpo.camada == Mundo.SUBSOLO
 	var alvo_h: float = mundo.altura(mundo.celula_de(corpo.pos))
 	_h_cria = alvo_h + (_h_cria - alvo_h) * exp(-14.0 * delta)
 	var salto: float = float(corpo.z) / Cam3D.PX_POR_UNIDADE - (AFUNDA_SUBSOLO if subsolo else 0.0)
 	ator_criatura.atualizar(corpo.pos, _h_cria, corpo.olhar, salto)
+	var deslocamento: float = Vector2(corpo.pos).distance_to(_pos_anim_criatura) if delta > 0.0 else 0.0
+	ator_criatura.animar(deslocamento, delta, corpo.no_ar(), corpo.ataque != "", corpo.caminhada_existe())
+	_pos_anim_criatura = corpo.pos
 	var cor := COR_CRIATURA
 	if subsolo:
 		cor = COR_CRIATURA_SUBSOLO

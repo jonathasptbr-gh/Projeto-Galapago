@@ -3,6 +3,18 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## Não publicado
+
+- **P29/7.3, criatura-base provisória:** importado `Wolf` de Quaternius (Poly Pizza,
+  CC0), GLB intacto e crédito ao lado (SHA256
+  `16ac96339d06f7def9af20d5d9b27622d61e53580dab43970c9edb1bffbe8f84`).
+  Só a criatura usa o lobo; adversários/gestos/sim/qualidade padrão mantidos.
+  Escala local 0,25: malha de 0,27 × 0,67 × 1,39 unidades para célula de 1,
+  pés sobre o chão (erro estático < 0,003). Correção de frente local +Z → −Z.
+  Walk de perto e Gallop de longe avançam conforme distância REAL percorrida,
+  em ciclos de 0,55/0,95 unidade; parado fica Idle, pulo Gallop_Jump e
+  ataque Attack. A avaliação de cor/contraste entre copas fica fora desta etapa.
+
 ## v0.42.0 — controles manuais de resolução e MSAA do liso (2026-11-27)
 
 - **Autorização limitada ao grupo 4, UM agente e publicação:** CONFIG →
