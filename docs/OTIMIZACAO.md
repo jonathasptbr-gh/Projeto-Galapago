@@ -43,6 +43,18 @@
   **parar**. Nenhum agente fica trabalhando depois da entrega.
 - Nenhum valor monetário estimado sem fonte; nenhuma promessa de FPS ou ganho
   sem medição no aparelho.
+- **Qualidade visual é condição obrigatória de qualquer otimização**, conforme
+  o [contrato](../AGENTS.md#regras-de-desenvolvimento) (operador, 2026-11-27).
+  Esta condição prevalece sobre todas as propostas deste plano, inclusive
+  proxies de sombras, LOD, densidade, resolução, AA e perfis de qualidade:
+  técnica mais barata só é aceitável se preservar a qualidade visual final.
+  **Reduzir qualidade exige escolha explícita do operador**, não implícita na
+  autorização da etapa ou em um botão opcional. Incluir essa restrição no
+  briefing e no aceite de cada etapa; comparar o resultado visual antes de
+  adotar/publicar. Se houver perda, parar e apresentar alternativas.
+- **Pausa determinada pelo operador (2026-11-27):** somente registrar esta
+  observação; nenhuma revisão da 2.1, nova etapa, agente ou publicação está
+  autorizada por ela. Aguardar nova autorização no chat.
 
 ## 3. Estado das etapas
 
@@ -56,7 +68,7 @@ autorização)** · ○ aguardando autorização · ? proposta nova, a confirmar
 | 1.3 | APK instrumentado + referência no aparelho | ◐ 2026-11-27: v0.38.0 publicada; 1 leitura no S24 Ultra (seção 4) |
 | 1.4 | Tempo de render CPU/GPU por viewport no painel + corrigir sobreposição | ✔ 2026-11-27: v0.39.0 + leitura no S24 Ultra (seção 4) |
 | 1.5 | Painel resumido (FPS e tempos de render) + COPIAR REGISTRO completo | ✔ 2026-11-27: publicada na v0.40.0; prova local técnica/visual, sem benchmark Android |
-| **2.1** | **Sombras: copa simplificada só para sombra** | **◐ v0.41.0: código publicado; ganho e aceite no aparelho AINDA NÃO MEDIDOS** |
+| **2.1** | **Sombras: copa simplificada só para sombra** | **◐ v0.41.0: código publicado; resultado visual SIMPLIFICADAS rejeitado pelo operador em 2026-11-27; revisão não autorizada** |
 | 2.2 | Sombras: resolução do atlas, isolada | ○ |
 | 3.1 | Copas leves na vista alta, completas na íntima | ○ |
 | 3.2 | Vegetação decorativa: detalhe e densidade | ○ |
@@ -73,10 +85,13 @@ autorização)** · ○ aguardando autorização · ? proposta nova, a confirmar
 | 10.1–10.5 | Elementos (P27): contrato comum, fogo, ar, terra, combinações | ○ |
 | 11.1–11.2 | Perfis de qualidade e fechamento sustentado | ○ |
 
-**▶ Próxima ação do plano:** comparar a 2.1 no aparelho, no mesmo enquadramento,
-com registros separados por modo; nenhuma diferença de GPU está demonstrada.
+**▶ Próxima ação do plano: aguardar autorização.** O operador rejeitou as sombras
+SIMPLIFICADAS da v0.41.0: perderam a aparência de sombras das árvores. Registros
+no aparelho foram recebidos no chat, mas não tornam a perda visual aceitável
+nem autorizam revisão. A restrição da seção 2 vale para qualquer alternativa.
 A 2.2 e os grupos seguintes continuam sem autorização. COMPLETAS permanece
-padrão até decisão explícita do operador; publicar a chave não aprova qualidade.
+padrão; nenhuma mudança de código ou remoção do modo foi executada por esta
+observação documental.
 
 Escopo e aceite de cada etapa: seção 5. A ordem é a inicial; um resultado
 pode justificar **propor** outra ordem, nunca executá-la sem autorização.

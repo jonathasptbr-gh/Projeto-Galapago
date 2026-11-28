@@ -61,6 +61,15 @@ estado das etapas mora lá, não aqui.
   (`extends "res://testes/caso.gd"`). `tools/testes.sh` antes de commitar:
   começa pelo guardião documental (`tools/docs.sh`, offline); guia e limites
   no mapa documental abaixo.
+- **Otimização não pode reduzir a qualidade visual final** (decisão do
+  operador, 2026-11-27): vale para **qualquer tipo de otimização**, não só
+  sombras ou P25. Preservar a qualidade do resultado é condição de aceite;
+  ganhar desempenho não compensa degradação visual. **Só uma escolha explícita
+  do operador neste chat autoriza reduzir qualidade**, após apresentar a perda
+  proposta. Autorizar uma etapa, um experimento ou uma comparação não autoriza
+  essa redução; oferecê-la como opção desligada por padrão também não substitui
+  a escolha do operador. Se não for possível preservar a qualidade, parar e
+  apresentar alternativas, sem adotar nem publicar a degradação por conta própria.
 - **Mudança visível passa pelo oráculo** ([`ORACULO`](docs/ORACULO.md)):
   `tools/quadros.sh` e **abrir** os PNG antes de dizer que ficou certo. O CI
   compara com a última publicação e avisa no resumo do run; não há PNG de
