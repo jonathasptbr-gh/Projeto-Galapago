@@ -78,3 +78,24 @@ func test_natureza_caminho_desenhado_anda_sem_entrar_na_agua() -> void:
 		checar(m.mundo.andavel(m.mundo.celula_de(m.corpo.pos), Mundo.SUPERFICIE), "nunca em água nem tronco")
 	checar(m.corpo.pos.distance_to(inicio) > 40.0, "a criatura andou pelo caminho (%.0f px)" % m.corpo.pos.distance_to(inicio))
 	_limpar(m)
+
+
+func test_vento_balanca_as_folhas() -> void:
+	var m := _criar()
+	m._process(0.016)
+	checar(m.vento != null, "o campo de vento montado")
+	igual(m.mata._mats_vento.size(), 3, "as três famílias de folha no vento")
+	for mat in m.mata._mats_vento:
+		checar(float(mat.get_shader_parameter("vento_amplitude")) > 0.0, "o material balança")
+		perto(float(mat.get_shader_parameter("vento_tempo")), m.vento.tempo, 0.0001, "o relógio do vento chega ao material")
+		perto(float(mat.get_shader_parameter("vento_forca")), float(m.vento.uniformizar()["forca"]), 0.0001, "a força do vento chega ao material")
+	# a frente de rajada vai em coordenadas de MUNDO (o mapa é deslocado)
+	m.vento.criar_frente(Vector2(2.0, -4.0), 0.9)
+	m._process(0.016)
+	var local: Vector2 = m.vento.uniformizar()["frente"]
+	# o `_process` andou o campo: a banda nasceu onde foi pedida e só avançou o
+	# passo de 0,016 s (não é outra frente que o material recebeu)
+	checar(local.distance_to(Vector2(2.0, -4.0)) < 0.2, "a rajada é a do pedido")
+	var esperado: Vector2 = local + Vector2(m.mata.global_position.x, m.mata.global_position.z)
+	perto_v(Vector2(m.mata._mats_vento[0].get_shader_parameter("vento_frente")), esperado, 0.001, "frente da rajada no mundo")
+	_limpar(m)

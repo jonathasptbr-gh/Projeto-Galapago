@@ -70,12 +70,16 @@ telhado, ponte e arco.
 - O desenho 3D é `jogo/mundo3d/natureza/` (malhas, mapa, shaders natural e
   folha), na mesma escala da sim (`jogo/mundo3d/espaco.gd`). Direção de arte:
   [ARTE](../ARTE.md#mata-3d--direção-em-avaliação-2026-11-26).
+- O vento da mata ([`vento`](vento.md)) — hoje só VISUAL, balançando as folhas
+  — mora na `sim/vento.gd` (campo) + `folha.gdshader` (balanço das folhas).
 - `q` (plataforma, altura 3) segue em `terrenos.json` só para o teste do
   degrau de DOIS níveis do corpo; `^` (planalto) e `/` (rampa) para os testes
   de desnível.
 
 ## Ainda não existe
 
-- Ciclo dia/noite; animação de água/vegetação.
+- Ciclo dia/noite continua não existindo; a vegetação agora BALANÇA com o
+  vento ([`vento`](vento.md)); a água ainda não reage (o campo já entrega o
+  que ela vai ler).
 - Afinidade alterando o movimento (P4).
 - Pulo com física de pouso (hoje cair na água é só "precisa de outro pulo").

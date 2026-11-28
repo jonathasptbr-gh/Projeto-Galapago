@@ -39,6 +39,8 @@ var lotes: Array[MultiMeshInstance3D] = []
 var registro: Dictionary = {}
 ## materiais com COPA VAZADA (folhas e madeira das árvores)
 var _mats_foco: Array[ShaderMaterial] = []
+## materiais que o VENTO balança; ver docs/gdd/vento.md
+var _mats_vento: Array[ShaderMaterial] = []
 var _mat_solo: ShaderMaterial
 
 ## P25/2.1: escolha de sessão, nunca persistida. Só as copas trocam de emissor.
@@ -117,6 +119,7 @@ func construir(semente := SEMENTE) -> void:
 	proxies.clear()
 	registro.clear()
 	_mats_foco.clear()
+	_mats_vento.clear()
 	estatisticas = {"semente": semente, "instancias": 0, "lotes": 0, "arvores": 0,
 		"triangulos_instanciados": 0, "vertices_armazenados": 0}
 	var r := RandomNumberGenerator.new()
@@ -129,8 +132,15 @@ func construir(semente := SEMENTE) -> void:
 	var madeira := Biblioteca.material()
 	var folha_arvore := Biblioteca.material(true)
 	var folha := Biblioteca.material(true)
+	var folha_capim := Biblioteca.material(true)
 	_mats_foco.append(madeira)
 	_mats_foco.append(folha_arvore)
+	# VENTO: a copa é alta e anda mais; samambaia/arbusto, menos; capim, pouco e
+	# curto (a base fica parada por `vento_altura`).
+	for par in [[folha_arvore, 9.0, 0.30], [folha, 0.7, 0.13], [folha_capim, 0.30, 0.09]]:
+		par[0].set_shader_parameter("vento_altura", par[1])
+		par[0].set_shader_parameter("vento_amplitude", par[2])
+		_mats_vento.append(par[0])
 	# Estrato arbóreo: as MESMAS árvores que bloqueiam na sim.
 	var posicoes: Array[Transform3D] = []
 	for a in Natureza.arvores(semente):
@@ -181,7 +191,7 @@ func construir(semente := SEMENTE) -> void:
 				Vector3.ONE * r.randf_range(0.7, 1.4)))
 		_lote("Samambaias_%d" % variante, Biblioteca.samambaia(semente + variante), samambaias, folha, r)
 		_lote("Sub_bosque_%d" % variante, Biblioteca.sub_bosque(semente + variante), arbustos, folha, r)
-		_lote("Gramineas_%d" % variante, Biblioteca.capim(semente + variante), capins, folha, r, false)
+		_lote("Gramineas_%d" % variante, Biblioteca.capim(semente + variante), capins, folha_capim, r, false)
 	# Pedras: seixos nos meandros (fora dos vaus) e pedras chatas de passagem
 	# nos vaus. Pequenas: decoração, não bloqueiam (a regra é da sim).
 	for variante in range(3):
@@ -237,6 +247,24 @@ func definir_foco(p: Vector3, raio := 2.6) -> void:
 func desligar_foco() -> void:
 	for m in _mats_foco:
 		m.set_shader_parameter("usar_foco", false)
+
+
+## VENTO: o pacote de `sim/vento.gd`.uniformizar(), nos materiais de folha.
+## `frente` vem em coordenadas LOCAIS do mapa; o shader trabalha em mundo, então
+## o deslocamento do nó entra aqui (ver docs/gdd/vento.md).
+func aplicar_vento(u: Dictionary) -> void:
+	var org: Vector3 = global_position if is_inside_tree() else position
+	var direcao: Vector2 = u.get("direcao", Vector2.RIGHT)
+	var frente: Vector2 = u.get("frente", Vector2.ZERO)
+	var frente_mundo := frente + Vector2(org.x, org.z)
+	for m in _mats_vento:
+		m.set_shader_parameter("vento_direcao", direcao)
+		m.set_shader_parameter("vento_forca", float(u.get("forca", 0.0)))
+		m.set_shader_parameter("vento_frente", frente_mundo)
+		m.set_shader_parameter("vento_frente_forca", float(u.get("frente_forca", 0.0)))
+		m.set_shader_parameter("vento_frente_largura", float(u.get("frente_largura", 7.5)))
+		m.set_shader_parameter("vento_turbulencia", float(u.get("turbulencia", 0.0)))
+		m.set_shader_parameter("vento_tempo", float(u.get("tempo", 0.0)))
 
 
 ## Onde nascem plantas: terra firme fora da trilha e longe da travessia dos vaus.

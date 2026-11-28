@@ -144,6 +144,7 @@ sim/                  lógica pura: gestos (1 dedo: caminho, toque=tiro carregad
                        (passeio, hostilidade, preparo+área, esconder) · mundo ·
                        trajetoria (desconto+RDP) · camera3d (câmera orbital
                        3D) · natureza (o mapa, a mata: layout + grade) ·
+                       vento (campo: brisa, rajadas, fontes de habilidade) ·
                        direcao (8 setores) · afinidade · visibilidade ·
                        atualizacao
 jogo/                 main · mundo3d/ (vista = SubViewport + Pixel Pass
@@ -151,12 +152,14 @@ jogo/                 main · mundo3d/ (vista = SubViewport + Pixel Pass
                        espaco (px+níveis → 3D), ator provisório, shaders
                        toon/contorno_tela/casca (reserva)/pixel_pass,
                        natureza/ = a mata, o ÚNICO mapa: malhas, mapa,
-                       shaders natural/folha) · barra_giro (topo, gira a
+                       shaders natural/folha; a folha balança no vento) ·
+                       barra_giro (topo, gira a
                        câmera) · perigos (área no chão; cuspe no ar) · mira
                        (alvo final) · trilha · efeitos (tiro no ar) · hud
                        (legenda, carga, CONFIG, PIXEL ART) · demo ·
                        atualizador
-dados/                gestos.json · acoes.json · adversario.json · terrenos.json · afinidade.json · camera3d.json
+dados/                gestos.json · acoes.json · adversario.json · terrenos.json ·
+                      afinidade.json · camera3d.json · vento.json
 testes/               run.gd (executor), caso.gd (base), test_*.gd
 tools/                estado.sh · testes.sh · verificar.sh (seletivo) ·
                       docs.sh (docs.mjs + docs.test.mjs) · quadros.sh ·
@@ -178,7 +181,7 @@ docs/                 guias e design — inventário validado abaixo
 Consulta por tarefa; este inventário é validado por `tools/docs.sh` (cada guia
 uma vez). Referências externas vendorizadas ficam no catálogo, não se repetem.
 
-- Design: [conceito](docs/CONCEITO.md), [história](docs/gdd/historia.md), [gestos e ações](docs/gdd/gestos-e-acoes.md), [mapa](docs/gdd/mapa.md).
+- Design: [conceito](docs/CONCEITO.md), [história](docs/gdd/historia.md), [gestos e ações](docs/gdd/gestos-e-acoes.md), [mapa](docs/gdd/mapa.md), [vento](docs/gdd/vento.md).
 - Código e ambiente: [arquitetura](docs/ARQUITETURA.md), [Godot](docs/GODOT.md), [ambiente](docs/AMBIENTE.md), [otimização gráfica](docs/OTIMIZACAO.md).
 - Verificação e entrega: [oráculo](docs/ORACULO.md), [build](docs/BUILD.md), [rollback](docs/ROLLBACK.md), [guardião documental](docs/DOCUMENTACAO.md).
 - Arte: [pipeline](docs/ARTE.md), [modelos 3D prontos](docs/MODELOS-3D.md), [PixelLab](docs/PIXELLAB.md), [catálogo gerado](docs/pixellab/CATALOGO.md).

@@ -64,6 +64,7 @@ const Hud := preload("res://jogo/hud.gd")
 const Demo := preload("res://jogo/demo.gd")
 const Natureza := preload("res://sim/natureza.gd")
 const Mata := preload("res://jogo/mundo3d/natureza/mapa.gd")
+const Vento := preload("res://sim/vento.gd")
 
 ## a mata tem árvores de até ~14 unidades: a fatia near..far da vista cresce
 const RELEVO_MATA := 15.0
@@ -121,6 +122,8 @@ var cam3d: RefCounted
 var vista: CanvasLayer
 ## a mata 3D (jogo/mundo3d/natureza/mapa.gd)
 var mata: Node3D
+## o campo de vento da mata (brisa/rajadas; também as habilidades de ar)
+var vento: RefCounted
 var ator_criatura: Node3D
 var _pos_anim_criatura := Vector2.ZERO
 var atores_adv: Array = []
@@ -200,6 +203,7 @@ func _ready() -> void:
 	vista.mundo_3d.add_child(mata)
 	mata.construir()
 	mata.ligar_chao(chao.get_texture(), chao.ret_shader())
+	vento = Vento.new(_json("res://dados/vento.json"))
 	Mata.ambientar(vista.ambiente.environment, vista.sol, false)
 	vista.contorno.layers = 0
 	ator_criatura = Lobo.new()
@@ -325,6 +329,10 @@ func _foco_criatura() -> Vector3:
 func _process(delta: float) -> void:
 	tempo_ms += delta * 1000.0
 	_tempo_vis += delta
+	# VENTO: ambiência no relógio REAL (não desacelera com o desenho). O MESMO
+	# campo que as habilidades de ar (P27) e a água vão ler.
+	vento.avancar(delta)
+	mata.aplicar_vento(vento.uniformizar())
 	# O relógio do gesto é REAL: o `tick` solta o TOQUE pendente quando a janela
 	# do duplo fecha e ativa o segurar no limiar (a regra é de sim/gestos.gd).
 	_entregar(reconhecedor.tick(tempo_ms))

@@ -1,0 +1,8 @@
+{
+ "_leia": "Campo de vento da mata (sim/vento.gd). Forças adimensionais 0–2; distâncias em unidades 3D (1 = 1 célula da sim).",
+ "brisa": {"forca": 0.32, "direcao_rad": 0.6, "vaivem_rad": 0.55, "giro_s": 61.0},
+ "rajada": {"forca": 0.62, "periodo_s": 6.4, "largura": 7.5, "velocidade": 4.2, "percurso": 90.0},
+ "vento_forte": {"forca": 0.55, "periodo_s": 43.0, "duracao_s": 7.0},
+ "turbulencia": {"forca": 0.18, "escala": 2.6, "velocidade": 1.9},
+ "fonte": {"duracao_s": 1.6, "raio": 4.0, "teto": 8}
+}

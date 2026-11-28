@@ -3,6 +3,24 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## Não publicado
+
+- **Campo de vento puro:** `sim/vento.gd` (determinístico, sem nó nem relógio
+  real) + `dados/vento.json` — brisa, rajadas que varrem o mapa (bandas
+  gaussianas), vento forte e turbulência; `adicionar_fonte` para as habilidades
+  de ar (P27). `uniformizar()` é o contrato com o desenho; guia em
+  [`vento`](gdd/vento.md).
+- **Balanço das folhas por vértice:** `folha.gdshader` (peso por altura, fase
+  por instância, banda da rajada, respiração e tremor) com
+  `vento_altura`/`vento_amplitude` por família no `mapa.gd` (copa 9,0 m/0,30 m;
+  samambaia e arbusto 0,7 m/0,13 m; capim 0,30 m/0,09 m); madeira, solo e pedra
+  parados; a sombra acompanha.
+- **No jogo e no oráculo:** o `main` avança o campo no relógio real e aplica
+  `uniformizar()` à mata; a demo ganha `--vento` (câmera parada, uma rajada a 8
+  unidades a montante) para filmar.
+- **Verificação:** `tools/testes.sh` 233/233, parser 56/0; quadros de `--vento`
+  abertos e conferidos (sem publicar versão — commit comum).
+
 ## v0.45.0 — marcha pelo tamanho do caminho e passadas calibradas (2026-11-28)
 
 - **Marcha pelo traço:** `sim/corpo.gd` ganha `trote`/`trotando()`/`velocidade_base()`

@@ -103,6 +103,14 @@ da sim cair na unidade 3D e o chão andável em y = 0,4). A escala px+níveis �
 unidades 3D é de `jogo/mundo3d/espaco.gd`. O mapa Wang 2D do v0.3 saiu no P24
 e na faxina de 2026-11-26. Design: [`gdd/mapa.md`](gdd/mapa.md).
 
+O **vento** é partido em duas camadas: o campo puro em `sim/vento.gd`
+(determinístico e testável — brisa, rajadas, vento forte, turbulência e as
+fontes de habilidade; é o que o jogo e as habilidades leem) e o balanço visual
+no `jogo/mundo3d/natureza/folha.gdshader` (aproximação por vértice, só nas
+folhas; madeira, solo e pedra ficam parados). O contrato entre os dois é o
+pacote de `uniformizar()` — direção, força, frente da rajada, turbulência e
+tempo. Guia: [`gdd/vento.md`](gdd/vento.md).
+
 ## Atualização do app
 
 `sim/atualizacao.gd` (pura: manifesto, host travado, decisão, tamanho) +

@@ -58,6 +58,10 @@ func _init(m: Node) -> void:
 		main.dedo_subiu(1, Vector2(200 + distancia, 500))
 		main.dedo_subiu(0, Vector2(200, 500))
 		return
+	if "--vento" in OS.get_cmdline_user_args():
+		# Cena de VENTO (oráculo): câmera parada, uma rajada cruzando a mata.
+		_passos = [{"t": 0.25, "tipo": "frente"}]
+		return
 	if "--caminhada" in OS.get_cmdline_user_args():
 		# v0.45: traços CURTOS (≈ o comprimento do corpo) para filmar a
 		# CAMINHADA; o demo normal já mostra o TROTE nos caminhos longos.
@@ -170,6 +174,13 @@ func _disparar(p: Dictionary, agora: float) -> void:
 			_giro = {"t0": agora, "t1": agora + float(p.get("dur", 0.5)), "x0": x0,
 				"x1": x0 + float(p["dx"]) / gpp, "y": y, "x": x0}
 			main._input(_toque_barra(true, Vector2(x0, y)))
+		"frente":
+			# VENTO: uma rajada nasce rio acima do foco e varre a área visível.
+			var local: Vector3 = main.ator_criatura.position - main.mata.position
+			var alvo := Vector2(local.x, local.z)
+			var rumo: Vector2 = main.vento.direcao(alvo)
+			main.vento.criar_frente(alvo - rumo * 8.0, 0.9)
+			print("demo: %.1f s · rajada em %s" % [agora, str(alvo - rumo * 8.0)])
 		"hostil_on":
 			main.definir_hostilidade(true)
 		"esconder_demo":
