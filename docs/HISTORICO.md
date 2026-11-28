@@ -3,6 +3,25 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.42.0 — controles manuais de resolução e MSAA do liso (2026-11-27)
+
+- **Autorização limitada ao grupo 4, UM agente e publicação:** CONFIG →
+  **3D LISO: 100%** cicla 100/85/75/67/50%; **MSAA LISO: 4×** cicla 4×/2×/off.
+  Independentes, só na sessão; cada partida começa **100%/4×**. Sem DRS,
+  decisão automática, FXAA novo ou escolha de um padrão reduzido.
+- Pixels internos reais e percentuais efetivos por eixo no status; escala
+  uniforme e imagem centrada preservam câmera, aspecto, toque/mira/caminho,
+  inclusive após resize. HUD e mapa do chão não recebem a redução. Pixel Pass
+  mantém 640 de altura + margem/AA off/nearest; desabilita os controles do liso
+  com explicação e devolve as preferências da sessão ao desligar.
+- COPIAR REGISTRO distingue solicitado/aplicado, pixels internos/alvo e MSAA;
+  sinal síncrono limpa histórico, somas e janela parcial a cada troca/resize,
+  antes da cópia. Controles na coluna esquerda; Verificar atualização abaixo
+  do status, respeitando CONFIG/vista íntima.
+- Não revê sombras rejeitadas, atlas/filtro/bias, densidade/LOD, arte, regras,
+  gestos ou CI. Nenhuma alegação de ganho/FPS Android ou equivalência visual
+  das opções reduzidas. [Registro do lote](OTIMIZACAO.md#grupo-4--controles-manuais-e-instrumentação-2026-11-27-v0420).
+
 ## v0.41.0 — comparação de sombras das copas (2026-11-27)
 
 - **P25/2.1, autorizada com UM agente e publicação:** em CONFIG, o botão

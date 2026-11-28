@@ -5,6 +5,8 @@ signal hostilidade_alternada(ligado: bool)
 ## P24: o botão PIXEL ART liga/desliga o Pixel Pass da vista 3D (quem manda é o main)
 signal pixel_pass_alternado(ligado: bool)
 signal sombras_alternadas(modo: int)
+signal resolucao_liso_escolhida(percentual: int)
+signal msaa_liso_escolhido(modo: int)
 
 ## HUD de desenvolvimento: título (versão/build), legenda dos gestos (a tabela
 ## v0.18 em linhas curtas + a linha do CONFIG), estado do corpo (rota/waypoints,
@@ -29,6 +31,7 @@ const COPIADO_S := 1.5
 const Atualizador := preload("res://jogo/atualizador.gd")
 const Mata := preload("res://jogo/mundo3d/natureza/mapa.gd")
 const Diagnostico := preload("res://jogo/diagnostico.gd")
+const Vista := preload("res://jogo/mundo3d/vista.gd")
 
 var diagnostico: Label
 var _diagnostico_btn: Button
@@ -76,6 +79,11 @@ var _pixel_btn: Button
 var _pixel := false
 var _sombras_btn: Button
 var _sombras := Mata.Sombras.COMPLETAS
+var _resolucao_btn: Button
+var _msaa_btn: Button
+var _resolucao_status: Label
+var _resolucao_liso := 100
+var _msaa_liso := Viewport.MSAA_4X
 
 
 func definir_vista_intima(ativa: bool) -> void:
@@ -187,6 +195,17 @@ func _ready() -> void:
 	_sombras_btn.pressed.connect(func(): sombras_alternadas.emit((_sombras + 1) % 3))
 	add_child(_sombras_btn)
 	definir_sombras(_sombras)
+	# Comparações independentes: nenhum botão muda a outra variável.
+	_resolucao_btn = _botao_liso(TOPO + 502)
+	_resolucao_btn.pressed.connect(func():
+		var i := Vista.ESCALAS_LISO.find(_resolucao_liso)
+		resolucao_liso_escolhida.emit(Vista.ESCALAS_LISO[(i + 1) % Vista.ESCALAS_LISO.size()]))
+	_msaa_btn = _botao_liso(TOPO + 544)
+	_msaa_btn.pressed.connect(func():
+		var i := Vista.AA_LISO.find(_msaa_liso)
+		msaa_liso_escolhido.emit(Vista.AA_LISO[(i + 1) % Vista.AA_LISO.size()]))
+	_resolucao_status = _rotulo("", Vector2(20, TOPO + 586), 14)
+	_resolucao_status.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_gesto = _rotulo("gesto: —", Vector2.ZERO, 20)
 	_gesto.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 18)
 	_gesto.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -233,12 +252,12 @@ func _ready() -> void:
 ## P25/1.4: "Verificar atualização" mora na coluna da ESQUERDA, abaixo do
 ## DIAGNÓSTICO; no canto direito (`TOPO + 350`) ficava por cima do painel ligado
 ## (captura do S24 Ultra, 2026-11-27). Some com o CONFIG, como os outros botões.
-## P25/2.1: desceu para `TOPO + 502`, abaixo de SOMBRAS.
+## Controles de resolução/AA e status acima; não ocupa o centro nem o painel.
 func _criar_verificar() -> Button:
 	var b := Button.new()
 	b.text = "Verificar atualização"
 	b.add_theme_font_size_override("font_size", 16)
-	b.position = Vector2(20, TOPO + 502)
+	b.position = Vector2(20, TOPO + 660)
 	b.custom_minimum_size = Vector2(240, 34)
 	b.focus_mode = Control.FOCUS_NONE
 	b.pressed.connect(func(): atualizador.verificar())
@@ -301,6 +320,37 @@ func definir_sombras(modo: int) -> void:
 ## Estado do Pixel Pass (o main chama na partida e a cada troca).
 func definir_pixel_pass(ligado: bool) -> void:
 	_pixel = ligado
+
+
+func _botao_liso(y: float) -> Button:
+	var b := Button.new()
+	b.position = Vector2(20, y)
+	b.custom_minimum_size = Vector2(240, 34)
+	b.add_theme_font_size_override("font_size", 16)
+	b.focus_mode = Control.FOCUS_NONE
+	add_child(b)
+	return b
+
+
+## Estado aplicado, não antecipado pelo botão. Chamado também ao resize.
+func definir_render_liso(vista: CanvasLayer) -> void:
+	_resolucao_liso = vista.resolucao_liso
+	_msaa_liso = vista.msaa_liso
+	_pixel = vista.pixel_pass
+	_resolucao_btn.text = "3D LISO: %d%%" % _resolucao_liso
+	_msaa_btn.text = "MSAA LISO: " + ["DESLIGADO", "2×", "4×"][_msaa_liso]
+	_resolucao_btn.disabled = _pixel
+	_msaa_btn.disabled = _pixel
+	var px: Vector2i = vista.tamanho_interno()
+	if _pixel:
+		_resolucao_status.text = "PIXEL ART: %d×%d px\nAA desligado · liso suspenso\nEscolhas do liso preservadas" % [px.x, px.y]
+	else:
+		var fisico: Vector2i = get_window().size
+		_resolucao_status.text = "%d×%d px internos\nEfetivo: %s%% × %s%%\nMSAA efetivo: %s" % [px.x, px.y,
+			Diagnostico.num(100.0 * px.x / maxf(fisico.x, 1), 1),
+			Diagnostico.num(100.0 * px.y / maxf(fisico.y, 1), 1), vista.texto_aa()]
+	_copiado_t = 0.0
+	_copiar_btn.text = TEXTO_COPIAR
 
 
 func gesto(ev: Dictionary, cmd: Dictionary, resultado: String) -> void:

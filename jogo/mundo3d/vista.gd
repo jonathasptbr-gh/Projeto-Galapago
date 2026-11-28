@@ -1,4 +1,26 @@
 extends CanvasLayer
+## Mudança síncrona: HUD/registro invalidam janelas antes de qualquer cópia.
+signal configuracao_alterada
+
+const ESCALAS_LISO := [100, 85, 75, 67, 50]
+const AA_LISO := [Viewport.MSAA_4X, Viewport.MSAA_2X, Viewport.MSAA_DISABLED]
+
+## Preferências MANUAIS, só desta instância/partida. Pixel Pass não as altera.
+var resolucao_liso := 100:
+	set(v):
+		if v not in ESCALAS_LISO or v == resolucao_liso:
+			return
+		resolucao_liso = v
+		if is_inside_tree():
+			_reconfigurar()
+var msaa_liso := Viewport.MSAA_4X:
+	set(v):
+		if v not in AA_LISO or v == msaa_liso:
+			return
+		msaa_liso = v
+		if is_inside_tree():
+			_reconfigurar()
+
 ## O PALCO 3D: SubViewport com o mundo 3D + a imagem dele na tela, com ou sem
 ## o Pixel Pass. É um CanvasLayer (`layer = -1` por padrão): a imagem fica
 ## atrás do canvas normal e não segue a Camera2D de quem a usar.
@@ -15,16 +37,17 @@ extends CanvasLayer
 ##               pixel_pass.gdshader; ampliada nearest pelo fator
 ##               tela.y / altura_interna; câmera no `snap` e imagem deslocada
 ##               de −resto_px × fator (a margem cobre o deslocamento);
-##     desligado → SubViewport do tamanho FÍSICO da janela (`get_window().size`,
-##               não o canvas 720×1280 lógico), desenhado reduzido por
-##               canvas/físico: 1 px renderizado = 1 px da tela do aparelho.
-##               MSAA 4×, sem FXAA (`fxaa_liso`), sem pós, câmera suave.
+##     desligado → padrão FÍSICO 100%/MSAA 4×. Operador pode escolher somente
+##               nesta sessão 100/85/75/67/50% e 4×/2×/off, independentemente.
+##               Sem DRS, escala nativa ou persistência. Imagem ampliada linear,
+##               uniforme e centrada; arredondamento gera overscan <1 texel.
+##               Sem FXAA novo (`fxaa_liso` desligado), câmera suave.
 ## - `niveis`, `forca_dither`: parâmetros do pós (só no Pixel Pass).
 ## - `contorno: MeshInstance3D` — o CONTORNO DE TELA (contorno_tela.gdshader):
 ##   QuadMesh 2×2 em clip space, filho do SubViewport (mesmo mundo 3D),
 ##   `extra_cull_margin` máximo, sem sombra; visível só com
 ##   `Mat.contorno_tela()` (senão a casca antiga desenha a linha). Raio em px
-##   renderizados: liso = `espessura_contorno` (px de canvas) × físico/canvas
+##   renderizados: liso = `espessura_contorno` (px de canvas) × interno/canvas
 ##   — a mesma espessura na tela em qualquer aparelho; Pixel Pass = 1 px
 ##   interno, nítido (saturação 1). `limiar_contorno`: diferença de
 ##   profundidade (unidades de mundo) que dá linha cheia. O mesmo shader
@@ -39,7 +62,7 @@ extends CanvasLayer
 ##   de câmera ortográfica cobre near..far: o Godot IGNORA
 ##   `directional_shadow_max_distance` em ortográfica) e a imagem.
 ## - `fator() -> float` (px de canvas por px interno; 1 sem Pixel Pass) e
-##   `tamanho_interno() -> Vector2i` (sem margem; px físicos sem Pixel Pass).
+##   `tamanho_interno() -> Vector2i` (sem margem; pixels reais do buffer 3D).
 ## - Reage sozinha a `size_changed` da janela.
 ## "Tela" = retângulo visível do viewport raiz em unidades de canvas (com o
 ## stretch `canvas_items` do projeto, 720×1280 expandido).
@@ -212,8 +235,31 @@ func tamanho_interno() -> Vector2i:
 	return _interno
 
 
+## O alvo é o próprio buffer 3D: NÃO usamos scaling_3d_scale (ficará 1).
+## Arredondamento para cima, altura >=2 e largura cobrindo o aspecto do canvas.
+static func pixels_liso(fisico: Vector2i, tela: Vector2, percentual: int) -> Vector2i:
+	if percentual == 100:
+		return Vector2i(maxi(2, fisico.x), maxi(2, fisico.y))
+	var h := maxi(2, ceili(float(fisico.y) * percentual / 100.0))
+	return Vector2i(maxi(2, ceili(tela.x * h / maxf(tela.y, 1.0))), h)
+
+
+func texto_aa() -> String:
+	return ["desligado", "2×", "4×", "8×"][clampi(sv.msaa_3d, 0, 3)]
+
+
+func texto_resolucao() -> String:
+	if pixel_pass:
+		return "PIXEL: %d×%d px · AA off" % [_interno.x, _interno.y]
+	return "%d×%d px · %.1f%%×%.1f%% real" % [_interno.x, _interno.y,
+		100.0 * _interno.x / maxf(get_window().size.x, 1),
+		100.0 * _interno.y / maxf(get_window().size.y, 1)]
+
+
 func _reconfigurar() -> void:
 	_tela = get_viewport().get_visible_rect().size
+	# Sem escala nativa adicional: pixels internos reportados = sv.size.
+	sv.scaling_3d_scale = 1.0
 	if pixel_pass:
 		_fator = _tela.y / float(altura_interna)
 		var w := int(ceil(_tela.x / _fator))
@@ -225,19 +271,20 @@ func _reconfigurar() -> void:
 		imagem.scale = Vector2(_fator, _fator)
 		_pos.set_shader_parameter("tam", Vector2(sv.size))
 	else:
-		# resolução FÍSICA: canvas_items+expand ⇒ janela = tela × k, k igual
-		# nos dois eixos; renderiza k× maior e desenha 1/k (1:1 no pixel físico)
 		var fisico := get_window().size
 		if fisico.x <= 0 or fisico.y <= 0:
 			fisico = Vector2i(_tela.round())
-		var k := float(fisico.y) / _tela.y
 		_fator = 1.0
-		_interno = fisico
-		sv.size = fisico
-		sv.msaa_3d = Viewport.MSAA_4X
+		_interno = pixels_liso(fisico, _tela, resolucao_liso)
+		sv.size = _interno
+		sv.msaa_3d = msaa_liso
 		imagem.material = null
-		imagem.scale = Vector2(1.0 / k, 1.0 / k)
-		imagem.position = Vector2.ZERO
+		# Escala UNIFORME pela altura + centro comum à câmera. Arredondar os
+		# eixos e esticar até a tela distorceria a projeção ortográfica. A largura
+		# é ceil: sobra <1 texel por lado, fora da tela, nunca uma faixa vazia.
+		var px_canvas := _tela.y / float(_interno.y)
+		imagem.scale = Vector2.ONE * px_canvas
+		imagem.position = (_tela - Vector2(_interno) * px_canvas) * 0.5
 	contorno.visible = Mat.contorno_tela()
 	if pixel_pass:
 		_mat_contorno.set_shader_parameter("raio", 1.0)
@@ -251,7 +298,7 @@ func _reconfigurar() -> void:
 		_mat_contorno.set_shader_parameter("saturacao", 3.0)
 		_mat_contorno.set_shader_parameter("saturacao_vinco", 2.0)
 		_mat_contorno.set_shader_parameter("vinco_um_lado", false)
-		_mat_contorno.set_shader_parameter("profundidade_msaa", true)
+		_mat_contorno.set_shader_parameter("profundidade_msaa", sv.msaa_3d != Viewport.MSAA_DISABLED)
 	sv.screen_space_aa = (Viewport.SCREEN_SPACE_AA_FXAA if fxaa_liso and not pixel_pass
 		else Viewport.SCREEN_SPACE_AA_DISABLED)
 	# nearest no Pixel Pass (ampliação inteira do pixel art); linear no liso
@@ -260,6 +307,7 @@ func _reconfigurar() -> void:
 		else CanvasItem.TEXTURE_FILTER_LINEAR)
 	if _ultima_cam != null:
 		aplicar_camera(_ultima_cam)
+	configuracao_alterada.emit()
 
 
 func aplicar_camera(cam3d: RefCounted) -> void:

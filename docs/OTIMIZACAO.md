@@ -55,6 +55,13 @@
 - **Pausa determinada pelo operador (2026-11-27):** somente registrar esta
   observação; nenhuma revisão da 2.1, nova etapa, agente ou publicação está
   autorizada por ela. Aguardar nova autorização no chat.
+- **Autorização posterior, limitada (2026-11-27):** UM agente, testes, imagens,
+  commit/push e APK somente dos controles manuais independentes de resolução
+  do liso (100/85/75/67/50%) e MSAA (4×/2×/off). O operador escolheu poder
+  comparar essas perdas explicitamente; **não** autorizou adotar qualidade
+  reduzida como padrão, DRS, ajuste automático, FXAA novo ou outros grupos.
+  Padrão por partida continua 100%/4×; preferências só de sessão. Isto não
+  reabre a 2.1 nem aprova ganho/resultado visual no aparelho.
 
 ## 3. Estado das etapas
 
@@ -72,8 +79,8 @@ autorização)** · ○ aguardando autorização · ? proposta nova, a confirmar
 | 2.2 | Sombras: resolução do atlas, isolada | ○ |
 | 3.1 | Copas leves na vista alta, completas na íntima | ○ |
 | 3.2 | Vegetação decorativa: detalhe e densidade | ○ |
-| 4.1 | Escala de resolução só do 3D liso | ○ |
-| 4.2 | MSAA comparado isoladamente | ○ |
+| 4.1 | Escala de resolução só do 3D liso | ◐ v0.42.0: controles/instrumentação manuais; sem adoção de redução ou ganho/aceite visual no aparelho |
+| 4.2 | MSAA comparado isoladamente | ◐ v0.42.0: controles/instrumentação manuais; padrão 4× preservado, sem conclusão de ganho/aceite visual no aparelho |
 | 5.1 | Mapa do chão redesenhado só quando muda | ○ |
 | 5.2 | Marcas persistentes separadas das animadas | ○ |
 | 6.1 | Granulação dos setores de MultiMesh | ○ |
@@ -89,9 +96,10 @@ autorização)** · ○ aguardando autorização · ? proposta nova, a confirmar
 SIMPLIFICADAS da v0.41.0: perderam a aparência de sombras das árvores. Registros
 no aparelho foram recebidos no chat, mas não tornam a perda visual aceitável
 nem autorizam revisão. A restrição da seção 2 vale para qualquer alternativa.
-A 2.2 e os grupos seguintes continuam sem autorização. COMPLETAS permanece
-padrão; nenhuma mudança de código ou remoção do modo foi executada por esta
-observação documental.
+A 2.2 e os grupos 3 e 5–11 continuam sem autorização. O grupo 4 recebeu
+somente a autorização posterior de controles/instrumentação da seção 2.
+COMPLETAS permanece padrão; a rejeição e o código da 2.1 estão preservados,
+sem revisão ou remoção neste lote.
 
 Escopo e aceite de cada etapa: seção 5. A ordem é a inicial; um resultado
 pode justificar **propor** outra ordem, nunca executá-la sem autorização.
@@ -492,3 +500,57 @@ Gerente, sem agente; só documentação. Pontos conferidos no código:
   `/root/tmp/galapago-2-1-evidencias/seletivo-final.log`. `git diff --check`
   limpo e busca de segredos do BUILD sem ocorrências. Commit/CI no relatório de
   entrega, sem novo commit só para registrar run ainda em andamento.
+
+### Grupo 4 — controles manuais e instrumentação (2026-11-27, v0.42.0)
+
+- Autorização: **exatamente UM agente**, testes, imagens, commit/push e APK;
+  somente instrumentos de comparação. Não encerra aceite visual/ganho no
+  aparelho, não reabre a prova 2.1 interrompida e não autoriza demais grupos.
+- **CONFIG → 3D LISO** cicla 100/85/75/67/50%; **MSAA LISO** cicla 4×/2×/off.
+  Cada botão altera só uma variável. Padrão **100%/4×** a cada partida;
+  preferências apenas na sessão. Sem DRS, heurística, persistência ou FXAA novo.
+- O buffer é o próprio `vista.sv.size` (`scaling_3d_scale=1`, sem escala dupla).
+  100% mantém o físico exato. Reduções: altura arredondada para cima, largura
+  por `ceil` do aspecto do canvas. Escala **uniforme pela altura** e imagem
+  centrada na câmera compensam o arredondamento por overscan horizontal
+  inferior a 1 texel, sem deslocar/esticar a cena. Raio do contorno acompanha
+  interno/canvas; sem AA usa o ramo de profundidade sem resolve MSAA.
+  Na mata, o contorno continua desligado. Nada de atlas/filtro/bias/sombras.
+- Status: pixels reais e percentuais efetivos X/Y (não disfarça o
+  arredondamento), MSAA aplicado da propriedade `Viewport.msaa_3d`.
+  COPIAR REGISTRO separa preferência solicitada do liso, modo aplicado,
+  interno e alvo com margem. É configuração aplicada do Godot, não uma
+  sondagem de suporte físico da GPU. Troca/resize emite sinal **síncrono**:
+  limpa anel, somas e janela parcial antes de copiar. A conferência na cópia
+  continua como defesa adicional; aviso COPIADO anterior também sai.
+- HUD/barra/efeitos aéreos permanecem no canvas normal; viewport e afim do
+  mapa do chão intactos. Pixel Pass conserva altura **640 + 2 px por borda**,
+  AA off, shader, nearest e snap atuais; controles exclusivos do liso ficam
+  desabilitados com explicação, sem perder as preferências ao retornar.
+  Controles na coluna esquerda, status em `TOPO+586`; Verificar atualização
+  em `TOPO+660`. CONFIG/vista íntima ocultam todos como antes.
+- `test_resolucao_msaa.gd`: **6 testes, 0 falhas**; seletivo dos 4 scripts de
+  produção: **37 testes, 0 falhas, parser 4/0**. Pixels conhecidos em
+  1440×3120: **1440×3120 / 1224×2652 / 1080×2340 / 966×2091 / 720×1560**.
+  Projeção **Camera3D real → Sprite composto**, centro+4 cantos, 5 escalas,
+  janelas 1440×3120, 1080×2400, 721×1281, 3120×1440 e 720×1280, 3 yaw e 2
+  alturas; independência AA, off real, Pixel ida/volta, resize, textura do chão,
+  registro imediato e retângulos da UI incluindo update. Não altera testes
+  antigos. `lint_diagnostics` a cada edição: sem linter GDScript/Markdown no
+  harness; parser/gate do repo fazem a validação. Aviso preexistente de nome
+  da CPU no proot retorna vazio → n/d.
+- Evidências em **`/root/tmp/galapago-resolucao-msaa/`**, fora do git:
+  `seletivo-1.log`, `foco.log`, `comparacao-default.log`; capturas sequenciais
+  `baseline`, `liso100`, `liso75`, `aaoff`, `pixel`, cada uma com 2 PNG,
+  **exit 0** via `tools/quadros.sh` + shim existente do ORACULO. Todos os
+  `q00000001.png` abertos. Logs: **Vulkan 1.4.318 / Forward Mobile / llvmpipe
+  LLVM 20.1.2**. Comparações isoladas 100/4× → 75/4× e 100/4× → 100/off;
+  Pixel Pass com preferências suspensas 75%/2×. UI inteira legível em 720×1280,
+  sem faixas ou deslocamento. Update ausente no build local é coberto por
+  retângulos em teste. Regiões de cena fora da HUD no padrão versus baseline
+  anterior ao lote: **0 pixels diferentes**, comparação byte a byte. As opções
+  manuais têm perda deliberada de nitidez/AA; não se afirma equivalência.
+  Movie Maker/software não é benchmark Android nem evidência de ganho/FPS.
+- Gate completo imediatamente antes do commit, busca de segredos e diff-check
+  no relatório de entrega; `gate-final.log` no mesmo diretório. Sem mudanças
+  de sim/regras/gestos, densidade/LOD, assets, dependências ou workflows.

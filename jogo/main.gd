@@ -268,9 +268,21 @@ func _ready() -> void:
 	hud.hostilidade_alternada.connect(definir_hostilidade)
 	hud.pixel_pass_alternado.connect(definir_pixel_pass)
 	hud.sombras_alternadas.connect(definir_sombras)
+	hud.resolucao_liso_escolhida.connect(func(p: int): vista.resolucao_liso = p)
+	hud.msaa_liso_escolhido.connect(func(aa: int): vista.msaa_liso = aa)
 	add_child(hud)
 	hud.definir_pixel_pass(vista.pixel_pass)
 	hud.diagnostico.configurar(vista, chao)
+	vista.configuracao_alterada.connect(func(): hud.definir_render_liso(vista))
+	# Atalhos só de captura: as mesmas escolhas manuais, sem tocar demo/gestos.
+	for p in Vista.ESCALAS_LISO:
+		if ("--resolucao=%d" % p) in args:
+			vista.resolucao_liso = p
+	if "--msaa=2" in args:
+		vista.msaa_liso = Viewport.MSAA_2X
+	elif "--msaa=off" in args:
+		vista.msaa_liso = Viewport.MSAA_DISABLED
+	hud.definir_render_liso(vista)
 	# Capturas comparáveis: mesma seed/câmera/demo; só a sombra muda.
 	var modo_sombra := Mata.Sombras.COMPLETAS
 	if "--sombras=simplificadas" in args:

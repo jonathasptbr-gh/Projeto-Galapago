@@ -79,7 +79,8 @@ func _conferir_configuracao() -> void:
 	atual.append(_sombras)
 	if is_instance_valid(_vista) and is_instance_valid(_vista.sv):
 		atual.append_array([_vista.pixel_pass, _vista.tamanho_interno(),
-			_vista.sv.size, _vista.sv.msaa_3d])
+			_vista.sv.size, _vista.sv.msaa_3d, _vista.resolucao_liso, _vista.msaa_liso,
+			_vista.sv.scaling_3d_scale])
 	if atual != _configuracao:
 		_configuracao = atual
 		_reiniciar()
@@ -108,8 +109,13 @@ func _exit_tree() -> void:
 
 
 func configurar(vista: CanvasLayer, chao: SubViewport = null) -> void:
+	if is_instance_valid(_vista):
+		_vista.configuracao_alterada.disconnect(_conferir_configuracao)
 	_vista = vista
 	_chao = chao
+	if is_instance_valid(_vista):
+		_vista.configuracao_alterada.connect(_conferir_configuracao)
+	_conferir_configuracao()
 	_sincronizar_medicao()
 
 
@@ -472,6 +478,11 @@ func cabecalho(extra: Dictionary = {}) -> Dictionary:
 		c["MSAA 3D"] = ["desligado", "2×", "4×", "8×"][clampi(_vista.sv.msaa_3d, 0, 3)]
 		c["3D interno (vista)"] = dimensoes(_vista.tamanho_interno())
 		c["Alvo 3D c/margem (sv)"] = dimensoes(_vista.sv.size)
+		c["Escolha liso (sessão)"] = "%d%% · MSAA %s%s" % [_vista.resolucao_liso,
+			["desligado", "2×", "4×"][_vista.msaa_liso],
+			" (suspensa pelo PIXEL ART)" if _vista.pixel_pass else ""]
+		c["Resolução efetiva"] = _vista.texto_resolucao()
+		c["Escala 3D nativa"] = "%s (sem escala dupla; interno = sv, salvo margem Pixel Pass)" % num(_vista.sv.scaling_3d_scale, 2)
 	c["Sombras"] = _sombras + (" (luz direcional sem sombras em toda a cena)" if _sombras == "DESLIGADAS" else " (copas proxy; troncos mantidos)" if _sombras == "SIMPLIFICADAS" else " (folhas reais e troncos)")
 	c["Janela física"] = dimensoes(get_window().size) if is_inside_tree() else "n/d"
 	for k in extra:

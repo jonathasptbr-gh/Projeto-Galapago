@@ -105,8 +105,20 @@ comando sobrepõe: `--rendering-method gl_compatibility|mobile|forward_plus` e
   SubViewport do tamanho **físico** da janela (`get_window().size`; o canvas
   é 720×1280 lógico e o Android ampliava para 1080×2400, serrilhando e
   borrando), desenhado com escala 1/k (k = físico/canvas): 1 px renderizado
-  = 1 px da tela; reage a `size_changed`. **AA:** MSAA 4×; FXAA avaliado e
-  desligado (`vista.fxaa_liso`): na resolução física o MSAA cobre as bordas
+  = 1 px da tela; reage a `size_changed`. **Comparação manual (v0.42.0):**
+  CONFIG → **3D LISO** cicla 100/85/75/67/50%; **MSAA LISO** cicla 4×/2×/off,
+  independentemente. Padrão de cada partida continua **100%/4×**, sem gravação,
+  DRS ou ajuste automático. A redução é do próprio `sv.size`, com altura
+  arredondada para cima e largura cobrindo o aspecto do canvas; composição
+  **uniforme, centrada**, com <1 texel de overscan horizontal, sem distorcer a
+  câmera nem as coordenadas do dedo. `scaling_3d_scale=1`: nenhum fator duplo.
+  Status mostra pixels e percentuais efetivos por eixo; COPIAR REGISTRO separa
+  a escolha do liso do modo aplicado. Troca/resize invalida síncrono o histórico
+  e a janela parcial. HUD e mapa do chão mantêm suas resoluções. Pixel Pass
+  suspende/desabilita os dois controles, conserva 640+margem/AA off/nearest e
+  devolve as escolhas ao retornar ao liso. Raio do contorno usa **interno/canvas**;
+  o método de profundidade MSAA é desligado com AA off. Na mata continua sem
+  contorno de tela. FXAA avaliado e desligado (`vista.fxaa_liso`): na resolução física o MSAA cobre as bordas
   de geometria, as faixas do toon têm AA no shader, e o FXAA borraria os
   contornos e custaria um passe de tela cheia.
 - **Sombra do sol** (S5a): com câmera **ortográfica** o Godot ignora
@@ -128,7 +140,7 @@ comando sobrepõe: `--rendering-method gl_compatibility|mobile|forward_plus` e
   num disco de raio `raio` px MAIS PERTO por > `limiar` (0,25 unidade; começa
   em 0,08), descontada a inclinação local do plano (diferença de 1 px, o menor
   lado, vezes o offset INTEIRO do texel lido — o filtro é nearest); 16 amostras, cobertura = soma/3 (Pixel Pass: raio 1, soma/1). Raio
-  liso = `vista.espessura_contorno` (4 px de canvas) × físico/canvas. A linha
+  liso = `vista.espessura_contorno` (4 px de canvas) × interno/canvas. A linha
   cai fora do objeto da frente e some no contato (base de tronco, ator,
   quina). **Vinco** (S7), no mesmo shader: linha onde a normal muda mais de
   `vista.limiar_vinco_graus` (75°; copa ≈ 51–58°, tronco 60°, borda do topo
