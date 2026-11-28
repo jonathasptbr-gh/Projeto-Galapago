@@ -25,29 +25,24 @@ func test_terceiro_dedo_nao_substitui_par_original() -> void:
 	perto(c.zoom, anterior, 0.001, "sem salto de zoom")
 
 
-## v0.34 — o MODO do corpo segue a PINÇA: quem decide é a função pura
-## `intima()`; aproximar liga o teto de 88 px/s e mantém a caminhada, afastar
-## devolve os 110. Nada de Camera2D aqui (o modo entra por parâmetro).
-func test_pinca_muda_o_modo_de_camera_do_corpo() -> void:
+## O zoom é contínuo: a escala de entrada persiste após levantar os dedos.
+func test_pinca_para_exatamente_no_valor_intermediario() -> void:
 	var c := CameraToque.new()
-	var Corpo := preload("res://sim/corpo.gd")
-	var acoes: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://dados/acoes.json"))
-	var corpo := Corpo.new(acoes)
-	corpo.definir_camera_perto(c.intima())
-	checar(not corpo.caminhada_existe(), "começa de longe")
-	perto(corpo.velocidade_efetiva(), 110.0, 0.001, "110 de longe")
-	c.descer(1, Vector2(0, 0))
+	perto(c.fracao(), 0.0, 0.001, "vista inicial")
+	c.descer(1, Vector2.ZERO)
 	c.descer(2, Vector2(100, 0))
 	c.mover(2, Vector2(150, 0))
-	checar(c.intima(), "a pinça aproximou")
-	corpo.definir_camera_perto(c.intima())
-	checar(corpo.caminhada_existe(), "o modo perto chegou ao corpo")
-	perto(corpo.velocidade_efetiva(), 88.0, 0.001, "teto de 88 de perto")
-	c.mover(2, Vector2(50, 0))
-	checar(not c.intima(), "a pinça afastou")
-	corpo.definir_camera_perto(c.intima())
-	checar(not corpo.caminhada_existe(), "voltou a longe")
-	perto(corpo.velocidade_efetiva(), 110.0, 0.001, "volta aos 110")
+	perto(c.fracao(), 0.5, 0.001, "meio do curso")
+	c.subir(2)
+	c.subir(1)
+	perto(c.fracao(), 0.5, 0.001, "soltar não muda o zoom")
+	c.descer(3, Vector2.ZERO)
+	c.descer(4, Vector2(100, 0))
+	c.mover(4, Vector2(125, 0))
+	perto(c.fracao(), 0.875, 0.001, "pinça seguinte parte do valor solto")
+	c.subir(4)
+	c.subir(3)
+	perto(c.fracao(), 0.875, 0.001, "novo valor estável")
 
 
 func test_retorno_superior_por_pinca() -> void:

@@ -88,7 +88,7 @@ func test_formato_orcamento_e_numero() -> void:
 	igual(Diagnostico.ms_ou_nd(-1.0), "n/d")
 
 
-func test_config_e_intima_suspendem_painel_sem_reabrir_desligado() -> void:
+func test_config_suspende_painel_zoom_preserva_botoes_e_coleta() -> void:
 	var h := Hud.new()
 	Engine.get_main_loop().root.add_child(h)
 	h._alternar_info()
@@ -106,7 +106,7 @@ func test_config_e_intima_suspendem_painel_sem_reabrir_desligado() -> void:
 	h._alternar_info()
 	checar(h.diagnostico.visible and h._copiar_btn.visible, "CONFIG restaura escolha ligada")
 	h.definir_vista_intima(true)
-	checar(not h.diagnostico.is_processing() and not h._copiar_btn.visible, "vista íntima suspende coleta e esconde o COPIAR")
+	checar(h.diagnostico.is_processing() and h._copiar_btn.visible and h._config_btn.visible, "zoom preserva coleta e botões")
 	h.definir_vista_intima(false)
 	checar(h.diagnostico.visible and h.diagnostico.is_processing() and h._copiar_btn.visible, "retorno restaura escolha")
 	h._diagnostico_btn.pressed.emit()
@@ -327,7 +327,7 @@ func test_hud_oculta_desliga_medicao_e_botoes_fora_do_painel() -> void:
 	igual(h.diagnostico.medindo().size(), 0, "CONFIG oculto desliga a medição")
 	h._alternar_info()
 	h.definir_vista_intima(true)
-	igual(h.diagnostico.medindo().size(), 0, "vista íntima desliga a medição")
+	igual(h.diagnostico.medindo().size(), 3, "aproximação não suspende medição")
 	h.definir_vista_intima(false)
 	igual(h.diagnostico.medindo().size(), 3, "volta a medir")
 	# botões da coluna esquerda (Verificar só existe em build publicado: criado

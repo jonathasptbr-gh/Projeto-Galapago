@@ -47,8 +47,13 @@ func subir(id: int) -> String:
 		return "ignorar"
 	return "principal"
 
+## Fração do curso da pinça, sem degraus: a câmera ortográfica usa este valor
+## diretamente, inclusive ao soltar em um ponto intermediário.
+func fracao() -> float:
+	return clampf((zoom - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN), 0.0, 1.0)
+
 func intima() -> bool:
-	return zoom > ZOOM_MIN + 0.01
+	return fracao() > 0.00625
 
 func inclinacao() -> float:
-	return lerpf(1.0, 0.60, (zoom - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN))
+	return lerpf(1.0, 0.60, fracao())

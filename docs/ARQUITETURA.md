@@ -58,8 +58,9 @@ certo em cor linear ou só em sRGB; o toon converte o nível com
 
 **Mundo 3D (P24):** a ilha, os objetos e os atores são 3D
 (`jogo/mundo3d/`), vistos por uma câmera **ortográfica orbital** pura
-(`sim/camera3d.gd`: foco, yaw livre 360°, vistas `alta` — padrão — e
-`intima`, snap de texel, chão⇄tela como `Transform2D` afim). O **Pixel Pass**
+(`sim/camera3d.gd`: foco, yaw livre 360°, aproximação **contínua** da pinça —
+altura do mundo visível de 25 a 8 unidades, `pitch` junto —, snap de texel,
+chão⇄tela como `Transform2D` afim). O **Pixel Pass**
 é a última camada e desliga: SubViewport em baixa resolução + quantização +
 Bayer ancorado no mundo + ampliação *nearest* + compensação de subpixel.
 Trilha, mira e áreas de perigo desenham em px de mundo da sim num

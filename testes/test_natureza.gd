@@ -164,6 +164,32 @@ func test_sombras_trocam_emissores_sem_reconstruir_nem_mudar_a_mata() -> void:
 	mapa.free()
 
 
+func test_abertura_circular_maior_preserva_sombra_e_dither() -> void:
+	var mapa := Mapa.new()
+	mapa.construir(500)
+	checar(Malhas.FOLHA.code.contains("uniform float raio_foco = 2.6;"), "folhas têm abertura maior")
+	checar(Malhas.NATURAL.code.contains("uniform float raio_foco = 2.6;"), "madeira tem mesma abertura")
+	for shader in [Malhas.FOLHA, Malhas.NATURAL]:
+		checar(shader.code.contains("!IN_SHADOW_PASS"), "sombra permanece inteira")
+		checar(shader.code.contains("BAYER[q.y * 4 + q.x]"), "borda mantém dither")
+	var p := Vector3(1, 2, 3)
+	for caso in [[25.0, 2.6], [16.5, 2.025], [8.0, 1.45]]:
+		mapa.definir_foco(p, float(caso[1]))
+		for mat in mapa._mats_foco:
+			checar(mat.get_shader_parameter("usar_foco"), "foco ativo")
+			igual(mat.get_shader_parameter("foco"), p, "centro acompanha criatura")
+			perto(mat.get_shader_parameter("raio_foco"), float(caso[1]), 0.001,
+				"raio aplicado na altura %s" % caso[0])
+	# a abertura cresce em PX de tela com o zoom e é maior que a antiga (1,9) nos
+	# dois extremos: ~133 px de longe (era ~97) e ~232 px no perto (era ~203).
+	checar(2.6 * 1280.0 / 25.0 > 1.9 * 1280.0 / 25.0 + 1.0, "abertura de longe maior")
+	checar(1.45 * 1280.0 / 8.0 > 1.9 * 1280.0 / 12.0 + 1.0, "abertura de perto maior que a antiga máxima")
+	mapa.desligar_foco()
+	for mat in mapa._mats_foco:
+		checar(not mat.get_shader_parameter("usar_foco"), "desligar restaura árvore intacta")
+	mapa.free()
+
+
 func test_riacho_trilha_e_margens_coerentes() -> void:
 	for z in range(-35, 20):
 		var x := Mapa.rio_x(float(z))

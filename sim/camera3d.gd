@@ -40,7 +40,7 @@ func _init(config: Dictionary = {}) -> void:
 	cfg = {
 		"vistas": {
 			"alta": {"pitch_graus": -60.0, "altura_mundo": 25.0},
-			"intima": {"pitch_graus": -35.0, "altura_mundo": 12.0},
+			"intima": {"pitch_graus": -35.0, "altura_mundo": 8.0},
 		},
 		"vista_inicial": "alta",
 		"distancia": 60.0,
@@ -130,6 +130,19 @@ func definir_vista(nome: String) -> bool:
 func alternar_vista() -> String:
 	definir_vista("intima" if vista == "alta" else "alta")
 	return vista
+
+
+## Posição contínua da pinça (0 = vista alta, 1 = máxima aproximação).
+## Escreve diretamente a projeção ortográfica; sem transição para outro alvo
+## depois de soltar os dedos, inclusive em qualquer posição intermediária.
+func definir_zoom(fracao: float) -> void:
+	var u := clampf(fracao, 0.0, 1.0)
+	_t_transicao = -1.0
+	vista = "alta" if u <= 0.0 else "intima"
+	pitch = lerpf(_pitch_alvo("alta"), _pitch_alvo("intima"), u)
+	altura_mundo = lerpf(_altura_alvo("alta"), _altura_alvo("intima"), u)
+	_de_pitch = pitch
+	_de_altura = altura_mundo
 
 
 func em_transicao() -> bool:

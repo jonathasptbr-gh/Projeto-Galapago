@@ -74,6 +74,11 @@ var _slider_sincronizado := false
 var _config_btn: Button
 var _mostrar_info := true
 var _intima := false
+## Fração contínua da pinça (0 = vista alta, 1 = máxima aproximação), só para
+## o registro do diagnóstico — não esconde nem muda botão nenhum.
+var _zoom_fracao := 0.0
+## Altura ortográfica atual do mundo visível (unidades), informada pelo main.
+var _zoom_altura := 25.0
 # PIXEL ART (P24): estado vem do main (`definir_pixel_pass`); padrão desligado
 var _pixel_btn: Button
 var _pixel := false
@@ -86,16 +91,18 @@ var _resolucao_liso := 100
 var _msaa_liso := Viewport.MSAA_4X
 
 
+## Apenas registra a vista para diagnóstico; o zoom não muda os botões.
 func definir_vista_intima(ativa: bool) -> void:
 	_intima = ativa
-	for no in get_children():
-		if not (no is Control) or no == atualizador or _e_veu(no):
-			continue
-		if no == _config_btn:
-			no.visible = not ativa
-		else:
-			no.visible = not ativa and _mostrar_info
-	_sincronizar_diagnostico()
+
+
+## Posição contínua da pinça (0..1) para o registro do diagnóstico; a altura é
+## a que a câmera está aplicando de fato (`cam3d.altura_mundo`).
+func definir_zoom(fracao: float, altura_mundo := -1.0) -> void:
+	_zoom_fracao = clampf(fracao, 0.0, 1.0)
+	if altura_mundo > 0.0:
+		_zoom_altura = altura_mundo
+	_intima = _zoom_fracao > 0.00625
 
 
 func _ready() -> void:
@@ -268,8 +275,6 @@ func _criar_verificar() -> Button:
 func _process(delta: float) -> void:
 	if atualizador and _status:
 		_status.text = atualizador.texto_status()
-		if _intima:
-			_status.visible = atualizador.estado == "erro"
 	if _pulo_auto and _corpo:
 		var ligado: bool = bool(_corpo.pulo_auto)
 		_pulo_auto.text = "PULO AUTO: %s" % ("LIGADO" if ligado else "DESLIGADO")
@@ -421,8 +426,8 @@ func definir_diagnostico(ligado: bool) -> void:
 func _sincronizar_diagnostico() -> void:
 	if diagnostico == null:
 		return
-	var mostrar := _mostrar_info and not _intima
-	# Ocultar CONFIG/vista íntima também suspende TODA coleta. Reabrir limpa a janela.
+	var mostrar := _mostrar_info
+	# Ocultar CONFIG suspende TODA coleta. Reabrir limpa a janela.
 	diagnostico.definir_ligado(mostrar and _diagnostico_ligado)
 	_leg.visible = mostrar and not _diagnostico_ligado
 	if _copiar_btn:
@@ -435,6 +440,7 @@ func copiar_registro() -> String:
 	var txt: String = diagnostico.registro({
 		"Versão": texto_versao(),
 		"Vista": "íntima" if _intima else "alta",
+		"Aproximação": "%d%% (altura do mundo %.1f)" % [roundi(_zoom_fracao * 100.0), _zoom_altura],
 		"Hostilidade": "ligada" if _hostil else "desligada",
 	})
 	area_transferencia.call(txt)
@@ -494,7 +500,7 @@ func estado(corpo: RefCounted, _alvos: Array, planejando := false, escala := 1.0
 	# (e some junto com o resto quando o CONFIG esconde a HUD de teste).
 	var carga := clampf(corpo.carga(), 0.0, 1.0)
 	if _carga_bg and _carga:
-		_carga_bg.visible = not _intima and _mostrar_info and corpo.carregando()
+		_carga_bg.visible = _mostrar_info and corpo.carregando()
 		_carga.size.x = _energia_largura * carga
 		_carga.color = Color(1.0, 0.7, 0.2, 0.95) if carga >= 0.999 else Color(1.0, 0.85, 0.25, 0.95)
 	# a CARGA em primeiro plano: é o preparo do tiro que o dedo precisa ver

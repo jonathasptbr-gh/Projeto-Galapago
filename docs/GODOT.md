@@ -223,8 +223,11 @@ comando sobrepõe: `--rendering-method gl_compatibility|mobile|forward_plus` e
   descida: `_gesto_origem` + a afim inversa da câmera; cada ponto convertido
   com `desenho.ganho` e alimentando `corpo.tracar` a cada quadro). Enquanto
   desenha, o **mundo** roda em tempo lento (`planejamento`) e um véu escurece a
-  tela. A rota é desenhada em `jogo/trilha.gd`. A **pinça** alterna as vistas
-  `alta`/`intima` da câmera 3D.
+  tela. A rota é desenhada em `jogo/trilha.gd`. A **pinça** ajusta a projeção
+  ortográfica **continuamente** (`cam3d.definir_zoom`, fração 0..1 da pinça):
+  a altura do mundo visível interpola de **25 a 8 unidades** e o valor fica onde
+  for solto; o `pitch` acompanha (vista `alta` → `intima`). Não há mais controle
+  relativo: o caminho é o mesmo gesto em qualquer aproximação.
 
 ## 8. Exportar para Android (P2) — como funciona e o que quebra
 

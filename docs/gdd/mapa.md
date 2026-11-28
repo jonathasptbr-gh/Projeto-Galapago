@@ -35,22 +35,27 @@ Posições em **pixels de mundo** (célula = 32 px); a conversão célula↔pixe
 | 40 | **parallax frente** | nuvens, andam RÁPIDO (1,35×) |
 | — | **HUD** | CanvasLayer, na resolução da tela |
 
-## Câmera de pinça (v0.20)
+## Câmera orbital 3D (P24; pinça contínua na v0.44)
 
-A pinça aproxima de zoom 1,6 a 3,2 e comprime o plano verticalmente de 1,0
-até 0,72; objetos são compensados para não achatar sua imagem. Na vista
-superior marcas, efeitos, perigos e adversários mantêm a posição histórica;
-seu deslocamento por altura interpola continuamente até o topo projetado na
-vista íntima máxima. **Compromisso:** nas inclinações intermediárias eles não
-coincidem exatamente com o topo do chão, que já tem desnível na vista superior.
-A projeção é visual; não altera altura ou colisão da simulação.
+A câmera é **ortográfica orbital** (`sim/camera3d.gd`, `dados/camera3d.json`):
+o foco segue a criatura, a barra do topo gira o `yaw` 360° e a **pinça ajusta a
+aproximação continuamente**. A altura do mundo visível interpola de **25
+unidades** (vista de longe, `pitch` −60°) a **8 unidades** (máxima aproximação,
+`pitch` −35°), e **para onde for solta** — não há mais dois estados de zoom nem
+controle de movimento próprio da vista próxima: o caminho é o mesmo gesto em
+qualquer aproximação. A projeção continua visual; não altera altura ou colisão
+da simulação. O valor atual aparece no registro do diagnóstico.
 
-## Subcamadas de visibilidade (sim/visibilidade.gd)
+## Transparência das copas (copa vazada)
 
-A **copa da árvore** fica numa camada ACIMA de tudo: longe da criatura é
-opaca (esconde o que está embaixo); com a criatura passando
-por baixo ou ao lado, quase transparente (deixa ver). A transição é suave
-(smoothstep) para não piscar na borda. É o mesmo mecanismo que vai servir para
+No mundo 3D, folhas e madeira das árvores que ficam **entre a câmera e a
+criatura** somem por **dither ordenado 4×4**, numa abertura circular centrada
+nela (`jogo/mundo3d/natureza/natural.gdshader` e `folha.gdshader`,
+`raio_foco`). Na v0.44 o raio subiu de 1,9 para **2,6 unidades** na vista de
+longe (≈133 px de raio numa tela de 1280) e o `main` o encolhe junto com a
+aproximação (até **1,45** na máxima), então a abertura **cresce em pixels de
+tela** com o zoom — ≈232 px no perto — sem apagar a mata. Fora do passe de
+sombra: a sombra projetada continua inteira. O mesmo mecanismo serve para
 telhado, ponte e arco.
 
 ## O mapa: NATUREZA (sim/natureza.gd)

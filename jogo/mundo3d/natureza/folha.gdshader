@@ -11,7 +11,7 @@ uniform float especular = 0.25;
 uniform vec3 translucidez = vec3(0.18, 0.26, 0.08);
 uniform bool usar_foco = false;
 uniform vec3 foco = vec3(0.0);
-uniform float raio_foco = 1.9;
+uniform float raio_foco = 2.6;
 uniform float folga_foco = 0.9;
 
 const float BAYER[16] = float[16](0.0, 0.5, 0.125, 0.625, 0.75, 0.25, 0.875, 0.375,

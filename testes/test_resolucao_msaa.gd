@@ -136,7 +136,7 @@ func test_hud_cicla_uma_variavel_e_preserva_chao_toque() -> void:
 	checar(not h._resolucao_btn.visible and not h._msaa_btn.visible and not h._resolucao_status.visible, "CONFIG oculta todos")
 	h._alternar_info()
 	h.definir_vista_intima(true)
-	checar(not h._resolucao_btn.visible and not h._msaa_btn.visible, "íntima oculta")
+	checar(h._resolucao_btn.visible and h._msaa_btn.visible, "zoom próximo mantém controles")
 	h.definir_vista_intima(false)
 	checar(h._resolucao_btn.visible and h._msaa_btn.visible, "retorno restaura")
 	m.free()

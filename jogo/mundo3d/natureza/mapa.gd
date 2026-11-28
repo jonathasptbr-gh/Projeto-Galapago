@@ -223,10 +223,15 @@ func ligar_chao(textura: Texture2D, ret: Vector4) -> void:
 	_mat_solo.set_shader_parameter("chao_ret", ret)
 
 
-func definir_foco(p: Vector3) -> void:
+## COPA VAZADA em volta de `p` (espaço da câmera). `raio` vem em unidades de
+## mundo: o `main` o encolhe junto com a aproximação, de modo que a abertura
+## cresça em PX de tela com o zoom (2,6 na vista de longe ⇒ ~133 px; 1,45 na
+## máxima aproximação ⇒ ~232 px) sem apagar a mata inteira no perto.
+func definir_foco(p: Vector3, raio := 2.6) -> void:
 	for m in _mats_foco:
 		m.set_shader_parameter("usar_foco", true)
 		m.set_shader_parameter("foco", p)
+		m.set_shader_parameter("raio_foco", maxf(raio, 0.01))
 
 
 func desligar_foco() -> void:

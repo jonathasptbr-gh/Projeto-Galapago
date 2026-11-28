@@ -3,6 +3,30 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.44.0 — um só controle, zoom contínuo e copa mais aberta (2026-11-28)
+
+- **Controle único:** removidos o joystick e o controle relativo da vista
+  próxima (`mover_relativo`, `controle_relativo`, `direcao_relativa`,
+  `camera_perto` e `mover.teto_perto_x` de `dados/acoes.json`). Um dedo
+  arrastando desenha caminho, toque carrega o tiro e segurar corre/cava em
+  **qualquer** aproximação; soltar, cancelar e perder o foco não deixam comando
+  residual. O toque de perto não altera mais a velocidade nem bloqueia o
+  sprint. A HUD de teste deixa de se ocultar na aproximação máxima (só o CONFIG
+  a esconde) e o diagnóstico segue medindo em toda a faixa.
+- **Zoom contínuo:** a pinça escreve direto a projeção ortográfica
+  (`cam3d.definir_zoom(fracao)`, `camera_toque.fracao()`) entre **25 e 8**
+  unidades de altura do mundo visível, com o `pitch` acompanhando de −60° a
+  −35°; soltar **mantém** o valor, sem transição para outro estado. O limite
+  novo (8) é mais perto que o antigo (12). O registro do diagnóstico mostra a
+  porcentagem e a altura aplicada.
+- **Copa vazada maior:** o `raio_foco` padrão dos shaders de folha e madeira
+  sobe de 1,9 para **2,6 unidades** e o `main` o encolhe junto com o zoom (até
+  **1,45** na máxima), então a abertura cresce em px de tela nos dois extremos
+  (≈97→133 px de raio de longe; ≈203→232 px no perto) sem apagar a mata.
+  Dither 4×4 e passe de sombra preservados.
+- Verificação: `tools/testes.sh` 215/215, parser 54/0; quadros de prévia em
+  longe, intermediário e perto abertos e conferidos.
+
 ## v0.43.0 — lobo provisório para testar no Android (2026-11-28)
 
 - **Política de comandos explícitos:** pedido direto e específico do operador

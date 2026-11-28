@@ -49,21 +49,6 @@ extends RefCounted
 ## (`soltar_segurar`), então o sprint não fica preso. Um caminho novo que NÃO
 ## vem de um segurar zera sprint e rampa como antes.
 ##
-## v0.34 — **MODO DA CÂMERA** (a pinça) manda na locomoção, e o corpo só
-## recebe o modo por PARÂMETRO (`definir_camera_perto`; quem decide é
-## `sim/camera_toque.intima()`, e `jogo/main.gd` repassa a cada mudança de zoom).
-##
-## - **PERTO** (zoom): CAMINHADA **ANALÓGICA** — a MAGNITUDE de
-##   `direcao_relativa` (o joystick, 0..1) escala o passo — com **TETO** de
-##   `mover.teto_perto_x` (0,80 × 110 = **88 px/s**). Teto, não multiplicador.
-##   **NÃO existe sprint**: o segurar não acelera, não gasta energia de sprint
-##   e não deixa cauda (`_fator_sprint` = 1 e `_cmd_segurar` recusa);
-## - **LONGE** (padrão): **não existe caminhada** — andando, ela já está em
-##   CORRIDA; o segurar ACELERA (sprint 1,7× = 187 px/s) por cima da corrida.
-##
-## O teto entra em `_passo_camera` (na VELOCIDADE, antes de virar deslocamento);
-## de LONGE a conta é bit a bit a de antes (métricas de marcha/voo intactas).
-##
 ## v0.11.1 — a ESTRADA deixou de CORTAR CAMINHO:
 ##
 ## - **projeção com continuidade**: o ponto da rota onde a criatura está é
@@ -186,15 +171,6 @@ var z := 0.0                     # altura no ar (pulo)
 var olhar := Vector2.RIGHT
 var camada := Mundo.SUPERFICIE
 var velocidade := 110.0
-# MODO DA CÂMERA (v0.34): PERTO (a pinça que aproxima) mantém a CAMINHADA e
-# limita a velocidade efetiva a `mover.teto_perto_x` (80%); LONGE não tem
-# caminhada — andando, ela está em CORRIDA. Quem decide é `camera_toque.intima()`
-# e `jogo/main.gd` repassa em cada mudança de zoom (o corpo não lê a câmera).
-var camera_perto := false
-var _teto_perto_x := 0.8         # `mover.teto_perto_x`; teto, não multiplicador
-# Controle relativo: permanece ativo ao soltar, impedindo rota/autonomia.
-var controle_relativo := false
-var direcao_relativa := Vector2.ZERO
 
 # rota (pontos de referência; `_rota_i` = o próximo que ela procura)
 var rota := PackedVector2Array()
@@ -300,7 +276,6 @@ var eventos: Array[String] = []
 func _init(definicoes: Dictionary = {}) -> void:
 	defs = definicoes
 	velocidade = float(defs.get("mover", {}).get("velocidade", 110.0))
-	_teto_perto_x = maxf(float(defs.get("mover", {}).get("teto_perto_x", 0.8)), 0.0)
 	rota_cfg = defs.get("rota", {})
 	_combate = defs.get("combate", {})
 	carga_tiro_s = maxf(float(_combate.get("tiro_carga_s", 0.5)), 0.0)
@@ -392,27 +367,6 @@ func correndo() -> bool:
 	return _sprint
 
 
-## Existe CAMINHADA neste modo de câmera? Só de PERTO: de LONGE, andando, ela
-## já está em CORRIDA (o clipe base é o `run`, nunca o `walk`).
-func caminhada_existe() -> bool:
-	return camera_perto
-
-
-## TETO de velocidade do modo de câmera, em px/s: de LONGE não há teto; de
-## PERTO é `mover.teto_perto_x` (0,80) × `mover.velocidade` — 110 → 88.
-func teto_velocidade() -> float:
-	if not camera_perto:
-		return INF
-	return velocidade * _teto_perto_x
-
-
-## Velocidade EFETIVA (px/s) para um fator qualquer (sprint, embalo, rampa…):
-## o teto do modo é aplicado por ÚLTIMO, então ele é TETO e não multiplicador
-## — vale igual para a caminhada e para o sprint.
-func velocidade_efetiva(fator := 1.0) -> float:
-	return minf(velocidade * maxf(fator, 0.0), teto_velocidade())
-
-
 ## Ainda no curto período de invencibilidade depois de um golpe?
 func invencivel() -> bool:
 	return _invencivel_t > 0.0
@@ -439,41 +393,6 @@ func levar_golpe(dir: Vector2, forca_px: float, atordoamento_s: float) -> bool:
 
 
 # ---------------------------------------------------------------- comandos
-
-## Entrar cancela a locomoção anterior; sair libera novamente a autonomia.
-func definir_controle_relativo(ativo: bool) -> void:
-	controle_relativo = ativo
-	direcao_relativa = Vector2.ZERO
-	if ativo:
-		rota = PackedVector2Array()
-		traco = PackedVector2Array()
-		marcas = []
-		mira_final_id = ""
-		_perseguindo = false
-		_inercia_t = 0.0
-		_sprint = false
-		_sprint_cauda_t = 0.0
-		autonomia = "parado"
-
-
-## MODO DA CÂMERA (v0.34): entra por PARÂMETRO (a `sim/` não conhece câmera).
-## PERTO = zoom da pinça: caminhada analógica + teto de velocidade, SEM sprint.
-## LONGE = padrão: sem caminhada, andar já é correr. Trocar de modo não mexe na
-## ROTA (quem a limpa é o controle relativo, chamado junto pelo jogo); para
-## PERTO corta o sprint e a cauda na hora.
-func definir_camera_perto(perto: bool) -> void:
-	camera_perto = perto
-	if perto:
-		# PERTO não corre: o sprint e o embalo da cauda morrem na troca (a
-		# energia não é gasta; quem troca é a pinça, no meio do gesto ou não).
-		_sprint = false
-		_sprint_cauda_t = 0.0
-
-
-## Direção no plano do mundo; magnitude limitada a um para controle proporcional.
-func mover_relativo(direcao: Vector2) -> void:
-	direcao_relativa = direcao.limit_length(1.0) if controle_relativo else Vector2.ZERO
-
 
 ## Recebe um comando (sim/comandos.gd). Devolve "ok", "ok: <detalhe>" ou
 ## "recusado: <motivo>" — quem mostra é a HUD.
@@ -741,9 +660,6 @@ func _fator_embalo() -> float:
 ## do embalo e cai aos poucos por `sprint.cauda_s` — é ela que deixa pular logo
 ## depois de soltar e ainda ir mais longe.
 func _fator_sprint() -> float:
-	# PERTO (v0.34) não corre: nem o sprint, nem a CAUDA dele valem ali.
-	if camera_perto:
-		return 1.0
 	var cheio := maxf(float(_sprint_cfg.get("fator", 1.7)), 1.0)
 	if _sprint and energia > 0.0:
 		return cheio
@@ -767,13 +683,9 @@ func _fator_rampa() -> float:
 	return 0.15 + 0.85 * (u * u * (3.0 - 2.0 * u))
 
 
-## Deslocamento do quadro (px) de uma velocidade JÁ com todos os fatores. De
-## LONGE é bit a bit o de sempre (`v * dt`); de PERTO o TETO do modo corta a
-## VELOCIDADE (antes de virar passo), então é teto e não multiplicador.
+## Deslocamento do quadro (px) com todos os fatores da regra de movimento.
 func _passo_camera(v: float, dt: float) -> float:
-	if not camera_perto:
-		return v * dt
-	return minf(v, teto_velocidade()) * dt
+	return v * dt
 
 
 # ---------------------------------------------------------------- efeitos
@@ -1000,9 +912,6 @@ func _escala_carga(carga: float, chave: String) -> float:
 ##
 ## - já carregando o tiro: **ZERA a carga** (o jogador mudou de ideia e vai
 ##   correr) e segue;
-## - **PERTO (v0.34): NÃO EXISTE SPRINT.** O segurar não acelera, não gasta
-##   energia nem deixa cauda — com caminho é `recusado: perto não corre`; sem
-##   caminho continua sendo a HABILIDADE;
 ## - com **caminho** em curso e energia: liga o SPRINT CONTÍNUO (gasta a barra
 ##   de ENERGIA enquanto o dedo fica; o soltar mantém a CAUDA);
 ## - sem caminho (ou sem energia para correr): a HABILIDADE em si mesmo
@@ -1010,12 +919,6 @@ func _escala_carga(carga: float, chave: String) -> float:
 func _cmd_segurar(mundo: RefCounted) -> String:
 	if _carga_ativa:
 		_zerar_carga()
-	if camera_perto:
-		_sprint = false
-		_sprint_cauda_t = 0.0
-		if em_rota():
-			return "recusado: perto não corre"
-		return _cmd_habilidade(mundo)
 	if em_rota():
 		if energia <= float(_sprint_cfg.get("minimo", 0.08)):
 			return "recusado: sem energia"
@@ -1188,15 +1091,6 @@ func passo(dt: float, mundo: RefCounted, alvos: Array = []) -> void:
 			_disparar_carga(alvos)
 		else:
 			_checar_marcas(alvos)
-		return
-	if controle_relativo:
-		if direcao_relativa.length() > 0.001:
-			olhar = direcao_relativa.normalized()
-			# ANALÓGICO: a MAGNITUDE do controle (0..1, o joystick) escala o
-			# passo. Em PERTO o teto de `mover.teto_perto_x` entra aqui, então
-			# metade do curso = metade de 88 px/s.
-			var passo := _passo_camera(velocidade, dt)
-			pos = mundo.limitar_segmento(pos, pos + direcao_relativa * passo, camada)
 		return
 	if em_rota():
 		pos = _avancar_rota(dt, mundo, alvos)

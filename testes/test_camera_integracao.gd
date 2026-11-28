@@ -1,7 +1,7 @@
 extends "res://testes/caso.gd"
 ## Integração dedo × câmera no `jogo/main.gd` (P24: mundo 3D, `sim/camera3d.gd`).
-## A pinça mexe em `camera_toque.zoom` e troca a VISTA da câmera 3D; a barra de
-## giro do topo gira o yaw sem virar gesto; o toque cai no chão sob o dedo.
+## A pinça ajusta continuamente a projeção ortográfica, sem mudar os gestos;
+## a barra gira o yaw sem virar gesto; o toque cai no chão sob o dedo.
 
 const Main := preload("res://jogo/main.gd")
 const Espaco := preload("res://jogo/mundo3d/espaco.gd")
@@ -34,59 +34,64 @@ func _enviar(m: Node, ev: InputEvent) -> void:
 	m.get_viewport().push_input(ev, true)
 
 
-func test_pinca_segundo_dedo_sobre_hud_e_saida() -> void:
+func test_pinca_muda_projecao_continuamente_sem_ocultar_acoes() -> void:
 	var m := _criar()
 	var zoom: float = m.camera_toque.zoom
 	m._unhandled_input(_toque(0, Vector2(400, 500), true))
-	m._input(_toque(1, Vector2(100, 330), true)) # sobre CONFIG (TOPO + 222)
+	m._input(_toque(1, Vector2(100, 330), true)) # segundo dedo sobre CONFIG
 	checar(m.camera_toque.bloqueado, "segundo dedo inicia pinça antes da GUI")
-	m.dedo_moveu(1, Vector2(-100, 330))
-	checar(m.camera_toque.zoom > zoom, "pinça amplia")
-	igual(m.cam3d.vista, "intima", "pinça leva a câmera 3D à vista íntima")
-	checar(m.hud.visible and not m.hud._config_btn.visible, "controles ocultos na vista íntima")
-	checar(m.hud.atualizador.is_visible_in_tree() and not m.hud._status.visible, "avisos disponíveis sem status comum")
-	checar(m.barra.is_visible_in_tree(), "barra de giro segue visível na vista íntima")
-	m.hud.atualizador.estado = "erro"
-	m.hud._process(0.0)
-	checar(m.hud._status.is_visible_in_tree(), "erro de atualização não fica invisível")
-	m.hud.atualizador.estado = "dev"
-	m.hud._process(0.0)
-	checar(not m.hud._status.visible, "estado comum volta a desaparecer")
-	m._input(_toque(1, Vector2(-100, 330), false))
+	m.dedo_moveu(1, Vector2(-134, 330))
+	var intermediario: float = m.camera_toque.fracao()
+	checar(intermediario > 0.5 and intermediario < 0.75, "pinça para numa fração arbitrária")
+	perto(m.cam3d.altura_mundo, lerpf(25.0, 8.0, intermediario), 0.001, "zoom ortográfico contínuo")
+	perto(m.hud._zoom_altura, m.cam3d.altura_mundo, 1e-6, "registro do diagnóstico lê a altura aplicada")
+	perto(m.hud._zoom_fracao, intermediario, 1e-6, "registro do diagnóstico lê a fração da pinça")
+	checar(m.hud.copiar_registro().contains("Aproximação"), "registro mostra a aproximação")
+	checar(m.hud._config_btn.visible and m.hud._pulo_auto.visible, "ações seguem acessíveis")
+	checar(m.barra.is_visible_in_tree(), "barra continua visível")
+	m._input(_toque(1, Vector2(-134, 330), false))
 	m._input(_toque(0, Vector2(400, 500), false))
+	m._process(0.4)
+	perto(m.cam3d.altura_mundo, lerpf(25.0, 8.0, intermediario), 0.001, "soltar conserva zoom intermediário")
 	m.dedo_desceu(2, Vector2(400, 500))
 	m.dedo_desceu(3, Vector2(600, 500))
-	m.dedo_moveu(3, Vector2(450, 500))
+	m.dedo_moveu(3, Vector2(500, 500))
 	m.dedo_subiu(2, Vector2(400, 500))
-	m.dedo_subiu(3, Vector2(450, 500))
+	m.dedo_subiu(3, Vector2(500, 500))
 	perto(m.camera_toque.zoom, zoom, 0.001, "pinça retorna ao zoom original")
-	igual(m.cam3d.vista, "alta", "câmera 3D volta à vista alta")
-	checar(m.hud.visible and m.hud._config_btn.visible, "HUD restaurada")
+	perto(m.cam3d.altura_mundo, 25.0, 0.001, "vista distante restaurada")
 	m.free()
 
 
-## v0.34 — a PINÇA leva o MODO ao corpo na hora (o gancho não pode ficar
-## velho): aproximar liga o teto de 88 e a caminhada; afastar devolve 110.
-func test_pinca_atualiza_o_modo_de_camera_do_corpo() -> void:
-	var m := _criar()
-	checar(not m.corpo.caminhada_existe(), "começa de longe")
-	perto(m.corpo.velocidade_efetiva(), 110.0, 0.001, "110 de longe")
-	m.dedo_desceu(0, Vector2(300, 500))
-	m.dedo_desceu(1, Vector2(400, 500))
-	m.dedo_moveu(1, Vector2(500, 500))
-	checar(m.camera_toque.intima(), "a pinça aproximou")
-	checar(m.corpo.caminhada_existe(), "o corpo recebeu o modo perto")
-	perto(m.corpo.velocidade_efetiva(), 88.0, 0.001, "teto de 88 de perto")
-	m.dedo_moveu(1, Vector2(200, 500))
-	checar(not m.camera_toque.intima(), "a pinça afastou")
-	checar(not m.corpo.caminhada_existe(), "o corpo voltou a longe")
-	perto(m.corpo.velocidade_efetiva(), 110.0, 0.001, "volta aos 110")
-	m.dedo_subiu(1, Vector2(200, 500))
-	m.dedo_subiu(0, Vector2(300, 500))
-	m.free()
+func test_desenho_e_toque_na_vista_proxima_e_distante() -> void:
+	for fracao in [0.0, 1.0]:
+		var m := _criar()
+		m.camera_toque.zoom = lerpf(m.camera_toque.ZOOM_MIN, m.camera_toque.ZOOM_MAX, fracao)
+		m._aplicar_camera()
+		m.tempo_ms = 1000.0
+		m.dedo_desceu(0, Vector2(360, 700))
+		m.tempo_ms = 1080.0
+		m.dedo_moveu(0, Vector2(400, 650))
+		m.tempo_ms = 1160.0
+		m.dedo_moveu(0, Vector2(450, 600))
+		checar(m.reconhecedor.desenhando(), "arrastar desenha no zoom %s" % fracao)
+		m._process(0.016)
+		checar(m.corpo.em_rota(), "rota ativa durante arrasto no zoom %s" % fracao)
+		m.tempo_ms = 1200.0
+		m.dedo_subiu(0, Vector2(480, 570))
+		checar(not m.reconhecedor.ativo(), "soltar fecha o gesto no zoom %s" % fracao)
+		checar(m.corpo.em_rota(), "rota persiste após soltar no zoom %s" % fracao)
+		m.tempo_ms = 2000.0
+		m.dedo_desceu(1, Vector2(500, 700))
+		m.tempo_ms = 2070.0
+		m.dedo_subiu(1, Vector2(500, 700))
+		m.tempo_ms = 2500.0
+		m._process(0.016)
+		checar(m.corpo.carregando(), "toque ainda inicia tiro no zoom %s" % fracao)
+		m.free()
 
 
-func test_controle_para_na_soltura_cancelamento_e_foco() -> void:
+func test_pinca_cancelamento_e_foco_nao_criam_comando_residual() -> void:
 	var m := _criar()
 	m.dedo_desceu(0, Vector2(300, 500))
 	m.dedo_desceu(1, Vector2(400, 500))
@@ -94,26 +99,16 @@ func test_controle_para_na_soltura_cancelamento_e_foco() -> void:
 	m.dedo_subiu(0, Vector2(300, 500))
 	m.dedo_subiu(1, Vector2(500, 500))
 	var zoom: float = m.camera_toque.zoom
-	var yaw: float = m.cam3d.yaw
+	m.tempo_ms = 800.0
 	m.dedo_desceu(2, Vector2(400, 500))
-	m.dedo_moveu(2, Vector2(490, 500))
-	checar(m.corpo.direcao_relativa.length() > 0.9, "controle move")
-	m._input(_toque(2, Vector2(490, 500), false))
-	perto_v(m.corpo.direcao_relativa, Vector2.ZERO, 0.001, "soltura para")
-	var pos: Vector2 = m.corpo.pos
-	m.corpo.passo(0.5, m.mundo, m.alvos)
-	perto_v(m.corpo.pos, pos, 0.001, "não retoma movimento")
-	perto(m.camera_toque.zoom, zoom, 0.001, "controle não altera zoom")
-	perto(m.cam3d.yaw, yaw, 0.000001, "controle não gira a câmera")
+	m._input(_toque(2, Vector2(400, 500), false, true))
+	checar(not m.reconhecedor.ativo(), "cancelamento encerra toque")
+	m.tempo_ms = 1200.0
 	m.dedo_desceu(3, Vector2(400, 500))
-	m.dedo_moveu(3, Vector2(490, 500))
-	m._input(_toque(3, Vector2(490, 500), false, true))
-	perto_v(m.corpo.direcao_relativa, Vector2.ZERO, 0.001, "cancelamento para")
-	m.dedo_desceu(4, Vector2(400, 500))
-	m.dedo_moveu(4, Vector2(490, 500))
 	m.notification(Node.NOTIFICATION_APPLICATION_FOCUS_OUT)
-	perto_v(m.corpo.direcao_relativa, Vector2.ZERO, 0.001, "perda de foco para")
-	checar(m.camera_toque.dedos.is_empty(), "contatos limpos")
+	checar(m.camera_toque.dedos.is_empty(), "perda de foco limpa contatos")
+	checar(not m.reconhecedor.ativo(), "sem gesto residual")
+	perto(m.camera_toque.zoom, zoom, 0.001, "limpeza conserva zoom")
 	m.free()
 
 

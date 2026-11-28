@@ -62,123 +62,42 @@ func _efeito_tiro(c: RefCounted) -> Dictionary:
 	return ef
 
 
-# ---------------------------------------------------------------- controle relativo
+# ---------------------------------------------------------------- comandos únicos, sem joystick/câmera
 
-func test_controle_relativo_para_ao_soltar_e_descarta_rota() -> void:
+## Arrastar sempre produz rota; soltar finaliza sem interromper a marcha.
+func test_rota_desenhada_segue_ate_soltar_sem_controle_relativo() -> void:
 	var s := _setup(MAPA)
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
-	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(240, 48)])}, m, [])
-	c.definir_controle_relativo(true)
-	checar(not c.em_rota(), "rota anterior cancelada")
-	c.mover_relativo(Vector2(1, 1))
+	var pts := PackedVector2Array([Vector2(48, 48), Vector2(100, 48), Vector2(200, 48)])
+	checar(c.tracar(pts, m, true, []).begins_with("ok"), "traço aceito")
+	checar(c.em_rota(), "rota ativa durante arrasto")
 	c.passo(0.1, m, [])
-	checar(c.pos.x > 48 and c.pos.y > 48, "andou na diagonal")
-	var pos: Vector2 = c.pos
-	c.mover_relativo(Vector2.ZERO)
-	_rodar(c, m, 2.0)
-	perto_v(c.pos, pos, 0.001, "parou sem retomar rota nem autonomia")
-
-
-func test_controle_relativo_respeita_agua_e_limita_velocidade() -> void:
-	var s := _setup(AGUA)
-	var m: RefCounted = s[0]
-	var c: RefCounted = s[1]
-	c.definir_controle_relativo(true)
-	c.mover_relativo(Vector2(100, 0))
-	_rodar(c, m, 2.0)
-	checar(c.pos.x < 64.0, "não entrou na água")
-	c.pos = Vector2(48, 48)
-	c.mover_relativo(Vector2(0, -100))
+	var antes: Vector2 = c.pos
+	checar(antes.x > 48.0, "criatura já anda durante o desenho")
+	c.finalizar_rota([])
+	checar(c.em_rota(), "soltar conserva rota")
 	c.passo(0.1, m, [])
-	perto(c.pos.y, 48.0 - c.velocidade * 0.1, 0.01, "magnitude limitada")
+	checar(c.pos.x > antes.x, "segue rumo ao destino")
 
 
-# ---------------------------------------------------------------- v0.34: modo da câmera
-
-## v0.34 — PERTO (a pinça que aproxima) mantém a CAMINHADA e a velocidade é
-## ANALÓGICA na magnitude do controle relativo, com TETO de
-## `mover.teto_perto_x` (80% de 110 = 88): curso cheio = 88, metade = 44.
-func test_camera_perto_caminhada_analogica_com_teto_de_88() -> void:
+## O sprint conserva o mesmo comando e aumenta a velocidade da rota; o zoom
+## não entra na sim e jamais a substitui por um vetor de controle.
+func test_segurar_acelera_rota_sem_dependencia_de_camera() -> void:
 	var s := _setup(MAPA)
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
-	c.definir_camera_perto(true)
-	checar(c.caminhada_existe(), "perto mantém a caminhada")
-	perto(c.teto_velocidade(), 88.0, 0.001, "teto de 80% da base")
-	perto(c.velocidade_efetiva(), 88.0, 0.001, "pedir 110 de perto dá 88")
-	c.definir_controle_relativo(true)
-	# curso CHEIO do joystick (a magnitude satura em 1,0)
-	c.mover_relativo(Vector2(100, 0))
-	var p0: Vector2 = c.pos
-	c.passo(0.1, m, [])
-	perto(c.pos.distance_to(p0) / 0.1, 88.0, 0.01, "curso cheio anda 88 px/s")
-	# METADE do curso: metade de 88 (analógico, não liga/desliga)
-	c.mover_relativo(Vector2(0.5, 0))
-	var p1: Vector2 = c.pos
-	c.passo(0.1, m, [])
-	perto(c.pos.distance_to(p1) / 0.1, 44.0, 0.01, "metade do curso anda 44 px/s")
-	# controles leves continuam proporcionais (0,25 do curso = 22)
-	c.mover_relativo(Vector2(0, 0.25))
-	var p2: Vector2 = c.pos
-	c.passo(0.1, m, [])
-	perto(c.pos.distance_to(p2) / 0.1, 22.0, 0.01, "um quarto do curso anda 22 px/s")
-	c.mover_relativo(Vector2.ZERO)
-	var p3: Vector2 = c.pos
-	c.passo(0.1, m, [])
-	perto_v(c.pos, p3, 0.001, "controle no centro não anda")
-
-
-## v0.34 — PERTO NÃO CORRE: o segurar não liga o sprint, não gasta a energia de
-## sprint e não deixa CAUDA; o fator 1,7 não vale ali.
-func test_camera_perto_nao_tem_sprint() -> void:
-	var s := _setup(MAPA)
-	var m: RefCounted = s[0]
-	var c: RefCounted = s[1]
-	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(330, 48)])}, m, [])
-	_rodar(c, m, 0.2)
-	c.definir_camera_perto(true)
-	var e0: float = c.energia
-	igual(c.comandar({"acao": "segurar"}, m, []), "recusado: perto não corre", "perto recusa o sprint")
-	checar(not c._sprint, "não entrou em corrida")
-	perto(c._fator_sprint(), 1.0, 0.0001, "sem fator de sprint")
-	perto(c.velocidade_efetiva(c._fator_sprint()), 88.0, 0.001, "a velocidade fica no teto da caminhada")
-	# 6 quadros = 0,2 s EXATOS (o `_rodar` acumula e faz 7; aqui o passo é medido)
-	var p0: Vector2 = c.pos
-	for _i in 6:
-		c.passo(1.0 / 30.0, m, [])
-	var v: float = c.pos.distance_to(p0) / (6.0 / 30.0)
-	checar(v <= 88.5, "andou no máximo 88 px/s (%.2f)" % v)
-	perto(c.energia, e0, 0.0001, "não gastou energia de sprint")
-	igual(c.comandar({"acao": "soltar_segurar"}, m, []), "ok", "soltar não quebra nada em perto")
-	perto(c._sprint_cauda_t, 0.0, 0.0001, "não criou cauda")
-
-
-## v0.34 — LONGE (padrão): não existe caminhada — a base é a CORRIDA (110) e o
-## segurar ACELERA por cima dela (`sprint.fator` 1,7 → 187).
-func test_camera_longe_corrida_e_sprint_sem_caminhada() -> void:
-	var s := _setup(MAPA)
-	var m: RefCounted = s[0]
-	var c: RefCounted = s[1]
-	checar(not c.caminhada_existe(), "longe não tem caminhada")
-	perto(c.velocidade_efetiva(), 110.0, 0.001, "corrida base 110")
 	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(340, 48)])}, m, [])
 	_rodar(c, m, 0.5)
-	perto(c._fator_sprint(), 1.0, 0.0001, "sem sprint ainda")
-	igual(c.comandar({"acao": "segurar"}, m, []), "ok: sprint", "de longe o segurar corre")
+	perto(c._fator_sprint(), 1.0, 0.0001, "velocidade base")
+	igual(c.comandar({"acao": "segurar"}, m, []), "ok: sprint", "segurar corre")
 	perto(c._fator_sprint(), 1.7, 0.0001, "sprint de 1,7×")
-	perto(c.velocidade_efetiva(c._fator_sprint()), 187.0, 0.001, "acelerada 187")
-	checar(c.velocidade_efetiva(c._fator_sprint()) > c.velocidade_efetiva(), "acelerada mais rápida que a corrida")
 	var p0: Vector2 = c.pos
 	for _i in 3:
 		c.passo(1.0 / 30.0, m, [])
-	var v: float = c.pos.distance_to(p0) / (3.0 / 30.0)
-	checar(v > 150.0, "andou acelerado (%.0f px/s)" % v)
-	# trocar para PERTO no meio do sprint corta o sprint e a cauda na hora
-	c.definir_camera_perto(true)
-	checar(not c._sprint, "perto corta o sprint")
-	perto(c._sprint_cauda_t, 0.0, 0.0001, "e não deixa cauda")
-	perto(c.velocidade_efetiva(c._fator_sprint()), 88.0, 0.001, "no teto de 88 mesmo pedindo sprint")
+	checar(c.pos.distance_to(p0) > 15.0, "andou acelerado")
+	igual(c.comandar({"acao": "soltar_segurar"}, m, []), "ok", "soltar encerra sprint")
+	checar(c._sprint_cauda_t > 0.0, "mantém cauda")
 
 
 # ---------------------------------------------------------------- rota

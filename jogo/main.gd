@@ -69,11 +69,12 @@ const Mata := preload("res://jogo/mundo3d/natureza/mapa.gd")
 const RELEVO_MATA := 15.0
 ## altura (unidades) acima dos pés onde fica o centro da COPA VAZADA
 const FOCO_COPA := 0.45
-# JOYSTICK da vista íntima: o deslocamento do dedo até este RAIO vira magnitude
-# 1,0 do controle relativo (100% do curso). Com o teto de 88 px/s do modo
-# PERTO, metade do raio = 44 px/s; além do raio satura em 88. A DIREÇÃO é a do
-# dedo projetada no chão (gira com a câmera).
-const RAIO_JOYSTICK_PX := 90.0
+## COPA VAZADA: raio (unidades) da abertura circular em volta da criatura.
+## Encolhe com a aproximação para a abertura crescer em PX de tela: 2,6 na
+## vista de longe (≈133 px de raio em 1280) e 1,45 na máxima aproximação
+## (≈232 px) — sempre maior que os 1,9 antigos (≈97/203 px) e sem apagar a mata.
+const RAIO_COPA_LONGE := 2.6
+const RAIO_COPA_PERTO := 1.45
 ## BARRA DE GIRO: faixa tátil de largura total do alto da tela (px de canvas).
 ## A HUD começa abaixo dela (`Hud.TOPO`).
 const ALTURA_BARRA := Hud.TOPO
@@ -141,8 +142,6 @@ var _adv_h: Array = []
 var _adv_oculto: Array = []
 ## alturas de terreno existentes (níveis), da maior para a menor (`mundo_de`)
 var _niveis: Array = []
-var _joystick_origem := Vector2.ZERO
-var _joystick_dedo := -1
 # a ORIGEM do gesto (congelada na descida do dedo): a linha não anda com ela
 var _gesto_tela := Vector2.ZERO
 var _gesto_origem := Vector2.ZERO
@@ -388,7 +387,7 @@ func _atualizar_atores(delta: float) -> void:
 	var salto: float = float(corpo.z) / Cam3D.PX_POR_UNIDADE - (AFUNDA_SUBSOLO if subsolo else 0.0)
 	ator_criatura.atualizar(corpo.pos, _h_cria, corpo.olhar, salto)
 	var deslocamento: float = Vector2(corpo.pos).distance_to(_pos_anim_criatura) if delta > 0.0 else 0.0
-	ator_criatura.animar(deslocamento, delta, corpo.no_ar(), corpo.ataque != "", corpo.caminhada_existe())
+	ator_criatura.animar(deslocamento, delta, corpo.no_ar(), corpo.ataque != "", camera_toque.intima())
 	_pos_anim_criatura = corpo.pos
 	var cor := COR_CRIATURA
 	if subsolo:
@@ -426,7 +425,8 @@ func _atualizar_camera(delta: float) -> void:
 	cam3d.seguir(_foco_criatura(), delta)
 	cam3d.avancar(delta)
 	vista.aplicar_camera(cam3d)
-	mata.definir_foco(ator_criatura.position + Vector3(0.0, FOCO_COPA, 0.0))
+	mata.definir_foco(ator_criatura.position + Vector3(0.0, FOCO_COPA, 0.0),
+		lerpf(RAIO_COPA_LONGE, RAIO_COPA_PERTO, camera_toque.fracao()))
 	var ref := Espaco.altura_3d(NIVEL_REF)
 	var m: Transform2D = cam3d.chao_para_tela(_tela, ref)
 	sobre.transform = m
@@ -570,15 +570,9 @@ func _cancelar_contatos() -> void:
 	camera_toque.par.clear()
 	camera_toque.bloqueado = false
 	reconhecedor = Gestos.new(cfg_gestos.get("limiares", {}))
-	_joystick_dedo = -1
 	corpo.comandar({"acao": "soltar_segurar"}, mundo, alvos)
-	if _traco_iniciado:
-		corpo.definir_controle_relativo(true)
-		corpo.definir_controle_relativo(camera_toque.intima())
 	_traco_iniciado = false
 	_desenho_de_segurar = false
-	_levar_modo_camera()
-	corpo.mover_relativo(Vector2.ZERO)
 
 
 # Solturas de contatos iniciados no mundo devem chegar mesmo sobre um botão.
@@ -642,27 +636,14 @@ func na_barra(p: Vector2) -> bool:
 func dedo_desceu(dedo: int, p: Vector2) -> void:
 	var acao := camera_toque.descer(dedo, p)
 	_dedos[dedo] = true
-	# O zoom pode ter mudado desde o último toque: o modo é sincronizado AQUI
-	# também, senão o dedo entraria com o modo velho (joystick × caminho).
-	_levar_modo_camera()
 	if acao == "pinca":
 		# Cancela também toques pendentes; nenhum dedo remanescente reinicia gesto.
 		corpo.comandar({"acao": "soltar_segurar"}, mundo, alvos)
-		if _traco_iniciado:
-			corpo.definir_controle_relativo(true)
-			corpo.definir_controle_relativo(camera_toque.intima())
 		reconhecedor = Gestos.new(cfg_gestos.get("limiares", {}))
 		_traco_iniciado = false
 		_desenho_de_segurar = false
-		_joystick_dedo = -1
-		corpo.mover_relativo(Vector2.ZERO)
 		return
 	if acao != "principal":
-		return
-	if camera_toque.intima():
-		_joystick_dedo = dedo
-		_joystick_origem = p
-		corpo.mover_relativo(Vector2.ZERO)
 		return
 	_gesto_tela = p
 	_gesto_origem = corpo.pos
@@ -679,29 +660,13 @@ func dedo_moveu(dedo: int, p: Vector2) -> void:
 	if acao == "pinca":
 		_aplicar_camera()
 	elif acao == "principal":
-		if camera_toque.intima() and dedo == _joystick_dedo:
-			corpo.mover_relativo(_joystick_no_chao(p - _joystick_origem))
-		else:
-			# o dedo SEGURANDO que se move sem levantar começa um desenho
-			# NOVO na posição ATUAL (a origem congelada na descida já não vale
-			# para esses pontos). O segurar continua — o sprint não cai.
-			var limiares: Dictionary = cfg_gestos.get("limiares", {})
-			if not camera_toque.intima() and reconhecedor.ativo() \
-					and not reconhecedor.desenhando() and reconhecedor.segurando() \
-					and p.distance_to(reconhecedor.inicio()) > float(limiares.get("desenho_min_px", 16.0)):
-				_recomecar_segurar(p)
-			_entregar(reconhecedor.mover(dedo, p, tempo_ms))
-
-
-## JOYSTICK (vista íntima): o deslocamento do dedo na TELA vira a direção no
-## CHÃO (inversa da afim da câmera, então gira com o yaw); a magnitude é a do
-## dedo na tela (0..1 até `RAIO_JOYSTICK_PX`).
-func _joystick_no_chao(deslocamento_tela: Vector2) -> Vector2:
-	var mag := minf(deslocamento_tela.length() / RAIO_JOYSTICK_PX, 1.0)
-	var no_chao: Vector2 = cam3d.tela_para_chao(_tela).basis_xform(deslocamento_tela)
-	if mag <= 0.0 or no_chao.length() < 0.000001:
-		return Vector2.ZERO
-	return no_chao.normalized() * mag
+		# O dedo que segurou e começou a arrastar recomeça um caminho novo.
+		var limiares: Dictionary = cfg_gestos.get("limiares", {})
+		if reconhecedor.ativo() and not reconhecedor.desenhando() \
+				and reconhecedor.segurando() \
+				and p.distance_to(reconhecedor.inicio()) > float(limiares.get("desenho_min_px", 16.0)):
+			_recomecar_segurar(p)
+		_entregar(reconhecedor.mover(dedo, p, tempo_ms))
 
 
 ## Recomeça o traço do SEGURAR no ponto atual. A criatura é a ORIGEM
@@ -721,31 +686,15 @@ func dedo_subiu(dedo: int, p: Vector2) -> void:
 	_dedos.erase(dedo)
 	if acao != "principal":
 		return
-	if camera_toque.intima():
-		_joystick_dedo = -1
-		corpo.mover_relativo(Vector2.ZERO)
-	else:
-		_entregar(reconhecedor.soltar(dedo, p, tempo_ms))
+	_entregar(reconhecedor.soltar(dedo, p, tempo_ms))
 
 
-## Leva o MODO da câmera (PERTO/LONGE) para o corpo. É ele que decide o TETO
-## de velocidade e se existe CAMINHADA (de longe, andar já é correr). A pinça
-## pode mudar o zoom em QUALQUER movimento, então isto roda a cada movimento de
-## pinça e em cada toque que ENTRA — nunca só na descida do primeiro dedo.
-func _levar_modo_camera() -> void:
-	var intima: bool = camera_toque.intima()
-	corpo.definir_camera_perto(intima)
-	if corpo.controle_relativo != intima:
-		corpo.definir_controle_relativo(intima)
-
-
-## A pinça mexeu no zoom: leva o MODO ao corpo e troca a VISTA da câmera 3D
-## (íntima = baixa/perto; alta = a padrão). A transição é da câmera.
+## A pinça muda diretamente a projeção ortográfica: nada muda nos gestos,
+## na locomoção nem nos botões. O valor intermediário persiste ao soltar.
 func _aplicar_camera() -> void:
-	_levar_modo_camera()
-	var intima: bool = camera_toque.intima()
-	cam3d.definir_vista("intima" if intima else "alta")
-	hud.definir_vista_intima(intima)
+	cam3d.definir_zoom(camera_toque.fracao())
+	hud.definir_zoom(camera_toque.fracao(), cam3d.altura_mundo)
+	_atualizar_camera(0.0)
 
 
 func _entregar(evs: Array) -> void:

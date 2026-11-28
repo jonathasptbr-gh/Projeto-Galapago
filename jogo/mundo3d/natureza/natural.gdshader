@@ -24,7 +24,7 @@ uniform sampler2D chao : filter_linear, repeat_disable;
 uniform vec4 chao_ret = vec4(0.0, 0.0, 1.0, 1.0);
 uniform bool usar_foco = false;
 uniform vec3 foco = vec3(0.0);
-uniform float raio_foco = 1.9;
+uniform float raio_foco = 2.6;
 uniform float folga_foco = 0.9;
 // CHÃO MOLHADO (água de grade, P27; o ensaio está no commit 64f0d2f): o canal A do campo
 // da água é a umidade da célula; o chão escurece e brilha um pouco onde está
