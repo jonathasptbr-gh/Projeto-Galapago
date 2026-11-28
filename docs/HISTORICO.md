@@ -3,7 +3,7 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
-## Não publicado
+## v0.46.0 — vento na mata: brisa, rajadas e balanço das folhas (2026-11-28)
 
 - **Campo de vento puro:** `sim/vento.gd` (determinístico, sem nó nem relógio
   real) + `dados/vento.json` — brisa, rajadas que varrem o mapa (bandas
@@ -19,7 +19,7 @@
   `uniformizar()` à mata; a demo ganha `--vento` (câmera parada, uma rajada a 8
   unidades a montante) para filmar.
 - **Verificação:** `tools/testes.sh` 233/233, parser 56/0; quadros de `--vento`
-  abertos e conferidos (sem publicar versão — commit comum).
+  abertos e conferidos; o CI #147 (Vulkan) fechou com 90 quadros e nenhum erro.
 
 ## v0.45.0 — marcha pelo tamanho do caminho e passadas calibradas (2026-11-28)
 
