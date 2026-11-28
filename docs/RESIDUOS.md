@@ -47,6 +47,7 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.43.0 | — | nenhum novo de código ou documentação | — | — |
 | v0.42.0 | — | nenhum novo de código ou documentação | — | — |
 | v0.41.0 | — | nenhum novo de código ou documentação | — | — |
 | v0.40.0 | — | nenhum novo de código ou documentação | — | — |

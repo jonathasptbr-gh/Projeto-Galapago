@@ -43,14 +43,18 @@ nesta conversa; a aprovação é a resposta do operador aqui.
 Decisão de **design** (como a criatura se comporta, o que a história diz, como
 a arte fica) é do operador: o agente propõe com opções, não decide calado.
 
-**Ritmo e gastos (operador, 2026-11-27):** cada etapa dentro de cada tema
-precisa de autorização individual neste chat, e cada acionamento de subagente
-(inclusive retomada ou revisão) também. Aprovar um plano não libera sua
-execução inteira. Antes de pedir, informar escopo, entrega, verificações e
-quantidade de agentes; não iniciar agente implicitamente. Ao terminar a etapa,
-relatar o resultado e parar. **Plano de otimização (P25), estado, próxima
-etapa e como retomar:** [`OTIMIZACAO`](docs/OTIMIZACAO.md) — fonte única; o
-estado das etapas mora lá, não aqui.
+**Ritmo e gastos (operador, 2026-11-27; esclarecido em 2026-11-28):** um
+pedido **DIRETO e ESPECÍFICO** do operador para executar uma tarefa autoriza
+concluí-la, inclusive acionar os agentes necessários, sem repetir perguntas de
+autorização a cada passo ou subagente. Restrições expressas no pedido (por
+exemplo, não delegar) prevalecem. Aprovar um plano genérico ou ver uma
+pendência na fila **não** autoriza executar outras etapas: para essas, antes de
+pedir, informar escopo, entrega, verificações e agentes previstos. Decisões de
+design e gastos adicionais fora do escopo autorizado ainda exigem escolha do
+operador. Ao concluir a tarefa pedida, relatar o resultado e parar. **Plano de
+otimização (P25), estado, próxima etapa e como retomar:**
+[`OTIMIZACAO`](docs/OTIMIZACAO.md) — fonte única; o estado das etapas mora lá,
+não aqui.
 
 ## Regras de desenvolvimento
 
