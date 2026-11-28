@@ -41,7 +41,9 @@ efeito é sobre os quadros do CI (artefato `quadros`).
 (v0.14) é `DEMO_ARGS="--hostil" tools/quadros.sh 240 ~/tmp/galapago-hostil`:
 começa com a criatura perto do bicho, liga o botão, mostra os ataques e um
 golpe roteirizado no fim (o estado ESCONDIDO precisa aparecer; um caminho
-desenhado erraria o alvo móvel). O demo normal continua igual.
+desenhado erraria o alvo móvel). `DEMO_ARGS="--caminhada"` troca o roteiro por
+três traços CURTOS (≤ o comprimento do corpo) para filmar a **caminhada**; o
+demo normal já mostra o **trote** nos caminhos longos. O resto continua igual.
 
 `QUADROS_CENA` filma outra cena (`--scene`; padrão: a principal), com os mesmos
 argumentos. O Pixel Pass na cena principal: `QUADROS_FPS=10 DEMO_ARGS="--pixel"

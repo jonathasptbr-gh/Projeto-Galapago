@@ -40,6 +40,13 @@ extends RefCounted
 ##   a ~15% da velocidade e chega a 100% em `rampa_s` (`_rampa_t`/`_fator_rampa`,
 ##   smoothstep). O traço ao vivo reinicia a rampa uma vez; retomar depois de
 ##   uma pausa/tiro NÃO reinicia.
+## - **MARCHA PELO TAMANHO DO CAMINHO** (v0.45): caminho até `caminhada_max_px`
+##   (≈ o comprimento do corpo, 45 px) é **CAMINHADA** (`velocidade_caminhada`,
+##   28 px/s); acima disso é **TROTE** (`velocidade`, 110 px/s). O traço ao vivo
+##   só PROMOVE (cresceu ⇒ trota) e o trote fica TRAVADO até a rota acabar: um
+##   traço novo e curto no meio da corrida não rebaixa a marcha; a marcha só é
+##   redecidida ao sair do repouso (ou ao vaguear). Correr acelerado (segurar)
+##   força o trote.
 ##
 ## **SEGURAR QUE VIRA DESENHO**: se o dedo que SEGURA (sprint) se move
 ## sem levantar, o jogo RECOMEÇA o traço na posição ATUAL
@@ -171,6 +178,13 @@ var z := 0.0                     # altura no ar (pulo)
 var olhar := Vector2.RIGHT
 var camada := Mundo.SUPERFICIE
 var velocidade := 110.0
+## Marcha da ROTA (v0.45): caminho curto = CAMINHADA (`velocidade_caminhada`),
+## caminho maior que `caminhada_max_px` (≈ o comprimento do animal) = TROTE
+## (`velocidade`, a normal). O trote TRAVA até a rota acabar: um traço novo e
+## curto desenhado no meio da corrida não rebaixa a marcha.
+var trote := false
+var velocidade_caminhada := 28.0
+var caminhada_max_px := 45.0
 
 # rota (pontos de referência; `_rota_i` = o próximo que ela procura)
 var rota := PackedVector2Array()
@@ -276,6 +290,8 @@ var eventos: Array[String] = []
 func _init(definicoes: Dictionary = {}) -> void:
 	defs = definicoes
 	velocidade = float(defs.get("mover", {}).get("velocidade", 110.0))
+	velocidade_caminhada = maxf(float(defs.get("mover", {}).get("velocidade_caminhada", 28.0)), 0.0)
+	caminhada_max_px = maxf(float(defs.get("mover", {}).get("caminhada_max_px", 45.0)), 1.0)
 	rota_cfg = defs.get("rota", {})
 	_combate = defs.get("combate", {})
 	carga_tiro_s = maxf(float(_combate.get("tiro_carga_s", 0.5)), 0.0)
@@ -365,6 +381,16 @@ func atordoado() -> bool:
 ## Está no SPRINT do segurar (correndo)? Só leitura; a regra fica no passo.
 func correndo() -> bool:
 	return _sprint
+
+
+## Marcha da rota: true = TROTE (caminho maior que o corpo), false = CAMINHADA.
+func trotando() -> bool:
+	return trote
+
+
+## Velocidade de CRUZEIRO da marcha atual (px/s), sem sprint, rampa ou embalo.
+func velocidade_base() -> float:
+	return velocidade if trote else velocidade_caminhada
 
 
 ## Ainda no curto período de invencibilidade depois de um golpe?
@@ -497,8 +523,16 @@ func _pontos_de_rota(pts: PackedVector2Array, mundo: RefCounted) -> PackedVector
 ## progresso é preservado (o traço ao vivo só CRESCE no fim). Nunca fica
 ## mirando um ponto que já está ao alcance.
 func _guardar_rota(nova: PackedVector2Array, reiniciar: bool) -> void:
+	# MARCHA (v0.45): sair do repouso decide de novo; crescer o traço só PROMOVE
+	# (caminhada → trote). Rota nova desenhada em movimento não rebaixa o trote.
+	var partindo := rota.is_empty() and not em_inercia()
 	rota = nova
 	total_rota = Trajetoria.comprimento(rota)
+	if partindo:
+		trote = false
+	if total_rota > caminhada_max_px and not trote:
+		trote = true
+		_rampa_t = 0.0  # acelera da caminhada para o trote, sem salto
 	_arcos_rota = Trajetoria.arcos_pontos(rota)
 	_inercia_t = 0.0  # caminho novo cancela a inércia do antigo
 	_barrado = false
@@ -528,7 +562,9 @@ func _guardar_rota(nova: PackedVector2Array, reiniciar: bool) -> void:
 		_carga_tem_destino = false
 		_carga_destino = Vector2.ZERO
 		# mesma regra do sprint: continuar um segurar mantém a rampa já vencida.
-		if not _sprint:
+		# rota nova em cima de um TROTE já em curso mantém a velocidade da
+		# corrida (v0.45): quem já corre segue correndo, seja qual for o traço.
+		if not _sprint and not trote:
 			_rampa_t = 0.0
 		marcas = []
 		_disparadas = {}
@@ -924,6 +960,11 @@ func _cmd_segurar(mundo: RefCounted) -> String:
 			return "recusado: sem energia"
 		if _sprint:
 			return "ok: já em sprint"
+		if not trote:
+			# corrida acelerada não existe em cima de uma caminhada: assume o
+			# trote e acelera pela rampa (sem salto de 28 → 187 px/s).
+			trote = true
+			_rampa_t = 0.0
 		_sprint = true
 		eventos.append("sprint:on")
 		return "ok: sprint"
@@ -1140,7 +1181,7 @@ func _avancar_rota(dt: float, mundo: RefCounted, alvos: Array) -> Vector2:
 		fator_ar = maxf(float(defs.get("pular", {}).get("sprint_fator", 1.0)), 1.0)
 	# o avanço que ela DEVERIA ter neste quadro: é o que desempata a projeção
 	# num cruzamento/bico (dois braços no mesmo lugar) e impede o "pulo".
-	var esperado := maxf(_passo_camera(velocidade * fator_sprint * fator_ar * _fator_embalo() * fator_rampa, dt) * 2.0, 2.0)
+	var esperado := maxf(_passo_camera(velocidade_base() * fator_sprint * fator_ar * _fator_embalo() * fator_rampa, dt) * 2.0, 2.0)
 	var proj := _projetar(base, esperado)
 	# teto de segurança do avanço: um cruzamento/laço não pode "teleportar" a
 	# criatura para o fim do braço; no máximo o que ela andaria em ~4 quadros.
@@ -1155,7 +1196,7 @@ func _avancar_rota(dt: float, mundo: RefCounted, alvos: Array) -> Vector2:
 		if alvo_f != Vector2.ZERO and pos.distance_to(alvo_f) <= float(_embalo.get("gatilho_px", 70.0)):
 			_iniciar_embalo(float(_embalo.get("curto_s", 0.25)), float(_embalo.get("curto_fator", 1.7)))
 			_embalo_final_feito = true
-	var passo := _passo_camera(velocidade * _fator_embalo() * fator_sprint * fator_ar * fator_rampa, dt)
+	var passo := _passo_camera(velocidade_base() * _fator_embalo() * fator_sprint * fator_ar * fator_rampa, dt)
 	# ALVO: o ponto MAIS LONGE da estrada que a linha reta alcança andando.
 	# Sem isso, a criatura corta a corda de uma curva e bate na pedra/beira.
 	var alvo := _alvo_visivel(base, mundo)
@@ -1251,7 +1292,7 @@ func _tentar_pulo_auto(mundo: RefCounted, base: Vector2, dir: Vector2, passo: fl
 	if fs > 1.001:
 		fator_ar = maxf(float(defs.get("pular", {}).get("sprint_fator", 1.0)), 1.0)
 	var dur := maxf(float(defs.get("pular", {}).get("fases", [0.06, 0.42, 0.06])[1]), 0.1)
-	var alcance := velocidade * fs * fator_ar * _fator_embalo() * dur * 0.9
+	var alcance := velocidade_base() * fs * fator_ar * _fator_embalo() * dur * 0.9
 	# O PONTO DE POUSO (1 nível acima) adiante na ROTA e a CONTINUAÇÃO depois
 	# dele — é o que separa "degrau no meio do caminho" de "o caminho acaba".
 	var cp := float(mundo.celula_px)
@@ -1483,7 +1524,7 @@ func _atualizar_traco_t(dt: float, p_atual: Vector2) -> void:
 		return
 	var arcos := Trajetoria.arcos_pontos(traco)
 	var total := arcos[arcos.size() - 1]
-	var esperado := maxf(velocidade * maxf(dt, 0.0) * 2.0, 2.0)
+	var esperado := maxf(velocidade_base() * maxf(dt, 0.0) * 2.0, 2.0)
 	var alvo := traco_t + esperado
 	var peso := 0.25
 	var melhor := INF
@@ -1652,7 +1693,7 @@ func _terminar_rota(alvos: Array) -> Vector2:
 	var fator := _fator_sprint()
 	# a INÉRCIA sai com a velocidade de CHEGADA: o sprint (ou a cauda) e a
 	# RAMPA que ainda estiver valendo entram nela.
-	var v0 := velocidade * _fator_embalo() * fator * _fator_rampa()
+	var v0 := velocidade_base() * _fator_embalo() * fator * _fator_rampa()
 	var freio := maxf(float(rota_cfg.get("freio_extra_px", 16.0)), 0.0)
 	if fator > 1.0:
 		freio *= maxf(float(rota_cfg.get("freio_sprint_x", 1.6)), 1.0)
@@ -1762,7 +1803,7 @@ func _perseguir(dt: float, mundo: RefCounted, alvos: Array) -> void:
 		_golpe_final(alvos)
 		return
 	dir = dir.normalized()
-	var passo := _passo_camera(velocidade * _fator_embalo(), dt)
+	var passo := _passo_camera(velocidade_base() * _fator_embalo(), dt)
 	var novo := _passo_com_desvio(pos, dir, passo, alvo, mundo)
 	if novo.distance_to(pos) < 0.001:
 		_barrado = true
@@ -1773,6 +1814,8 @@ func _perseguir(dt: float, mundo: RefCounted, alvos: Array) -> void:
 
 
 func _autonomia(dt: float, mundo: RefCounted) -> void:
+	# vaguear não é rota: a marcha volta à caminhada (a animação também).
+	trote = false
 	_auto_t += dt
 	var base: Vector2 = pos
 	if _auto_espera > 0.0:

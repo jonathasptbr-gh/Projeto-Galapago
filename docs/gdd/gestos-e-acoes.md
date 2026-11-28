@@ -1,7 +1,7 @@
 # Gestos e ações — como a criatura se move e age
 
 > Regra toda em `sim/` (testada) e nas tabelas `dados/gestos.json` +
-> `dados/acoes.json` (editáveis); `jogo/` lê os contatos e desenha. **v0.44.0.**
+> `dados/acoes.json` (editáveis); `jogo/` lê os contatos e desenha. **v0.45.0.**
 
 ## O fluxo
 
@@ -53,9 +53,11 @@ velocidade e chega a **100%** em `rota.rampa_s` (**0,30 s**), com curva
 o animal **anda enquanto o dedo desenha**; a rampa é o começo suave no lugar do
 antigo delay (a pausa de 0,35 s da v0.17 foi **removida**).
 
-- a rampa **rearma só num caminho NOVO** (`tracar(inicio=true)` e o comando de
-  `mover`): o **traço ao vivo que cresce não reinicia** a rampa, e **retomar**
-  depois de um tiro, de um contorno ou de um pulo também **não** reinicia;
+- a rampa **rearma num caminho NOVO de CAMINHADA** (`tracar(inicio=true)` e o
+  comando de `mover`): o **traço ao vivo que cresce não reinicia** a rampa, e
+  **retomar** depois de um tiro, de um contorno ou de um pulo também **não**
+  reinicia. Já em **trote**, o caminho novo mantém a velocidade da corrida
+  (sem rearmar a rampa) — ver "A marcha pelo tamanho do caminho";
 - o relógio da rampa só anda quando a criatura anda de fato: **carregar o tiro
   e a pausa do disparo não a consomem** (ela continua de onde parou);
 - **não é a mesma coisa** que o tempo lento do desenho: `planejamento`
@@ -63,6 +65,23 @@ antigo delay (a pausa de 0,35 s da v0.17 foi **removida**).
   desenha; a rampa é da **caminhada**;
 - a frenagem depois do fim continua sendo a **inércia** (`freio_extra_px`),
   agora maior no **sprint do segurar** (ou na cauda), não mais num toque.
+
+## A marcha pelo tamanho do caminho (v0.45)
+
+O **tamanho do traço** decide a marcha, e as velocidades foram calibradas com a
+passada real dos clipes (Walk `0,52` e Gallop `0,93` unidade por ciclo), então o
+pé não patina:
+
+- caminho até `mover.caminhada_max_px` (**45 px**, ≈ o comprimento do corpo) é
+  **CAMINHADA**: `mover.velocidade_caminhada` (**28 px/s**) e o clipe **Walk**;
+- caminho maior que isso é **TROTE**: `mover.velocidade` (**110 px/s**) e o
+  clipe **Gallop**;
+- o traço ao vivo só **promove**: nasce curto (caminhada) e, ao crescer além do
+  corpo, vira trote. O trote **trava** até a rota acabar: um traço novo e curto
+  desenhado durante a corrida **não rebaixa a marcha nem rearma a rampa** —
+  quem já corre segue correndo na mesma velocidade;
+- correr acelerado (**segurar**) **força o trote**, mesmo num caminho curto;
+- só sair do repouso (ou vaguear) decide a marcha de novo.
 
 ## O caminho (um dedo): sem espera, ao vivo, com origem congelada
 

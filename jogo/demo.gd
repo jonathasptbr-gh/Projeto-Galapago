@@ -58,6 +58,15 @@ func _init(m: Node) -> void:
 		main.dedo_subiu(1, Vector2(200 + distancia, 500))
 		main.dedo_subiu(0, Vector2(200, 500))
 		return
+	if "--caminhada" in OS.get_cmdline_user_args():
+		# v0.45: traços CURTOS (≈ o comprimento do corpo) para filmar a
+		# CAMINHADA; o demo normal já mostra o TROTE nos caminhos longos.
+		_passos = [
+			{"t": 0.3, "tipo": "caminho", "rel": [[0, 0], [30, 6]], "dur": 0.6},
+			{"t": 1.8, "tipo": "caminho", "rel": [[0, 0], [32, -4]], "dur": 0.6},
+			{"t": 3.3, "tipo": "caminho", "rel": [[0, 0], [34, 0]], "dur": 0.6},
+		]
+		return
 	_passos = [
 		# 0. baseline do CI: o caminho de sempre nos 2 primeiros segundos, com a
 		#    RAMPA de aceleração do começo da caminhada à vista

@@ -47,6 +47,7 @@
 
 | versão | onde | o quê | tamanho | estado |
 |---|---|---|---|---|
+| v0.45.0 | — | nenhum novo de código ou documentação | — | — |
 | v0.44.0 | `sim/visibilidade.gd` | abertura de copa 2D (`alfa_cobertura`) sem uso no jogo; só `test_mundo.gd` a exercita | pequeno | aberto |
 | v0.43.0 | — | nenhum novo de código ou documentação | — | — |
 | v0.42.0 | — | nenhum novo de código ou documentação | — | — |

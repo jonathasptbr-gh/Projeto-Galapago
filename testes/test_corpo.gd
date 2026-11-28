@@ -100,6 +100,92 @@ func test_segurar_acelera_rota_sem_dependencia_de_camera() -> void:
 	checar(c._sprint_cauda_t > 0.0, "mantém cauda")
 
 
+# ---------------------------------------------------------------- v0.45: marcha pelo caminho
+
+## Caminho curto (até ~o comprimento do corpo) = CAMINHADA, na velocidade de
+## caminhada; o trote não entra.
+func test_caminho_curto_caminha() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(84, 48)])}, m, []).begins_with("ok"), "rota curta")
+	checar(not c.trotando(), "caminho curto = caminhada")
+	perto(c.velocidade_base(), 28.0, 0.001, "cruzeiro de caminhada")
+	_rodar(c, m, 0.35)  # vence a rampa de 0,3 s
+	var p0: Vector2 = c.pos
+	for _i in 6:  # 6 quadros = 0,2 s exatos (o _rodar acumula floats e faz 7)
+		c.passo(1.0 / 30.0, m, [])
+	perto(c.pos.distance_to(p0) / 0.2, 28.0, 2.0, "anda em velocidade de caminhada")
+
+
+## Caminho maior que o corpo = TROTE na velocidade normal (sem acelerar).
+func test_caminho_longo_trota() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(240, 48)])}, m, []).begins_with("ok"), "rota longa")
+	checar(c.trotando(), "caminho longo = trote")
+	perto(c.velocidade_base(), 110.0, 0.001, "cruzeiro de trote")
+	_rodar(c, m, 0.35)
+	var p0: Vector2 = c.pos
+	for _i in 6:  # 6 quadros = 0,2 s exatos
+		c.passo(1.0 / 30.0, m, [])
+	perto(c.pos.distance_to(p0) / 0.2, 110.0, 3.0, "anda em velocidade de trote")
+
+
+## O traço ao vivo só PROMOVE: nasce curto (caminhada) e, ao crescer além do
+## corpo, sobe para o trote.
+func test_traco_ao_vivo_promove_caminhada_para_trote() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	var o := Vector2(48, 48)
+	checar(c.tracar(PackedVector2Array([o, o + Vector2(30, 0)]), m, true).begins_with("ok"), "primeiro traço")
+	checar(not c.trotando(), "traço curto caminha")
+	checar(c.tracar(PackedVector2Array([o, o + Vector2(30, 0), o + Vector2(120, 0)]), m, false).begins_with("ok"), "traço cresce")
+	checar(c.trotando(), "passou do comprimento do corpo = trote")
+
+
+## Trote travado: um traço NOVO e curto desenhado durante a corrida não rebaixa
+## a marcha; só sair do repouso decide de novo.
+func test_trote_trava_contra_traco_novo_curto() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(300, 48)])}, m, [])
+	_rodar(c, m, 0.5)
+	checar(c.trotando(), "começou trotando")
+	checar(c.tracar(PackedVector2Array([c.pos, c.pos + Vector2(0, 20)]), m, true).begins_with("ok"), "traço novo curto")
+	checar(c.trotando(), "traço curto no meio da corrida NÃO rebaixa")
+	perto(c.velocidade_base(), 110.0, 0.001, "segue em velocidade de trote")
+	# e SEM rearmar a rampa: continua correndo na mesma velocidade
+	var p1: Vector2 = c.pos
+	for _i in 3:  # 0,1 s
+		c.passo(1.0 / 30.0, m, [])
+	checar(c.pos.distance_to(p1) / 0.1 > 90.0, "mantém a velocidade ao adotar o traço novo (%.0f px/s)" % (c.pos.distance_to(p1) / 0.1))
+	# até acabar e entrar na autonomia: a marcha volta a ser decidida do zero
+	var t := 0.0
+	while (c.em_rota() or c.em_inercia()) and t < 6.0:
+		c.passo(1.0 / 30.0, m, [])
+		t += 1.0 / 30.0
+	_rodar(c, m, 0.1)
+	checar(not c.trotando(), "parada/vagueando volta à caminhada")
+	checar(c.comandar({"acao": "mover", "pontos": PackedVector2Array([c.pos + Vector2(30, 0)])}, m, []).begins_with("ok"), "rota curta parada")
+	checar(not c.trotando(), "novo caminho curto parado = caminhada")
+
+
+## Correr acelerado (segurar) força o trote mesmo num caminho curto.
+func test_segurar_forca_trote_mesmo_em_caminho_curto() -> void:
+	var s := _setup(MAPA)
+	var m: RefCounted = s[0]
+	var c: RefCounted = s[1]
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(84, 48)])}, m, [])
+	_rodar(c, m, 0.1)
+	checar(not c.trotando(), "caminhava")
+	igual(c.comandar({"acao": "segurar"}, m, []), "ok: sprint", "segurar liga a corrida")
+	checar(c.trotando(), "corrida acelerada força o trote")
+
+
 # ---------------------------------------------------------------- rota
 
 func test_rota_percorre_ate_o_fim_e_entra_em_autonomia() -> void:
@@ -975,14 +1061,15 @@ func test_rampa_rearma_so_com_rota_nova() -> void:
 	var m: RefCounted = s[0]
 	var c: RefCounted = s[1]
 	var origem: Vector2 = c.pos
-	checar(c.tracar(PackedVector2Array([origem, Vector2(240, 48)]), m, true).begins_with("ok"), "traço")
+	# v0.45: caminho CURTO = caminhada (a rampa continua valendo para ela)
+	checar(c.tracar(PackedVector2Array([origem, origem + Vector2(36, 0)]), m, true).begins_with("ok"), "traço")
 	_rodar(c, m, 0.2)
 	var t_antes: float = c._rampa_t
 	checar(t_antes > 0.0, "a rampa começou")
-	checar(c.tracar(PackedVector2Array([origem, Vector2(240, 48), Vector2(320, 48)]), m, false).begins_with("ok"), "o traço cresce")
+	checar(c.tracar(PackedVector2Array([origem, origem + Vector2(36, 0), origem + Vector2(42, 0)]), m, false).begins_with("ok"), "o traço cresce")
 	checar(c._rampa_t >= t_antes, "crescer o traço NÃO reinicia a rampa (%.3f → %.3f)" % [t_antes, c._rampa_t])
-	c.comandar({"acao": "mover", "pontos": PackedVector2Array([Vector2(48, 240)])}, m, [])
-	perto(c._rampa_t, 0.0, 0.001, "um caminho NOVO rearma a rampa")
+	c.comandar({"acao": "mover", "pontos": PackedVector2Array([c.pos + Vector2(24, 0)])}, m, [])
+	perto(c._rampa_t, 0.0, 0.001, "um caminho NOVO (ainda curto) rearma a rampa")
 
 
 ## Um traço ao vivo que CONTINUA um SEGURAR (sprint) não corta a
@@ -1005,7 +1092,7 @@ func test_rota_nova_continuando_o_segurar_preserva_sprint_e_rampa() -> void:
 	checar(not c._sprint, "sprint desligado")
 	checar(c._sprint_cauda_t > 0.0, "a cauda mantém o embalo")
 	checar(c.tracar(PackedVector2Array([c.pos, c.pos + Vector2(0, 80)]), m, true).begins_with("ok"), "outro caminho")
-	perto(c._rampa_t, 0.0, 0.001, "sem segurar, a rampa rearma")
+	checar(c._fator_rampa() > 0.95, "já trotando, o caminho novo mantém a velocidade (v0.45)")
 
 
 # ---------------------------------------------------------------- v0.18: carga cancelada

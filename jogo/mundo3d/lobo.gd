@@ -10,10 +10,12 @@ const MODELO := preload("res://arte/modelos/Lobo.glb")
 # AABB medido no Godot com a escala 0,25: 0,27 × 0,67 × 1,39 unidades.
 # Uma célula tem 1 unidade; a pata mais baixa fica a 0,003 do chão.
 const ESCALA_MODELO := 0.25
-# Distância horizontal por ciclo: passada Walk curta (~40% do comprimento
-# do corpo), Gallop mais longa (~70%). Determina fase, não velocidade fixa.
-const PASSADA_WALK := 0.55
-const PASSADA_GALLOP := 0.95
+# Distância de CHÃO por ciclo, medida nos pés do próprio clipe (cinemática do
+# GLB, 2026-11-28): Walk 0,52 unidade (pé planta 1,03 unidade de modelo em meio
+# ciclo), Gallop 0,93. Com a fase presa à distância, o pé não patina nem quando
+# o clipe toca mais rápido.
+const PASSADA_WALK := 0.52
+const PASSADA_GALLOP := 0.93
 
 @export var cor := Color.WHITE
 
@@ -66,15 +68,17 @@ func atualizar(pos_px: Vector2, h: float, direcao: Vector2, salto := 0.0) -> voi
 ## Estado lido da sim, nunca derivado do olhar (que também gira parada).
 ## Cada quadro avança em distância/PX_POR_UNIDADE/passada ciclos, sem
 ## dependência do fps: velocidade × duração_do_clipe / passada.
-## Na imobilidade muda para Idle; pulo/ataque não recebem a velocidade de andar.
-func animar(deslocamento_px: float, delta_s: float, no_ar: bool, atacando: bool, perto: bool) -> void:
+## A MARCHA vem da sim (`corpo.trotando()`): caminhada usa Walk, trote e
+## corrida acelerada usam Gallop. Na imobilidade muda para Idle; pulo/ataque
+## não recebem a velocidade de andar.
+func animar(deslocamento_px: float, delta_s: float, no_ar: bool, atacando: bool, trotando: bool) -> void:
 	var nome := "Idle"
 	if atacando:
 		nome = "Attack"
 	elif no_ar:
 		nome = "Gallop_Jump"
 	elif delta_s > 0.0 and deslocamento_px > 0.01:
-		nome = "Walk" if perto else "Gallop"
+		nome = "Gallop" if trotando else "Walk"
 	_tocar(nome)
 	if nome == "Walk" or nome == "Gallop":
 		var passada := PASSADA_WALK if nome == "Walk" else PASSADA_GALLOP

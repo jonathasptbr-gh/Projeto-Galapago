@@ -3,6 +3,23 @@
 > Apêndice: a entrada mais nova em cima. Uma seção por versão, escrita uma vez
 > no lote. Lê-se por `grep`, nunca inteiro.
 
+## v0.45.0 — marcha pelo tamanho do caminho e passadas calibradas (2026-11-28)
+
+- **Marcha pelo traço:** `sim/corpo.gd` ganha `trote`/`trotando()`/`velocidade_base()`
+  e `dados/acoes.json` ganha `mover.velocidade_caminhada` (**28 px/s**) e
+  `mover.caminhada_max_px` (**45 px**, ≈ o comprimento do corpo). Caminho até o
+  limite é **caminhada**; acima é **trote** (110 px/s, a normal). O traço ao vivo
+  só **promove** (cresceu ⇒ trota) e o trote **trava** até a rota acabar: um
+  traço novo e curto no meio da corrida não rebaixa a marcha nem rearma a rampa.
+  Correr acelerado (segurar) força o trote; a autonomia volta à caminhada.
+- **Sem patinar:** o clipe passa a ser escolhido pela marcha da sim
+  (`Walk`/`Gallop`), não pela câmera. As passadas foram medidas por cinemática do
+  GLB (`Walk` 0,52 e `Gallop` 0,93 unidade por ciclo) e a fase continua presa à
+  distância percorrida, então a cadência acompanha a velocidade real sem o pé
+  escorregar. `--caminhada` na demo filma traços curtos para o oráculo.
+- Verificação: `tools/testes.sh` 220/220, parser 54/0; quadros de caminhada e
+  trote abertos e conferidos.
+
 ## v0.44.0 — um só controle, zoom contínuo e copa mais aberta (2026-11-28)
 
 - **Controle único:** removidos o joystick e o controle relativo da vista

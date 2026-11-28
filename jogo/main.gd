@@ -387,7 +387,7 @@ func _atualizar_atores(delta: float) -> void:
 	var salto: float = float(corpo.z) / Cam3D.PX_POR_UNIDADE - (AFUNDA_SUBSOLO if subsolo else 0.0)
 	ator_criatura.atualizar(corpo.pos, _h_cria, corpo.olhar, salto)
 	var deslocamento: float = Vector2(corpo.pos).distance_to(_pos_anim_criatura) if delta > 0.0 else 0.0
-	ator_criatura.animar(deslocamento, delta, corpo.no_ar(), corpo.ataque != "", camera_toque.intima())
+	ator_criatura.animar(deslocamento, delta, corpo.no_ar(), corpo.ataque != "", corpo.trotando())
 	_pos_anim_criatura = corpo.pos
 	var cor := COR_CRIATURA
 	if subsolo:
